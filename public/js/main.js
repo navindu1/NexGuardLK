@@ -24,129 +24,53 @@ document.addEventListener("DOMContentLoaded", () => {
   const overlay = document.getElementById("sidebar-overlay");
   let userSession = null;
 
-  // Static data for the application
-// main.js file
+    // Static data for the application
+  const appData = {
+    plans: {
+        "100GB": { name: "100GB Plan", price: "300", features: ["High-Speed Connection", "Optimal for Streaming", "30-Day Validity"] },
+        "200GB": { name: "200GB Plan", price: "500", features: ["Ultra-Fast Speeds", "Perfect for Gaming", "30-Day Validity"] },
+        Unlimited: { name: "Unlimited Plan", price: "800", features: ["No Data Caps", "Ultimate Freedom", "Best for Power Users"] },
+    },
+    connections: {
+        dialog: { name: "Dialog Router", icon: "fa-solid fa-wifi", requiresPackageChoice: false, requiredPackage: "Work and Learn Unlimited (LKR 724)" },
+        slt_router: { name: "SLT Router", icon: "fa-solid fa-wifi", requiresPackageChoice: true, requiredPackage: ["Meet Max 100GB (LKR 490)", "Netflix Unlimited (LKR 1990)"], packageOptions: ["Meet Max 100GB (LKR 490)", "Netflix Unlimited (LKR 1990)"] },
+        slt_fiber: { name: "SLT Fiber", icon: "fa-solid fa-network-wired", requiresPackageChoice: true, requiredPackage: ["Meet Max 100GB (LKR 490)", "Netflix Unlimited (LKR 1990)"], packageOptions: ["Meet Max 100GB (LKR 490)", "Netflix Unlimited (LKR 1990)"] },
+        hutch: { name: "Hutch SIM", icon: "fa-solid fa-sim-card", requiresPackageChoice: false, requiredPackage: "Gaming Unlimited (LKR 505)" },
+    },
+    bankDetails: `Name: N.R Lekamge\nBank: BOC Bank\nBranch: Eheliyagoda\nAccount Number: 93129972`.trim(),
+  };
 
-// Static data for the application
-const appData = {
-  plans: {
-    "100GB": {
-      name: "100GB Plan",
-      price: "300",
-      features: [
-        "High-Speed Connection",
-        "Optimal for Streaming",
-        "30-Day Validity",
-      ],
-    },
-    "200GB": {
-      name: "200GB Plan",
-      price: "500",
-      features: [
-        "Ultra-Fast Speeds",
-        "Perfect for Gaming",
-        "30-Day Validity",
-      ],
-    },
-    Unlimited: {
-      name: "Unlimited Plan",
-      price: "800",
-      features: [
-        "No Data Caps",
-        "Ultimate Freedom",
-        "Best for Power Users",
-      ],
-    },
-  },
-  connections: {
-    dialog: {
-      name: "Dialog Router",
-      icon: "fa-solid fa-wifi",
-      requiresPackageChoice: false, // User doesn't need to choose, it's fixed
-      requiredPackage: "Work and Learn Unlimited (LKR 724)",
-    },
-    slt_router: {
-      name: "SLT Router",
-      icon: "fa-solid fa-wifi",
-      requiresPackageChoice: true, // User MUST choose a package
-      requiredPackage: ["Meet Max 100GB (LKR 490)", "Netflix Unlimited (LKR 1990)"], // Used for display
-      packageOptions: ["Meet Max 100GB (LKR 490)", "Netflix Unlimited (LKR 1990)"], // Used to create buttons
-    },
-    slt_fiber: {
-      name: "SLT Fiber",
-      icon: "fa-solid fa-network-wired",
-      requiresPackageChoice: true, // User MUST choose a package
-      requiredPackage: ["Meet Max 100GB (LKR 490)", "Netflix Unlimited (LKR 1990)"], // Used for display
-      packageOptions: ["Meet Max 100GB (LKR 490)", "Netflix Unlimited (LKR 1990)"], // Used to create buttons
-    },
-    hutch: {
-      name: "Hutch SIM",
-      icon: "fa-solid fa-sim-card",
-      requiresPackageChoice: false, // User doesn't need to choose, it's fixed
-      requiredPackage: "Gaming Unlimited (LKR 505)",
-    },
-  },
-  bankDetails: `
-Name: N.R Lekamge
-Bank: BOC Bank
-Branch: Eheliyagoda
-Account Number: 93129972
-  `.trim(),
-};
-
-
-  /**
-   * Updates the navigation UI based on the user's login status.
-   * @param {boolean} isLoggedIn - True if the user is logged in, false otherwise.
-   */
-  // main.js
-
-/**
- * Updates the navigation UI based on the user's login status.
- * This version is more robust and checks if elements exist before changing them.
- */
-const updateNavUI = (isLoggedIn) => {
+  const updateNavUI = (isLoggedIn) => {
     const desktopAuth = document.getElementById("desktop-auth-buttons");
     const mobileAuth = document.getElementById("mobile-auth-buttons");
     const desktopProfile = document.getElementById("desktop-user-profile");
     const mobileProfile = document.getElementById("mobile-user-profile");
     const profilePicDesktop = document.getElementById("profile-pic-nav-desktop");
     const profilePicMobile = document.getElementById("profile-pic-nav-mobile");
-
     const baseProfileClasses = "items-center gap-3";
     const baseAuthClasses = "items-center gap-2";
-
     if (isLoggedIn && userSession) {
-        // User is logged in: Hide auth buttons, show profile sections
-        if (desktopAuth) desktopAuth.className = `hidden ${baseAuthClasses}`;
-        if (mobileAuth) mobileAuth.classList.add("hidden");
-        
-        if (desktopProfile) desktopProfile.className = `hidden sm:flex ${baseProfileClasses}`;
-        if (mobileProfile) {
-            mobileProfile.classList.remove("hidden");
-            mobileProfile.classList.add("flex");
-        }
-
-        const profilePicturePath = (userSession.profilePicture || "assets/profilePhoto.jpg").replace("public/", "");
-        if (profilePicDesktop) profilePicDesktop.src = profilePicturePath;
-        if (profilePicMobile) profilePicMobile.src = profilePicturePath;
+      if (desktopAuth) desktopAuth.className = `hidden ${baseAuthClasses}`;
+      if (mobileAuth) mobileAuth.classList.add("hidden");
+      if (desktopProfile) desktopProfile.className = `hidden sm:flex ${baseProfileClasses}`;
+      if (mobileProfile) {
+        mobileProfile.classList.remove("hidden");
+        mobileProfile.classList.add("flex");
+      }
+      const profilePicturePath = (userSession.profilePicture || "assets/profilePhoto.jpg").replace("public/", "");
+      if (profilePicDesktop) profilePicDesktop.src = profilePicturePath;
+      if (profilePicMobile) profilePicMobile.src = profilePicturePath;
     } else {
-        // User is not logged in: Show auth buttons, hide profile sections
-        if (desktopAuth) desktopAuth.className = `hidden sm:flex ${baseAuthClasses}`;
-        if (mobileAuth) mobileAuth.classList.remove("hidden");
-
-        if (desktopProfile) desktopProfile.className = `hidden ${baseProfileClasses}`;
-        if (mobileProfile) {
-            mobileProfile.classList.add("hidden");
-            mobileProfile.classList.remove("flex");
-        }
+      if (desktopAuth) desktopAuth.className = `hidden sm:flex ${baseAuthClasses}`;
+      if (mobileAuth) mobileAuth.classList.remove("hidden");
+      if (desktopProfile) desktopProfile.className = `hidden ${baseProfileClasses}`;
+      if (mobileProfile) {
+        mobileProfile.classList.add("hidden");
+        mobileProfile.classList.remove("flex");
+      }
     }
-};
+  };
 
-  /**
-   * Saves user session data to localStorage and updates UI.
-   * @param {object} data - The session data including token and user object.
-   */
   const saveSession = (data) => {
     localStorage.setItem("nexguard_token", data.token);
     localStorage.setItem("nexguard_user", JSON.stringify(data.user));
@@ -154,119 +78,78 @@ const updateNavUI = (isLoggedIn) => {
     updateNavUI(true);
   };
 
-  /**
-   * Clears user session data from localStorage and updates UI.
-   */
   const clearSession = () => {
     localStorage.removeItem("nexguard_token");
     localStorage.removeItem("nexguard_user");
     userSession = null;
     updateNavUI(false);
-    navigateTo("#home");
+    navigateTo("/home");
   };
 
-// main.js
-
-/**
- * Loads user session data from localStorage on page load.
- * This version includes better error handling.
- */
-const loadSession = () => {
-  const token = localStorage.getItem("nexguard_token");
-  const user = localStorage.getItem("nexguard_user");
-  
-  if (token && user) {
-    try {
-      userSession = JSON.parse(user);
-      updateNavUI(true);
-    } catch (error) {
-      console.error('Error parsing user session data from localStorage:', error);
-      // If data is corrupted, clear everything to be safe
-      clearSession(); 
+  const loadSession = () => {
+    const token = localStorage.getItem("nexguard_token");
+    const user = localStorage.getItem("nexguard_user");
+    if (token && user) {
+      try {
+        userSession = JSON.parse(user);
+        updateNavUI(true);
+      } catch (error) {
+        console.error('Error parsing user session data from localStorage:', error);
+        clearSession();
+      }
+    } else {
+      userSession = null;
+      updateNavUI(false);
     }
-  } else {
-    userSession = null;
-    updateNavUI(false);
-  }
-};
+  };
 
-  
-  // Setup logout functionality
   document.addEventListener("click", (e) => {
-    if (
-      e.target.id === "logout-btn-desktop" ||
-      e.target.id === "logout-btn-mobile"
-    ) {
+    if (e.target.id === "logout-btn-desktop" || e.target.id === "logout-btn-mobile") {
       clearSession();
     }
   });
-  
-  // Mobile sidebar controls
+
   const openSidebar = () => {
     body.classList.add("sidebar-open");
     sidebar.classList.remove("-translate-x-full");
     overlay.classList.remove("opacity-0", "pointer-events-none");
   };
+
   const closeSidebar = () => {
     body.classList.remove("sidebar-open");
     sidebar.classList.add("-translate-x-full");
     overlay.classList.add("opacity-0", "pointer-events-none");
   };
+
   hamburgerBtn.addEventListener("click", openSidebar);
   overlay.addEventListener("click", closeSidebar);
-  document
-    .querySelectorAll("#mobile-nav a[href^='#']")
-    .forEach((link) => link.addEventListener("click", closeSidebar));
-
-  /**
-   * Initializes all animations on the page.
-   */
-// main.js
-
-  /**
-   * Initializes all animations on the page.
-   * This new version removes the staggered delay for a faster, more responsive feel on scroll.
-   */
+  document.querySelectorAll("#mobile-nav a").forEach((link) => link.addEventListener("click", closeSidebar));
+  
   const initAnimations = () => {
-    const observer = new IntersectionObserver(
-      (entries) => {
+    const observer = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("is-visible");
-            observer.unobserve(entry.target);
-          }
+            if (entry.isIntersecting) {
+                entry.target.classList.add("is-visible");
+                observer.unobserve(entry.target);
+            }
         });
-      },
-      { 
-        // We trigger the animation when 20% of the element is visible.
-        // This feels more responsive than a very low value.
-        threshold: 0.2 
-      }
-    );
-
-    // Observe all elements with the "reveal" class.
-    // The staggered transitionDelay has been REMOVED.
+    }, { threshold: 0.2 });
     document.querySelectorAll(".reveal").forEach((el) => {
-      observer.observe(el);
+        observer.observe(el);
     });
-
-    // The glowing card border animation remains unchanged.
     document.querySelectorAll(".card").forEach((card) => {
-      card.addEventListener("mousemove", (e) => {
-        const rect = card.getBoundingClientRect();
-        card.style.setProperty("--mouse-x", `${e.clientX - rect.left}px`);
-        card.style.setProperty("--mouse-y", `${e.clientY - rect.top}px`);
-      });
+        card.addEventListener("mousemove", (e) => {
+            const rect = card.getBoundingClientRect();
+            card.style.setProperty("--mouse-x", `${e.clientX - rect.left}px`);
+            card.style.setProperty("--mouse-y", `${e.clientY - rect.top}px`);
+        });
     });
   };
 
-  // QR Code Modal Logic
   const qrModal = document.getElementById("qr-modal");
   const qrModalContent = document.getElementById("modal-qr-code");
   const qrModalCloseBtn = document.getElementById("qr-modal-close-btn");
-  const qrModalConnectionName = document.getElementById(
-    "modal-connection-name"
-  );
+  const qrModalConnectionName = document.getElementById("modal-connection-name");
   const showQrModal = (qrDataUrl, connectionName) => {
     qrModalContent.innerHTML = "";
     const img = document.createElement("img");
@@ -276,23 +159,34 @@ const loadSession = () => {
     qrModal.style.display = "flex";
     body.classList.add("modal-open");
   };
+  
   const closeQrModal = () => {
     qrModal.style.display = "none";
     body.classList.remove("modal-open");
   };
+
   qrModalCloseBtn.addEventListener("click", closeQrModal);
   qrModal.addEventListener("click", (e) => {
     if (e.target === qrModal) closeQrModal();
   });
 
-  /**
-   * Displays a toast notification.
-   * @param {object} options - Toast options.
-   * @param {string} options.title - The title of the toast.
-   * @param {string} options.message - The message content.
-   * @param {string} [options.type="info"] - Type of toast (success, error, warning, info).
-   * @param {number} [options.duration=5000] - Duration in milliseconds.
-   */
+  const togglePassword = (inputId, toggleId) => {
+    const passwordInput = document.getElementById(inputId);
+    const toggleIcon = document.getElementById(toggleId);
+    if (passwordInput && toggleIcon) {
+      if (passwordInput.type === "password") {
+        passwordInput.type = "text";
+        toggleIcon.classList.remove("fa-eye");
+        toggleIcon.classList.add("fa-eye-slash");
+      } else {
+        passwordInput.type = "password";
+        toggleIcon.classList.remove("fa-eye-slash");
+        toggleIcon.classList.add("fa-eye");
+      }
+    }
+  };
+
+//----------------functions here----------------------//  
   function showToast({ title, message, type = "info", duration = 5000 }) {
     let container = document.getElementById("toast-container");
     if (!container) {
@@ -345,24 +239,6 @@ const loadSession = () => {
       .addEventListener("click", removeToast);
   }
 
-  const togglePassword = (inputId, toggleId) => {
-    const passwordInput = document.getElementById(inputId);
-    const toggleIcon = document.getElementById(toggleId);
-    if (passwordInput && toggleIcon) {
-      if (passwordInput.type === "password") {
-        passwordInput.type = "text";
-        toggleIcon.classList.remove("fa-eye");
-        toggleIcon.classList.add("fa-eye-slash");
-      } else {
-        passwordInput.type = "password";
-        toggleIcon.classList.remove("fa-eye-slash");
-        toggleIcon.classList.add("fa-eye");
-      }
-    }
-  };
-
-  // --- Page Rendering Functions ---
-
   function renderHomePage(renderFunc) {
     renderFunc(`
         <div class="page" id="page-home">
@@ -375,8 +251,8 @@ const loadSession = () => {
                     Blazing fast, ultra-secure V2Ray connections designed for seamless streaming, gaming, and browsing. Unleash the full potential of your internet with NexGuard.
                 </p>
                 <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-                    <a href="#plans" class="nav-link-internal px-7 py-2.5 text-sm font-semibold text-white rounded-lg ai-button">View Plans <i class="fa-solid fa-arrow-right ml-2"></i></a>
-                    <a href="#about?scroll=contact-section" class="nav-link-internal px-7 py-2.5 text-sm font-semibold text-white rounded-lg ai-button secondary"><i class="fa-solid fa-headset mr-2"></i> Contact Us</a>
+                    <a href="/plans" class="nav-link-internal px-7 py-2.5 text-sm font-semibold text-white rounded-lg ai-button">View Plans <i class="fa-solid fa-arrow-right ml-2"></i></a>
+                    <a href="/about?scroll=contact-section" class="nav-link-internal px-7 py-2.5 text-sm font-semibold text-white rounded-lg ai-button secondary"><i class="fa-solid fa-headset mr-2"></i> Contact Us</a>
                 </div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
@@ -420,7 +296,7 @@ const loadSession = () => {
         </div>`);
   }
 
-function renderUsagePage(renderFunc) {
+  function renderUsagePage(renderFunc) {
   renderFunc(`
     <div class="page" id="page-usage">
         <main class="w-full max-w-md space-y-8 z-10 mx-auto">
@@ -595,12 +471,9 @@ function renderUsagePage(renderFunc) {
     }
     
   }, 100);
-}
+  }
 
-// Add this function to display the usage data card
-// main.js
-
-function displayUserData(data, name, container) {
+  function displayUserData(data, name, container) {
     const down = data.down || 0,
         up = data.up || 0,
         totalUsed = down + up,
@@ -693,10 +566,9 @@ function displayUserData(data, name, container) {
 
     // Animate progress bar (common for both)
     if (totalQuota > 0) animateCounter(container.querySelector('#usage-percentage'), 0, Math.floor(usagePercentage), animDuration);
-}
+  }
 
-// The displayUserData function remains the same as before
-function displayUserData(data, name, container) {
+  function displayUserData(data, name, container) {
     const down = data.down || 0, up = data.up || 0, totalUsed = down + up, totalQuota = data.total || 0;
     const usagePercentage = totalQuota > 0 ? Math.min((totalUsed / totalQuota) * 100, 100) : 0;
     const status = data.enable ? `<span class="font-semibold text-green-400">ONLINE</span>` : `<span class="font-semibold text-red-400">OFFLINE</span>`;
@@ -745,7 +617,8 @@ function displayUserData(data, name, container) {
     animateCounter(container.querySelector('#upload-value'), 0, up, animDuration);
     animateCounter(container.querySelector('#total-usage-value'), 0, totalUsed, animDuration);
     if (totalQuota > 0) animateCounter(container.querySelector('#usage-percentage'), 0, Math.floor(usagePercentage), animDuration);
-}
+  }
+
   function renderPlansPage(renderFunc) {
     let plansHtml = Object.entries(appData.plans)
       .map(
@@ -761,7 +634,7 @@ function displayUserData(data, name, container) {
                   `<li><i class="fa-solid fa-check text-green-400 mr-2"></i>${f}</li>`
               )
               .join("")}</ul>
-            <a href="#connections?planId=${key}" class="nav-link-internal mt-6 inline-block w-full py-2 text-sm font-semibold text-white rounded-lg ai-button">Select Plan</a>
+            <a href="/connections?planId=${key}" class="nav-link-internal mt-6 inline-block w-full py-2 text-sm font-semibold text-white rounded-lg ai-button">Select Plan</a>
         </div>`
       )
       .join("");
@@ -780,7 +653,7 @@ function displayUserData(data, name, container) {
     let connectionsHtml = "";
     if (!planId || !appData.plans[planId]) {
       connectionsHtml =
-        '<p class="text-red-400 text-center col-span-full">Invalid plan. Please <a href="#plans" class="nav-link-internal underline">go back</a>.</p>';
+        '<p class="text-red-400 text-center col-span-full">Invalid plan. Please <a href="/plans" class="nav-link-internal underline">go back</a>.</p>';
     } else {
       connectionsHtml = Object.entries(appData.connections)
         .map(([key, conn]) => {
@@ -811,7 +684,7 @@ function displayUserData(data, name, container) {
                 <p class="text-gray-400 mt-2">Step 2: Choose your ISP.</p>
             </header>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">${connectionsHtml}</div>
-            <div class="text-center mt-8 reveal"><a href="#plans" class="nav-link-internal text-purple-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back to Plans</a></div>
+            <div class="text-center mt-8 reveal"><a href="/plans" class="nav-link-internal text-purple-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back to Plans</a></div>
         </div>`);
   }
 
@@ -828,7 +701,7 @@ function displayUserData(data, name, container) {
     let choiceHtml = conn.packageOptions
       .map((option) => {
         const encodedOption = encodeURIComponent(option);
-        return `<a href="#checkout?planId=${planId}&connId=${connId}&pkg=${encodedOption}" class="nav-link-internal card reveal selectable glass-panel p-8 rounded-xl text-center flex flex-col items-center justify-center">
+        return `<a href="/checkout?planId=${planId}&connId=${connId}&pkg=${encodedOption}" class="nav-link-internal card reveal selectable glass-panel p-8 rounded-xl text-center flex flex-col items-center justify-center">
                     <i class="fa-solid fa-box-open text-3xl gradient-text mb-3"></i>
                     <h3 class="text-lg font-bold text-white">${option}</h3>
                 </a>`;
@@ -843,7 +716,7 @@ function displayUserData(data, name, container) {
             </header>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">${choiceHtml}</div>
             <div class="text-center mt-8 reveal">
-                <a href="#connections?planId=${planId}" class="nav-link-internal text-purple-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back to Connections</a>
+                <a href="/connections?planId=${planId}" class="nav-link-internal text-purple-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back to Connections</a>
             </div>
         </div>`);
   }
@@ -983,7 +856,7 @@ function displayUserData(data, name, container) {
       summaryHtml = summary;
     } else {
 //...
-      summaryHtml = `<p class="text-red-400">Invalid selection. Please <a href="#plans" class="nav-link-internal underline">start over</a>.</p>`;
+      summaryHtml = `<p class="text-red-400">Invalid selection. Please <a href="/plans" class="nav-link-internal underline">start over</a>.</p>`;
     }
 
     renderFunc(`
@@ -1033,7 +906,7 @@ function displayUserData(data, name, container) {
              <i class="fas fa-check-circle text-5xl text-green-400 mb-4"></i>
              <p class="text-lg text-green-400 font-semibold">Order Submitted!</p>
              <p class="text-gray-300 mt-2 text-sm">Your order is pending approval. You can check the status on your profile.</p>
-             <a href="#profile?tab=orders" class="nav-link-internal mt-6 inline-block w-full py-2 text-sm font-semibold text-white rounded-lg ai-button">View My Orders</a>
+             <a href="/profile?tab=orders" class="nav-link-internal mt-6 inline-block w-full py-2 text-sm font-semibold text-white rounded-lg ai-button">View My Orders</a>
           </div>
         </div>
       </div>`);
@@ -1077,7 +950,7 @@ function displayUserData(data, name, container) {
       });
   }
 
-function renderProfilePage(renderFunc, params) {
+  function renderProfilePage(renderFunc, params) {
     const user = JSON.parse(localStorage.getItem("nexguard_user"));
     if (!user) {
         window.location.hash = "#login";
@@ -1377,7 +1250,7 @@ planDetailsContainer.innerHTML = `
                                 const expiryDate = new Date(result.data.expiryTime);
                                 const isExpired = new Date() > expiryDate;
                                 if (isExpired) {
-                                    container.innerHTML = `<a href="#checkout?planId=${plan.planId}&connId=${plan.connId}&renew=${encodeURIComponent(plan.v2rayUsername)}" class="nav-link-internal ai-button inline-block py-2 px-6 text-sm rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew Plan</a>`;
+                                    container.innerHTML = `<a href="/checkout?planId=${plan.planId}&connId=${plan.connId}&renew=${encodeURIComponent(plan.v2rayUsername)}" class="nav-link-internal ai-button inline-block py-2 px-6 text-sm rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew Plan</a>`;
                                 } else {
                                     container.innerHTML = `<button disabled class="ai-button secondary inline-block py-2 px-6 text-sm rounded-lg !bg-gray-700/50 !text-gray-400 cursor-not-allowed"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew Plan</button>`;
                                 }
@@ -1478,7 +1351,7 @@ planDetailsContainer.innerHTML = `
             } else { // 'no_plan' status
                 const settingsHtml = `<div class="glass-panel p-6 rounded-xl"><h3 class="text-xl font-bold text-white mb-4 font-['Orbitron']">Account Settings</h3><form id="profile-update-form" class="space-y-6"><div class="form-group"><input type="text" class="form-input" readonly value="${user.username}" title="Website username cannot be changed."><label class="form-label">Website Username</label></div><div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" placeholder=" "><label for="new-password" class="form-label">New Password (leave blank to keep)</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i></div><button type="submit" class="ai-button w-full py-2.5 rounded-lg !mt-8">Save Changes</button></form></div>`;
                 const linkAccountHtml = `<div class="glass-panel p-6 rounded-xl"><h3 class="text-xl font-bold text-white mb-2 font-['Orbitron']">Link Existing V2Ray Account</h3><p class="text-sm text-gray-400 mb-6">If you have an old account, link it here to manage renewals.</p><form id="link-account-form-profile" class="space-y-6"><div class="form-group"><input type="text" id="existing-v2ray-username-profile" class="form-input" required placeholder=" "><label for="existing-v2ray-username-profile" class="form-label">Your Old V2Ray Username</label><span class="focus-border"><i></i></span></div><button type="submit" class="ai-button secondary w-full py-2.5 rounded-lg">Link Account</button></form></div>`;
-                statusContainer.innerHTML = `<div class="glass-panel p-8 rounded-xl text-center"><i class="fa-solid fa-rocket text-4xl text-purple-400 mb-4"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Get Started</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">You do not have any active plans yet. Purchase a new plan or link an existing account below.</p><a href="#plans" class="nav-link-internal ai-button inline-block py-2 px-6 text-sm rounded-lg mt-6">Purchase a Plan</a></div><div class="grid md:grid-cols-2 gap-8 mt-8">${settingsHtml}${linkAccountHtml}</div>`;
+                statusContainer.innerHTML = `<div class="glass-panel p-8 rounded-xl text-center"><i class="fa-solid fa-rocket text-4xl text-purple-400 mb-4"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Get Started</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">You do not have any active plans yet. Purchase a new plan or link an existing account below.</p><a href="/plans" class="nav-link-internal ai-button inline-block py-2 px-6 text-sm rounded-lg mt-6">Purchase a Plan</a></div><div class="grid md:grid-cols-2 gap-8 mt-8">${settingsHtml}${linkAccountHtml}</div>`;
                 setupEventListeners(); // Attach event listeners for the 'no_plan' view
             }
         })
@@ -1486,7 +1359,7 @@ planDetailsContainer.innerHTML = `
             console.error("Error fetching user status:", error);
             statusContainer.innerHTML = `<div class="glass-panel p-8 rounded-xl text-center"><p class="text-red-400">Could not load profile data. Please try logging in again.</p></div>`;
         });
-}
+  }
 
   function renderAuthPage(renderFunc, params, initialPanel = "signin") {
     const resetToken = params.get("token");
@@ -1634,7 +1507,7 @@ planDetailsContainer.innerHTML = `
                       <span class="focus-border"><i></i></span>
                   </div>
                   <button type="submit" class="ai-button w-full py-2.5 rounded-lg">Link Account & Continue</button>
-                  <a href="#profile" id="skip-link-btn" class="nav-link-internal block text-center text-sm text-gray-400 hover:text-white !mt-4">Skip for Now</a>
+                  <a href="/profile" id="skip-link-btn" class="nav-link-internal block text-center text-sm text-gray-400 hover:text-white !mt-4">Skip for Now</a>
               </form>
           </div>
           </div>
@@ -1948,7 +1821,6 @@ planDetailsContainer.innerHTML = `
       );
   }
 
-  // --- SPA Router ---
   const allRoutes = {
     home: renderHomePage,
     usage: renderUsagePage,
@@ -1963,81 +1835,69 @@ planDetailsContainer.innerHTML = `
     checkout: renderCheckoutPage,
     profile: renderProfilePage,
   };
-// main.js
 
-const navigateTo = (hash) => {
-    const [path, query] = (hash || "#home").substring(1).split("?");
-    let pageKey = path || "home";
+   const navigateTo = (path) => {
+    history.pushState(null, null, path);
+    router();
+  };
+
+  const router = () => {
+    const pathName = window.location.pathname;
+    const [path, query] = pathName.split("?");
     const params = new URLSearchParams(query);
+    let pageKey = path === '/' ? 'home' : path.substring(1);
 
-    // ⚠️ FIX: If user is already logged in, prevent access to auth pages
     if (userSession && ["login", "signup", "reset-password"].includes(pageKey)) {
-        window.location.hash = "#profile"; // Redirect to profile
-        return;
+      navigateTo("/profile");
+      return;
     }
-
-    // If user is NOT logged in, prevent access to protected pages
     if (["checkout", "profile"].includes(pageKey) && !userSession) {
-        window.location.hash = "#login";
-        return;
+      navigateTo("/login");
+      return;
     }
 
     const renderFunction = allRoutes[pageKey] || allRoutes["home"];
     if (renderFunction) {
-        mainContentArea.innerHTML = "";
-        renderFunction(
-            (html) => {
-                mainContentArea.innerHTML = html;
-                initAnimations();
-                const scrollTargetId = params.get("scroll");
-                if (scrollTargetId) {
-                    // පිටුව සම්පූර්ණයෙන් render වීමට පොඩි delay එකක් ලබා දීම
-                    setTimeout(() => {
-                        const scrollTargetElement = document.getElementById(scrollTargetId);
-                        if (scrollTargetElement) {
-                            scrollTargetElement.scrollIntoView({ behavior: "smooth", block: "start" });
-                        }
-                    }, 100); // මිලි තත්පර 100ක් ප්‍රමාණවත්
-                }
-            },
-            params,
-            pageKey
-        );
+      mainContentArea.innerHTML = "";
+      renderFunction(
+        (html) => {
+          mainContentArea.innerHTML = html;
+          initAnimations();
+          const scrollTargetId = params.get("scroll");
+          if (scrollTargetId) {
+            setTimeout(() => {
+              const scrollTargetElement = document.getElementById(scrollTargetId);
+              if (scrollTargetElement) {
+                scrollTargetElement.scrollIntoView({ behavior: "smooth", block: "start" });
+              }
+            }, 100);
+          }
+        },
+        params,
+        pageKey
+      );
     }
-
-    // Update active nav link
     document.querySelectorAll("#main-nav a, #mobile-nav a").forEach((link) => {
-        if (link.getAttribute("href")) {
-            const linkPath = link.getAttribute("href").split("?")[0];
-            link.classList.toggle("active", linkPath === `#${pageKey}`);
-        }
+      if (link.getAttribute("href")) {
+        const linkPath = link.getAttribute("href").split("?")[0];
+        const isActive = linkPath === `/${pageKey}` || (linkPath === '/home' && pageKey === 'home');
+        link.classList.toggle("active", isActive);
+      }
     });
     window.scrollTo(0, 0);
-};
-  
-  // --- Event Listeners for Navigation ---
-// --- Event Listeners for Navigation ---
-document.addEventListener("click", (event) => {
-  // Find the closest ancestor that is an internal link
-  const link = event.target.closest("a.nav-link-internal");
-  if (link) {
-    // Prevent the browser's default jump behavior
-    event.preventDefault();
-    
-    const href = link.getAttribute("href");
+  };
 
-    // IMPORTANT: Change the URL hash.
-    // This action will automatically trigger the 'hashchange' event listener below.
-    if (window.location.hash !== href) {
-        window.location.hash = href;
+  window.addEventListener("popstate", router);
+
+  document.addEventListener("click", (e) => {
+    const link = e.target.closest("a.nav-link-internal");
+    if (link) {
+      e.preventDefault();
+      navigateTo(link.getAttribute("href"));
     }
-  }
-});
-
-// This listener will now handle ALL navigation rendering, triggered by the click handler above
-window.addEventListener("hashchange", () => navigateTo(window.location.hash));
+  });
 
   // --- Initial Application Load ---
   loadSession(); 
-  navigateTo(window.location.hash);
+  router(); // Initial route call
 });
