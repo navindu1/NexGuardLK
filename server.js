@@ -12,12 +12,12 @@ const jwt = require("jsonwebtoken");
 const { v4: uuidv4 } = require("uuid");
 const multer = require("multer");
 const fs = require("fs");
+require("dotenv").config();
 const path = require("path");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
-require("dotenv").config();
 const app = express();
-const port = 3000;
+const port = process.env.PORT;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
@@ -1252,8 +1252,9 @@ app.post(
   }
 );
 
-app.listen(port, () => {
-  console.log(`Server is running at http://localhost:${port}`);
+
+app.listen(port, "0.0.0.0", () => {
+  console.log(`✅ Server is running on port ${port}`);
   loginToPanel();
 });
 
