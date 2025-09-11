@@ -11,6 +11,8 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { v4: uuidv4 } = require("uuid");
 const multer = require("multer");
+const nodemailer = require("nodemailer");
+const postmarkTransport = require('nodemailer-postmark-transport');
 const fs = require("fs");
 require("dotenv").config();
 const path = require("path");
@@ -148,15 +150,11 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // --- Email Transporter Setup ---
-const transporter = nodemailer.createTransport({
-  host: "smtp.zoho.com",
-  secure: false,
-  port: 587,
+const transporter = nodemailer.createTransport(postmarkTransport({
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+    apiKey: process.env.POSTMARK_API_TOKEN,
+  }
+}));
 
 // --- Temporary Storage ---
 let tempUsers = {};
@@ -504,7 +502,7 @@ app.post("/api/auth/register", (req, res) => {
     otpExpiry,
   };
   const mailOptions = {
-    from: `NexGuard <${process.env.EMAIL_USER}>`,
+    from: `NexGuard <${process.env.EMAIL_SENDER}>`,
     to: email,
     subject: "Your NexGuard Verification Code",
     html: generateEmailTemplate(
@@ -629,7 +627,7 @@ app.post("/api/auth/forgot-password", (req, res) => {
   passwordResetTokens[token] = { userId: user.id, email: user.email, expiry };
   const resetLink = `${FRONTEND_URL}/#reset-password?token=${token}`;
   const mailOptions = {
-    from: `NexGuard Support <${process.env.EMAIL_USER}>`,
+    from: `NexGuard Support <${process.env.EMAIL_SENDER}>`,
     to: user.email,
     subject: "NexGuard Password Reset Request",
     html: generateEmailTemplate(
@@ -1224,7 +1222,7 @@ app.post(
       );
       if (websiteUser && websiteUser.email) {
         const mailOptions = {
-          from: `NexGuard Orders <${process.env.EMAIL_USER}>`,
+          from: `NexGuard Orders <${process.env.EMAIL_SENDER}>`,
           to: websiteUser.email,
           subject: `Your NexGuard Plan is ${order.isRenewal ? 'Renewed' : 'Activated'}!`,
           html: generateEmailTemplate(
