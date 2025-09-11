@@ -150,8 +150,8 @@ const upload = multer({ storage: storage });
 // --- Email Transporter Setup ---
 const transporter = nodemailer.createTransport({
   host: "smtp.zoho.com",
-  secure: true,
-  port: 465,
+  secure: false,
+  port: 587,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
