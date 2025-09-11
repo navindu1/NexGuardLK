@@ -1828,6 +1828,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     window.addEventListener("popstate", router);
 
+    window.addEventListener('load', function() {
+  const loader = document.getElementById('page-loader');
+  loader.style.opacity = '0';
+  setTimeout(() => {
+    loader.style.display = 'none';
+  }, 500);
+});
+
     document.addEventListener("click", (e) => {
         const link = e.target.closest("a.nav-link-internal");
         if (link) {
