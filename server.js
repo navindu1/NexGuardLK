@@ -16,7 +16,6 @@ const postmarkTransport = require('nodemailer-postmark-transport');
 const fs = require("fs");
 require("dotenv").config();
 const path = require("path");
-const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 const app = express();
 const port = process.env.PORT;
