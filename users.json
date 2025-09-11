@@ -1,0 +1,20 @@
+[
+  {
+    "id": "bdfdd0c7-3bce-4782-84fc-c28220244332",
+    "username": "Navindu",
+    "email": "tradingnrd@gmail.com",
+    "whatsapp": "94776062554",
+    "password": "$2a$10$bEKGprzyrHymQW3MI6h8geX65Lf7PcOg1hFiq82TCjZVqLXC4BNyq",
+    "profilePicture": "public/assets/profilePhoto.jpg",
+    "activePlans": [
+      {
+        "v2rayUsername": "Family",
+        "v2rayLink": "vless://1a657476-60cc-4321-a63d-4602cde4db83@nexguardlk.store:443?type=tcp&security=tls&fp=&alpn=h2%2Chttp%2F1.1&allowInsecure=1&sni=aka.ms#Family",
+        "planId": "Unlimited",
+        "connId": "dialog",
+        "activatedAt": "2025-09-11T02:19:01.709Z",
+        "orderId": "linked-2d11bbbd-f624-40ee-ab04-fa1ec4cce486"
+      }
+    ]
+  }
+]
