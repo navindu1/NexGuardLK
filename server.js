@@ -18,6 +18,7 @@ const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 const app = express();
 const port = process.env.PORT;
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
@@ -48,6 +49,8 @@ cron.schedule('5 0 * * *', async () => {
 
     try {
         // 1. දවස් 5කට වඩා පරණ, approve කරපු orders හොයාගන්න
+        const Order = require('./models/order.model'); 
+        
         // (මෙය ඔබගේ database එක අනුව වෙනස් විය හැක. Mongoose/MongoDB උදාහරණයක්)
         const oldOrders = await Order.find({
             status: 'approved',
