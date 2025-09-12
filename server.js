@@ -637,7 +637,7 @@ app.post("/api/auth/forgot-password", (req, res) => {
   const token = crypto.randomBytes(32).toString("hex");
   const expiry = Date.now() + 3600000; // 1 hour
   passwordResetTokens[token] = { userId: user.id, email: user.email, expiry };
-  const resetLink = `${FRONTEND_URL}/#reset-password?token=${token}`;
+  const resetLink = `${FRONTEND_URL}/reset-password?token=${token}`;
   const mailOptions = {
     from: `NexGuard Support <${process.env.EMAIL_SENDER}>`,
     to: user.email,
