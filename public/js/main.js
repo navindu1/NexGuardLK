@@ -824,7 +824,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         <i class="fas fa-check-circle text-5xl text-green-400 mb-4"></i>
                         <p class="text-lg text-green-400 font-semibold">Order Submitted!</p>
                         <p class="text-gray-300 mt-2 text-sm">Your order is pending approval. You can check the status on your profile.</p>
-                        <a href="/profile?tab=orders" class="nav-link-internal mt-6 inline-block w-full py-2 text-sm font-semibold text-white rounded-lg ai-button">View My Orders</a>
+                        <a href="/profile?tab=my-orders" class="nav-link-internal mt-6 inline-block w-full py-2 text-sm font-semibold text-white rounded-lg ai-button">View My Orders</a>
                     </div>
                 </div>
             </div>`);

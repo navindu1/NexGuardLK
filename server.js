@@ -12,6 +12,7 @@ const jwt = require("jsonwebtoken");
 const { v4: uuidv4 } = require("uuid");
 const multer = require("multer");
 const nodemailer = require("nodemailer");
+const postmark = require("postmark");
 const postmarkTransport = require('nodemailer-postmark-transport');
 const fs = require("fs");
 require("dotenv").config();
@@ -31,9 +32,10 @@ const PANEL_URL = process.env.PANEL_URL;
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const JWT_SECRET = process.env.JWT_SECRET;
-const FRONTEND_URL = "http://localhost:3000";
+const FRONTEND_URL = "http://nexguardlk.store:3000/";
 const LOGO_URL =
 process.env.LOGO_PUBLIC_URL || `${FRONTEND_URL}/assets/logo.png`;
+const client = new postmark.ServerClient(process.env.POSTMARK_API_TOKEN); 
 
 
 
@@ -510,20 +512,31 @@ app.post("/api/auth/register", (req, res) => {
       generateOtpEmailContent(otp)
     ),
   };
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      console.error("Error sending OTP email:", error);
-      return res.status(500).json({
-        success: false,
-        message: "Could not send OTP. Please try again.",
-      });
-    }
-    console.log(`OTP sent to ${email}: ${otp}`);
-    res.status(200).json({
-      success: true,
-      message: `An OTP has been sent to ${email}. Please verify to complete registration.`,
-    });
+  client.sendEmail({
+  "From": process.env.EMAIL_SENDER,
+  "To": email,
+  "Subject": "Your NexGuard Verification Code",
+  "HtmlBody": generateEmailTemplate(
+    "Verify Your Email",
+    "Your OTP is inside.",
+    generateOtpEmailContent(otp)
+  ),
+  "MessageStream": "outbound"
+})
+.then(() => {
+  console.log(`OTP sent to ${email}: ${otp}`);
+  res.status(200).json({
+    success: true,
+    message: `An OTP has been sent to ${email}. Please verify to complete registration.`,
   });
+})
+.catch(error => {
+  console.error("Error sending OTP email:", error);
+  res.status(500).json({
+    success: false,
+    message: "Could not send OTP. Please try again.",
+  });
+});
 });
 app.post("/api/auth/verify-otp", (req, res) => {
   const { email, otp } = req.body;
