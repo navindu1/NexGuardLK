@@ -410,7 +410,7 @@ const generateApprovalEmailContent = (username, planId, finalUsername) => `
 </div>
 <p style="font-size: 16px; line-height: 24px; margin: 24px 0 0; color: #c7d2fe;">You can now log in to your profile on our website to find your connection link and manage your account.</p>
 <div style="text-align: center; margin-top: 24px;">
-    <a href="${FRONTEND_URL}/#profile" target="_blank" style="background: linear-gradient(90deg, #818cf8, #a78bfa, #f472b6); color: #ffffff; padding: 14px 24px; font-size: 16px; font-weight: bold; text-decoration: none; border-radius: 8px; display: inline-block; font-family: 'Orbitron', sans-serif;">Go to My Profile</a>
+    <a href="${FRONTEND_URL}/profile" target="_blank" style="background: linear-gradient(90deg, #818cf8, #a78bfa, #f472b6); color: #ffffff; padding: 14px 24px; font-size: 16px; font-weight: bold; text-decoration: none; border-radius: 8px; display: inline-block; font-family: 'Orbitron', sans-serif;">Go to My Profile</a>
 </div>`;
 const generatePasswordResetEmailContent = (username, resetLink) => `
 <p style="font-size: 16px; line-height: 24px; margin: 0 0 16px; color: #c7d2fe;">Hello, <strong>${username}</strong>!</p>
