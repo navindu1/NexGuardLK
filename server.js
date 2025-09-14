@@ -23,8 +23,8 @@ const port = process.env.PORT;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static("public"));
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use(express.static(path.join(process.cwd(), "public")));
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 
 // --- Environment & Global Variables ---
