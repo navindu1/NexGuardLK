@@ -12,8 +12,6 @@ const jwt = require("jsonwebtoken");
 const { v4: uuidv4 } = require("uuid");
 const multer = require("multer");
 const nodemailer = require("nodemailer");
-const postmark = require("postmark");
-const postmarkTransport = require('nodemailer-postmark-transport');
 const fs = require("fs");
 require("dotenv").config();
 const path = require("path");
@@ -23,8 +21,8 @@ const port = process.env.PORT;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static("public"));
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use(express.static(path.join(process.cwd(), "public")));
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 
 // --- Environment & Global Variables ---
@@ -32,10 +30,9 @@ const PANEL_URL = process.env.PANEL_URL;
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const JWT_SECRET = process.env.JWT_SECRET;
-const FRONTEND_URL = "http://nexguardlk.store:3000/";
+const FRONTEND_URL = "https://nexguardlk.store";
 const LOGO_URL =
 process.env.LOGO_PUBLIC_URL || `${FRONTEND_URL}/assets/logo.png`;
-const client = new postmark.ServerClient(process.env.POSTMARK_API_TOKEN); 
 
 
 
@@ -151,11 +148,15 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // --- Email Transporter Setup ---
-const transporter = nodemailer.createTransport(postmarkTransport({
+const transporter = nodemailer.createTransport({
+  host: process.env.ZOHO_HOST,
+  port: parseInt(process.env.ZOHO_PORT, 10), // Port එක අංකයක් විය යුතුයි
+  secure: true, // true for 465, false for other ports
   auth: {
-    apiKey: process.env.POSTMARK_API_TOKEN,
-  }
-}));
+    user: process.env.ZOHO_USER,
+    pass: process.env.ZOHO_PASS,
+  },
+});
 
 // --- Temporary Storage ---
 let tempUsers = {};
@@ -412,6 +413,15 @@ const generateApprovalEmailContent = (username, planId, finalUsername) => `
 <div style="text-align: center; margin-top: 24px;">
     <a href="${FRONTEND_URL}/profile" target="_blank" style="background: linear-gradient(90deg, #818cf8, #a78bfa, #f472b6); color: #ffffff; padding: 14px 24px; font-size: 16px; font-weight: bold; text-decoration: none; border-radius: 8px; display: inline-block; font-family: 'Orbitron', sans-serif;">Go to My Profile</a>
 </div>`;
+const generateOrderPlacedEmailContent = (username, planId) => `
+<p style="font-size: 16px; line-height: 24px; margin: 0 0 16px; color: #c7d2fe;">Hello, <strong>${username}</strong>!</p>
+<p style="font-size: 16px; line-height: 24px; margin: 0 0 24px; color: #c7d2fe;">We have successfully received your order for the <strong>${planId}</strong> plan. It is now pending approval from our administrators.</p>
+<div style="background-color: #1e1b4b; border-radius: 8px; padding: 24px; margin: 24px 0; border-left: 4px solid #f59e0b;">
+    <p style="margin: 0; font-size: 16px; color: #e0e0e0;">You will receive another email once your plan is activated. You can check the status of your order at any time on your profile page.</p>
+</div>
+<div style="text-align: center; margin-top: 24px;">
+    <a href="${FRONTEND_URL}/profile?tab=my-orders" target="_blank" style="background: linear-gradient(90deg, #818cf8, #a78bfa, #f472b6); color: #ffffff; padding: 14px 24px; font-size: 16px; font-weight: bold; text-decoration: none; border-radius: 8px; display: inline-block; font-family: 'Orbitron', sans-serif;">Check Order Status</a>
+</div>`;
 const generatePasswordResetEmailContent = (username, resetLink) => `
 <p style="font-size: 16px; line-height: 24px; margin: 0 0 16px; color: #c7d2fe;">Hello, <strong>${username}</strong>!</p>
 <p style="font-size: 16px; line-height: 24px; margin: 0 0 24px; color: #c7d2fe;">We received a request to reset your password. Click the button below to set a new one. If you did not make this request, please ignore this email.</p>
@@ -512,31 +522,22 @@ app.post("/api/auth/register", (req, res) => {
       generateOtpEmailContent(otp)
     ),
   };
-  client.sendEmail({
-  "From": process.env.EMAIL_SENDER,
-  "To": email,
-  "Subject": "Your NexGuard Verification Code",
-  "HtmlBody": generateEmailTemplate(
-    "Verify Your Email",
-    "Your OTP is inside.",
-    generateOtpEmailContent(otp)
-  ),
-  "MessageStream": "outbound"
-})
-.then(() => {
-  console.log(`OTP sent to ${email}: ${otp}`);
-  res.status(200).json({
-    success: true,
-    message: `An OTP has been sent to ${email}. Please verify to complete registration.`,
-  });
-})
-.catch(error => {
-  console.error("Error sending OTP email:", error);
-  res.status(500).json({
-    success: false,
-    message: "Could not send OTP. Please try again.",
-  });
-});
+  transporter.sendMail(mailOptions)
+    .then(() => {
+      console.log(`OTP sent to ${email} via Zoho: ${otp}`);
+      res.status(200).json({
+        success: true,
+        message: `An OTP has been sent to ${email}. Please verify to complete registration.`,
+      });
+    })
+    .catch(error => {
+      console.error("Error sending OTP email via Zoho:", error);
+      res.status(500).json({
+        success: false,
+        message: "Could not send OTP. Please try again.",
+      });
+    });
+
 });
 app.post("/api/auth/verify-otp", (req, res) => {
   const { email, otp } = req.body;
@@ -719,40 +720,65 @@ app.get("/api/check-usage/:username", async (req, res) => {
   }
 });
 // server.js
+  app.post(
+  "/api/create-order",
+  authenticateToken,
+  upload.single("receipt"),
+  async (req, res) => { // async ලෙස වෙනස් කරන ලදී
+    const { planId, connId, pkg, whatsapp, username, isRenewal } = req.body;
+    if (!planId || !connId || !whatsapp || !username)
+      return res.status(400).json({
+        success: false,
+        message: "Missing required order information.",
+      });
 
-app.post(
-  "/api/create-order",
-  authenticateToken,
-  upload.single("receipt"),
-  (req, res) => {
-    // Add 'isRenewal' to the destructured variables
-    const { planId, connId, pkg, whatsapp, username, isRenewal } = req.body;
-    if (!planId || !connId || !whatsapp || !username)
-      return res.status(400).json({
-        success: false,
-        message: "Missing required order information.",
-      });
-    const orders = readDb(ORDERS_DB_PATH);
-    const newOrder = {
-      id: uuidv4(),
-      username: username,
-      websiteUsername: req.user.username,
-      planId,
-      connId,
-      pkg: pkg || null,
-      whatsapp,
-      receiptPath: req.file.path,
-      status: "pending",
-      createdAt: new Date().toISOString(),
-      // Add this line to save the renewal status
-      isRenewal: isRenewal === "true", 
-    };
-    orders.push(newOrder);
-    writeDb(ORDERS_DB_PATH, orders);
-    res
-      .status(201)
-      .json({ success: true, message: "Order submitted successfully!" });
-  }
+    const orders = readDb(ORDERS_DB_PATH);
+    const newOrder = {
+      id: uuidv4(),
+      username: username,
+      websiteUsername: req.user.username,
+      planId,
+      connId,
+      pkg: pkg || null,
+      whatsapp,
+      receiptPath: req.file.path,
+      status: "pending",
+      createdAt: new Date().toISOString(),
+      isRenewal: isRenewal === "true",
+    };
+    orders.push(newOrder);
+    writeDb(ORDERS_DB_PATH, orders);
+
+    // --- 👇 අලුතින් එකතු කළ email යැවීමේ කොටස ---
+    try {
+      const users = readDb(USERS_DB_PATH);
+      const websiteUser = users.find(u => u.username.toLowerCase() === req.user.username.toLowerCase());
+
+      if (websiteUser && websiteUser.email) {
+        const mailOptions = {
+          from: `NexGuard Orders <${process.env.EMAIL_SENDER}>`,
+          to: websiteUser.email,
+          subject: 'Your NexGuard Order Has Been Received!',
+          html: generateEmailTemplate(
+            'Order Received!',
+            `Your order for the ${planId} plan is pending approval.`,
+            generateOrderPlacedEmailContent(websiteUser.username, planId)
+          ),
+        };
+
+        transporter.sendMail(mailOptions)
+          .then(() => console.log(`✅ Order placed confirmation email sent to ${websiteUser.email}`))
+          .catch(err => console.error(`❌ FAILED to send order placed email:`, err));
+      }
+    } catch (error) {
+        console.error("Error preparing order confirmation email:", error);
+    }
+    // --- 👆 අලුත් කොටස මෙතනින් අවසන් වේ ---
+
+    res
+      .status(201)
+      .json({ success: true, message: "Order submitted successfully!" });
+  }
 );
 
 // =======================================================
@@ -1247,9 +1273,15 @@ app.post(
             )
           ),
         };
-        transporter.sendMail(mailOptions);
-      }
-      res.json({
+  transporter.sendMail(mailOptions)
+        .then(() => {
+          console.log(`✅ Approval email sent successfully to ${websiteUser.email}`);
+        })
+        .catch((error) => {
+          console.error(`❌ FAILED to send approval email to ${websiteUser.email}:`, error);
+        });
+    }
+    res.json({
         success: true,
         message: `Order for ${finalUsername} processed successfully.`,
         username: finalUsername,
@@ -1269,10 +1301,8 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 // ---------------------------------------------------
+// ---------------------------------------------------
 
-app.listen(port, "0.0.0.0", () => {
-  console.log(`✅ Server is running on port ${port}`);
-  loginToPanel();
-  
-});
 
+// Vercel එකට අවශ්‍ය කරන export එක
+module.exports = app;
