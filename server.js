@@ -620,25 +620,31 @@ app.post("/api/auth/login", (req, res) => {
       .json({ success: false, message: "Invalid username or password." });
   }
 });
+// ✅ මේ අලුත්, නිවැරදි කළ function එක ඒ වෙනුවට යොදන්න
 app.post("/api/auth/forgot-password", (req, res) => {
   const { email } = req.body;
-  if (!email)
+  if (!email) {
     return res
       .status(400)
       .json({ success: false, message: "Email address is required." });
+  }
+  
   const users = readDb(USERS_DB_PATH);
   const user = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+
   if (!user) {
+    // පරිශීලකයෙක් සිටියත් නැතත්, ආරක්ෂාව සඳහා එකම පණිවිඩය යැවීම
     return res.json({
       success: true,
-      message:
-        "If an account with this email exists, a password reset link has been sent.",
+      message: "If an account with this email exists, a password reset link has been sent.",
     });
   }
+
   const token = crypto.randomBytes(32).toString("hex");
   const expiry = Date.now() + 3600000; // 1 hour
   passwordResetTokens[token] = { userId: user.id, email: user.email, expiry };
   const resetLink = `${FRONTEND_URL}/reset-password?token=${token}`;
+  
   const mailOptions = {
     from: `NexGuard Support <${process.env.EMAIL_SENDER}>`,
     to: user.email,
@@ -649,16 +655,20 @@ app.post("/api/auth/forgot-password", (req, res) => {
       generatePasswordResetEmailContent(user.username, resetLink)
     ),
   };
-  transporter.sendMail(mailOptions, (error) => {
-    if (error) {
-      console.error("Error sending password reset email:", error);
-    }
-    console.log(`Password reset link sent to ${user.email}`);
-    res.json({
-      success: true,
-      message:
-        "If an account with this email exists, a password reset link has been sent.",
+
+  // වඩාත් ස්ථාවර ක්‍රමයට email යැවීම සහ දෝෂ පරීක්ෂාව
+  transporter.sendMail(mailOptions)
+    .then(() => {
+      console.log(`✅ Password reset link sent successfully to ${user.email}`);
+    })
+    .catch((error) => {
+      console.error(`❌ FAILED to send password reset email to ${user.email}:`, error);
     });
+
+  // Email යැවීමේ ක්‍රියාවලිය සාර්ථක වුවත් නැතත්, පරිශීලකයාට ඉක්මන් ප්‍රතිචාරයක් ලබා දීම
+  res.json({
+    success: true,
+    message: "If an account with this email exists, a password reset link has been sent.",
   });
 });
 app.post("/api/auth/reset-password", (req, res) => {
