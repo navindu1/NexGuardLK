@@ -30,7 +30,7 @@ const PANEL_URL = process.env.PANEL_URL;
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const JWT_SECRET = process.env.JWT_SECRET;
-const FRONTEND_URL = "https://nexguardlk.store";
+const FRONTEND_URL = "https://app.nexguardlk.store";
 const LOGO_URL =
 process.env.LOGO_PUBLIC_URL || `${FRONTEND_URL}/assets/logo.png`;
 
