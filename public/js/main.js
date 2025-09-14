@@ -861,60 +861,68 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function renderProfilePage(renderFunc, params) {
-        const user = JSON.parse(localStorage.getItem("nexguard_user"));
-        if (!user) {
-            navigateTo("/login");
-            return;
-        }
+    const user = JSON.parse(localStorage.getItem("nexguard_user"));
+    if (!user) {
+        navigateTo("/login");
+        return;
+    }
 
-        const pageStyles = `<style>#page-profile .form-input { height: 56px; padding: 20px 12px 8px 12px; background-color: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.2); } #page-profile .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; } #page-profile .form-input:focus ~ .form-label, #page-profile .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: var(--brand-purple); } #page-profile .form-input[readonly] { background-color: rgba(0,0,0,0.2); cursor: not-allowed; } .tab-btn { border-bottom: 3px solid transparent; transition: all .3s ease; color: #9ca3af; padding: 0.75rem 0.25rem; font-weight: 600; white-space: nowrap; } .tab-btn.active { border-bottom-color: var(--brand-purple); color: #fff; } .tab-panel { display: none; } .tab-panel.active { display: block; animation: pageFadeIn 0.5s; }/* ================================================= */
-/* === නව Plan Selector එක සඳහා CSS Styles === */
-/* ================================================= */
-
-.plan-selector-wrapper {
-    display: inline-block; /* අන්තර්ගතයට සරිලන ලෙස සැකසීම */
-    width: auto;
-}
-
-#plan-selector {
-    /* බ්‍රව්සරයේ default පෙනුම ඉවත් කිරීම */
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
+    // Modal එකේ HTML එක මෙතනට එකතු කරන ලදී
+    const modalHtml = `
+        <div id="help-modal" class="help-modal-overlay">
+            <div class="help-modal-content glass-panel rounded-lg p-6 space-y-4 w-full max-w-md">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h2 class="text-xl font-bold text-white font-['Orbitron']">Help & Support Matrix</h2>
+                        <button id="lang-toggle-btn" class="text-xs text-purple-400 hover:underline mt-1">English / සිංහල</button>
+                    </div>
+                    <button id="help-modal-close" class="text-gray-400 hover:text-white text-3xl">&times;</button>
+                </div>
+                <div class="lang-content lang-en">
+                    <div>
+                        <h3 class="text-lg font-semibold text-purple-400 mb-2">How to find your Username?</h3>
+                        <p class="text-gray-300 text-sm mb-4">Your username is the name assigned to your V2ray configuration. It's often visible in your V2ray client app, usually next to the server connection name.</p>
+                    </div>
+                </div>
+                <div class="lang-content lang-si hidden">
+                    <div>
+                        <h3 class="text-lg font-semibold text-purple-400 mb-2">ඔබගේ Username එක සොයාගන්නේ කෙසේද?</h3>
+                        <p class="text-gray-300 text-sm mb-4">ඔබගේ username යනු V2ray config ගොනුවට ලබා දී ඇති නමයි. එය බොහෝවිට V2ray client ඇප් එකේ, server සම්බන්ධතාවය අසල දිස්වේ.</p>
+                    </div>
+                </div>
+                <div class="bg-black/50 border border-white/10 rounded-lg p-2">
+                    <img src="assets/help.jpg" alt="Example image of where to find the username" class="rounded w-full h-auto">
+                </div>
+            </div>
+        </div>`;
     
-    /* button එකක් වැනි අලුත් පෙනුමක් ලබා දීම */
-    background-color: rgba(49, 23, 82, 0.7); /* Dark purple, a bit transparent */
-    border: 1px solid rgba(168, 85, 247, 0.5); /* Purple border */
-    border-radius: 8px;
-    padding: 0.5rem 2.5rem 0.5rem 1rem; /* Icon එකට ඉඩ තබා padding සැකසීම */
-    color: #ffffff;
-    font-weight: 500;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    width: 100%; /* wrapper එකේ සම්පූර්ණ පළල ලබා ගැනීම */
-}
+    const pageStyles = `<style>#page-profile .form-input { height: 56px; padding: 20px 12px 8px 12px; background-color: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.2); } #page-profile .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; } #page-profile .form-input:focus ~ .form-label, #page-profile .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: var(--brand-purple); } #page-profile .form-input[readonly] { background-color: rgba(0,0,0,0.2); cursor: not-allowed; } .tab-btn { border-bottom: 3px solid transparent; transition: all .3s ease; color: #9ca3af; padding: 0.75rem 0.25rem; font-weight: 600; white-space: nowrap; } .tab-btn.active { border-bottom-color: var(--brand-purple); color: #fff; } .tab-panel { display: none; } .tab-panel.active { display: block; animation: pageFadeIn 0.5s; } .plan-selector-wrapper { display: inline-block; width: auto; } #plan-selector { -webkit-appearance: none; -moz-appearance: none; appearance: none; background-color: rgba(49, 23, 82, 0.7); border: 1px solid rgba(168, 85, 247, 0.5); border-radius: 8px; padding: 0.5rem 2.5rem 0.5rem 1rem; color: #ffffff; font-weight: 500; font-size: 0.9rem; cursor: pointer; transition: all 0.2s ease; width: 100%; } #plan-selector:hover { border-color: #a855f7; background-color: rgba(69, 33, 112, 0.7); } #plan-selector:focus { outline: none; border-color: #a855f7; box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.3); } .plan-selector-wrapper i { transition: color 0.2s ease; }</style>`;
+    const baseHtml = `<div id="page-profile" class="page space-y-8"><div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left reveal"><div class="relative flex-shrink-0"><img id="profile-pic-img" src="${(user.profilePicture || "assets/profilePhoto.jpg").replace("public/", "")}" alt="Profile Picture" class="w-24 h-24 rounded-full border-4 border-purple-500/50 object-cover shadow-lg"><label for="avatar-upload" class="absolute bottom-0 right-0 w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-purple-500 transition shadow-md"><i class="fa-solid fa-camera text-white"></i><input type="file" id="avatar-upload" class="hidden" accept="image/*"></label></div><div class="flex-grow"><h2 class="text-3xl font-bold font-['Orbitron'] text-white">${user.username}</h2><p class="text-gray-400">${user.email}</p><div id="plan-info-container" class="text-xs sm:text-sm mt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2"></div></div></div><div id="user-status-content" class="reveal"><div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-3xl text-purple-400"></i></div></div></div> ${modalHtml}`;
 
-#plan-selector:hover {
-    border-color: #a855f7; /* Hover වන විට දීප්තිමත් දම් පාටක් */
-    background-color: rgba(69, 33, 112, 0.7);
-}
+    renderFunc(pageStyles + baseHtml);
 
-#plan-selector:focus {
-    outline: none;
-    border-color: #a855f7;
-    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.3); /* Focus වන විට ring එකක් පෙන්වීම */
-}
-
-/* icon එකේ style (HTML එකේ Tailwind class මගින් ස්ථානගත කර ඇත) */
-.plan-selector-wrapper i {
-    transition: color 0.2s ease;
-}</style>`;
-
-        const baseHtml = `<div id="page-profile" class="page space-y-8"><div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left reveal"><div class="relative flex-shrink-0"><img id="profile-pic-img" src="${(user.profilePicture || "assets/profilePhoto.jpg").replace("public/", "")}" alt="Profile Picture" class="w-24 h-24 rounded-full border-4 border-purple-500/50 object-cover shadow-lg"><label for="avatar-upload" class="absolute bottom-0 right-0 w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-purple-500 transition shadow-md"><i class="fa-solid fa-camera text-white"></i><input type="file" id="avatar-upload" class="hidden" accept="image/*"></label></div><div class="flex-grow"><h2 class="text-3xl font-bold font-['Orbitron'] text-white">${user.username}</h2><p class="text-gray-400">${user.email}</p><div id="plan-info-container" class="text-xs sm:text-sm mt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2"></div></div></div><div id="user-status-content" class="reveal"><div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-3xl text-purple-400"></i></div></div></div>`;
-
-        renderFunc(pageStyles + baseHtml);
-
+    // --- Modal එකේ JavaScript Logic එක මෙතනටත් එකතු කරන ලදී ---
+    setTimeout(() => {
+        const openHelpModalLink = document.querySelector('.open-help-modal-link');
+        const helpModal = document.getElementById('help-modal');
+        const helpModalCloseBtn = document.getElementById('help-modal-close');
+        const langToggleBtn = document.getElementById('lang-toggle-btn');
+        if (openHelpModalLink && helpModal && helpModalCloseBtn) {
+            const openModal = () => { helpModal.classList.add('visible'); document.body.classList.add('modal-open'); };
+            const closeModal = () => { helpModal.classList.remove('visible'); document.body.classList.remove('modal-open'); };
+            openHelpModalLink.addEventListener('click', (e) => { e.preventDefault(); openModal(); });
+            helpModalCloseBtn.addEventListener('click', (e) => { e.preventDefault(); closeModal(); });
+            helpModal.addEventListener('click', (event) => { if (event.target === helpModal) closeModal(); });
+            document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && helpModal.classList.contains('visible')) closeModal(); });
+            if (langToggleBtn) {
+                langToggleBtn.addEventListener('click', () => {
+                    document.querySelector('.lang-content.lang-en')?.classList.toggle('hidden');
+                    document.querySelector('.lang-content.lang-si')?.classList.toggle('hidden');
+                });
+            }
+        }
+    }, 100);
+    
         const statusContainer = document.getElementById("user-status-content");
         const token = localStorage.getItem("nexguard_token");
 
@@ -1337,155 +1345,119 @@ document.addEventListener("DOMContentLoaded", () => {
             initialPanel = "reset-password";
         }
 
-        renderFunc(`
-            <div id="page-login" class="page">
-                <style>
-                    .auth-form { display: none; }
-                    .auth-form.active { display: block; }
-                    .auth-toggle-link { color: var(--brand-purple); cursor: pointer; font-weight: 500; }
-                    #auth-container { max-width: 380px; }
-                    
-                    #page-login .form-input {
-                        height: 56px;
-                        padding: 20px 12px 8px 12px;
-                    }
-
-                    #page-login .form-label {
-                        position: absolute;
-                        top: 50%;
-                        left: 13px;
-                        transform: translateY(-50%);
-                        color: #9ca3af;
-                        pointer-events: none;
-                        transition: all 0.2s ease-out;
-                        font-size: 14px;
-                        background: none;
-                        padding: 0;
-                    }
-
-                    #page-login .form-input:focus ~ .form-label,
-                    #page-login .form-input:not(:placeholder-shown) ~ .form-label {
-                        top: 10px;
-                        transform: translateY(0);
-                        font-size: 11px;
-                        color: var(--brand-purple);
-                    }
-
-                    #link-account-form .form-group {
-                        margin-top: 0;
-                    }
-                </style>
-                <div id="auth-container" class="mx-auto my-12 glass-panel rounded-xl p-8 sm:p-10">
-                    
-                    <form class="auth-form space-y-6" id="signin-form">
-                        <div class="text-center">
-                            <h1 class="text-2xl font-bold text-white font-['Orbitron']">Welcome Back</h1>
-                            <p class="text-sm text-gray-400 mt-1">Sign in to access your dashboard.</p>
-                        </div>
-                        <div class="form-group">
-                            <input type="text" id="signin-username" class="form-input" required placeholder=" " />
-                            <label for="signin-username" class="form-label">Username</label>
-                            <span class="focus-border"><i></i></span>
-                        </div>
-                        <div class="form-group relative">
-                            <input type="password" id="signin-password" class="form-input pr-10" required placeholder=" " />
-                            <label for="signin-password" class="form-label">Password</label>
-                            <span class="focus-border"><i></i></span>
-                            <i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="signin-toggle"></i>
-                        </div>
-                        <div class="text-right text-sm -mt-4"><span id="show-forgot-password" class="auth-toggle-link hover:underline">Forgot Password?</span></div>
-                        <button type="submit" class="ai-button w-full py-2.5 rounded-lg">Sign In</button>
-                        <p class="text-center text-sm">Don't have an account? <span id="show-signup" class="auth-toggle-link">Sign Up</span></p>
-                    </form>
-
-                    <form class="auth-form space-y-6" id="signup-form">
-                        <div class="text-center">
-                            <h1 class="text-2xl font-bold text-white font-['Orbitron']">Create Account</h1>
-                            <p class="text-sm text-gray-400 mt-1">Step 1: Your Details</p>
-                        </div>
-                        <div class="form-group">
-                            <input type="text" id="signup-username" class="form-input" required placeholder=" " /><label for="signup-username" class="form-label">Username</label>
-                            <span class="focus-border"><i></i></span>
-                        </div>
-                        <div class="form-group">
-                            <input type="email" id="signup-email" class="form-input" required placeholder=" " /><label for="signup-email" class="form-label">Email</label>
-                            <span class="focus-border"><i></i></span>
-                        </div>
-                        <div class="form-group">
-                            <input type="tel" id="signup-whatsapp" class="form-input" required placeholder=" " value="94" /><label for="signup-whatsapp" class="form-label">WhatsApp Number</label>
-                            <span class="focus-border"><i></i></span>
-                        </div>
-                        <div class="form-group relative">
-                            <input type="password" id="signup-password" class="form-input pr-10" required placeholder=" " /><label for="signup-password" class="form-label">Password</label>
-                            <span class="focus-border"><i></i></span>
-                            <i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="signup-toggle"></i>
-                        </div>
-                        <button type="submit" class="ai-button w-full py-2.5 rounded-lg">Create & Continue</button>
-                        <p class="text-center text-sm">Already have an account? <span id="show-signin-from-signup" class="auth-toggle-link">Sign In</span></p>
-                    </form>
-
-                    <form class="auth-form space-y-6" id="otp-form">
-                        <div class="text-center">
-                            <h1 class="text-2xl font-bold text-white font-['Orbitron']">Verify Email</h1>
-                            <p class="text-sm text-gray-400 mt-1">Step 2: Enter the 6-digit code we sent you.</p>
-                        </div>
-                        <input type="hidden" id="otp-email">
-                        <div class="form-group">
-                            <input type="text" id="otp-code" class="form-input" required placeholder=" " maxlength="6" /><label for="otp-code" class="form-label">OTP Code</label>
-                            <span class="focus-border"><i></i></span>
-                        </div>
-                        <button type="submit" class="ai-button w-full py-2.5 rounded-lg">Verify & Create Account</button>
-                        <p class="text-center text-sm">Didn't get the code? <span id="show-signup-again" class="auth-toggle-link">Go Back</span></p>
-                    </form>
-
-                    <form class="auth-form space-y-6" id="forgot-password-form">
-                        <div class="text-center">
-                            <h1 class="text-2xl font-bold text-white font-['Orbitron']">Reset Password</h1>
-                            <p class="text-sm text-gray-400 mt-1">Enter your email to receive a reset link.</p>
-                        </div>
-                        <div class="form-group">
-                            <input type="email" id="forgot-email" class="form-input" required placeholder=" " /><label for="forgot-email" class="form-label">Your Account Email</label>
-                            <span class="focus-border"><i></i></span>
-                        </div>
-                        <button type="submit" class="ai-button w-full py-2.5 rounded-lg">Send Reset Link</button>
-                        <p class="text-center text-sm">Remembered your password? <span id="show-signin-from-forgot" class="auth-toggle-link">Sign In</span></p>
-                    </form>
-                    
-                    <form class="auth-form space-y-6" id="reset-password-form">
-                        <div class="text-center">
-                            <h1 class="text-2xl font-bold text-white font-['Orbitron']">Set New Password</h1>
-                            <p class="text-sm text-gray-400 mt-1">Enter your new password below.</p>
-                        </div>
-                        <input type="hidden" id="reset-token" value="${resetToken || ""}">
-                        <div class="form-group relative">
-                            <input type="password" id="new-password" class="form-input pr-10" required placeholder=" " /><label for="new-password" class="form-label">New Password</label>
-                            <span class="focus-border"><i></i></span>
-                            <i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="reset-toggle"></i>
-                        </div>
-                        <button type="submit" class="ai-button w-full py-2.5 rounded-lg">Update Password</button>
-                    </form>
-
-                    <div class="auth-form" id="link-account-form-container">
-                        <div class="text-center">
-                            <h1 class="text-2xl font-bold text-white font-['Orbitron']">Link Account</h1>
-                            <p class="text-sm text-gray-400 mt-1">Do you have an existing V2Ray account?</p>
-                        </div>
-                        <form id="link-account-form" class="mt-8 space-y-6">
-                            <div class="form-group">
-                                <input type="text" id="existing-v2ray-username" class="form-input" required placeholder=" ">
-                                <label for="existing-v2ray-username" class="form-label">Your Old V2Ray Username</label>
-                                <span class="focus-border"><i></i></span>
-                            </div>
-                            <button type="submit" class="ai-button w-full py-2.5 rounded-lg">Link Account & Continue</button>
-                            <div class="text-center text-sm mt-4">
-                                <span class="open-help-modal-link text-purple-400 cursor-pointer hover:underline">How to find your username?</span>
-                            </div>
-                            
-                            <a href="/profile" id="skip-link-btn" class="nav-link-internal block text-center text-sm text-gray-400 hover:text-white !mt-2">Skip for Now</a>
-                        </form>
+        const modalHtml = `
+        <div id="help-modal" class="help-modal-overlay">
+            <div class="help-modal-content glass-panel rounded-lg p-6 space-y-4 w-full max-w-md">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h2 class="text-xl font-bold text-white font-['Orbitron']">Help & Support Matrix</h2>
+                        <button id="lang-toggle-btn" class="text-xs text-purple-400 hover:underline mt-1">English / සිංහල</button>
+                    </div>
+                    <button id="help-modal-close" class="text-gray-400 hover:text-white text-3xl">&times;</button>
+                </div>
+                <div class="lang-content lang-en">
+                    <div>
+                        <h3 class="text-lg font-semibold text-purple-400 mb-2">How to find your Username?</h3>
+                        <p class="text-gray-300 text-sm mb-4">Your username is the name assigned to your V2ray configuration. It's often visible in your V2ray client app, usually next to the server connection name.</p>
                     </div>
                 </div>
-            </div>`);
+                <div class="lang-content lang-si hidden">
+                    <div>
+                        <h3 class="text-lg font-semibold text-purple-400 mb-2">ඔබගේ Username එක සොයාගන්නේ කෙසේද?</h3>
+                        <p class="text-gray-300 text-sm mb-4">ඔබගේ username යනු V2ray config ගොනුවට ලබා දී ඇති නමයි. එය බොහෝවිට V2ray client ඇප් එකේ, server සම්බන්ධතාවය අසල දිස්වේ.</p>
+                    </div>
+                </div>
+                <div class="bg-black/50 border border-white/10 rounded-lg p-2">
+                    <img src="assets/help.jpg" alt="Example image of where to find the username" class="rounded w-full h-auto">
+                </div>
+            </div>
+        </div>`;
+
+    renderFunc(`
+        <div id="page-login" class="page">
+            <style>
+                .auth-form { display: none; }
+                .auth-form.active { display: block; }
+                .auth-toggle-link { color: var(--brand-purple); cursor: pointer; font-weight: 500; }
+                #auth-container { max-width: 380px; }
+                #page-login .form-input { height: 56px; padding: 20px 12px 8px 12px; }
+                #page-login .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; background: none; padding: 0; }
+                #page-login .form-input:focus ~ .form-label, #page-login .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: var(--brand-purple); }
+                #link-account-form .form-group { margin-top: 0; }
+            </style>
+            <div id="auth-container" class="mx-auto my-12 glass-panel rounded-xl p-8 sm:p-10">
+                <form class="auth-form space-y-6" id="signin-form">
+                    <div class="text-center"><h1 class="text-2xl font-bold text-white font-['Orbitron']">Welcome Back</h1><p class="text-sm text-gray-400 mt-1">Sign in to access your dashboard.</p></div>
+                    <div class="form-group"><input type="text" id="signin-username" class="form-input" required placeholder=" " /><label for="signin-username" class="form-label">Username</label><span class="focus-border"><i></i></span></div>
+                    <div class="form-group relative"><input type="password" id="signin-password" class="form-input pr-10" required placeholder=" " /><label for="signin-password" class="form-label">Password</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="signin-toggle"></i></div>
+                    <div class="text-right text-sm -mt-4"><span id="show-forgot-password" class="auth-toggle-link hover:underline">Forgot Password?</span></div>
+                    <button type="submit" class="ai-button w-full py-2.5 rounded-lg">Sign In</button>
+                    <p class="text-center text-sm">Don't have an account? <span id="show-signup" class="auth-toggle-link">Sign Up</span></p>
+                </form>
+                <form class="auth-form space-y-6" id="signup-form">
+                    <div class="text-center"><h1 class="text-2xl font-bold text-white font-['Orbitron']">Create Account</h1><p class="text-sm text-gray-400 mt-1">Step 1: Your Details</p></div>
+                    <div class="form-group"><input type="text" id="signup-username" class="form-input" required placeholder=" " /><label for="signup-username" class="form-label">Username</label><span class="focus-border"><i></i></span></div>
+                    <div class="form-group"><input type="email" id="signup-email" class="form-input" required placeholder=" " /><label for="signup-email" class="form-label">Email</label><span class="focus-border"><i></i></span></div>
+                    <div class="form-group"><input type="tel" id="signup-whatsapp" class="form-input" required placeholder=" " value="94" /><label for="signup-whatsapp" class="form-label">WhatsApp Number</label><span class="focus-border"><i></i></span></div>
+                    <div class="form-group relative"><input type="password" id="signup-password" class="form-input pr-10" required placeholder=" " /><label for="signup-password" class="form-label">Password</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="signup-toggle"></i></div>
+                    <button type="submit" class="ai-button w-full py-2.5 rounded-lg">Create & Continue</button>
+                    <p class="text-center text-sm">Already have an account? <span id="show-signin-from-signup" class="auth-toggle-link">Sign In</span></p>
+                </form>
+                <form class="auth-form space-y-6" id="otp-form">
+                    <div class="text-center"><h1 class="text-2xl font-bold text-white font-['Orbitron']">Verify Email</h1><p class="text-sm text-gray-400 mt-1">Step 2: Enter the 6-digit code we sent you.</p></div>
+                    <input type="hidden" id="otp-email"><div class="form-group"><input type="text" id="otp-code" class="form-input" required placeholder=" " maxlength="6" /><label for="otp-code" class="form-label">OTP Code</label><span class="focus-border"><i></i></span></div>
+                    <button type="submit" class="ai-button w-full py-2.5 rounded-lg">Verify & Create Account</button>
+                    <p class="text-center text-sm">Didn't get the code? <span id="show-signup-again" class="auth-toggle-link">Go Back</span></p>
+                </form>
+                <form class="auth-form space-y-6" id="forgot-password-form">
+                    <div class="text-center"><h1 class="text-2xl font-bold text-white font-['Orbitron']">Reset Password</h1><p class="text-sm text-gray-400 mt-1">Enter your email to receive a reset link.</p></div>
+                    <div class="form-group"><input type="email" id="forgot-email" class="form-input" required placeholder=" " /><label for="forgot-email" class="form-label">Your Account Email</label><span class="focus-border"><i></i></span></div>
+                    <button type="submit" class="ai-button w-full py-2.5 rounded-lg">Send Reset Link</button>
+                    <p class="text-center text-sm">Remembered your password? <span id="show-signin-from-forgot" class="auth-toggle-link">Sign In</span></p>
+                </form>
+                <form class="auth-form space-y-6" id="reset-password-form">
+                    <div class="text-center"><h1 class="text-2xl font-bold text-white font-['Orbitron']">Set New Password</h1><p class="text-sm text-gray-400 mt-1">Enter your new password below.</p></div>
+                    <input type="hidden" id="reset-token" value="${resetToken || ""}"><div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" required placeholder=" " /><label for="new-password" class="form-label">New Password</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="reset-toggle"></i></div>
+                    <button type="submit" class="ai-button w-full py-2.5 rounded-lg">Update Password</button>
+                </form>
+                <div class="auth-form" id="link-account-form-container">
+                    <div class="text-center"><h1 class="text-2xl font-bold text-white font-['Orbitron']">Link Account</h1><p class="text-sm text-gray-400 mt-1">Do you have an existing V2Ray account?</p></div>
+                    <form id="link-account-form" class="mt-8 space-y-6">
+                        <div class="form-group"><input type="text" id="existing-v2ray-username" class="form-input" required placeholder=" "><label for="existing-v2ray-username" class="form-label">Your Old V2Ray Username</label><span class="focus-border"><i></i></span></div>
+                        <button type="submit" class="ai-button w-full py-2.5 rounded-lg">Link Account & Continue</button>
+                        <div class="text-center text-sm mt-4"><span class="open-help-modal-link text-purple-400 cursor-pointer hover:underline">How to find your username?</span></div>
+                        <a href="/profile" id="skip-link-btn" class="nav-link-internal block text-center text-sm text-gray-400 hover:text-white !mt-2">Skip for Now</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+        ${modalHtml}`); // Modal HTML එක මෙතනට එකතු කරන ලදී
+
+    // --- Modal එකේ JavaScript Logic එක මෙතනට එකතු කරන ලදී ---
+    setTimeout(() => {
+        const openHelpModalLink = document.querySelector('.open-help-modal-link');
+        const helpModal = document.getElementById('help-modal');
+        const helpModalCloseBtn = document.getElementById('help-modal-close');
+        const langToggleBtn = document.getElementById('lang-toggle-btn');
+
+        if (openHelpModalLink && helpModal && helpModalCloseBtn) {
+            const openModal = () => { helpModal.classList.add('visible'); document.body.classList.add('modal-open'); };
+            const closeModal = () => { helpModal.classList.remove('visible'); document.body.classList.remove('modal-open'); };
+            
+            openHelpModalLink.addEventListener('click', (e) => { e.preventDefault(); openModal(); });
+            helpModalCloseBtn.addEventListener('click', (e) => { e.preventDefault(); closeModal(); });
+            helpModal.addEventListener('click', (event) => { if (event.target === helpModal) closeModal(); });
+            document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && helpModal.classList.contains('visible')) closeModal(); });
+
+            if (langToggleBtn) {
+                langToggleBtn.addEventListener('click', () => {
+                    document.querySelector('.lang-content.lang-en')?.classList.toggle('hidden');
+                    document.querySelector('.lang-content.lang-si')?.classList.toggle('hidden');
+                });
+            }
+        }
+    }, 100);
+
 
         const signinForm = document.getElementById("signin-form");
         const signupForm = document.getElementById("signup-form");

@@ -1,141 +1,136 @@
 // =======================================================================
-// NexGuard AI - V2Ray Usage Matrix Backend
-// Version: 35.0 (Final & Stable with All Fixes)
+// NexGuard AI - V2Ray Usage Matrix Backend - Supabase Migration
+// Version: 37.0 (Full Supabase Integration)
 // =======================================================================
 
-//------------------libraries---------------------------------------------
 const express = require("express");
-const cron = require('node-cron');
 const axios = require("axios");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { v4: uuidv4 } = require("uuid");
 const multer = require("multer");
 const nodemailer = require("nodemailer");
-const fs = require("fs");
+const { createClient } = require("@supabase/supabase-js");
+const cron = require("node-cron");
 require("dotenv").config();
 const path = require("path");
 const crypto = require("crypto");
-const app = express();
-const port = process.env.PORT;
+const fs = require("fs");
 
+const app = express();
+const port = process.env.PORT || 3000;
+
+// =======================================================================
+// SUPABASE CONFIGURATION & INITIALIZATION
+// =======================================================================
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY
+);
+
+// Express middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(process.cwd(), "public")));
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
-
-// --- Environment & Global Variables ---
+// =======================================================================
+// ENVIRONMENT VARIABLES & GLOBAL CONFIGURATION
+// =======================================================================
 const PANEL_URL = process.env.PANEL_URL;
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const JWT_SECRET = process.env.JWT_SECRET;
 const FRONTEND_URL = "https://app.nexguardlk.store";
-const LOGO_URL =
-process.env.LOGO_PUBLIC_URL || `${FRONTEND_URL}/assets/logo.png`;
+const LOGO_URL = process.env.LOGO_PUBLIC_URL || `${FRONTEND_URL}/assets/logo.png`;
 
+// Temporary storage for OTP and password reset tokens (these will remain in memory)
+let tempUsers = {};
+let passwordResetTokens = {};
 
-
-
-
-// --- Plan & Inbound Configuration ---
-
-
-cron.schedule('5 0 * * *', async () => {
-    console.log('Running daily task: Deleting old receipts...');
-
-    // දවස් 5කට පෙර දිනය ලබාගැනීම
-    const fiveDaysAgo = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
-
-    try {
-        // 1. දවස් 5කට වඩා පරණ, approve කරපු orders හොයාගන්න
-        const Order = require('./models/order.model'); 
-        
-        // (මෙය ඔබගේ database එක අනුව වෙනස් විය හැක. Mongoose/MongoDB උදාහරණයක්)
-        const oldOrders = await Order.find({
-            status: 'approved',
-            approvedAt: { $lte: fiveDaysAgo }, // approvedAt දිනය දවස් 5කට වඩා පරණයි
-            receiptPath: { $ne: null }         // receiptPath එකක් තියෙන orders විතරක්
-        });
-
-        if (oldOrders.length === 0) {
-            console.log('No old receipts to delete.');
-            return;
-        }
-
-        console.log(`Found ${oldOrders.length} old receipts to delete.`);
-
-        // 2. එක් එක් order එකේ receipt file එක delete කරන්න
-        for (const order of oldOrders) {
-            const receiptPath = order.receiptPath; // උදා: 'public/uploads/receipts/receipt-123.jpg'
-            
-            // සම්පූර්ණ file path එක සදාගැනීම
-            const fullPath = path.join(__dirname, '..', receiptPath); 
-
-            // 3. File එක server එකෙන් මකා දැමීම
-            if (fs.existsSync(fullPath)) {
-                fs.unlink(fullPath, async (err) => {
-                    if (err) {
-                        console.error(`Error deleting file ${fullPath}:`, err);
-                    } else {
-                        console.log(`Successfully deleted receipt: ${fullPath}`);
-                        
-                        // 4. (Optional but Recommended) Database එකෙන් receiptPath එක ඉවත් කිරීම
-                        order.receiptPath = null;
-                        await order.save();
-                    }
-                });
-            } else {
-                 console.warn(`File not found, updating DB anyway: ${fullPath}`);
-                 // File එක server එකේ නැතත්, DB එක update කිරීම හොඳයි
-                 order.receiptPath = null;
-                 await order.save();
-            }
-        }
-
-    } catch (error) {
-        console.error('Error during old receipt cleanup task:', error);
-    }
-});
-
+// Plan and Inbound configuration
 const planConfig = {
   "100GB": { totalGB: 100 },
   "200GB": { totalGB: 200 },
   "300GB": { totalGB: 300 },
   Unlimited: { totalGB: 0 },
 };
+
 const inboundIdConfig = {
   dialog: process.env.INBOUND_ID_DIALOG,
   hutch: process.env.INBOUND_ID_HUTCH,
   dialog_sim: process.env.INBOUND_ID_DIALOG_SIM,
 };
 
-// --- Database Setup ---
-const USERS_DB_PATH = path.join(__dirname, "users.json");
-const ORDERS_DB_PATH = path.join(__dirname, "orders.json");
-const readDb = (filePath) => {
-  try {
-    if (!fs.existsSync(filePath)) fs.writeFileSync(filePath, "[]", "utf8");
-    const data = fs.readFileSync(filePath, "utf8");
-    return data.trim() ? JSON.parse(data) : [];
-  } catch (e) {
-    console.error(`DB Read Error (${path.basename(filePath)}):`, e);
-    return [];
-  }
-};
-const writeDb = (filePath, data) => {
-  try {
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-  } catch (e) {
-    console.error(`DB Write Error (${path.basename(filePath)}):`, e);
-  }
-};
+// =======================================================================
+// CRON JOB FOR OLD RECEIPT CLEANUP (SUPABASE VERSION)
+// =======================================================================
+cron.schedule("5 0 * * *", async () => {
+  console.log("Running daily task: Deleting old receipts...");
+  
+  const fiveDaysAgo = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
 
-// --- Multer Configuration ---
+  try {
+    // Find orders older than 5 days that are approved and have receipt paths
+    const { data: oldOrders, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('status', 'approved')
+      .lt('approved_at', fiveDaysAgo.toISOString())
+      .not('receipt_path', 'is', null);
+
+    if (error) {
+      console.error("Error fetching old orders:", error);
+      return;
+    }
+
+    if (!oldOrders || oldOrders.length === 0) {
+      console.log("No old receipts to delete.");
+      return;
+    }
+
+    console.log(`Found ${oldOrders.length} old receipts to delete.`);
+
+    // Delete each receipt file and update database
+    for (const order of oldOrders) {
+      const receiptPath = order.receipt_path;
+      const fullPath = path.join(__dirname, "..", receiptPath);
+
+      // Delete file from server
+      if (fs.existsSync(fullPath)) {
+        fs.unlink(fullPath, async (err) => {
+          if (err) {
+            console.error(`Error deleting file ${fullPath}:`, err);
+          } else {
+            console.log(`Successfully deleted receipt: ${fullPath}`);
+            
+            // Update database to remove receipt path
+            await supabase
+              .from('orders')
+              .update({ receipt_path: null })
+              .eq('id', order.id);
+          }
+        });
+      } else {
+        console.warn(`File not found, updating DB anyway: ${fullPath}`);
+        // Update database even if file doesn't exist
+        await supabase
+          .from('orders')
+          .update({ receipt_path: null })
+          .eq('id', order.id);
+      }
+    }
+  } catch (error) {
+    console.error("Error during old receipt cleanup task:", error);
+  }
+});
+
+// =======================================================================
+// MULTER CONFIGURATION FOR FILE UPLOADS
+// =======================================================================
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadPath =
-      file.fieldname === "receipt" ? "uploads/receipts/" : "public/uploads/";
+    const uploadPath = file.fieldname === "receipt" ? "uploads/receipts/" : "public/uploads/";
     fs.mkdirSync(uploadPath, { recursive: true });
     cb(null, uploadPath);
   },
@@ -147,22 +142,22 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-// --- Email Transporter Setup ---
-const transporter = nodemailer.createTransport({
+// =======================================================================
+// EMAIL TRANSPORTER SETUP (ZOHO)
+// =======================================================================
+const transporter = nodemailer.createTransporter({
   host: process.env.ZOHO_HOST,
-  port: parseInt(process.env.ZOHO_PORT, 10), // Port එක අංකයක් විය යුතුයි
-  secure: true, // true for 465, false for other ports
+  port: parseInt(process.env.ZOHO_PORT, 10),
+  secure: true,
   auth: {
     user: process.env.ZOHO_USER,
     pass: process.env.ZOHO_PASS,
   },
 });
 
-// --- Temporary Storage ---
-let tempUsers = {};
-let passwordResetTokens = {};
-
-// --- V2Ray Panel Logic ---
+// =======================================================================
+// V2RAY PANEL AUTHENTICATION & API FUNCTIONS
+// =======================================================================
 let cookies = "";
 const LOGIN_URL = `${PANEL_URL}/login`;
 const ADD_CLIENT_URL = `${PANEL_URL}/panel/api/inbounds/addClient`;
@@ -170,81 +165,64 @@ const DEL_CLIENT_BY_UUID_URL = (inboundId, uuid) =>
   `${PANEL_URL}/panel/api/inbounds/${inboundId}/delClient/${uuid}`;
 const INBOUNDS_LIST_URL = `${PANEL_URL}/panel/api/inbounds/list`;
 
-// server.js
-
-// server.js
-
-// ⚠️ REPLACE your OLD loginToPanel function with this FINAL, CORRECTED version
+// V2Ray Panel Login Function
 async function loginToPanel() {
-    // If we already have a cookie, assume we are logged in.
-    if (cookies) return true;
+  if (cookies) return true;
 
-    console.log(`\n[Panel Login] Attempting to login to panel at: ${LOGIN_URL}`);
+  console.log(`\n[Panel Login] Attempting to login to panel at: ${LOGIN_URL}`);
 
-    try {
-        const response = await axios.post(
-            LOGIN_URL,
-            { username: ADMIN_USERNAME, password: ADMIN_PASSWORD },
-            {
-                // This is the key change: We tell axios NOT to follow redirects.
-                // This allows us to capture the response that CONTAINS the Set-Cookie header.
-                maxRedirects: 0,
-                
-                // We will handle all status codes manually, so we tell axios not to throw errors for 3xx codes.
-                validateStatus: (status) => status >= 200 && status < 500,
-            }
-        );
+  try {
+    const response = await axios.post(
+      LOGIN_URL,
+      { username: ADMIN_USERNAME, password: ADMIN_PASSWORD },
+      {
+        maxRedirects: 0,
+        validateStatus: (status) => status >= 200 && status < 500,
+      }
+    );
 
-        // Check if the login was successful (status 200 OK or 302 Redirect) AND a cookie was set.
-        if ((response.status === 200 || response.status === 302) && response.headers["set-cookie"]) {
-            // The cookie name might be different, so we grab the whole cookie string.
-            cookies = response.headers["set-cookie"][0];
-            console.log("✅ [Panel Login] Successfully logged into V2Ray panel and received session cookie.");
-            return true;
-        } 
-        // Handle specific error cases
-        else if (response.status === 401 || response.status === 403) {
-             console.error(`❌ [Panel Login] FAILED. Status Code: ${response.status}. LIKELY CAUSE: Incorrect ADMIN_USERNAME or ADMIN_PASSWORD in your .env file.`);
-             return false;
-        }
-        else {
-            // Handle other unexpected responses
-            console.error(`❌ [Panel Login] FAILED. Received an unexpected status code: ${response.status}. No cookie was set.`);
-            console.error("[Panel Login] Response Data:", response.data);
-            return false;
-        }
-
-    } catch (error) {
-        cookies = ""; // Reset cookies on any error
-        console.error("\n❌ V2Ray panel login FAILED due to a network or configuration error:");
-        if (error.request) {
-            console.error(`  ➡️ LIKELY CAUSE: The PANEL_URL ('${PANEL_URL}') is incorrect, the panel is offline, or a firewall is blocking the connection.`);
-        } else {
-            console.error('[Error Detail] Error setting up the request:', error.message);
-        }
-        console.log("\n");
-        return false;
+    if ((response.status === 200 || response.status === 302) && response.headers["set-cookie"]) {
+      cookies = response.headers["set-cookie"][0];
+      console.log("✅ [Panel Login] Successfully logged into V2Ray panel and received session cookie.");
+      return true;
+    } else if (response.status === 401 || response.status === 403) {
+      console.error(`❌ [Panel Login] FAILED. Status Code: ${response.status}. LIKELY CAUSE: Incorrect ADMIN_USERNAME or ADMIN_PASSWORD in your .env file.`);
+      return false;
+    } else {
+      console.error(`❌ [Panel Login] FAILED. Received an unexpected status code: ${response.status}. No cookie was set.`);
+      console.error("[Panel Login] Response Data:", response.data);
+      return false;
     }
+  } catch (error) {
+    cookies = "";
+    console.error("\n❌ V2Ray panel login FAILED due to a network or configuration error:");
+    if (error.request) {
+      console.error(`  ➡️ LIKELY CAUSE: The PANEL_URL ('${PANEL_URL}') is incorrect, the panel is offline, or a firewall is blocking the connection.`);
+    } else {
+      console.error("[Error Detail] Error setting up the request:", error.message);
+    }
+    console.log("\n");
+    return false;
+  }
 }
 
-// Function to find a V2Ray client case-insensitively across all inbounds
+// Function to find V2Ray client in panel
 async function findV2rayClient(username) {
   if (typeof username !== "string" || !username) {
     return null;
   }
   if (!(await loginToPanel())) throw new Error("Panel authentication failed");
+  
   try {
-    let clientSettings = null,
-        clientInbound = null,
-        clientInboundId = null;
+    let clientSettings = null, clientInbound = null, clientInboundId = null;
     const { data: inboundsData } = await axios.get(INBOUNDS_LIST_URL, {
       headers: { Cookie: cookies },
     });
+    
     if (inboundsData?.success) {
       const lowerCaseUsername = username.toLowerCase();
       for (const inbound of inboundsData.obj) {
-        const clients =
-          (inbound.settings && JSON.parse(inbound.settings).clients) || [];
+        const clients = (inbound.settings && JSON.parse(inbound.settings).clients) || [];
         const foundClient = clients.find(
           (c) => c && c.email && c.email.toLowerCase() === lowerCaseUsername
         );
@@ -256,9 +234,11 @@ async function findV2rayClient(username) {
         }
       }
     }
+    
     if (!clientSettings) {
       return null;
     }
+    
     let clientTraffics = {};
     try {
       const TRAFFIC_URL = `${PANEL_URL}/panel/api/inbounds/getClientTraffics/${clientSettings.email}`;
@@ -278,6 +258,7 @@ async function findV2rayClient(username) {
         }
       }
     }
+    
     const finalClientData = { ...clientTraffics, ...clientSettings };
     return {
       client: finalClientData,
@@ -293,12 +274,15 @@ async function findV2rayClient(username) {
   }
 }
 
+// Generate V2Ray configuration link
 function generateV2rayConfigLink(inboundId, client) {
   if (!client || !client.id || !client.email) return null;
+  
   const uuid = client.id;
   const remark = encodeURIComponent(client.email);
   let templateKey;
   const numericInboundId = parseInt(inboundId);
+  
   const configIds = {
     dialog: parseInt(process.env.INBOUND_ID_DIALOG),
     hutch: parseInt(process.env.INBOUND_ID_HUTCH),
@@ -306,32 +290,29 @@ function generateV2rayConfigLink(inboundId, client) {
     slt_netflix: parseInt(process.env.INBOUND_ID_SLT_NETFLIX),
     dialog_sim: parseInt(process.env.INBOUND_ID_DIALOG_SIM),
   };
-  if (numericInboundId === configIds.dialog)
-    templateKey = "VLESS_TEMPLATE_DIALOG";
-  else if (numericInboundId === configIds.hutch)
-    templateKey = "VLESS_TEMPLATE_HUTCH";
-  else if (numericInboundId === configIds.slt_zoom)
-    templateKey = "VLESS_TEMPLATE_SLT_ZOOM";
-  else if (numericInboundId === configIds.slt_netflix)
-    templateKey = "VLESS_TEMPLATE_SLT_NETFLIX";
-  else if (numericInboundId === configIds.dialog_sim)
-    templateKey = "VLESS_TEMPLATE_DIALOG_SIM";
+  
+  if (numericInboundId === configIds.dialog) templateKey = "VLESS_TEMPLATE_DIALOG";
+  else if (numericInboundId === configIds.hutch) templateKey = "VLESS_TEMPLATE_HUTCH";
+  else if (numericInboundId === configIds.slt_zoom) templateKey = "VLESS_TEMPLATE_SLT_ZOOM";
+  else if (numericInboundId === configIds.slt_netflix) templateKey = "VLESS_TEMPLATE_SLT_NETFLIX";
+  else if (numericInboundId === configIds.dialog_sim) templateKey = "VLESS_TEMPLATE_DIALOG_SIM";
   else {
-    console.error(
-      `No VLESS template found for inbound ID: ${numericInboundId}`
-    );
+    console.error(`No VLESS template found for inbound ID: ${numericInboundId}`);
     return null;
   }
+  
   const linkTemplate = process.env[templateKey];
   if (!linkTemplate) {
-    console.error(
-      `Environment variable for template key "${templateKey}" is not defined.`
-    );
+    console.error(`Environment variable for template key "${templateKey}" is not defined.`);
     return null;
   }
+  
   return linkTemplate.replace("{uuid}", uuid).replace("{remark}", remark);
 }
 
+// =======================================================================
+// EMAIL TEMPLATE FUNCTIONS
+// =======================================================================
 const generateEmailTemplate = (title, preheader, content) => `
 <!DOCTYPE html>
 <html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
@@ -387,6 +368,7 @@ const generateEmailTemplate = (title, preheader, content) => `
     </div>
 </body>
 </html>`;
+
 const generateOtpEmailContent = (otp) => `
 <p style="font-size: 16px; line-height: 24px; margin: 0 0 16px; color: #c7d2fe;">Your One-Time Password (OTP) for your NexGuard account is ready. Use the code below to complete your verification:</p>
 <div style="background-color: #1e1b4b; border-radius: 8px; padding: 20px; text-align: center; margin: 24px 0;">
@@ -394,6 +376,7 @@ const generateOtpEmailContent = (otp) => `
     <p style="font-family: 'Orbitron', sans-serif; font-size: 36px; font-weight: 900; letter-spacing: 4px; margin: 8px 0 0 0; color: #ffffff; line-height: 1.2;">${otp}</p>
 </div>
 <p style="font-size: 14px; line-height: 20px; margin: 0; color: #9ca3af;">This code is valid for 10 minutes. If you did not request this, you can safely ignore this email.</p>`;
+
 const generateApprovalEmailContent = (username, planId, finalUsername) => `
 <p style="font-size: 16px; line-height: 24px; margin: 0 0 16px; color: #c7d2fe;">Congratulations, <strong>${username}</strong>! Your NexGuard plan has been approved and is now active.</p>
 <div style="background-color: #1e1b4b; border-radius: 8px; padding: 24px; margin: 24px 0; border-left: 4px solid #4ade80;">
@@ -413,6 +396,7 @@ const generateApprovalEmailContent = (username, planId, finalUsername) => `
 <div style="text-align: center; margin-top: 24px;">
     <a href="${FRONTEND_URL}/profile" target="_blank" style="background: linear-gradient(90deg, #818cf8, #a78bfa, #f472b6); color: #ffffff; padding: 14px 24px; font-size: 16px; font-weight: bold; text-decoration: none; border-radius: 8px; display: inline-block; font-family: 'Orbitron', sans-serif;">Go to My Profile</a>
 </div>`;
+
 const generateOrderPlacedEmailContent = (username, planId) => `
 <p style="font-size: 16px; line-height: 24px; margin: 0 0 16px; color: #c7d2fe;">Hello, <strong>${username}</strong>!</p>
 <p style="font-size: 16px; line-height: 24px; margin: 0 0 24px; color: #c7d2fe;">We have successfully received your order for the <strong>${planId}</strong> plan. It is now pending approval from our administrators.</p>
@@ -422,6 +406,7 @@ const generateOrderPlacedEmailContent = (username, planId) => `
 <div style="text-align: center; margin-top: 24px;">
     <a href="${FRONTEND_URL}/profile?tab=my-orders" target="_blank" style="background: linear-gradient(90deg, #818cf8, #a78bfa, #f472b6); color: #ffffff; padding: 14px 24px; font-size: 16px; font-weight: bold; text-decoration: none; border-radius: 8px; display: inline-block; font-family: 'Orbitron', sans-serif;">Check Order Status</a>
 </div>`;
+
 const generatePasswordResetEmailContent = (username, resetLink) => `
 <p style="font-size: 16px; line-height: 24px; margin: 0 0 16px; color: #c7d2fe;">Hello, <strong>${username}</strong>!</p>
 <p style="font-size: 16px; line-height: 24px; margin: 0 0 24px; color: #c7d2fe;">We received a request to reset your password. Click the button below to set a new one. If you did not make this request, please ignore this email.</p>
@@ -430,7 +415,9 @@ const generatePasswordResetEmailContent = (username, resetLink) => `
 </div>
 <p style="font-size: 14px; line-height: 20px; margin: 24px 0 0; color: #9ca3af;">This password reset link is valid for 1 hour.</p>`;
 
-// --- AUTH MIDDLEWARE ---
+// =======================================================================
+// AUTHENTICATION MIDDLEWARE
+// =======================================================================
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
@@ -438,6 +425,7 @@ const authenticateToken = (req, res, next) => {
     return res
       .status(401)
       .json({ success: false, message: "Unauthorized: No token provided." });
+      
   jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err)
       return res.status(403).json({
@@ -448,6 +436,7 @@ const authenticateToken = (req, res, next) => {
     next();
   });
 };
+
 const authenticateAdmin = (req, res, next) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
@@ -455,6 +444,7 @@ const authenticateAdmin = (req, res, next) => {
     return res
       .status(401)
       .json({ success: false, message: "Unauthorized: No token provided." });
+      
   jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err)
       return res.status(403).json({
@@ -471,81 +461,154 @@ const authenticateAdmin = (req, res, next) => {
   });
 };
 
-
-app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+// =======================================================================
+// STATIC FILE SERVING
+// =======================================================================
+app.get("/admin", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
-// Also, serve your admin login page if it's separate
-app.get('/admin-login.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'admin-login.html'));
+app.get("/admin-login.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "admin-login.html"));
 });
 
-// --- API Endpoints ---
-app.post("/api/auth/register", (req, res) => {
+// =======================================================================
+// USER AUTHENTICATION APIs (SUPABASE INTEGRATION)
+// =======================================================================
+
+// User Registration with OTP (Supabase)
+app.post("/api/auth/register", async (req, res) => {
   const { username, email, whatsapp, password } = req.body;
   if (!username || !email || !whatsapp || !password)
     return res
       .status(400)
       .json({ success: false, message: "All fields are required." });
-  const users = readDb(USERS_DB_PATH);
-  if (
-    users.some(
-      (u) =>
-        u.username.toLowerCase() === username.toLowerCase() ||
-        u.email.toLowerCase() === email.toLowerCase()
-    )
-  ) {
-    return res
-      .status(409)
-      .json({ success: false, message: "Username or email is already taken." });
-  }
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  const hashedPassword = bcrypt.hashSync(password, 10);
-  const otpExpiry = Date.now() + 10 * 60 * 1000;
-  tempUsers[email] = {
-    id: uuidv4(),
-    username,
-    email,
-    whatsapp,
-    password: hashedPassword,
-    otp,
-    otpExpiry,
-  };
-  const mailOptions = {
-    from: `NexGuard <${process.env.EMAIL_SENDER}>`,
-    to: email,
-    subject: "Your NexGuard Verification Code",
-    html: generateEmailTemplate(
-      "Verify Your Email",
-      "Your OTP is inside.",
-      generateOtpEmailContent(otp)
-    ),
-  };
-  transporter.sendMail(mailOptions)
-    .then(() => {
+
+  try {
+    // Check if username or email already exists in Supabase
+    const { data: existingUsers, error: checkError } = await supabase
+      .from("users")
+      .select("username, email")
+      .or(`username.eq.${username},email.eq.${email}`);
+
+    if (checkError) {
+      console.error("Supabase check error:", checkError);
+      throw checkError;
+    }
+
+    if (existingUsers && existingUsers.length > 0) {
+      return res
+        .status(409)
+        .json({
+          success: false,
+          message: "Username or email is already taken.",
+        });
+    }
+
+    // Generate OTP and store temporarily
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedPassword = bcrypt.hashSync(password, 10);
+    const otpExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
+    
+    tempUsers[email] = {
+      id: uuidv4(),
+      username,
+      email,
+      whatsapp,
+      password: hashedPassword,
+      otp,
+      otpExpiry,
+    };
+
+    // Send OTP email
+    const mailOptions = {
+      from: `NexGuard <${process.env.EMAIL_SENDER}>`,
+      to: email,
+      subject: "Your NexGuard Verification Code",
+      html: generateEmailTemplate(
+        "Verify Your Email",
+        "Your OTP is inside.",
+        generateOtpEmailContent(otp)
+      ),
+    };
+
+    transporter.sendMail(mailOptions).then(() => {
       console.log(`OTP sent to ${email} via Zoho: ${otp}`);
       res.status(200).json({
         success: true,
         message: `An OTP has been sent to ${email}. Please verify to complete registration.`,
       });
-    })
-    .catch(error => {
-      console.error("Error sending OTP email via Zoho:", error);
-      res.status(500).json({
-        success: false,
-        message: "Could not send OTP. Please try again.",
-      });
     });
-
+  } catch (error) {
+    console.error("Error in /api/auth/register:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to create user account." });
+  }
 });
-app.post("/api/auth/verify-otp", (req, res) => {
+
+// User Login (Supabase)
+app.post("/api/auth/login", async (req, res) => {
+  const { username, password } = req.body;
+  
+  try {
+    // Find user in Supabase by username (case-insensitive)
+    const { data: users, error } = await supabase
+      .from('users')
+      .select('*')
+      .ilike('username', username);
+
+    if (error) {
+      console.error("Supabase login query error:", error);
+      throw error;
+    }
+
+    const user = users && users.length > 0 ? users[0] : null;
+
+    if (user && bcrypt.compareSync(password, user.password)) {
+      const token = jwt.sign(
+        { id: user.id, username: user.username },
+        JWT_SECRET,
+        { expiresIn: "1d" }
+      );
+
+      const userPayload = {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        whatsapp: user.whatsapp,
+        profilePicture: user.profile_picture
+          ? user.profile_picture.replace(/\\/g, "/").replace("public/", "")
+          : "assets/profilePhoto.jpg",
+      };
+
+      res.json({
+        success: true,
+        message: "Logged in successfully!",
+        token,
+        user: userPayload,
+      });
+    } else {
+      res
+        .status(401)
+        .json({ success: false, message: "Invalid username or password." });
+    }
+  } catch (error) {
+    console.error("Error in login:", error);
+    res.status(500).json({ success: false, message: "Login failed due to server error." });
+  }
+});
+
+// OTP Verification and User Creation (Supabase)
+app.post("/api/auth/verify-otp", async (req, res) => {
   const { email, otp } = req.body;
   const tempUser = tempUsers[email];
+  
   if (!tempUser)
     return res
       .status(400)
       .json({ success: false, message: "Invalid request or session expired." });
+      
   if (Date.now() > tempUser.otpExpiry) {
     delete tempUsers[email];
     return res.status(400).json({
@@ -553,136 +616,146 @@ app.post("/api/auth/verify-otp", (req, res) => {
       message: "OTP has expired. Please register again.",
     });
   }
+  
   if (tempUser.otp !== otp)
     return res.status(400).json({ success: false, message: "Invalid OTP." });
-  const users = readDb(USERS_DB_PATH);
-  const newUser = {
-    id: tempUser.id,
-    username: tempUser.username,
-    email: tempUser.email,
-    whatsapp: tempUser.whatsapp,
-    password: tempUser.password,
-    profilePicture: "public/assets/profilePhoto.jpg",
-    activePlans: [],
-  };
-  users.push(newUser);
-  writeDb(USERS_DB_PATH, users);
-  delete tempUsers[email];
-  const token = jwt.sign(
-    { id: newUser.id, username: newUser.username },
-    JWT_SECRET,
-    { expiresIn: "1d" }
-  );
-  const userPayload = {
-    id: newUser.id,
-    username: newUser.username,
-    email: newUser.email,
-    whatsapp: newUser.whatsapp,
-    profilePicture: newUser.profilePicture,
-  };
-  res.status(201).json({
-    success: true,
-    message: "Account verified and created successfully!",
-    token,
-    user: userPayload,
-  });
-});
-app.post("/api/auth/login", (req, res) => {
-  const { username, password } = req.body;
-  const users = readDb(USERS_DB_PATH);
-  const user = users.find(
-    (u) => u.username.toLowerCase() === username.toLowerCase()
-  );
-  if (user && bcrypt.compareSync(password, user.password)) {
+
+  try {
+    // Create new user in Supabase
+    const newUser = {
+      id: tempUser.id,
+      username: tempUser.username,
+      email: tempUser.email,
+      whatsapp: tempUser.whatsapp,
+      password: tempUser.password,
+      profile_picture: "public/assets/profilePhoto.jpg",
+      created_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await supabase
+      .from('users')
+      .insert([newUser])
+      .select();
+
+    if (error) {
+      console.error("Supabase user creation error:", error);
+      throw error;
+    }
+
+    // Clean up temporary storage
+    delete tempUsers[email];
+
+    // Generate JWT token
     const token = jwt.sign(
-      { id: user.id, username: user.username },
+      { id: newUser.id, username: newUser.username },
       JWT_SECRET,
       { expiresIn: "1d" }
     );
+
     const userPayload = {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      whatsapp: user.whatsapp,
-      profilePicture: user.profilePicture
-        ? user.profilePicture.replace(/\\/g, "/").replace("public/", "")
-        : "assets/profilePhoto.jpg",
+      id: newUser.id,
+      username: newUser.username,
+      email: newUser.email,
+      whatsapp: newUser.whatsapp,
+      profilePicture: newUser.profile_picture,
     };
-    res.json({
+
+    res.status(201).json({
       success: true,
-      message: "Logged in successfully!",
+      message: "Account verified and created successfully!",
       token,
       user: userPayload,
     });
-  } else {
-    res
-      .status(401)
-      .json({ success: false, message: "Invalid username or password." });
+  } catch (error) {
+    console.error("Error creating user in Supabase:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Database error during registration." });
   }
 });
-// ✅ මේ අලුත්, නිවැරදි කළ function එක ඒ වෙනුවට යොදන්න
-app.post("/api/auth/forgot-password", (req, res) => {
+
+// Forgot Password (Supabase)
+app.post("/api/auth/forgot-password", async (req, res) => {
   const { email } = req.body;
   if (!email) {
     return res
       .status(400)
       .json({ success: false, message: "Email address is required." });
   }
-  
-  const users = readDb(USERS_DB_PATH);
-  const user = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
 
-  if (!user) {
-    // පරිශීලකයෙක් සිටියත් නැතත්, ආරක්ෂාව සඳහා එකම පණිවිඩය යැවීම
-    return res.json({
+  try {
+    // Find user by email in Supabase
+    const { data: users, error } = await supabase
+      .from('users')
+      .select('*')
+      .ilike('email', email);
+
+    if (error) {
+      console.error("Supabase forgot password query error:", error);
+      throw error;
+    }
+
+    const user = users && users.length > 0 ? users[0] : null;
+
+    if (!user) {
+      // Security: Don't reveal if user exists or not
+      return res.json({
+        success: true,
+        message: "If an account with this email exists, a password reset link has been sent.",
+      });
+    }
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiry = Date.now() + 3600000; // 1 hour
+    passwordResetTokens[token] = { userId: user.id, email: user.email, expiry };
+    const resetLink = `${FRONTEND_URL}/reset-password?token=${token}`;
+
+    const mailOptions = {
+      from: `NexGuard Support <${process.env.EMAIL_SENDER}>`,
+      to: user.email,
+      subject: "NexGuard Password Reset Request",
+      html: generateEmailTemplate(
+        "Reset Your Password",
+        `A request was made to reset your password.`,
+        generatePasswordResetEmailContent(user.username, resetLink)
+      ),
+    };
+
+    // Send reset email
+    transporter
+      .sendMail(mailOptions)
+      .then(() => {
+        console.log(`✅ Password reset link sent successfully to ${user.email}`);
+      })
+      .catch((error) => {
+        console.error(`❌ FAILED to send password reset email to ${user.email}:`, error);
+      });
+
+    res.json({
       success: true,
       message: "If an account with this email exists, a password reset link has been sent.",
     });
+  } catch (error) {
+    console.error("Error in forgot password:", error);
+    res.status(500).json({ success: false, message: "Server error occurred." });
   }
-
-  const token = crypto.randomBytes(32).toString("hex");
-  const expiry = Date.now() + 3600000; // 1 hour
-  passwordResetTokens[token] = { userId: user.id, email: user.email, expiry };
-  const resetLink = `${FRONTEND_URL}/reset-password?token=${token}`;
-  
-  const mailOptions = {
-    from: `NexGuard Support <${process.env.EMAIL_SENDER}>`,
-    to: user.email,
-    subject: "NexGuard Password Reset Request",
-    html: generateEmailTemplate(
-      "Reset Your Password",
-      `A request was made to reset your password.`,
-      generatePasswordResetEmailContent(user.username, resetLink)
-    ),
-  };
-
-  // වඩාත් ස්ථාවර ක්‍රමයට email යැවීම සහ දෝෂ පරීක්ෂාව
-  transporter.sendMail(mailOptions)
-    .then(() => {
-      console.log(`✅ Password reset link sent successfully to ${user.email}`);
-    })
-    .catch((error) => {
-      console.error(`❌ FAILED to send password reset email to ${user.email}:`, error);
-    });
-
-  // Email යැවීමේ ක්‍රියාවලිය සාර්ථක වුවත් නැතත්, පරිශීලකයාට ඉක්මන් ප්‍රතිචාරයක් ලබා දීම
-  res.json({
-    success: true,
-    message: "If an account with this email exists, a password reset link has been sent.",
-  });
 });
-app.post("/api/auth/reset-password", (req, res) => {
+
+// Reset Password (Supabase)
+app.post("/api/auth/reset-password", async (req, res) => {
   const { token, newPassword } = req.body;
   if (!token || !newPassword)
     return res.status(400).json({
       success: false,
       message: "Token and new password are required.",
     });
+    
   if (newPassword.length < 6)
     return res.status(400).json({
       success: false,
       message: "Password must be at least 6 characters long.",
     });
+
   const tokenData = passwordResetTokens[token];
   if (!tokenData || Date.now() > tokenData.expiry) {
     delete passwordResetTokens[token];
@@ -691,18 +764,36 @@ app.post("/api/auth/reset-password", (req, res) => {
       message: "This reset link is invalid or has expired.",
     });
   }
-  let users = readDb(USERS_DB_PATH);
-  const userIndex = users.findIndex((u) => u.id === tokenData.userId);
-  if (userIndex === -1)
-    return res.status(404).json({ success: false, message: "User not found." });
-  users[userIndex].password = bcrypt.hashSync(newPassword, 10);
-  writeDb(USERS_DB_PATH, users);
-  delete passwordResetTokens[token];
-  res.json({
-    success: true,
-    message: "Password has been reset successfully. You can now log in.",
-  });
+
+  try {
+    // Update password in Supabase
+    const hashedPassword = bcrypt.hashSync(newPassword, 10);
+    const { error } = await supabase
+      .from('users')
+      .update({ password: hashedPassword })
+      .eq('id', tokenData.userId);
+
+    if (error) {
+      console.error("Supabase password update error:", error);
+      throw error;
+    }
+
+    delete passwordResetTokens[token];
+    res.json({
+      success: true,
+      message: "Password has been reset successfully. You can now log in.",
+    });
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    res.status(500).json({ success: false, message: "Failed to reset password." });
+  }
 });
+
+// =======================================================================
+// V2RAY PANEL INTEGRATION APIs
+// =======================================================================
+
+// Check V2Ray Usage
 app.get("/api/check-usage/:username", async (req, res) => {
   const username = req.params.username;
   if (!username) {
@@ -710,6 +801,7 @@ app.get("/api/check-usage/:username", async (req, res) => {
       .status(400)
       .json({ success: false, message: "Username is required." });
   }
+  
   try {
     const clientData = await findV2rayClient(username);
     if (clientData && clientData.client) {
@@ -721,7 +813,12 @@ app.get("/api/check-usage/:username", async (req, res) => {
     }
   } catch (error) {
     if (error.message === "Panel authentication failed") {
-         return res.status(503).json({ success: false, message: 'Session was renewed. Please try your request again.' });
+      return res
+        .status(503)
+        .json({
+          success: false,
+          message: "Session was renewed. Please try your request again.",
+        });
     }
     console.error(`Error checking usage for ${username}:`, error.message);
     res
@@ -729,195 +826,310 @@ app.get("/api/check-usage/:username", async (req, res) => {
       .json({ success: false, message: "An internal server error occurred." });
   }
 });
-// server.js
-  app.post(
-  "/api/create-order",
-  authenticateToken,
-  upload.single("receipt"),
-  async (req, res) => { // async ලෙස වෙනස් කරන ලදී
-    const { planId, connId, pkg, whatsapp, username, isRenewal } = req.body;
-    if (!planId || !connId || !whatsapp || !username)
-      return res.status(400).json({
-        success: false,
-        message: "Missing required order information.",
-      });
 
-    const orders = readDb(ORDERS_DB_PATH);
+// =======================================================================
+// ORDER MANAGEMENT APIs (SUPABASE INTEGRATION)
+// =======================================================================
+
+// Create Order (Supabase)
+app.post("/api/create-order", authenticateToken, upload.single("receipt"), async (req, res) => {
+  const { planId, connId, pkg, whatsapp, username, isRenewal } = req.body;
+  
+  if (!planId || !connId || !whatsapp || !username)
+    return res.status(400).json({
+      success: false,
+      message: "Missing required order information.",
+    });
+
+  try {
     const newOrder = {
       id: uuidv4(),
       username: username,
-      websiteUsername: req.user.username,
-      planId,
-      connId,
+      website_username: req.user.username,
+      plan_id: planId,
+      conn_id: connId,
       pkg: pkg || null,
       whatsapp,
-      receiptPath: req.file.path,
+      receipt_path: req.file ? req.file.path : null,
       status: "pending",
-      createdAt: new Date().toISOString(),
-      isRenewal: isRenewal === "true",
+      created_at: new Date().toISOString(),
+      is_renewal: isRenewal === "true",
     };
-    orders.push(newOrder);
-    writeDb(ORDERS_DB_PATH, orders);
 
-    // --- 👇 අලුතින් එකතු කළ email යැවීමේ කොටස ---
+    // Insert order into Supabase
+    const { data, error } = await supabase
+      .from('orders')
+      .insert([newOrder])
+      .select();
+
+    if (error) {
+      console.error("Supabase order creation error:", error);
+      throw error;
+    }
+
+    // Send order confirmation email
     try {
-      const users = readDb(USERS_DB_PATH);
-      const websiteUser = users.find(u => u.username.toLowerCase() === req.user.username.toLowerCase());
+      const { data: users, error: userError } = await supabase
+        .from('users')
+        .select('email, username')
+        .ilike('username', req.user.username);
+
+      if (userError) throw userError;
+
+      const websiteUser = users && users.length > 0 ? users[0] : null;
 
       if (websiteUser && websiteUser.email) {
         const mailOptions = {
           from: `NexGuard Orders <${process.env.EMAIL_SENDER}>`,
           to: websiteUser.email,
-          subject: 'Your NexGuard Order Has Been Received!',
+          subject: "Your NexGuard Order Has Been Received!",
           html: generateEmailTemplate(
-            'Order Received!',
+            "Order Received!",
             `Your order for the ${planId} plan is pending approval.`,
             generateOrderPlacedEmailContent(websiteUser.username, planId)
           ),
         };
 
-        transporter.sendMail(mailOptions)
-          .then(() => console.log(`✅ Order placed confirmation email sent to ${websiteUser.email}`))
-          .catch(err => console.error(`❌ FAILED to send order placed email:`, err));
+        transporter
+          .sendMail(mailOptions)
+          .then(() =>
+            console.log(`✅ Order placed confirmation email sent to ${websiteUser.email}`)
+          )
+          .catch((err) =>
+            console.error(`❌ FAILED to send order placed email:`, err)
+          );
       }
-    } catch (error) {
-        console.error("Error preparing order confirmation email:", error);
+    } catch (emailError) {
+      console.error("Error sending order confirmation email:", emailError);
     }
-    // --- 👆 අලුත් කොටස මෙතනින් අවසන් වේ ---
 
-    res
-      .status(201)
-      .json({ success: true, message: "Order submitted successfully!" });
+    res.status(201).json({ 
+      success: true, 
+      message: "Order submitted successfully!",
+      orderId: newOrder.id
+    });
+  } catch (error) {
+    console.error("Error creating order:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to create order." 
+    });
   }
-);
-
-// =======================================================
-// === USER-RELATED API ENDPOINTS (PROFILE PAGE) ===
-// =======================================================
-// server.js
-
-// ⚠️ REPLACE your old '/api/user/status' endpoint with this new async version
-app.get("/api/user/status", authenticateToken, async (req, res) => {
-    const users = readDb(USERS_DB_PATH);
-    const userIndex = users.findIndex((u) => u.id === req.user.id);
-
-    if (userIndex === -1) {
-        return res.status(404).json({ success: false, message: "User not found." });
-    }
-
-    const user = users[userIndex];
-    
-    // Check for pending orders first (no change here)
-    const orders = readDb(ORDERS_DB_PATH);
-    const pendingOrder = orders.find(
-        (o) => o.websiteUsername.toLowerCase() === user.username.toLowerCase() && o.status === "pending"
-    );
-    if (pendingOrder && (!user.activePlans || user.activePlans.length === 0)) {
-        return res.json({ success: true, status: "pending" });
-    }
-
-    // If user has no active plans, no need to check the panel
-    if (!user.activePlans || user.activePlans.length === 0) {
-        return res.json({ success: true, status: "no_plan" });
-    }
-
-    // --- NEW VERIFICATION LOGIC STARTS HERE ---
-    try {
-        const verifiedActivePlans = [];
-        console.log(`[Verification] Checking plans for user: ${user.username}`);
-
-        // Loop through each plan and check if it exists in the V2Ray panel
-        for (const plan of user.activePlans) {
-            const clientExists = await findV2rayClient(plan.v2rayUsername);
-            if (clientExists) {
-                // If client exists in the panel, it's a valid plan
-                verifiedActivePlans.push(plan);
-            } else {
-                // If client does NOT exist, log it and do not add it to the verified list
-                console.log(`[Verification] Plan '${plan.v2rayUsername}' not found in panel. Removing from user profile.`);
-            }
-        }
-
-        // If the number of plans has changed, update the database
-        if (verifiedActivePlans.length !== user.activePlans.length) {
-            console.log(`[DB Update] Updating active plans for ${user.username}.`);
-            users[userIndex].activePlans = verifiedActivePlans;
-            writeDb(USERS_DB_PATH, users);
-        }
-        
-        // If after verification, no plans are left, change status to 'no_plan'
-        if (verifiedActivePlans.length === 0) {
-            return res.json({ success: true, status: "no_plan" });
-        }
-
-        // Return the verified list of active plans
-        return res.json({
-            success: true,
-            status: "approved",
-            activePlans: verifiedActivePlans,
-        });
-
-    } catch (error) {
-        // SAFETY FEATURE: If the V2Ray panel is down or there's a login error,
-        // DO NOT delete any plans. Just return the existing list.
-        console.warn(`[Verification Warning] Could not connect to V2Ray panel to verify plans for user ${user.username}. Returning existing plan list. Error: ${error.message}`);
-        return res.json({
-            success: true,
-            status: "approved",
-            activePlans: user.activePlans,
-        });
-    }
 });
 
-// Add this new endpoint to get user-specific orders
-app.get("/api/user/orders", authenticateToken, (req, res) => {
-  try {
-    const allOrders = readDb(ORDERS_DB_PATH);
-    const userOrders = allOrders
-      .filter(o => o.websiteUsername.toLowerCase() === req.user.username.toLowerCase())
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // Sort by newest first
+// =======================================================================
+// USER PROFILE & STATUS APIs (SUPABASE INTEGRATION)
+// =======================================================================
 
-    res.json({ success: true, orders: userOrders });
+// Get User Status with Plan Verification (Supabase)
+app.get("/api/user/status", authenticateToken, async (req, res) => {
+  try {
+    // Get user from Supabase
+    const { data: users, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', req.user.id);
+
+    if (userError) {
+      console.error("Supabase user fetch error:", userError);
+      throw userError;
+    }
+
+    if (!users || users.length === 0) {
+      return res.status(404).json({ success: false, message: "User not found." });
+    }
+
+    const user = users[0];
+
+    // Check for pending orders
+    const { data: orders, error: orderError } = await supabase
+      .from('orders')
+      .select('*')
+      .ilike('website_username', user.username)
+      .eq('status', 'pending');
+
+    if (orderError) {
+      console.error("Supabase orders fetch error:", orderError);
+      throw orderError;
+    }
+
+    const pendingOrder = orders && orders.length > 0 ? orders[0] : null;
+
+    // Get active plans from user_plans table
+    const { data: activePlans, error: plansError } = await supabase
+      .from('user_plans')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('is_active', true);
+
+    if (plansError) {
+      console.error("Supabase active plans fetch error:", plansError);
+      throw plansError;
+    }
+
+    if (pendingOrder && (!activePlans || activePlans.length === 0)) {
+      return res.json({ success: true, status: "pending" });
+    }
+
+    if (!activePlans || activePlans.length === 0) {
+      return res.json({ success: true, status: "no_plan" });
+    }
+
+    // Verify plans against V2Ray panel
+    try {
+      const verifiedActivePlans = [];
+      console.log(`[Verification] Checking plans for user: ${user.username}`);
+
+      for (const plan of activePlans) {
+        const clientExists = await findV2rayClient(plan.v2ray_username);
+        if (clientExists) {
+          verifiedActivePlans.push({
+            v2rayUsername: plan.v2ray_username,
+            v2rayLink: plan.v2ray_link,
+            planId: plan.plan_id,
+            connId: plan.conn_id,
+            activatedAt: plan.activated_at,
+            orderId: plan.order_id,
+          });
+        } else {
+          console.log(`[Verification] Plan '${plan.v2ray_username}' not found in panel. Deactivating.`);
+          // Deactivate plan in database
+          await supabase
+            .from('user_plans')
+            .update({ is_active: false })
+            .eq('id', plan.id);
+        }
+      }
+
+      if (verifiedActivePlans.length === 0) {
+        return res.json({ success: true, status: "no_plan" });
+      }
+
+      return res.json({
+        success: true,
+        status: "approved",
+        activePlans: verifiedActivePlans,
+      });
+    } catch (panelError) {
+      console.warn(`[Verification Warning] Could not connect to V2Ray panel for user ${user.username}. Returning existing plans. Error: ${panelError.message}`);
+      
+      const formattedPlans = activePlans.map(plan => ({
+        v2rayUsername: plan.v2ray_username,
+        v2rayLink: plan.v2ray_link,
+        planId: plan.plan_id,
+        connId: plan.conn_id,
+        activatedAt: plan.activated_at,
+        orderId: plan.order_id,
+      }));
+
+      return res.json({
+        success: true,
+        status: "approved",
+        activePlans: formattedPlans,
+      });
+    }
+  } catch (error) {
+    console.error("Error in user status:", error);
+    res.status(500).json({ success: false, message: "Failed to get user status." });
+  }
+});
+
+// Get User Orders (Supabase)
+app.get("/api/user/orders", authenticateToken, async (req, res) => {
+  try {
+    const { data: orders, error } = await supabase
+      .from('orders')
+      .select('*')
+      .ilike('website_username', req.user.username)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error("Supabase user orders fetch error:", error);
+      throw error;
+    }
+
+    // Convert snake_case to camelCase for frontend compatibility
+    const formattedOrders = orders.map(order => ({
+      id: order.id,
+      username: order.username,
+      websiteUsername: order.website_username,
+      planId: order.plan_id,
+      connId: order.conn_id,
+      pkg: order.pkg,
+      whatsapp: order.whatsapp,
+      receiptPath: order.receipt_path,
+      status: order.status,
+      createdAt: order.created_at,
+      isRenewal: order.is_renewal,
+      finalUsername: order.final_username,
+      approvedAt: order.approved_at,
+    }));
+
+    res.json({ success: true, orders: formattedOrders });
   } catch (error) {
     console.error("Error fetching user orders:", error);
     res.status(500).json({ success: false, message: "Could not retrieve orders." });
   }
 });
 
-app.post(
-  "/api/user/profile-picture",
-  authenticateToken,
-  upload.single("avatar"),
-  (req, res) => {
-    if (!req.file) {
-      return res
-        .status(400)
-        .json({ success: false, message: "No file was uploaded." });
+// Update Profile Picture (Supabase)
+app.post("/api/user/profile-picture", authenticateToken, upload.single("avatar"), async (req, res) => {
+  if (!req.file) {
+    return res
+      .status(400)
+      .json({ success: false, message: "No file was uploaded." });
+  }
+
+  try {
+    // Get current user to find old profile picture
+    const { data: users, error: fetchError } = await supabase
+      .from('users')
+      .select('profile_picture')
+      .eq('id', req.user.id);
+
+    if (fetchError) {
+      console.error("Supabase fetch user error:", fetchError);
+      throw fetchError;
     }
-    let users = readDb(USERS_DB_PATH);
-    const userIndex = users.findIndex((u) => u.id === req.user.id);
-    if (userIndex === -1) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found." });
+
+    if (!users || users.length === 0) {
+      return res.status(404).json({ success: false, message: "User not found." });
     }
-    const oldPicture = users[userIndex].profilePicture;
+
+    const oldPicture = users[0].profile_picture;
+    
+    // Delete old profile picture if it's not the default
     if (oldPicture && oldPicture !== "public/assets/profilePhoto.jpg") {
       fs.unlink(path.join(__dirname, oldPicture), (err) => {
         if (err) console.error("Could not delete old avatar:", err.message);
       });
     }
+
     const filePath = req.file.path.replace(/\\/g, "/");
-    users[userIndex].profilePicture = filePath;
-    writeDb(USERS_DB_PATH, users);
+
+    // Update profile picture in Supabase
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ profile_picture: filePath })
+      .eq('id', req.user.id);
+
+    if (updateError) {
+      console.error("Supabase profile picture update error:", updateError);
+      throw updateError;
+    }
+
     res.json({
       success: true,
       message: "Profile picture updated.",
       filePath: filePath.replace("public/", ""),
     });
+  } catch (error) {
+    console.error("Error updating profile picture:", error);
+    res.status(500).json({ success: false, message: "Failed to update profile picture." });
   }
-);
+});
 
+// Link Existing V2Ray Account (Supabase)
 app.post("/api/user/link-v2ray", authenticateToken, async (req, res) => {
   const { v2rayUsername } = req.body;
   if (!v2rayUsername) {
@@ -925,7 +1137,9 @@ app.post("/api/user/link-v2ray", authenticateToken, async (req, res) => {
       .status(400)
       .json({ success: false, message: "V2Ray username is required." });
   }
+
   try {
+    // Check if V2Ray client exists in panel
     const clientData = await findV2rayClient(v2rayUsername);
     if (!clientData || !clientData.client) {
       return res.status(404).json({
@@ -933,28 +1147,27 @@ app.post("/api/user/link-v2ray", authenticateToken, async (req, res) => {
         message: "This V2Ray username was not found in our panel.",
       });
     }
-    let users = readDb(USERS_DB_PATH);
-    const userIndex = users.findIndex((u) => u.id === req.user.id);
-    if (userIndex === -1) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Logged in user not found." });
+
+    // Check if this V2Ray username is already linked to any user
+    const { data: existingPlans, error: checkError } = await supabase
+      .from('user_plans')
+      .select('user_id')
+      .ilike('v2ray_username', v2rayUsername)
+      .eq('is_active', true);
+
+    if (checkError) {
+      console.error("Supabase existing plans check error:", checkError);
+      throw checkError;
     }
-    const isAlreadyLinked = users.some(
-      (u) =>
-        u.activePlans &&
-        u.activePlans.some(
-          (p) => p.v2rayUsername.toLowerCase() === v2rayUsername.toLowerCase()
-        )
-    );
-    if (isAlreadyLinked) {
+
+    if (existingPlans && existingPlans.length > 0) {
       return res.status(409).json({
         success: false,
-        message:
-          "This V2Ray account is already linked to another website account.",
+        message: "This V2Ray account is already linked to another website account.",
       });
     }
 
+    // Detect plan and connection type
     let detectedPlanId = "Unlimited";
     const totalBytes = clientData.client.total || 0;
     if (totalBytes > 0) {
@@ -975,342 +1188,629 @@ app.post("/api/user/link-v2ray", authenticateToken, async (req, res) => {
     };
     detectedConnId = inboundIdMap[inboundId] || "Unknown";
 
-    if (!users[userIndex].activePlans) {
-      users[userIndex].activePlans = [];
-    }
+    // Create new user plan in Supabase
     const newPlan = {
-      v2rayUsername: clientData.client.email,
-      v2rayLink: generateV2rayConfigLink(
-        clientData.inboundId,
-        clientData.client
-      ),
-      planId: detectedPlanId,
-      connId: detectedConnId,
-      activatedAt: new Date().toISOString(),
-      orderId: "linked-" + uuidv4(),
+      id: uuidv4(),
+      user_id: req.user.id,
+      v2ray_username: clientData.client.email,
+      v2ray_link: generateV2rayConfigLink(clientData.inboundId, clientData.client),
+      plan_id: detectedPlanId,
+      conn_id: detectedConnId,
+      activated_at: new Date().toISOString(),
+      order_id: "linked-" + uuidv4(),
+      is_active: true,
     };
-    users[userIndex].activePlans.push(newPlan);
-    writeDb(USERS_DB_PATH, users);
+
+    const { error: insertError } = await supabase
+      .from('user_plans')
+      .insert([newPlan]);
+
+    if (insertError) {
+      console.error("Supabase user plan creation error:", insertError);
+      throw insertError;
+    }
+
     res.json({
       success: true,
       message: "Your V2Ray account has been successfully linked!",
     });
   } catch (error) {
     console.error("Error linking V2Ray account:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "An internal server error occurred." });
+    res.status(500).json({ 
+      success: false, 
+      message: "An internal server error occurred." 
+    });
   }
 });
 
-// Admin Login API endpoint
-app.post('/api/admin/login', (req, res) => {
-    const { username, password } = req.body;
-    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-        const token = jwt.sign({ username: ADMIN_USERNAME, role: 'admin' }, JWT_SECRET, { expiresIn: '8h' });
-        res.json({ success: true, token });
-    } else {
-        res.status(401).json({ success: false, message: 'Invalid credentials' });
-    }
-});
+// Update User Password (Supabase)
+app.post("/api/user/update-password", authenticateToken, async (req, res) => {
+  const { newPassword } = req.body;
+  
+  if (!newPassword || newPassword.length < 6) {
+    return res
+      .status(400)
+      .json({
+        success: false,
+        message: "Password must be at least 6 characters long.",
+      });
+  }
 
-// server.js
-
-// ⚠️ REPLACE your old '/api/admin/dashboard-data' endpoint with this more robust version
-app.get('/api/admin/dashboard-data', authenticateAdmin, (req, res) => {
-    try {
-        const orders = readDb(ORDERS_DB_PATH);
-        const users = readDb(USERS_DB_PATH);
-
-        // Ensure orders and users are arrays before filtering
-        const validOrders = Array.isArray(orders) ? orders : [];
-        const validUsers = Array.isArray(users) ? users : [];
-
-        // Remove passwords before sending user data
-        const safeUsers = validUsers.map(({ password, ...user }) => user);
-
-        const data = {
-            stats: {
-                pending: validOrders.filter(o => o.status === 'pending').length,
-                approved: validOrders.filter(o => o.status === 'approved').length,
-                rejected: validOrders.filter(o => o.status === 'rejected').length,
-                users: validUsers.length
-            },
-            pendingOrders: validOrders.filter(o => o.status === 'pending').sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)),
-            allOrders: validOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
-            allUsers: safeUsers
-        };
-        res.json({ success: true, data });
-
-    } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-        res.status(500).json({ success: false, message: "Failed to load dashboard data." });
-    }
-});
-
-app.post('/api/user/update-password', authenticateToken, (req, res) => {
-    const { newPassword } = req.body;
-    const userId = req.user.id; // Get user ID from the authenticated token
-
-    if (!newPassword || newPassword.length < 6) {
-        return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long.' });
-    }
-
-    let users = readDb(USERS_DB_PATH);
-    const userIndex = users.findIndex(u => u.id === userId);
-
-    if (userIndex === -1) {
-        return res.status(404).json({ success: false, message: 'User not found.' });
-    }
-
-    // Hash the new password before saving
+  try {
     const hashedPassword = bcrypt.hashSync(newPassword, 10);
-    users[userIndex].password = hashedPassword;
+    
+    const { error } = await supabase
+      .from('users')
+      .update({ password: hashedPassword })
+      .eq('id', req.user.id);
 
-    writeDb(USERS_DB_PATH, users);
+    if (error) {
+      console.error("Supabase password update error:", error);
+      throw error;
+    }
 
-    res.json({ success: true, message: 'Password updated successfully!' });
+    res.json({ success: true, message: "Password updated successfully!" });
+  } catch (error) {
+    console.error("Error updating password:", error);
+    res.status(500).json({ success: false, message: "Failed to update password." });
+  }
 });
 
-// Endpoint to get all dashboard stats
-app.get('/api/admin/stats', authenticateAdmin, (req, res) => {
-    const orders = readDb(ORDERS_DB_PATH);
-    const users = readDb(USERS_DB_PATH);
-    const stats = {
-        pending: orders.filter(o => o.status === 'pending').length,
-        approved: orders.filter(o => o.status === 'approved').length,
-        rejected: orders.filter(o => o.status === 'rejected').length,
-        users: users.length
+// =======================================================================
+// ADMIN APIs (SUPABASE INTEGRATION)
+// =======================================================================
+
+// Admin Login
+app.post("/api/admin/login", (req, res) => {
+  const { username, password } = req.body;
+  if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+    const token = jwt.sign(
+      { username: ADMIN_USERNAME, role: "admin" },
+      JWT_SECRET,
+      { expiresIn: "8h" }
+    );
+    res.json({ success: true, token });
+  } else {
+    res.status(401).json({ success: false, message: "Invalid credentials" });
+  }
+});
+
+// Admin Dashboard Data (Supabase)
+app.get("/api/admin/dashboard-data", authenticateAdmin, async (req, res) => {
+  try {
+    // Get all orders
+    const { data: orders, error: ordersError } = await supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (ordersError) {
+      console.error("Supabase orders fetch error:", ordersError);
+      throw ordersError;
+    }
+
+    // Get all users (without passwords)
+    const { data: users, error: usersError } = await supabase
+      .from('users')
+      .select('id, username, email, whatsapp, profile_picture, created_at');
+
+    if (usersError) {
+      console.error("Supabase users fetch error:", usersError);
+      throw usersError;
+    }
+
+    const validOrders = orders || [];
+    const validUsers = users || [];
+
+    // Format orders for frontend compatibility
+    const formattedOrders = validOrders.map(order => ({
+      id: order.id,
+      username: order.username,
+      websiteUsername: order.website_username,
+      planId: order.plan_id,
+      connId: order.conn_id,
+      pkg: order.pkg,
+      whatsapp: order.whatsapp,
+      receiptPath: order.receipt_path,
+      status: order.status,
+      createdAt: order.created_at,
+      isRenewal: order.is_renewal,
+      finalUsername: order.final_username,
+      approvedAt: order.approved_at,
+    }));
+
+    const data = {
+      stats: {
+        pending: validOrders.filter((o) => o.status === "pending").length,
+        approved: validOrders.filter((o) => o.status === "approved").length,
+        rejected: validOrders.filter((o) => o.status === "rejected").length,
+        users: validUsers.length,
+      },
+      pendingOrders: formattedOrders
+        .filter((o) => o.status === "pending")
+        .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)),
+      allOrders: formattedOrders,
+      allUsers: validUsers.map(user => ({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        whatsapp: user.whatsapp,
+        profilePicture: user.profile_picture,
+        createdAt: user.created_at,
+      })),
     };
+    
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error("Error fetching dashboard data:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to load dashboard data." 
+    });
+  }
+});
+
+// Get Admin Stats (Supabase)
+app.get("/api/admin/stats", authenticateAdmin, async (req, res) => {
+  try {
+    const { data: orders, error: ordersError } = await supabase
+      .from('orders')
+      .select('status');
+
+    const { data: users, error: usersError } = await supabase
+      .from('users')
+      .select('id');
+
+    if (ordersError || usersError) {
+      throw ordersError || usersError;
+    }
+
+    const validOrders = orders || [];
+    const validUsers = users || [];
+
+    const stats = {
+      pending: validOrders.filter((o) => o.status === "pending").length,
+      approved: validOrders.filter((o) => o.status === "approved").length,
+      rejected: validOrders.filter((o) => o.status === "rejected").length,
+      users: validUsers.length,
+    };
+    
     res.json(stats);
+  } catch (error) {
+    console.error("Error fetching admin stats:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch stats." });
+  }
 });
 
-// Endpoint to get ONLY pending orders
-app.get('/api/admin/orders', authenticateAdmin, (req, res) => {
-    const orders = readDb(ORDERS_DB_PATH);
-    const pendingOrders = orders.filter(order => order.status === 'pending');
-    res.json({ success: true, orders: pendingOrders });
+// Get Pending Orders (Supabase)
+app.get("/api/admin/orders", authenticateAdmin, async (req, res) => {
+  try {
+    const { data: orders, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error("Supabase pending orders fetch error:", error);
+      throw error;
+    }
+
+    const formattedOrders = (orders || []).map(order => ({
+      id: order.id,
+      username: order.username,
+      websiteUsername: order.website_username,
+      planId: order.plan_id,
+      connId: order.conn_id,
+      pkg: order.pkg,
+      whatsapp: order.whatsapp,
+      receiptPath: order.receipt_path,
+      status: order.status,
+      createdAt: order.created_at,
+      isRenewal: order.is_renewal,
+    }));
+
+    res.json({ success: true, orders: formattedOrders });
+  } catch (error) {
+    console.error("Error fetching pending orders:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch pending orders." });
+  }
 });
 
-// Endpoint to get completed order history
-app.get('/api/admin/order-history', authenticateAdmin, (req, res) => {
-    const orders = readDb(ORDERS_DB_PATH);
-    const completedOrders = orders.filter(order => order.status === 'approved' || order.status === 'rejected');
-    res.json(completedOrders);
+// Get Order History (Supabase)
+app.get("/api/admin/order-history", authenticateAdmin, async (req, res) => {
+  try {
+    const { data: orders, error } = await supabase
+      .from('orders')
+      .select('*')
+      .in('status', ['approved', 'rejected'])
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error("Supabase order history fetch error:", error);
+      throw error;
+    }
+
+    const formattedOrders = (orders || []).map(order => ({
+      id: order.id,
+      username: order.username,
+      websiteUsername: order.website_username,
+      planId: order.plan_id,
+      connId: order.conn_id,
+      pkg: order.pkg,
+      whatsapp: order.whatsapp,
+      receiptPath: order.receipt_path,
+      status: order.status,
+      createdAt: order.created_at,
+      isRenewal: order.is_renewal,
+      finalUsername: order.final_username,
+      approvedAt: order.approved_at,
+    }));
+
+    res.json(formattedOrders);
+  } catch (error) {
+    console.error("Error fetching order history:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch order history." });
+  }
 });
 
-// Endpoint to get all users
-app.get('/api/admin/users', authenticateAdmin, (req, res) => {
-    const users = readDb(USERS_DB_PATH);
-    // Do not send passwords to the client
-    const safeUsers = users.map(({ password, ...user }) => user);
+// Get All Users (Supabase)
+app.get("/api/admin/users", authenticateAdmin, async (req, res) => {
+  try {
+    const { data: users, error } = await supabase
+      .from('users')
+      .select('id, username, email, whatsapp, profile_picture, created_at');
+
+    if (error) {
+      console.error("Supabase users fetch error:", error);
+      throw error;
+    }
+
+    const safeUsers = (users || []).map(user => ({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      whatsapp: user.whatsapp,
+      profilePicture: user.profile_picture,
+      createdAt: user.created_at,
+    }));
+
     res.json(safeUsers);
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch users." });
+  }
 });
 
-// Endpoint to reject an order
-app.post('/api/admin/reject-order/:orderId', authenticateAdmin, (req, res) => {
-    const { orderId } = req.params;
-    let orders = readDb(ORDERS_DB_PATH);
-    const orderIndex = orders.findIndex(o => o.id === orderId);
-    if (orderIndex === -1) {
-        return res.status(404).json({ success: false, message: 'Order not found' });
+// Reject Order (Supabase)
+app.post("/api/admin/reject-order/:orderId", authenticateAdmin, async (req, res) => {
+  const { orderId } = req.params;
+  
+  try {
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: 'rejected' })
+      .eq('id', orderId);
+
+    if (error) {
+      console.error("Supabase order rejection error:", error);
+      throw error;
     }
-    orders[orderIndex].status = 'rejected';
-    writeDb(ORDERS_DB_PATH, orders);
-    res.json({ success: true, message: 'Order rejected' });
+
+    res.json({ success: true, message: "Order rejected" });
+  } catch (error) {
+    console.error("Error rejecting order:", error);
+    res.status(500).json({ success: false, message: "Failed to reject order." });
+  }
 });
 
-// Endpoint to ban a user (deletes from website and panel)
-app.delete('/api/admin/ban-user', authenticateAdmin, async (req, res) => {
-    const { userId, v2rayUsername } = req.body;
-    try {
-        if (v2rayUsername) {
-            if (!await loginToPanel()) throw new Error("Panel auth failed.");
-            const clientData = await findV2rayClient(v2rayUsername);
-            if (clientData) {
-                await axios.post(DEL_CLIENT_BY_UUID_URL(clientData.inboundId, clientData.client.id), {}, { headers: { Cookie: cookies } });
-            }
+// Ban User (Delete from website and V2Ray panel) (Supabase)
+app.delete("/api/admin/ban-user", authenticateAdmin, async (req, res) => {
+  const { userId, v2rayUsername } = req.body;
+  
+  try {
+    // Delete from V2Ray panel if v2rayUsername is provided
+    if (v2rayUsername) {
+      if (!(await loginToPanel())) {
+        throw new Error("Panel authentication failed.");
+      }
+      
+      const clientData = await findV2rayClient(v2rayUsername);
+      if (clientData) {
+        await axios.post(
+          DEL_CLIENT_BY_UUID_URL(clientData.inboundId, clientData.client.id),
+          {},
+          { headers: { Cookie: cookies } }
+        );
+      }
+    }
+
+    // Deactivate all user plans first
+    await supabase
+      .from('user_plans')
+      .update({ is_active: false })
+      .eq('user_id', userId);
+
+    // Delete user from Supabase
+    const { error } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', userId);
+
+    if (error) {
+      console.error("Supabase user deletion error:", error);
+      throw error;
+    }
+
+    res.json({ 
+      success: true, 
+      message: `User ${userId} has been banned and removed from the system.` 
+    });
+  } catch (error) {
+    console.error("Error banning user:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: error.message || "Failed to ban user." 
+    });
+  }
+});
+
+// Approve Order (Main Admin Function) (Supabase)
+app.post("/api/admin/approve-order/:orderId", authenticateAdmin, async (req, res) => {
+  const orderId = req.params.orderId;
+  
+  // Ensure panel login first
+  if (!(await loginToPanel())) {
+    return res
+      .status(500)
+      .json({ success: false, message: "Panel authentication failed." });
+  }
+
+  try {
+    // Get order from Supabase
+    const { data: orders, error: orderError } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderId);
+
+    if (orderError) {
+      console.error("Supabase order fetch error:", orderError);
+      throw orderError;
+    }
+
+    if (!orders || orders.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found." });
+    }
+
+    const order = orders[0];
+
+    // Get user from Supabase
+    const { data: users, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .ilike('username', order.website_username);
+
+    if (userError) {
+      console.error("Supabase user fetch error:", userError);
+      throw userError;
+    }
+
+    if (!users || users.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `Website user "${order.website_username}" not found.`,
+      });
+    }
+
+    const user = users[0];
+
+    // Validate plan and connection configuration
+    const plan = planConfig[order.plan_id];
+    let inboundId = inboundIdConfig[order.conn_id];
+    
+    if (["slt_fiber", "slt_router"].includes(order.conn_id)) {
+      inboundId = order.pkg?.toLowerCase().includes("netflix")
+        ? process.env.INBOUND_ID_SLT_NETFLIX
+        : process.env.INBOUND_ID_SLT_ZOOM;
+    }
+
+    if (!inboundId || !plan) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid plan/connection in order.",
+      });
+    }
+
+    // Common settings for new/renewed clients
+    const expiryTime = Date.now() + 30 * 24 * 60 * 60 * 1000; // 30 days
+    const newSettings = {
+      enable: true,
+      totalGB: (plan.totalGB || 0) * 1024 * 1024 * 1024,
+      expiryTime: expiryTime,
+    };
+
+    let clientLink;
+    let finalUsername = order.username;
+
+    // ======================= RENEWAL LOGIC =======================
+    if (order.is_renewal) {
+      console.log(`[Renewal] Processing renewal for: ${order.username}`);
+      
+      // Find the existing client in the panel
+      const clientInPanel = await findV2rayClient(order.username);
+
+      // If client exists, delete it first to reset everything
+      if (clientInPanel) {
+        inboundId = clientInPanel.inboundId;
+        await axios.post(
+          DEL_CLIENT_BY_UUID_URL(inboundId, clientInPanel.client.id),
+          {},
+          { headers: { Cookie: cookies } }
+        );
+        console.log(`[Renewal] Deleted existing client: ${order.username}`);
+      }
+
+      // Re-create the client with the same name but new settings
+      const clientSettings = {
+        id: uuidv4(),
+        email: finalUsername,
+        ...newSettings,
+      };
+      
+      const payload = {
+        id: parseInt(inboundId),
+        settings: JSON.stringify({ clients: [clientSettings] }),
+      };
+      
+      await axios.post(ADD_CLIENT_URL, payload, {
+        headers: { Cookie: cookies },
+      });
+      
+      clientLink = generateV2rayConfigLink(inboundId, clientSettings);
+      console.log(`[Renewal] Re-created client: ${finalUsername}`);
+
+      // Update existing plan in user_plans table
+      const { error: updateError } = await supabase
+        .from('user_plans')
+        .update({
+          v2ray_link: clientLink,
+          activated_at: new Date().toISOString(),
+          order_id: order.id,
+        })
+        .eq('user_id', user.id)
+        .ilike('v2ray_username', finalUsername);
+
+      if (updateError) {
+        console.error("Supabase user plan update error:", updateError);
+        throw updateError;
+      }
+
+    // ===================== NEW USER LOGIC ======================
+    } else {
+      console.log(`[New User] Processing new user: ${order.username}`);
+      
+      // Check if the username already exists in panel
+      let clientInPanel = await findV2rayClient(finalUsername);
+      if (clientInPanel) {
+        let counter = 1;
+        let newUsername = `${order.username}-${counter}`;
+        while (await findV2rayClient(newUsername)) {
+          counter++;
+          newUsername = `${order.username}-${counter}`;
         }
-        let users = readDb(USERS_DB_PATH);
-        const filteredUsers = users.filter(u => u.id !== userId);
-        writeDb(USERS_DB_PATH, filteredUsers); // Corrected from 'users' to 'filteredUsers'
-        res.json({ success: true, message: `User ${userId} has been banned.` });
-    } catch (error) {
-        console.error("Error banning user:", error.message);
-        res.status(500).json({ success: false, message: error.message });
+        finalUsername = newUsername;
+        console.log(`[New User] Username conflict resolved. New username: ${finalUsername}`);
+      }
+
+      // Create a new client in V2Ray panel
+      const clientSettings = {
+        id: uuidv4(),
+        email: finalUsername,
+        ...newSettings,
+      };
+      
+      const payload = {
+        id: parseInt(inboundId),
+        settings: JSON.stringify({ clients: [clientSettings] }),
+      };
+      
+      await axios.post(ADD_CLIENT_URL, payload, {
+        headers: { Cookie: cookies },
+      });
+      
+      clientLink = generateV2rayConfigLink(inboundId, clientSettings);
+      console.log(`[New User] Created new client: ${finalUsername}`);
+
+      // Add the new plan to user_plans table
+      const newPlan = {
+        id: uuidv4(),
+        user_id: user.id,
+        v2ray_username: finalUsername,
+        v2ray_link: clientLink,
+        plan_id: order.plan_id,
+        conn_id: order.conn_id,
+        activated_at: new Date().toISOString(),
+        order_id: order.id,
+        is_active: true,
+      };
+
+      const { error: planError } = await supabase
+        .from('user_plans')
+        .insert([newPlan]);
+
+      if (planError) {
+        console.error("Supabase user plan creation error:", planError);
+        throw planError;
+      }
     }
-});
 
-app.post(
-  "/api/admin/approve-order/:orderId",
-  authenticateAdmin,
-  async (req, res) => {
-    const orderId = req.params.orderId;
-    if (!(await loginToPanel()))
-      return res
-        .status(500)
-        .json({ success: false, message: "Panel authentication failed." });
-    let orders = readDb(ORDERS_DB_PATH);
-    const orderIndex = orders.findIndex((o) => o.id === orderId);
-    if (orderIndex === -1)
-      return res
-        .status(404)
-        .json({ success: false, message: "Order not found." });
-    const order = orders[orderIndex];
-    let users = readDb(USERS_DB_PATH);
-    const userIndex = users.findIndex(
-      (u) => u.username.toLowerCase() === order.websiteUsername.toLowerCase()
-    );
-    if (userIndex === -1)
-      return res.status(404).json({
-        success: false,
-        message: `Website user "${order.websiteUsername}" not found.`,
-      });
-    try {
-      const plan = planConfig[order.planId];
-      let inboundId = inboundIdConfig[order.connId];
-      if (["slt_fiber", "slt_router"].includes(order.connId)) {
-        inboundId = order.pkg?.toLowerCase().includes("netflix")
-          ? process.env.INBOUND_ID_SLT_NETFLIX
-          : process.env.INBOUND_ID_SLT_ZOOM;
-      }
-      if (!inboundId || !plan)
-        return res.status(400).json({
-          success: false,
-          message: "Invalid plan/connection in order.",
-        });
+    // Update order status in Supabase
+    const { error: orderUpdateError } = await supabase
+      .from('orders')
+      .update({
+        status: 'approved',
+        final_username: finalUsername,
+        approved_at: new Date().toISOString(),
+      })
+      .eq('id', order.id);
 
-      // Common settings for new/renewed clients
-      const expiryTime = Date.now() + 30 * 24 * 60 * 60 * 1000;
-      const newSettings = {
-        enable: true,
-        totalGB: (plan.totalGB || 0) * 1024 * 1024 * 1024,
-        expiryTime: expiryTime,
-      };
+    if (orderUpdateError) {
+      console.error("Supabase order update error:", orderUpdateError);
+      throw orderUpdateError;
+    }
 
-      let clientLink;
-      let finalUsername = order.username;
+    // Send approval email
+    if (user && user.email) {
+      const mailOptions = {
+        from: `NexGuard Orders <${process.env.EMAIL_SENDER}>`,
+        to: user.email,
+        subject: `Your NexGuard Plan is ${order.is_renewal ? "Renewed" : "Activated"}!`,
+        html: generateEmailTemplate(
+          `Plan ${order.is_renewal ? "Renewed" : "Activated"}!`,
+          `Your ${order.plan_id} plan is ready.`,
+          generateApprovalEmailContent(user.username, order.plan_id, finalUsername)
+        ),
+      };
 
-      // ======================= RENEWAL LOGIC =======================
-      if (order.isRenewal) {
-        // Find the existing client in the panel
-        const clientInPanel = await findV2rayClient(order.username);
-        
-        // If client exists, delete it first to reset everything
-        if (clientInPanel) {
-          // Use the inbound ID from the existing client for accuracy
-          inboundId = clientInPanel.inboundId;
-          await axios.post(
-            DEL_CLIENT_BY_UUID_URL(inboundId, clientInPanel.client.id), {}, { headers: { Cookie: cookies } }
-          );
-        }
-
-        // Re-create the client with the same name but new settings
-        const clientSettings = { id: uuidv4(), email: finalUsername, ...newSettings };
-        const payload = {
-          id: parseInt(inboundId),
-          settings: JSON.stringify({ clients: [clientSettings] }),
-        };
-        await axios.post(ADD_CLIENT_URL, payload, { headers: { Cookie: cookies } });
-        clientLink = generateV2rayConfigLink(inboundId, clientSettings);
-        
-        // Update the existing plan details in the user's profile
-        const planIndex = users[userIndex].activePlans.findIndex(
-          (p) => p.v2rayUsername.toLowerCase() === finalUsername.toLowerCase()
-        );
-        if (planIndex !== -1) {
-          users[userIndex].activePlans[planIndex].activatedAt = new Date().toISOString();
-          users[userIndex].activePlans[planIndex].v2rayLink = clientLink; // UUID changes, so link must be updated
-          users[userIndex].activePlans[planIndex].orderId = order.id; // Update with the new order ID
-        }
-      // ===================== NEW USER LOGIC ======================
-      } else { 
-        // Check if the username already exists
-        let clientInPanel = await findV2rayClient(finalUsername);
-        if (clientInPanel) {
-          let counter = 1;
-          let newUsername = `${order.username}-${counter}`;
-          while (await findV2rayClient(newUsername)) {
-            counter++;
-            newUsername = `${order.username}-${counter}`;
-          }
-          finalUsername = newUsername;
-        }
-
-        // Create a new client
-        const clientSettings = { id: uuidv4(), email: finalUsername, ...newSettings };
-        const payload = {
-          id: parseInt(inboundId),
-          settings: JSON.stringify({ clients: [clientSettings] }),
-        };
-        await axios.post(ADD_CLIENT_URL, payload, { headers: { Cookie: cookies } });
-        clientLink = generateV2rayConfigLink(inboundId, clientSettings);
-        
-        // Add the new plan to the user's profile
-        if (!users[userIndex].activePlans) users[userIndex].activePlans = [];
-        users[userIndex].activePlans.push({
-          v2rayUsername: finalUsername,
-          v2rayLink: clientLink,
-          planId: order.planId,
-          connId: order.connId,
-          activatedAt: new Date().toISOString(),
-          orderId: order.id,
-        });
-      }
-
-      // Update databases and send email (common for both new and renewal)
-      orders[orderIndex].status = "approved";
-      orders[orderIndex].finalUsername = finalUsername;
-      orders[orderIndex].approvedAt = new Date().toISOString();
-      writeDb(USERS_DB_PATH, users);
-      writeDb(ORDERS_DB_PATH, orders);
-      
-      const websiteUser = users.find(
-        (u) => u.username.toLowerCase() === order.websiteUsername.toLowerCase()
-      );
-      if (websiteUser && websiteUser.email) {
-        const mailOptions = {
-          from: `NexGuard Orders <${process.env.EMAIL_SENDER}>`,
-          to: websiteUser.email,
-          subject: `Your NexGuard Plan is ${order.isRenewal ? 'Renewed' : 'Activated'}!`,
-          html: generateEmailTemplate(
-            `Plan ${order.isRenewal ? 'Renewed' : 'Activated'}!`,
-            `Your ${order.planId} plan is ready.`,
-            generateApprovalEmailContent(
-              websiteUser.username,
-              order.planId,
-              finalUsername
-            )
-          ),
-        };
-  transporter.sendMail(mailOptions)
+      transporter
+        .sendMail(mailOptions)
         .then(() => {
-          console.log(`✅ Approval email sent successfully to ${websiteUser.email}`);
+          console.log(`✅ Approval email sent successfully to ${user.email}`);
         })
         .catch((error) => {
-          console.error(`❌ FAILED to send approval email to ${websiteUser.email}:`, error);
+          console.error(`❌ FAILED to send approval email to ${user.email}:`, error);
         });
     }
+
+    console.log(`[Success] Order ${orderId} approved for user: ${finalUsername}`);
+    
     res.json({
-        success: true,
-        message: `Order for ${finalUsername} processed successfully.`,
-        username: finalUsername,
-        v2rayLink: clientLink,
-      });
-    } catch (error) {
-      console.error("Error during order approval:", error.message, error.stack);
-      res.status(500).json({
-        success: false,
-        message: error.message || "An error occurred.",
-      });
-    }
-  }
-);
+      success: true,
+      message: `Order for ${finalUsername} processed successfully.`,
+      username: finalUsername,
+      v2rayLink: clientLink,
+    });
 
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  } catch (error) {
+    console.error("Error during order approval:", error.message, error.stack);
+    res.status(500).json({
+      success: false,
+      message: error.message || "An error occurred during order approval.",
+    });
+  }
 });
-// ---------------------------------------------------
-// ---------------------------------------------------
 
+// =======================================================================
+// FALLBACK ROUTE FOR SPA (Single Page Application)
+// =======================================================================
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+// =======================================================================
+// EXPORT MODULE
+// =======================================================================
 module.exports = app;
+
