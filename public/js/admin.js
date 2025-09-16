@@ -1,3 +1,5 @@
+// File Path: public/js/admin.js (Complete and Final Version)
+
 document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('nexguard_admin_token');
     if (!token) {
@@ -5,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    // --- DOM Elements ---
     const contentTitle = document.getElementById('content-title');
     const contentContainer = document.getElementById('content-container');
     const searchBarContainer = document.getElementById('search-bar-container');
@@ -23,9 +26,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const editResellerModal = document.getElementById('edit-reseller-modal');
     const editResellerForm = document.getElementById('edit-reseller-form');
     const editModalCloseBtn = document.getElementById('edit-modal-close-btn');
-    
+    const modalCloseBtn = document.getElementById('modal-close-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    // --- Data Cache ---
     let cachedData = { stats: {}, pendingOrders: [], allOrders: [], allUsers: [] };
 
+    // --- API Helper ---
     const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
     const api = {
         get: (endpoint) => fetch(endpoint, { headers }).then(res => res.json()),
@@ -33,6 +40,8 @@ document.addEventListener('DOMContentLoaded', () => {
         put: (endpoint, body) => fetch(endpoint, { method: 'PUT', headers, body: JSON.stringify(body) }).then(res => res.json()),
         delete: (endpoint, body) => fetch(endpoint, { method: 'DELETE', headers, body: JSON.stringify(body) }).then(res => res.json())
     };
+
+    // --- Render Functions (These create the HTML content) ---
 
     const renderStats = (stats = {}, allUsers = []) => {
         document.getElementById('pending-orders-stat').textContent = stats.pending || 0;
@@ -63,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>`).join('');
     };
-    
+
     const renderOrderHistory = (orders = [], statusFilter) => {
         contentTitle.textContent = `${statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)} Orders`;
         searchBarContainer.classList.add('hidden');
@@ -81,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <th class="p-3 text-left font-semibold text-white">Plan</th>
                         <th class="p-3 text-left font-semibold text-white">Website User</th>
                     </tr></thead>
-                    <tbody class="divide-y divide-slate-800">${filteredOrders.map(order => `
+                    <tbody>${filteredOrders.map(order => `
                         <tr>
                             <td data-label="Date">${new Date(order.approved_at || order.created_at).toLocaleDateString()}</td>
                             <td data-label="V2Ray User">${order.final_username || order.username}</td>
@@ -110,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <th class="p-3 text-left font-semibold text-white whitespace-nowrap">V2Ray Profiles</th>
                         <th class="p-3 text-center font-semibold text-white">Action</th>
                     </tr></thead>
-                    <tbody class="divide-y divide-slate-800">${regularUsers.map(user => `
+                    <tbody>${regularUsers.map(user => `
                         <tr>
                             <td data-label="Username">${user.username}</td>
                             <td data-label="Contact"><div>${user.email}</div><div class="text-xs text-slate-400">${user.whatsapp}</div></td>
@@ -130,22 +139,22 @@ document.addEventListener('DOMContentLoaded', () => {
         contentTitle.textContent = "Reseller Management";
         searchBarContainer.classList.add('hidden');
         const resellers = users.filter(u => u.role === 'reseller');
-            const addResellerForm = `
-        <div class="glass-panel p-5 rounded-lg mb-6">
-            <h3 class="text-lg font-bold mb-4">Add New Reseller</h3>
-            <form id="add-reseller-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input type="text" name="username" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500" placeholder="Username" required>
-                <input type="email" name="email" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500" placeholder="Email" required>
-                <input type="password" name="password" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500" placeholder="Password" required>
-                <input type="text" name="whatsapp" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500" placeholder="WhatsApp (Optional)">
-                <button type="submit" class="btn btn-approve md:col-span-2 justify-center">Add Reseller</button>
-            </form>
-        </div>`;
+        const addResellerForm = `
+            <div class="glass-panel p-5 rounded-lg mb-6">
+                <h3 class="text-lg font-bold mb-4">Add New Reseller</h3>
+                <form id="add-reseller-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input type="text" name="username" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" placeholder="Username" required>
+                    <input type="email" name="email" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" placeholder="Email" required>
+                    <input type="password" name="password" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" placeholder="Password" required>
+                    <input type="text" name="whatsapp" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" placeholder="WhatsApp (Optional)">
+                    <button type="submit" class="btn btn-approve md:col-span-2 justify-center">Add Reseller</button>
+                </form>
+            </div>`;
 
-    let resellerListHtml;
-    if (resellers.length === 0) {
-        resellerListHtml = '<div class="glass-panel p-8 rounded-lg text-center text-gray-400">No resellers found.</div>';
-    } else {
+        let resellerListHtml;
+        if (resellers.length === 0) {
+            resellerListHtml = '<div class="glass-panel p-8 rounded-lg text-center text-gray-400">No resellers found.</div>';
+        } else {
             resellerListHtml = `
             <div class="glass-panel rounded-xl overflow-hidden">
                 <table class="min-w-full text-sm responsive-table">
@@ -155,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <th class="p-3 text-left font-semibold text-white whitespace-nowrap">Users Created</th>
                         <th class="p-3 text-center font-semibold text-white">Actions</th>
                     </tr></thead>
-                    <tbody class="divide-y divide-slate-800">${resellers.map(reseller => {
+                    <tbody>${resellers.map(reseller => {
                         const createdUserCount = cachedData.allUsers.filter(u => u.created_by === reseller.id).length;
                         return `
                         <tr>
@@ -176,4 +185,145 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         contentContainer.innerHTML = addResellerForm + resellerListHtml;
     };
+
+
+    // --- Core Logic ---
+
+    const loadAllData = async () => {
+        contentContainer.innerHTML = '<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-3xl text-purple-400"></i></div>';
+        const result = await api.get('/api/admin/dashboard-data');
+        if (result.success && result.data) {
+            cachedData = result.data;
+            renderStats(cachedData.stats, cachedData.allUsers);
+            setActiveCard('pending');
+            renderPendingOrders(cachedData.pendingOrders);
+        } else {
+            contentContainer.innerHTML = `<div class="glass-panel p-8 rounded-lg text-center text-red-500">${result.message || 'Failed to load dashboard data.'}</div>`;
+        }
+    };
+    
+    const setActiveCard = (cardKey) => {
+        Object.values(cards).forEach(card => card.classList.remove('border-purple-500', 'bg-slate-900/50'));
+        if (cards[cardKey]) cards[cardKey].classList.add('border-purple-500', 'bg-slate-900/50');
+    };
+
+    const logout = () => {
+        localStorage.removeItem('nexguard_admin_token');
+        window.location.href = '/admin/login';
+    };
+
+
+    // --- Event Listeners ---
+
+    contentContainer.addEventListener('click', async (e) => {
+        const button = e.target.closest('button');
+        if (!button) return;
+
+        if (button.classList.contains('view-proof-btn')) {
+            modalImage.src = button.dataset.proofUrl;
+            imageModal.classList.add('active');
+        } else if (button.classList.contains('btn-ban')) {
+            const userId = button.dataset.userId;
+            const username = button.dataset.username;
+            if (!confirm(`Are you sure you want to ban "${username}"?`)) return;
+            button.disabled = true; button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Banning...';
+            const result = await api.delete('/api/admin/ban-user', { userId });
+            if (result.success) await loadAllData();
+            else { alert(`Error: ${result.message}`); button.disabled = false; button.innerHTML = '<i class="fa-solid fa-user-slash"></i> Ban'; }
+        } else if (button.classList.contains('btn-edit-reseller')) {
+            const resellerId = button.dataset.resellerId;
+            const resellerData = cachedData.allUsers.find(u => u.id === resellerId);
+            if (resellerData) {
+                editResellerForm.elements.id.value = resellerData.id;
+                editResellerForm.elements.username.value = resellerData.username;
+                editResellerForm.elements.email.value = resellerData.email;
+                editResellerForm.elements.whatsapp.value = resellerData.whatsapp || '';
+                editResellerForm.elements.password.value = '';
+                editResellerModal.classList.add('active');
+            }
+        }
+        
+        const orderId = button.dataset.orderId;
+        if (!orderId) return;
+
+        if (button.classList.contains('btn-approve')) {
+            button.disabled = true; button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Approving...';
+            const result = await api.post(`/api/admin/approve-order/${orderId}`);
+            if (result.success) await loadAllData();
+            else { alert(`Error: ${result.message}`); button.disabled = false; button.innerHTML = '<i class="fa-solid fa-check"></i> Approve'; }
+        } else if (button.classList.contains('btn-reject')) {
+            button.disabled = true; button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Rejecting...';
+            const result = await api.post(`/api/admin/reject-order/${orderId}`);
+            if (result.success) await loadAllData();
+            else { alert(`Error: ${result.message}`); button.disabled = false; button.innerHTML = '<i class="fa-solid fa-times"></i> Reject'; }
+        }
+    });
+
+    contentContainer.addEventListener('submit', async(e) => {
+        if (e.target.id === 'add-reseller-form') {
+            e.preventDefault();
+            const form = e.target;
+            const button = form.querySelector('button[type="submit"]');
+            button.disabled = true; button.textContent = 'Adding...';
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+            const result = await api.post('/api/admin/resellers', data);
+            if (result.success) {
+                alert('Reseller created successfully!');
+                form.reset();
+                await loadAllData();
+                renderResellers(cachedData.allUsers);
+            } else { alert(`Error: ${result.message}`); }
+            button.disabled = false; button.textContent = 'Add Reseller';
+        }
+    });
+
+    editResellerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const button = form.querySelector('button[type="submit"]');
+        button.disabled = true; button.textContent = 'Updating...';
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        const resellerId = data.id;
+        if (!data.password) delete data.password;
+        const result = await api.put(`/api/admin/resellers/${resellerId}`, data);
+        if (result.success) {
+            alert('Reseller updated successfully!');
+            editResellerModal.classList.remove('active');
+            await loadAllData();
+            renderResellers(cachedData.allUsers);
+        } else { alert(`Error: ${result.message}`); }
+        button.disabled = false; button.textContent = 'Update Reseller';
+    });
+    
+    userSearchInput.addEventListener('input', () => {
+        const searchTerm = userSearchInput.value.toLowerCase();
+        const filteredUsers = (cachedData.allUsers || []).filter(user => (user.role === 'user') && (user.username.toLowerCase().includes(searchTerm) || user.email.toLowerCase().includes(searchTerm)));
+        renderUsers(filteredUsers);
+    });
+
+    logoutBtn.addEventListener('click', logout);
+    modalCloseBtn.addEventListener('click', () => imageModal.classList.remove('active'));
+    imageModal.addEventListener('click', (e) => { if (e.target === imageModal) imageModal.classList.remove('active'); });
+    editModalCloseBtn.addEventListener('click', () => editResellerModal.classList.remove('active'));
+    editResellerModal.addEventListener('click', (e) => { if (e.target === editResellerModal) editResellerModal.classList.remove('active'); });
+
+    Object.keys(cards).forEach(key => {
+        if (cards[key]) {
+            cards[key].addEventListener('click', () => {
+                setActiveCard(key);
+                switch (key) {
+                    case 'pending': renderPendingOrders(cachedData.pendingOrders); break;
+                    case 'approved': renderOrderHistory(cachedData.allOrders, 'approved'); break;
+                    case 'rejected': renderOrderHistory(cachedData.allOrders, 'rejected'); break;
+                    case 'users': renderUsers(cachedData.allUsers); break;
+                    case 'resellers': renderResellers(cachedData.allUsers); break;
+                }
+            });
+        }
+    });
+    
+    // --- Initial Load ---
+    loadAllData();
 });
