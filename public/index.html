@@ -327,24 +327,23 @@
 }
 
       /* Replace your modal CSS with this fixed version: */
+/* Replace your modal CSS with this fixed version: */
 .help-modal-overlay {
   position: fixed;
-  top: 60px;
-  margin-top: 60px;
+  /* top: 60px;  <-- මේ ලයින් එක ඉවත් කරන්න */
+  /* margin-top: 60px; <-- මේ ලයින් එකත් ඉවත් කරන්න */
+  top: 0; /* ඒ වෙනුවට මේක දාන්න. Overlay එක උඩම ඉඳන් පටන් ගන්න */
   left: 0;
   width: 100%;
   height: 100%;
-  /* Lighter background - less black */
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  /* Higher z-index to go above navbar */
   z-index: 9999;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: center;   /* සිරස්ව (vertically) මැදට ගේන්න */
+  justify-content: center; /* තිරස්ව (horizontally) මැදට ගේන්න */
   padding: 1rem;
   
-  /* Hidden by default */
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.3s ease, visibility 0.3s ease;
