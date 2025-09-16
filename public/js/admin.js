@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
         contentContainer.innerHTML = orders.map(order => `
             <div class="glass-panel p-4 rounded-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4" id="order-${order.id}">
                 <div class="flex-grow">
-                    <p class="font-bold text-lg">${order.username}</p>
+                    <p class="font-bold text-lg"> ${order.username}</p>
                     <p class="text-sm text-slate-300">${order.plan_id} | ${order.conn_id} ${order.pkg ? `(${order.pkg})` : ''}</p>
                     <p class="text-xs text-slate-400 mt-1">Contact: ${order.whatsapp} | Ordered By: ${order.website_username}</p>
                 </div>
@@ -168,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const createdUserCount = cachedData.allUsers.filter(u => u.created_by === reseller.id).length;
                         return `
                         <tr>
-                            <td data-label="Reseller">${reseller.username}</td>
+                            <td data-label="Reseller"> ${reseller.username}</td>
                             <td data-label="Contact"><div>${reseller.email}</div><div class="text-xs text-slate-400">${reseller.whatsapp || 'N/A'}</div></td>
                             <td data-label="Users Created">${createdUserCount}</td>
                             <td data-label="Actions" class="actions-cell">
