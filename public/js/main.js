@@ -1071,14 +1071,14 @@ document.addEventListener("DOMContentLoaded", () => {
 // REPLACE THE ENTIRE HTML BLOCK FOR THE TABS with this NEW, WIDER LAYOUT
 
 planDetailsContainer.innerHTML = `
-    <div id="profile-tabs" class="flex items-center gap-4 sm:gap-6 border-b border-white/10 mb-6 overflow-x-auto">
-        <button data-tab="v2ray-config" class="tab-btn">V2Ray Config</button>
-        <button data-tab="usage-stats" class="tab-btn">Usage Stats</button>
-        <button data-tab="my-orders" class="tab-btn">My Orders</button>
-        <button data-tab="account-settings" class="tab-btn">Account Settings</button>
-    </div>
+                        <div id="profile-tabs" class="flex items-center gap-4 sm:gap-6 border-b border-white/10 mb-6 overflow-x-auto">
+                            <button data-tab="config" class="tab-btn">V2Ray Config</button>
+                            <button data-tab="usage" class="tab-btn">Usage Stats</button>
+                            <button data-tab="orders" class="tab-btn">My Orders</button>
+                            <button data-tab="settings" class="tab-btn">Account Settings</button>
+                        </div>
 
-    <div id="tab-v2ray-config" class="tab-panel">
+    <div id="tab-config" class="tab-panel">
         <div class="glass-panel p-6 sm:p-8 rounded-xl">
             <div class="grid md:grid-cols-2 gap-8 items-center">
                 <div class="flex flex-col items-center text-center">
@@ -1104,13 +1104,13 @@ planDetailsContainer.innerHTML = `
         </div>
     </div>
 
-    <div id="tab-usage-stats" class="tab-panel">
+    <div id="tab-usage" class="tab-panel">
         </div>
     
-    <div id="tab-my-orders" class="tab-panel">
+    <div id="tab-orders" class="tab-panel">
          </div>
     
-    <div id="tab-account-settings" class="tab-panel">
+    <div id="tab-settings" class="tab-panel">
         <div class="glass-panel p-6 sm:p-8 rounded-xl">
             <div class="max-w-md mx-auto">
                 <h3 class="text-xl font-bold text-white mb-6 font-['Orbitron'] text-center">Account Settings</h3>
@@ -1239,34 +1239,37 @@ const loadMyOrders = async() => {
                             }
                         };
                         const switchTab = (tabId, updateUrl = false) => {
-                            tabs.querySelector('.active')?.classList.remove('active');
-                            panels.forEach(p => p.classList.remove('active'));
-                            const newTabButton = tabs.querySelector(`[data-tab="${tabId}"]`);
-                            const newTabPanel = document.getElementById(`tab-${tabId}`);
-                            if (newTabButton) newTabButton.classList.add('active');
-                            if (newTabPanel) newTabPanel.classList.add('active');
-                            
-                            if (tabId === 'usage-stats') loadUsageStats();
-                            if (tabId === 'my-orders') loadMyOrders();
-                            if (tabId === 'v2ray-config') updateRenewButton();
-                            if (updateUrl) {
-                                const currentParams = new URLSearchParams(window.location.search);
-                                currentParams.set('tab', tabId);
-                                history.replaceState(null, '', `${window.location.pathname}?${currentParams.toString()}`);
-                            }
-                        };
+                        tabs.querySelector('.active')?.classList.remove('active');
+                        panels.forEach(p => p.classList.remove('active'));
+                        
+                        const newTabButton = tabs.querySelector(`[data-tab="${tabId}"]`);
+                        const newTabPanel = document.getElementById(`tab-${tabId}`);
+                        
+                        if (newTabButton) newTabButton.classList.add('active');
+                        if (newTabPanel) newTabPanel.classList.add('active');
+                        
+                        if (tabId === 'usage') loadUsageStats();
+                        if (tabId === 'orders') loadMyOrders();
+                        if (tabId === 'config') updateRenewButton();
+
+                        // This is the new URL logic
+                        if (updateUrl) {
+                            history.pushState(null, '', `/profile/${tabId}`);
+                        }
+                    };
 
                     tabs.addEventListener('click', (e) => {
                         if (e.target.tagName !== 'BUTTON') return;
                         switchTab(e.target.dataset.tab, true);
                     });
                     
-                    const initialTab = params.get("tab") || 'v2ray-config';
+                    // --- THIS LOGIC IS UPDATED ---
+                    const pathParts = window.location.pathname.split('/');
+                    const initialTab = pathParts[2] || 'config'; // Default to 'config'
                     switchTab(initialTab, false);
                     
                     setupEventListeners();
                 };
-
                 planSelector.addEventListener("change", (e) => displayPlanDetails(e.target.value));
                 displayPlanDetails(planSelector.value);
 
@@ -1705,52 +1708,57 @@ const loadMyOrders = async() => {
         router();
     };
 
-    const router = () => {
-        const pathName = window.location.pathname;
-        const query = window.location.search;
-        const params = new URLSearchParams(query);
-        let pageKey = pathName === '/' ? 'home' : pathName.substring(1);
+    // REPLACE WITH THIS NEW router FUNCTION
+const router = () => {
+    const pathName = window.location.pathname;
+    const params = new URLSearchParams(window.location.search);
+    
+    // New logic to handle paths like /profile/config
+    const pathParts = pathName.substring(1).split('/');
+    let pageKey = pathParts[0] || 'home';
+    if (pageKey === '') pageKey = 'home';
 
-        if (userSession && ["login", "signup", "reset-password"].includes(pageKey)) {
-            navigateTo("/profile");
-            return;
-        }
-        if (["checkout", "profile"].includes(pageKey) && !userSession) {
-            navigateTo("/login");
-            return;
-        }
+    if (userSession && ["login", "signup", "reset-password"].includes(pageKey)) {
+        navigateTo("/profile");
+        return;
+    }
+    if (["checkout", "profile"].includes(pageKey) && !userSession) {
+        navigateTo("/login");
+        return;
+    }
 
-        const renderFunction = allRoutes[pageKey] || allRoutes["home"];
-        if (renderFunction) {
-            mainContentArea.innerHTML = "";
-            renderFunction(
-                (html) => {
-                    mainContentArea.innerHTML = html;
-                    initAnimations();
-                    const scrollTargetId = params.get("scroll");
-                    if (scrollTargetId) {
-                        setTimeout(() => {
-                            const scrollTargetElement = document.getElementById(scrollTargetId);
-                            if (scrollTargetElement) {
-                                scrollTargetElement.scrollIntoView({
-                                    behavior: "smooth",
-                                    block: "start"
-                                });
-                            }
-                        }, 100);
-                    }
-                },
-                params,
-                pageKey
-            );
-        }
-        document.querySelectorAll("#main-nav a, #mobile-nav a").forEach((link) => {
-            const linkPath = link.getAttribute("href")?.split("?")[0];
-            const isActive = linkPath === `/${pageKey}` || (linkPath === '/home' && pageKey === 'home');
-            link.classList.toggle("active", isActive);
-        });
-        window.scrollTo(0, 0);
-    };
+    const renderFunction = allRoutes[pageKey] || allRoutes["home"];
+    if (renderFunction) {
+        mainContentArea.innerHTML = "";
+        renderFunction(
+            (html) => {
+                mainContentArea.innerHTML = html;
+                initAnimations();
+                const scrollTargetId = params.get("scroll");
+                if (scrollTargetId) {
+                    setTimeout(() => {
+                        const scrollTargetElement = document.getElementById(scrollTargetId);
+                        if (scrollTargetElement) {
+                            scrollTargetElement.scrollIntoView({
+                                behavior: "smooth",
+                                block: "start"
+                            });
+                        }
+                    }, 100);
+                }
+            },
+            params,
+            pageKey
+        );
+    }
+    document.querySelectorAll("#main-nav a, #mobile-nav a").forEach((link) => {
+        const linkPath = link.getAttribute("href")?.split("?")[0].replace('/', '');
+        const currentPath = pageKey.split('/')[0];
+        const isActive = linkPath === currentPath || (linkPath === 'home' && currentPath === 'home');
+        link.classList.toggle("active", isActive);
+    });
+    window.scrollTo(0, 0);
+};
 
     window.addEventListener("popstate", router);
 
