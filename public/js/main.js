@@ -570,37 +570,25 @@ document.addEventListener("DOMContentLoaded", () => {
         }, 100);
     }
 
-    // ==================================================================
-    // ===== 🎨 සැලසුම් පිටුව සඳහා යාවත්කාලීන කරන ලද ශ්‍රිතය (UPDATED FUNCTION FOR PLANS PAGE) 🎨 =====
-    // ==================================================================
     function renderPlansPage(renderFunc) {
         let plansHtml = Object.entries(appData.plans)
-            .map(([key, plan]) => {
-                const isPopular = key === '200GB'; // 200GB plan එක විශේෂ කර පෙන්වීමට
-                return `
-                <div class="card reveal glass-panel rounded-xl flex flex-col ${isPopular ? 'border-2 border-purple-500 relative' : ''}">
-                    ${isPopular ? '<div class="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-purple-500 text-white text-xs font-bold px-3 py-1 rounded-full">POPULAR</div>' : ''}
-                    
-                    <div class="p-6 text-center">
-                        <h3 class="text-lg font-bold gradient-text">${plan.name}</h3>
-                        <p class="text-4xl font-extrabold my-2">
-                            <span class="text-xl align-top text-gray-400 font-semibold">LKR. </span>${plan.price}<span class="text-base font-normal text-gray-400">/mo</span>
-                        </p>
-                    </div>
-
-                    <div class="px-6 pb-6 pt-4 border-t border-white/10 flex-grow">
-                        <p class="text-sm text-gray-300 mb-4 text-left font-semibold">Includes:</p>
-                        <ul class="space-y-2.5 text-gray-300 text-sm text-left">
-                            ${plan.features.map(f => `<li><i class="fa-solid fa-check text-green-400 mr-2"></i>${f}</li>`).join("")}
-                        </ul>
-                    </div>
-
-                    <div class="p-6 pt-0">
-                        <a href="/connections?planId=${key}" class="nav-link-internal mt-auto inline-block w-full py-2.5 text-sm font-semibold text-white rounded-lg ai-button">Select Plan</a>
-                    </div>
-                </div>`;
-            }).join("");
-
+            .map(
+                ([key, plan]) => `
+                <div class="card reveal glass-panel p-5 rounded-xl text-center flex flex-col">
+                    <h3 class="text-xl font-bold gradient-text">${plan.name}</h3>
+                    <p class="text-3xl font-bold my-3">LKR. ${
+                        plan.price
+                    }<span class="text-base font-normal text-gray-400">/ month</span></p>
+                    <ul class="space-y-2 text-gray-300 text-sm text-left my-4 flex-grow">${plan.features
+                        .map(
+                            (f) =>
+                                `<li><i class="fa-solid fa-check text-green-400 mr-2"></i>${f}</li>`
+                        )
+                        .join("")}</ul>
+                    <a href="/connections?planId=${key}" class="nav-link-internal mt-6 inline-block w-full py-2 text-sm font-semibold text-white rounded-lg ai-button">Select Plan</a>
+                </div>`
+            )
+            .join("");
         renderFunc(`
             <div id="page-plans" class="page">
                 <header class="text-center mb-10 reveal">
@@ -615,6 +603,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const planId = params.get("planId");
         let connectionsHtml = "";
 
+        // appData.plans[planId] is the correct way to check if the plan exists.
+        // It's already correctly implemented in the user's provided code.
         if (!planId || !appData.plans[planId]) {
             connectionsHtml =
                 '<div class="text-red-400 text-center col-span-full"><p class="font-semibold">Invalid plan. Please go back.</p><a href="/plans" class="nav-link-internal underline mt-2 inline-block"><i class="fa-solid fa-arrow-left mr-2"></i>Back to Plans</a></div>';
@@ -1351,9 +1341,6 @@ const loadMyOrders = async() => {
             });
     }
 
-    // =========================================================================
-    // ===== 🎨 ලියාපදිංචි වීමේ පිටුව සඳහා යාවත්කාලීන කරන ලද ශ්‍රිතය (UPDATED FUNCTION FOR AUTH PAGE) 🎨 =====
-    // =========================================================================
     function renderAuthPage(renderFunc, params, initialPanel = "signin") {
         const resetToken = params.get("token");
         if (resetToken) {
@@ -1395,37 +1382,9 @@ const loadMyOrders = async() => {
                 .auth-form.active { display: block; }
                 .auth-toggle-link { color: var(--brand-purple); cursor: pointer; font-weight: 500; }
                 #auth-container { max-width: 380px; }
-                
-                /* --- MODIFIED STYLES START --- */
-                #page-login .form-input { 
-                    height: 52px; 
-                    padding: 18px 16px 6px 16px;
-                }
-                #page-login .form-input:focus {
-                    border-color: var(--brand-purple);
-                    box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.3);
-                }
-                #page-login .form-label { 
-                    position: absolute; 
-                    top: 50%; 
-                    left: 17px;
-                    transform: translateY(-50%); 
-                    color: #9ca3af; 
-                    pointer-events: none; 
-                    transition: all 0.2s ease-out; 
-                    font-size: 14px; 
-                    background: none; 
-                    padding: 0; 
-                }
-                #page-login .form-input:focus ~ .form-label, 
-                #page-login .form-input:not(:placeholder-shown) ~ .form-label { 
-                    top: 8px;
-                    transform: translateY(0); 
-                    font-size: 11px; 
-                    color: var(--brand-purple); 
-                }
-                /* --- MODIFIED STYLES END --- */
-                
+                #page-login .form-input { height: 56px; padding: 20px 12px 8px 12px; }
+                #page-login .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; background: none; padding: 0; }
+                #page-login .form-input:focus ~ .form-label, #page-login .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: var(--brand-purple); }
                 #link-account-form .form-group { margin-top: 0; }
             </style>
             <div id="auth-container" class="mx-auto my-12 glass-panel rounded-xl p-8 sm:p-10">
@@ -1474,7 +1433,7 @@ const loadMyOrders = async() => {
                 </div>
             </div>
         </div>
-        ${modalHtml}`);
+        ${modalHtml}`); // Modal HTML එක මෙතනට එකතු කරන ලදී
 
     // --- Modal එකේ JavaScript Logic එක මෙතනට එකතු කරන ලදී ---
     setTimeout(() => {
