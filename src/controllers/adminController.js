@@ -44,15 +44,17 @@ exports.getDashboardData = async (req, res) => {
     }
 };
 
+// File Path: src/controllers/adminController.js
+
 exports.approveOrder = async (req, res) => {
     const { orderId } = req.params;
-    let finalUsername = ''; // To keep track of the final username for logging
+    let finalUsername = ''; 
 
     try {
         const { data: order, error: orderError } = await supabase.from("orders").select("*").eq("id", orderId).single();
         if (orderError || !order) return res.status(404).json({ success: false, message: "Order not found." });
 
-        finalUsername = order.username; // Initial username
+        finalUsername = order.username; 
 
         const { data: websiteUser, error: userError } = await supabase.from("users").select("*").ilike("username", order.website_username).single();
         if (userError || !websiteUser) return res.status(404).json({ success: false, message: `Website user "${order.website_username}" not found.` });
@@ -65,39 +67,87 @@ exports.approveOrder = async (req, res) => {
         if (!inboundId || !plan) return res.status(400).json({ success: false, message: "Invalid plan/connection in order." });
 
         const expiryTime = Date.now() + 30 * 24 * 60 * 60 * 1000;
-        const newSettings = { enable: true, totalGB: (plan.totalGB || 0) * 1024 * 1024 * 1024, expiryTime };
+        const totalGBValue = (plan.totalGB || 0) * 1024 * 1024 * 1024;
+        
         let clientLink;
+        let clientInPanel;
         let updatedActivePlans = websiteUser.active_plans || [];
 
+        // ===================================================
+        // ===== MODIFIED RENEWAL AND NEW USER LOGIC START =====
+        // ===================================================
+
         if (order.is_renewal) {
-            const clientInPanel = await v2rayService.findV2rayClient(order.username);
+            clientInPanel = await v2rayService.findV2rayClient(order.username);
+            
             if (clientInPanel) {
-                inboundId = clientInPanel.inboundId;
-                await v2rayService.deleteClient(inboundId, clientInPanel.client.id);
+                // Client Found - This is a true renewal. Let's UPDATE.
+                console.log(`Renewing user: ${order.username}. Updating expiry and data.`);
+                
+                const updatedClientSettings = {
+                    id: clientInPanel.client.id, // KEEP original UUID
+                    email: clientInPanel.client.email, // KEEP original email
+                    total: totalGBValue,
+                    expiryTime: expiryTime,
+                    enable: true,
+                    // Preserve other settings if they exist
+                    tgId: clientInPanel.client.tgId || "",
+                    subId: clientInPanel.client.subId || ""
+                };
+
+                // Update the client in V2Ray panel
+                await v2rayService.updateClient(clientInPanel.inboundId, clientInPanel.client.id, updatedClientSettings);
+                
+                // Reset the client's traffic usage
+                await v2rayService.resetClientTraffic(clientInPanel.inboundId, clientInPanel.client.email);
+
+                // Get the same config link (since UUID hasn't changed)
+                clientLink = v2rayService.generateV2rayConfigLink(clientInPanel.inboundId, clientInPanel.client);
+                finalUsername = clientInPanel.client.email; // Use the exact email from panel
+
+            } else {
+                // Client NOT Found - Treat as a new user, even though it was marked as renewal.
+                console.log(`Renewal for ${order.username} requested, but user not in panel. Creating as new.`);
+                const clientSettings = { id: uuidv4(), email: finalUsername, total: totalGBValue, expiryTime, enable: true };
+                await v2rayService.addClient(inboundId, clientSettings);
+                clientLink = v2rayService.generateV2rayConfigLink(inboundId, clientSettings);
             }
         } else {
-            let clientInPanel = await v2rayService.findV2rayClient(finalUsername);
+            // This is a completely new order.
+            clientInPanel = await v2rayService.findV2rayClient(finalUsername);
             if (clientInPanel) {
+                // Username already exists, so add a suffix.
                 let counter = 1, newUsername;
                 do {
                     newUsername = `${order.username}-${counter++}`;
                 } while (await v2rayService.findV2rayClient(newUsername));
                 finalUsername = newUsername;
             }
+            const clientSettings = { id: uuidv4(), email: finalUsername, total: totalGBValue, expiryTime, enable: true };
+            await v2rayService.addClient(inboundId, clientSettings);
+            clientLink = v2rayService.generateV2rayConfigLink(inboundId, clientSettings);
         }
         
-        const clientSettings = { id: uuidv4(), email: finalUsername, ...newSettings };
-        await v2rayService.addClient(inboundId, clientSettings);
-        clientLink = v2rayService.generateV2rayConfigLink(inboundId, clientSettings);
+        // =================================================
+        // ===== MODIFIED RENEWAL AND NEW USER LOGIC END =====
+        // =================================================
 
-        if(order.is_renewal) {
+        if (order.is_renewal) {
             const planIndex = updatedActivePlans.findIndex(p => p.v2rayUsername.toLowerCase() === order.username.toLowerCase());
             if (planIndex !== -1) {
                 updatedActivePlans[planIndex].activatedAt = new Date().toISOString();
-                updatedActivePlans[planIndex].v2rayLink = clientLink;
+                updatedActivePlans[planIndex].v2rayLink = clientLink; // Link might be the same, but update just in case
                 updatedActivePlans[planIndex].orderId = order.id;
-                // If username was changed due to collision, update it
-                updatedActivePlans[planIndex].v2rayUsername = finalUsername;
+            } else {
+                 // If the user was in the panel but not in the website's active_plans, add them.
+                 updatedActivePlans.push({
+                    v2rayUsername: finalUsername,
+                    v2rayLink: clientLink,
+                    planId: order.plan_id,
+                    connId: order.conn_id,
+                    activatedAt: new Date().toISOString(),
+                    orderId: order.id,
+                });
             }
         } else {
             updatedActivePlans.push({

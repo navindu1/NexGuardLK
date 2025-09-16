@@ -13,13 +13,16 @@ const LOGIN_URL = `${PANEL_URL}/login`;
 const ADD_CLIENT_URL = `${PANEL_URL}/panel/api/inbounds/addClient`;
 const INBOUNDS_LIST_URL = `${PANEL_URL}/panel/api/inbounds/list`;
 const DEL_CLIENT_BY_UUID_URL = (inboundId, uuid) => `${PANEL_URL}/panel/api/inbounds/${inboundId}/delClient/${uuid}`;
+// ===== NEW: Endpoint for updating a client =====
+const UPDATE_CLIENT_URL = (uuid) => `${PANEL_URL}/panel/api/inbounds/updateClient/${uuid}`;
+// ===== NEW: Endpoint for resetting traffic =====
+const RESET_TRAFFIC_URL = (inboundId, email) => `${PANEL_URL}/panel/api/inbounds/${inboundId}/resetClientTraffic/${email}`;
+
 
 // --- Session Management Object ---
-// global 'cookies' variable එක වෙනුවට මෙම object එක භාවිතා වේ
 const panelSession = {
     cookie: null,
     lastLogin: 0,
-    // Session එක පැයකට වඩා පැරණි නම්, එය අලුත් කළ යුතුයි
     isValid: function() {
         return this.cookie && (Date.now() - this.lastLogin < 3600000); // 1 hour validity
     }
@@ -27,7 +30,6 @@ const panelSession = {
 
 /**
  * Logs into the panel and updates the session object.
- * @returns {Promise<string|null>} The session cookie or null on failure.
  */
 async function loginAndGetCookie() {
     console.log(`\n[Panel Login] Attempting to login to panel...`);
@@ -51,16 +53,13 @@ async function loginAndGetCookie() {
         }
     } catch (error) {
         console.error("❌ [Panel Login] FAILED:", error.message);
-        panelSession.cookie = null; // Reset cookie on failure
+        panelSession.cookie = null;
         return null;
     }
 }
 
 /**
  * Gets a valid session cookie, logging in again if necessary.
- * This is the main function to use before making any panel API call.
- * @returns {Promise<string>} A valid session cookie.
- * @throws {Error} If panel authentication fails.
  */
 async function getPanelCookie() {
     if (panelSession.isValid()) {
@@ -75,10 +74,9 @@ async function getPanelCookie() {
 
 /**
  * Finds a V2Ray client by their username (email) across all inbounds.
- * @param {string} username The username to search for.
- * @returns {Promise<object|null>} Client data or null if not found.
  */
 exports.findV2rayClient = async (username) => {
+    // ... (මෙම function එකේ කිසිඳු වෙනසක් සිදු නොකරන්න) ...
     if (typeof username !== "string" || !username) {
         return null;
     }
@@ -98,7 +96,6 @@ exports.findV2rayClient = async (username) => {
             const foundClient = clients.find(c => c && c.email && c.email.toLowerCase() === lowerCaseUsername);
 
             if (foundClient) {
-                // Fetch traffic data for the found client
                 let clientTraffics = {};
                 try {
                     const TRAFFIC_URL = `${PANEL_URL}/panel/api/inbounds/getClientTraffics/${foundClient.email}`;
@@ -118,13 +115,12 @@ exports.findV2rayClient = async (username) => {
                 };
             }
         }
-        return null; // Client not found in any inbound
+        return null;
     } catch (error) {
-        // If the cookie expired between getPanelCookie() and the API call
         if (error.response?.status === 401 || error.response?.status === 403) {
             console.log("[V2Ray Service] Session expired, attempting to re-authenticate and retry...");
-            panelSession.cookie = null; // Force re-login on next attempt
-            return this.findV2rayClient(username); // Retry the operation
+            panelSession.cookie = null;
+            return this.findV2rayClient(username);
         }
         console.error(`Error in findV2rayClient for ${username}:`, error.message);
         throw error;
@@ -133,9 +129,6 @@ exports.findV2rayClient = async (username) => {
 
 /**
  * Adds a new client to a specified inbound.
- * @param {number} inboundId The ID of the inbound.
- * @param {object} clientSettings The settings for the new client.
- * @returns {Promise<object>} The result of the API call.
  */
 exports.addClient = async (inboundId, clientSettings) => {
     const cookie = await getPanelCookie();
@@ -149,9 +142,6 @@ exports.addClient = async (inboundId, clientSettings) => {
 
 /**
  * Deletes a client from a specified inbound using their UUID.
- * @param {number} inboundId The ID of the inbound.
- * @param {string} clientUuid The UUID of the client to delete.
- * @returns {Promise<object>} The result of the API call.
  */
 exports.deleteClient = async (inboundId, clientUuid) => {
     const cookie = await getPanelCookie();
@@ -160,13 +150,36 @@ exports.deleteClient = async (inboundId, clientUuid) => {
     return data;
 };
 
+// ==========================================================
+// ===== NEW FUNCTION: Update an existing V2Ray client ======
+// ==========================================================
+exports.updateClient = async (inboundId, clientUuid, clientSettings) => {
+    const cookie = await getPanelCookie();
+    const payload = {
+        id: parseInt(inboundId),
+        settings: JSON.stringify({ clients: [clientSettings] })
+    };
+    const url = UPDATE_CLIENT_URL(clientUuid);
+    const { data } = await axios.post(url, payload, { headers: { Cookie: cookie } });
+    return data;
+};
+
+// =============================================================
+// ===== NEW FUNCTION: Reset a client's data usage (traffic) =====
+// =============================================================
+exports.resetClientTraffic = async (inboundId, clientEmail) => {
+    const cookie = await getPanelCookie();
+    const url = RESET_TRAFFIC_URL(inboundId, clientEmail);
+    // This endpoint usually doesn't require a payload
+    const { data } = await axios.post(url, {}, { headers: { Cookie: cookie }});
+    return data;
+}
+
 /**
  * Generates a V2Ray configuration link from a template.
- * @param {number} inboundId The ID of the inbound.
- * @param {object} client The client object containing id (uuid) and email.
- * @returns {string|null} The generated config link or null.
  */
 exports.generateV2rayConfigLink = (inboundId, client) => {
+    // ... (මෙම function එකේ කිසිඳු වෙනසක් සිදු නොකරන්න) ...
     if (!client || !client.id || !client.email) return null;
     const uuid = client.id;
     const remark = encodeURIComponent(client.email);
