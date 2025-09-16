@@ -15,7 +15,6 @@ app.use(express.urlencoded({ extended: true }));
 
 // Static folders
 app.use(express.static(path.join(process.cwd(), "public")));
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // --- API Routes ---
 // 'apiRoutes' is declared only ONCE here

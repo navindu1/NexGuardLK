@@ -810,7 +810,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             </div>
                             <div class="form-group">
                                 <input type="text" name="whatsapp" id="checkout-whatsapp" class="form-input" required placeholder=" " value="${user.whatsapp}">
-                                <label class="form-label">WhatsApp Number (e.g. 94...)</label><span class="focus-border"><i></i></span>
+                                <label class="form-label">WhatsApp Number</label><span class="focus-border"><i></i></span>
                             </div>
                             <div>
                                 <p class="text-gray-300 text-sm mb-2">Upload receipt:</p>

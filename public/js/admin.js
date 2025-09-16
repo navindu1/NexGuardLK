@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <p class="text-xs text-slate-400 mt-1">Contact: ${order.whatsapp} | Ordered By: ${order.websiteUsername}</p>
                 </div>
                 <div class="flex items-center gap-3 self-end md:self-center">
-                    <button class="btn btn-view view-proof-btn" data-proof-url="/${order.receiptPath.replace(/\\/g, '/')}"><i class="fa-solid fa-receipt"></i> View Proof</button>
+                    <button class="btn btn-view view-proof-btn" data-proof-url="${order.receipt_path}"><i class="fa-solid fa-receipt"></i> View Proof</button>
                     <button class="btn btn-approve" data-order-id="${order.id}"><i class="fa-solid fa-check"></i> Approve</button>
                     <button class="btn btn-reject" data-order-id="${order.id}"><i class="fa-solid fa-times"></i> Reject</button>
                 </div>
@@ -159,9 +159,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!button) return;
 
         if (button.classList.contains('view-proof-btn')) {
-            modalImage.src = button.dataset.proofUrl;
-            imageModal.classList.add('active');
-        } else if (button.classList.contains('btn-ban')) {
+    // modal එකේ පෙන්වනවා වෙනුවට අලුත් tab එකක link එක open කරන්න
+    window.open(button.dataset.proofUrl, '_blank');
+}
+ else if (button.classList.contains('btn-ban')) {
             const userId = button.dataset.userId;
             const username = button.dataset.username;
             const v2rayUsernames = button.dataset.v2rayUsernames;
