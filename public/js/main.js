@@ -1180,7 +1180,8 @@ const loadUsageStats = () => {
                         const updateRenewButton = async() => {
                             const container = document.getElementById("renew-button-container");
                             if (!container) return;
-                            container.innerHTML = `<div class="flex items-center"><i class="fa-solid fa-spinner fa-spin text-purple-400"></i><span class="text-sm text-gray-400 ml-2">Checking status...</span></div>`;
+                            
+container.innerHTML = `<button disabled class="ai-button secondary inline-block py-2 px-6 text-sm rounded-lg !bg-gray-700/50 !text-gray-400 cursor-not-allowed"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking status...</button>`;
                             try {
                                 const res = await fetch(`/api/check-usage/${plan.v2rayUsername}`);
                                 if (!res.ok) throw new Error(`API responded with status ${res.status}`);
