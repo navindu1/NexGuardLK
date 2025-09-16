@@ -1049,8 +1049,77 @@ document.addEventListener("DOMContentLoaded", () => {
                     const connectionName = appData.connections[plan.connId]?.name || plan.connId;
                     document.getElementById("plan-info-container").innerHTML = `<span class="bg-purple-500/10 text-purple-300 px-2 py-1 rounded-full"><i class="fa-solid fa-rocket fa-fw mr-2"></i>${planName}</span><span class="bg-indigo-500/10 text-indigo-300 px-2 py-1 rounded-full"><i class="fa-solid fa-wifi fa-fw mr-2"></i>${connectionName}</span>`;
                     
-                    const settingsHtmlContent = `<div class="glass-panel p-6 rounded-xl">...</div>`; // Unchanged
-                    planDetailsContainer.innerHTML = `<div class="glass-panel p-4 sm:p-6 rounded-xl">...</div>`; // Unchanged
+                    const settingsHtml = `
+<div class="glass-panel p-6 rounded-xl">
+    <h3 class="text-xl font-bold text-white mb-4 font-['Orbitron']">Account Settings</h3>
+    <form id="profile-update-form" class="space-y-6">
+        <div class="form-group">
+            <input type="text" class="form-input" readonly value="${user.username}" title="Website username cannot be changed.">
+            <label class="form-label">Website Username</label>
+        </div>
+        <div class="form-group relative">
+            <input type="password" id="new-password" class="form-input pr-10" placeholder=" ">
+            <label for="new-password" class="form-label">New Password (leave blank to keep)</label>
+            <span class="focus-border"><i></i></span>
+            <i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i>
+        </div>
+        <button type="submit" class="ai-button w-full py-2.5 rounded-lg !mt-8">Save Changes</button>
+    </form>
+</div>
+`;
+                    planDetailsContainer.innerHTML = `
+    <div id="profile-tabs" class="flex items-center gap-4 sm:gap-6 border-b border-white/10 mb-6 overflow-x-auto">
+        <button data-tab="v2ray-config" class="tab-btn">V2Ray Config</button>
+        <button data-tab="usage-stats" class="tab-btn">Usage Stats</button>
+        <button data-tab="my-orders" class="tab-btn">My Orders</button>
+        <button data-tab="account-settings" class="tab-btn">Account Settings</button>
+    </div>
+
+    <div id="tab-v2ray-config" class="tab-panel">
+        <div class="grid md:grid-cols-3 gap-6 items-center">
+            <div class="md:col-span-1 flex flex-col items-center">
+                <p class="text-sm text-gray-400 mb-2">Scan with your V2Ray App</p>
+                <div id="qrcode-container" class="w-36 h-36 p-2 bg-white rounded-lg cursor-pointer flex items-center justify-center" title="Click to view larger">
+                    </div>
+            </div>
+            <div class="md:col-span-2 space-y-4">
+                <div class="bg-black/20 p-4 rounded-lg">
+                    <label class="text-xs text-gray-400">V2Ray Config Link</label>
+                    <div class="flex items-center gap-2 mt-1">
+                        <input type="text" readonly value="${plan.v2rayLink}" class="w-full bg-slate-800/50 border border-slate-700 rounded-md px-3 py-1.5 text-xs text-slate-300">
+                        <button id="copy-config-btn" class="ai-button secondary !text-xs !font-semibold flex-shrink-0 px-3 py-1.5 rounded-md"><i class="fa-solid fa-copy"></i> Copy</button>
+                    </div>
+                </div>
+                <div class="bg-black/20 p-4 rounded-lg">
+                    <label class="text-xs text-gray-400">Plan Renewal</label>
+                    <div id="renew-button-container" class="mt-2">
+                        </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-usage-stats" class="tab-panel">
+        </div>
+    
+    <div id="tab-my-orders" class="tab-panel">
+        </div>
+    
+    <div id="tab-account-settings" class="tab-panel">
+        <div class="max-w-md mx-auto">
+            <h3 class="text-xl font-bold text-white mb-4 font-['Orbitron']">Update Password</h3>
+            <form id="profile-update-form" class="space-y-6">
+                <div class="form-group relative">
+                    <input type="password" id="new-password" class="form-input pr-10" placeholder=" ">
+                    <label for="new-password" class="form-label">New Password</label>
+                    <span class="focus-border"><i></i></span>
+                    <i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i>
+                </div>
+                <button type="submit" class="ai-button w-full py-2.5 rounded-lg !mt-8">Save Password</button>
+            </form>
+        </div>
+    </div>
+`;
 
                     const qrContainer = document.getElementById("qrcode-container");
                     qrContainer.innerHTML = "";
