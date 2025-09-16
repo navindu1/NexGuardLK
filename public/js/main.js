@@ -510,51 +510,26 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
             }
 
-            // --- Help Modal Logic ---
-            const openHelpModalLink = document.getElementById('open-help-modal-link');
-            const helpModal = document.getElementById('help-modal');
-            const helpModalCloseBtn = document.getElementById('help-modal-close');
-            const langToggleBtn = document.getElementById('lang-toggle-btn');
+            const openHelpModalLink = document.querySelector('.open-help-modal-link');
+    const helpModal = document.getElementById('help-modal');
+    const helpModalCloseBtn = document.getElementById('help-modal-close');
+    const langToggleBtn = document.getElementById('lang-toggle-btn');
+    
+    // මෙතන if එක පොඩ්ඩක් වෙනස් කරනවා, link එක නැතත් අනිත් ඒවා වැඩ කරන්න
+    if (helpModal && helpModalCloseBtn) {
+        const openModal = () => { helpModal.classList.add('visible'); document.body.classList.add('modal-open'); };
+        const closeModal = () => { helpModal.classList.remove('visible'); document.body.classList.remove('modal-open'); };
 
-            if (openHelpModalLink && helpModal && helpModalCloseBtn) {
-                const openModal = () => {
-                    helpModal.classList.add('visible');
-                    document.body.classList.add('modal-open');
-                };
+        // Link එක තියෙනවනම් විතරක් એකට event listener එක දානවා
+        if(openHelpModalLink) {
+            openHelpModalLink.addEventListener('click', (e) => { e.preventDefault(); openModal(); });
+        }
 
-                const closeModal = () => {
-                    helpModal.classList.remove('visible');
-                    document.body.classList.remove('modal-open');
-                };
+        helpModalCloseBtn.addEventListener('click', (e) => { e.preventDefault(); closeModal(); });
+        helpModal.addEventListener('click', (event) => { if (event.target === helpModal) closeModal(); });
+        document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && helpModal.classList.contains('visible')) closeModal(); });
+        if (langToggleBtn) {
 
-                // Open modal
-                openHelpModalLink.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    openModal();
-                });
-                
-                // Close modal
-                helpModalCloseBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    closeModal();
-                });
-                
-                // Click outside to close
-                helpModal.addEventListener('click', (event) => {
-                    if (event.target === helpModal) {
-                        closeModal();
-                    }
-                });
-
-                // ESC key to close
-                document.addEventListener('keydown', (event) => {
-                    if (event.key === 'Escape' && helpModal.classList.contains('visible')) {
-                        closeModal();
-                    }
-                });
-
-                // Language toggle
-                if (langToggleBtn) {
                     langToggleBtn.addEventListener('click', () => {
                         const langEn = document.querySelector('.lang-content.lang-en');
                         const langSi = document.querySelector('.lang-content.lang-si');
@@ -1435,30 +1410,28 @@ const loadMyOrders = async() => {
         </div>
         ${modalHtml}`); // Modal HTML එක මෙතනට එකතු කරන ලදී
 
-    // --- Modal එකේ JavaScript Logic එක මෙතනට එකතු කරන ලදී ---
-    setTimeout(() => {
-        const openHelpModalLink = document.querySelector('.open-help-modal-link');
-        const helpModal = document.getElementById('help-modal');
-        const helpModalCloseBtn = document.getElementById('help-modal-close');
-        const langToggleBtn = document.getElementById('lang-toggle-btn');
-
-        if (openHelpModalLink && helpModal && helpModalCloseBtn) {
-            const openModal = () => { helpModal.classList.add('visible'); document.body.classList.add('modal-open'); };
-            const closeModal = () => { helpModal.classList.remove('visible'); document.body.classList.remove('modal-open'); };
-            
-            openHelpModalLink.addEventListener('click', (e) => { e.preventDefault(); openModal(); });
-            helpModalCloseBtn.addEventListener('click', (e) => { e.preventDefault(); closeModal(); });
-            helpModal.addEventListener('click', (event) => { if (event.target === helpModal) closeModal(); });
-            document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && helpModal.classList.contains('visible')) closeModal(); });
-
-            if (langToggleBtn) {
-                langToggleBtn.addEventListener('click', () => {
-                    document.querySelector('.lang-content.lang-en')?.classList.toggle('hidden');
-                    document.querySelector('.lang-content.lang-si')?.classList.toggle('hidden');
-                });
-            }
+        // ============ මේ සම්පූර්ණ කොටසම Cut කරගන්න ============
+setTimeout(() => {
+    const openHelpModalLink = document.querySelector('.open-help-modal-link');
+    const helpModal = document.getElementById('help-modal');
+    const helpModalCloseBtn = document.getElementById('help-modal-close');
+    const langToggleBtn = document.getElementById('lang-toggle-btn');
+    if (openHelpModalLink && helpModal && helpModalCloseBtn) {
+        const openModal = () => { helpModal.classList.add('visible'); document.body.classList.add('modal-open'); };
+        const closeModal = () => { helpModal.classList.remove('visible'); document.body.classList.remove('modal-open'); };
+        openHelpModalLink.addEventListener('click', (e) => { e.preventDefault(); openModal(); });
+        helpModalCloseBtn.addEventListener('click', (e) => { e.preventDefault(); closeModal(); });
+        helpModal.addEventListener('click', (event) => { if (event.target === helpModal) closeModal(); });
+        document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && helpModal.classList.contains('visible')) closeModal(); });
+        if (langToggleBtn) {
+            langToggleBtn.addEventListener('click', () => {
+                document.querySelector('.lang-content.lang-en')?.classList.toggle('hidden');
+                document.querySelector('.lang-content.lang-si')?.classList.toggle('hidden');
+            });
         }
-    }, 100);
+    }
+}, 100);
+// =========================================================
 
 
         const signinForm = document.getElementById("signin-form");
