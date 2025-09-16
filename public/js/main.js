@@ -1068,7 +1068,8 @@ document.addEventListener("DOMContentLoaded", () => {
 </div>
 `;
 
-// REPLACE THE ENTIRE HTML FOR ALL FOUR TABS WITH THIS CODE
+// REPLACE THE ENTIRE HTML BLOCK FOR THE TABS with this NEW, WIDER LAYOUT
+
 planDetailsContainer.innerHTML = `
     <div id="profile-tabs" class="flex items-center gap-4 sm:gap-6 border-b border-white/10 mb-6 overflow-x-auto">
         <button data-tab="v2ray-config" class="tab-btn">V2Ray Config</button>
@@ -1078,59 +1079,58 @@ planDetailsContainer.innerHTML = `
     </div>
 
     <div id="tab-v2ray-config" class="tab-panel">
-        <div class="glass-panel p-6 sm:p-8 rounded-xl max-w-lg mx-auto">
-            <div class="flex flex-col items-center gap-y-8">
+        <div class="glass-panel p-6 sm:p-8 rounded-xl">
+            <div class="grid md:grid-cols-2 gap-8 items-center">
                 <div class="flex flex-col items-center text-center">
                     <h3 class="text-lg font-semibold text-white mb-3">Scan with your V2Ray App</h3>
-                    <div id="qrcode-container" class="w-40 h-40 p-3 bg-white rounded-lg cursor-pointer flex items-center justify-center shadow-lg shadow-purple-500/20" title="Click to view larger">
+                    <div id="qrcode-container" class="w-44 h-44 p-3 bg-white rounded-lg cursor-pointer flex items-center justify-center shadow-lg shadow-purple-500/20" title="Click to view larger">
                         </div>
                 </div>
-                <div class="w-full">
-                    <label class="text-sm text-gray-400">V2Ray Config Link</label>
-                    <div class="flex items-center gap-2 mt-2">
-                        <input type="text" readonly value="${plan.v2rayLink}" class="w-full bg-slate-800/50 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-300">
-                        <button id="copy-config-btn" class="ai-button secondary !text-sm !font-semibold flex-shrink-0 px-4 py-2 rounded-md"><i class="fa-solid fa-copy mr-2"></i>Copy</button>
+                <div class="space-y-6">
+                    <div class="w-full">
+                        <label class="text-sm text-gray-400">V2Ray Config Link</label>
+                        <div class="flex items-center gap-2 mt-2">
+                            <input type="text" readonly value="${plan.v2rayLink}" class="w-full bg-slate-800/50 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-300">
+                            <button id="copy-config-btn" class="ai-button secondary !text-sm !font-semibold flex-shrink-0 px-4 py-2 rounded-md"><i class="fa-solid fa-copy mr-2"></i>Copy</button>
+                        </div>
                     </div>
-                </div>
-                <div class="w-full text-center">
-                    <label class="text-sm text-gray-400">Plan Renewal</label>
-                    <div id="renew-button-container" class="mt-3">
-                        </div>
+                    <div class="w-full text-center border-t border-white/10 pt-6">
+                        <label class="text-sm text-gray-400">Plan Renewal</label>
+                        <div id="renew-button-container" class="mt-3">
+                            </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <div id="tab-usage-stats" class="tab-panel">
-        <div class="glass-panel p-4 sm:p-6 rounded-xl max-w-xl mx-auto">
-             </div>
-    </div>
+        </div>
     
     <div id="tab-my-orders" class="tab-panel">
-         <div class="glass-panel p-4 sm:p-6 rounded-xl max-w-2xl mx-auto">
-            </div>
-    </div>
+         </div>
     
     <div id="tab-account-settings" class="tab-panel">
-        <div class="glass-panel p-6 sm:p-8 rounded-xl max-w-md mx-auto">
-            <h3 class="text-xl font-bold text-white mb-6 font-['Orbitron'] text-center">Account Settings</h3>
-            <form id="profile-update-form" class="space-y-6">
-                <div class="form-group">
-                    <input type="text" class="form-input" readonly value="${user.username}" title="Website username cannot be changed.">
-                    <label class="form-label">Website Username</label>
-                </div>
-                <div class="form-group relative">
-                    <input type="password" id="new-password" class="form-input pr-10" placeholder=" ">
-                    <label for="new-password" class="form-label">New Password (leave blank to keep)</label>
-                    <span class="focus-border"><i></i></span>
-                    <i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i>
-                </div>
-                <button type="submit" class="ai-button w-full py-2.5 rounded-lg !mt-8">Save Changes</button>
-            </form>
+        <div class="glass-panel p-6 sm:p-8 rounded-xl">
+            <div class="max-w-md mx-auto">
+                <h3 class="text-xl font-bold text-white mb-6 font-['Orbitron'] text-center">Account Settings</h3>
+                <form id="profile-update-form" class="space-y-6">
+                    <div class="form-group">
+                        <input type="text" class="form-input" readonly value="${user.username}" title="Website username cannot be changed.">
+                        <label class="form-label">Website Username</label>
+                    </div>
+                    <div class="form-group relative">
+                        <input type="password" id="new-password" class="form-input pr-10" placeholder=" ">
+                        <label for="new-password" class="form-label">New Password (leave blank to keep)</label>
+                        <span class="focus-border"><i></i></span>
+                        <i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i>
+                    </div>
+                    <button type="submit" class="ai-button w-full py-2.5 rounded-lg !mt-8">Save Changes</button>
+                </form>
+            </div>
         </div>
     </div>
 `;
-
 
                     const qrContainer = document.getElementById("qrcode-container");
                     qrContainer.innerHTML = "";
