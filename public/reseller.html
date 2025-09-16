@@ -7,8 +7,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.waves.min.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #020010; color: #e0e0e0; }
+        #vanta-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
+        #app-container { position: relative; z-index: 1; }
         .glass-panel { background: rgba(10, 8, 28, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); }
         .ai-button { background: linear-gradient(90deg, #818cf8, #a78bfa, #f472b6); font-family: "Orbitron", sans-serif; transition: all 0.3s; }
         .ai-button:hover:not(:disabled) { box-shadow: 0 0 15px rgba(168, 85, 247, 0.7); }
@@ -17,11 +21,12 @@
     </style>
 </head>
 <body class="p-4 sm:p-6">
-    <div class="max-w-4xl mx-auto">
+    <div id="vanta-bg"></div>
+    <div id="app-container" class="max-w-4xl mx-auto">
         <header class="flex justify-between items-center py-4 mb-6">
             <div>
                 <h1 class="text-2xl sm:text-3xl font-bold font-['Orbitron'] text-white">Reseller Panel</h1>
-                <p id="apk-download-link" class="text-xs text-purple-400 hover:underline cursor-pointer mt-1">Download Android App (APK)</p>
+                <p id="settings-btn" class="text-xs text-purple-400 hover:underline cursor-pointer mt-1"><i class="fa-solid fa-cog mr-1"></i> App Settings</p>
             </div>
             <button id="logout-btn" class="text-sm font-semibold text-slate-400 hover:text-white transition-colors">
                 <span class="hidden sm:inline">Logout</span>
@@ -33,39 +38,22 @@
             <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
                 <input type="text" id="user-search" class="w-full sm:max-w-xs bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500" placeholder="Search users...">
                 <button id="create-user-btn" class="ai-button w-full sm:w-auto flex-shrink-0 px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-plus"></i> <span>Create User</span>
+                    <i class="fa-solid fa-plus"></i> <span>Create V2Ray User</span>
                 </button>
             </div>
-            <div id="user-list-container" class="space-y-4">
-                </div>
+            <div id="user-list-container" class="space-y-4"></div>
         </main>
     </div>
 
     <div id="create-user-modal" class="modal-overlay fixed inset-0 bg-black/70 flex justify-center items-center p-4 z-50 opacity-0 pointer-events-none">
-        <div class="modal-content glass-panel w-full max-w-md p-6 rounded-lg transform scale-95">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold font-['Orbitron']">Create New V2Ray User</h2>
-                <button id="close-modal-btn" class="text-gray-400 hover:text-white text-2xl">&times;</button>
-            </div>
-            <form id="create-user-form" class="space-y-4">
-                <input type="text" name="username" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" placeholder="V2Ray Username" required>
-                <input type="password" name="password" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" placeholder="Password (for user, optional)" value="12345" required>
-                <select name="planId" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" required>
-                    <option value="" disabled selected>Select Plan</option>
-                    <option value="100GB">100GB Plan</option>
-                    <option value="200GB">200GB Plan</option>
-                    <option value="Unlimited">Unlimited Plan</option>
-                </select>
-                <select name="connId" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" required>
-                    <option value="" disabled selected>Select Connection</option>
-                    <option value="dialog">Dialog Router</option>
-                    <option value="hutch">Hutch SIM</option>
-                    <option value="dialog_sim">Dialog SIM</option>
-                </select>
-                <button type="submit" class="w-full ai-button py-2.5 rounded-lg font-semibold">Create User</button>
-            </form>
         </div>
-    </div>
+    <div id="user-created-modal" class="modal-overlay fixed inset-0 bg-black/70 flex justify-center items-center p-4 z-50 opacity-0 pointer-events-none">
+        </div>
+    <div id="user-details-modal" class="modal-overlay fixed inset-0 bg-black/70 flex justify-center items-center p-4 z-50 opacity-0 pointer-events-none">
+        </div>
+    <div id="app-settings-modal" class="modal-overlay fixed inset-0 bg-black/70 flex justify-center items-center p-4 z-50 opacity-0 pointer-events-none">
+        </div>
+
     <div id="toast-container" class="fixed top-6 right-6 z-[100] w-full max-w-xs space-y-3"></div>
     <script src="/js/reseller.js"></script>
 </body>
