@@ -1143,17 +1143,25 @@ planDetailsContainer.innerHTML = `
 
                                             const tabs = document.getElementById('profile-tabs');
                         const panels = planDetailsContainer.querySelectorAll('.tab-panel');
-                        const loadUsageStats = () => {
-                            const usageContainer = document.getElementById("tab-usage-stats");
-                            usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-purple-400"></i></div>`;
-                            fetch(`/api/check-usage/${plan.v2rayUsername}`).then(res => res.json()).then(result => {
-                                if (result.success) {
-                                    displayUserData(result.data, plan.v2rayUsername, usageContainer);
-                                } else {
-                                    usageContainer.innerHTML = `<div class="p-4 text-center text-amber-400"><p>${result.message}</p></div>`;
-                                }
-                            });
-                        };
+                        // REPLACE the old loadUsageStats function with this one
+const loadUsageStats = () => {
+    // FIX: Changed "tab-usage-stats" to the correct ID "tab-usage"
+    const usageContainer = document.getElementById("tab-usage"); 
+    if (!usageContainer) return; // Failsafe check
+    
+    usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-purple-400"></i></div>`;
+    fetch(`/api/check-usage/${plan.v2rayUsername}`).then(res => res.json()).then(result => {
+        if (result.success) {
+            // The displayUserData function already creates the glass-panel, so no extra panel is needed here.
+            displayUserData(result.data, plan.v2rayUsername, usageContainer);
+        } else {
+            usageContainer.innerHTML = `<div class="glass-panel p-4 rounded-xl text-center text-amber-400"><p>${result.message}</p></div>`;
+        }
+    }).catch(err => {
+        console.error("Failed to load usage stats:", err);
+        usageContainer.innerHTML = `<div class="glass-panel p-4 rounded-xl text-center text-red-400"><p>Could not load usage statistics.</p></div>`;
+    });
+};
 
                         const updateRenewButton = async() => {
                             const container = document.getElementById("renew-button-container");
@@ -1183,61 +1191,66 @@ planDetailsContainer.innerHTML = `
                                 container.innerHTML = `<p class="text-xs text-red-400">Error checking status. Please refresh.</p>`;
                             }
                         };
-                        
-const loadMyOrders = async() => {
-                            const ordersContainer = document.getElementById("tab-my-orders");
-                            ordersContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-purple-400"></i></div>`;
-                            try {
-                                const res = await fetch("/api/user/orders", {
-                                    headers: {
-                                        Authorization: "Bearer " + token
-                                    }
-                                });
-                                if (!res.ok) throw new Error("Failed to fetch orders");
-                                const {
-                                    orders
-                                } = await res.json();
-                                
-                                if (orders.length === 0) {
-                                    ordersContainer.innerHTML = `<div class="text-center p-8 glass-panel rounded-xl"><i class="fa-solid fa-box-open text-4xl text-gray-400 mb-4"></i><h3 class="font-bold text-white">No Orders Found</h3><p class="text-gray-400 text-sm mt-2">You have not placed any orders yet.</p></div>`;
-                                    return;
-                                }
+                        // REPLACE the old loadMyOrders function with this one
+const loadMyOrders = async () => {
+    // FIX: Changed "tab-my-orders" to the correct ID "tab-orders"
+    const ordersContainer = document.getElementById("tab-orders"); 
+    if (!ordersContainer) return; // Failsafe check
 
-                                const ordersHtml = orders.map(order => {
-                                    // FIX: order.planId -> order.plan_id and order.connId -> order.conn_id ලෙස වෙනස් කරන ලදී
-                                    const planName = appData.plans[order.plan_id]?.name || order.plan_id;
-                                    const connName = appData.connections[order.conn_id]?.name || order.conn_id;
-                                    const statusColors = {
-                                        pending: "text-amber-400",
-                                        approved: "text-green-400",
-                                        rejected: "text-red-400"
-                                    };
-                                    const statusIcons = {
-                                        pending: "fa-solid fa-clock",
-                                        approved: "fa-solid fa-check-circle",
-                                        rejected: "fa-solid fa-times-circle"
-                                    };
-                                    
-                                    return `
-                                    <div class="glass-panel p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                                        <div>
-                                            <p class="font-bold text-white">${planName} <span class="text-gray-400 font-normal">for</span> ${connName}</p>
-                                            <p class="text-xs text-gray-400 mt-1">
-                                                Ordered on: ${new Date(order.created_at).toLocaleDateString()}
-                                                ${order.status === 'approved' && order.final_username ? `| V2Ray User: <strong class="text-purple-300">${order.final_username}</strong>` : ''}
-                                            </p>
-                                        </div>
-                                        <div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'}">
-                                            <i class="${statusIcons[order.status] || 'fa-solid fa-question-circle'}"></i>
-                                            <span>${order.status}</span>
-                                        </div>
-                                    </div>`;
-                                }).join('<div class="my-3"></div>');
-                                ordersContainer.innerHTML = `<div class="space-y-3">${ordersHtml}</div>`;
-                            } catch (err) {
-                                ordersContainer.innerHTML = `<div class="p-4 text-center text-red-400"><p>Could not load your orders.</p></div>`;
-                            }
-                        };
+    ordersContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-purple-400"></i></div>`;
+    try {
+        const res = await fetch("/api/user/orders", {
+            headers: {
+                Authorization: "Bearer " + token
+            }
+        });
+        if (!res.ok) throw new Error("Failed to fetch orders");
+        const {
+            orders
+        } = await res.json();
+        
+        if (orders.length === 0) {
+            ordersContainer.innerHTML = `<div class="glass-panel p-8 rounded-xl text-center"><i class="fa-solid fa-box-open text-4xl text-gray-400 mb-4"></i><h3 class="font-bold text-white">No Orders Found</h3><p class="text-gray-400 text-sm mt-2">You have not placed any orders yet.</p></div>`;
+            return;
+        }
+
+        const ordersHtml = orders.map(order => {
+            const planName = appData.plans[order.plan_id]?.name || order.plan_id;
+            const connName = appData.connections[order.conn_id]?.name || order.conn_id;
+            const statusColors = {
+                pending: "text-amber-400",
+                approved: "text-green-400",
+                rejected: "text-red-400"
+            };
+            const statusIcons = {
+                pending: "fa-solid fa-clock",
+                approved: "fa-solid fa-check-circle",
+                rejected: "fa-solid fa-times-circle"
+            };
+            
+            return `
+            <div class="glass-panel p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <p class="font-bold text-white">${planName} <span class="text-gray-400 font-normal">for</span> ${connName}</p>
+                    <p class="text-xs text-gray-400 mt-1">
+                        Ordered on: ${new Date(order.created_at).toLocaleDateString()}
+                        ${order.status === 'approved' && order.final_username ? `| V2Ray User: <strong class="text-purple-300">${order.final_username}</strong>` : ''}
+                    </p>
+                </div>
+                <div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'}">
+                    <i class="${statusIcons[order.status] || 'fa-solid fa-question-circle'}"></i>
+                    <span>${order.status}</span>
+                </div>
+            </div>`;
+        }).join('');
+        // IMPROVEMENT: Added a wrapping container for better spacing and consistency.
+        ordersContainer.innerHTML = `<div class="space-y-3">${ordersHtml}</div>`;
+
+    } catch (err) {
+        console.error("Failed to load orders:", err);
+        ordersContainer.innerHTML = `<div class="glass-panel p-4 rounded-xl text-center text-red-400"><p>Could not load your orders.</p></div>`;
+    }
+};
                         const switchTab = (tabId, updateUrl = false) => {
                         tabs.querySelector('.active')?.classList.remove('active');
                         panels.forEach(p => p.classList.remove('active'));
