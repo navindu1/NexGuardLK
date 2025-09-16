@@ -359,6 +359,28 @@
   z-index: 10000;
 }
 
+/* ======================================== */
+      /* === Readonly Input Field Disabled Style === */
+      /* ======================================== */
+      .form-input[readonly] {
+        background-color: rgba(10, 8, 28, 0.5);
+        color: #9ca3af; /* අළු පැහැති අකුරු */
+        cursor: not-allowed; /* Click කල නොහැකි බවට cursor එක වෙනස් කිරීම */
+        border-color: rgba(255, 255, 255, 0.1);
+      }
+      .form-input[readonly]:focus ~ .form-label {
+        color: #9ca3af; /* Focus වන විට label එකේ පාට වෙනස් නොවීම */
+      }
+      /* Readonly input එකක focus animation එක නැවැත්වීම */
+      .form-input[readonly] ~ .focus-border:before,
+      .form-input[readonly] ~ .focus-border:after,
+      .form-input[readonly] ~ .focus-border i:before,
+      .form-input[readonly] ~ .focus-border i:after {
+        width: 0 !important;
+        height: 0 !important;
+        transition: none;
+      }
+
 .help-modal-overlay.visible .help-modal-content {
   transform: scale(1);
 }
