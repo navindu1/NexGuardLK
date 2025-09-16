@@ -73,6 +73,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // File Path: public/js/admin.js - Replace the existing renderUsers function with this one
 
+// File Path: public/js/admin.js 
+// Replace the entire renderUsers function with this new code
+
 const renderUsers = (users = []) => {
     contentTitle.textContent = "User Management";
     searchBarContainer.classList.remove('hidden');
@@ -82,21 +85,12 @@ const renderUsers = (users = []) => {
         return;
     }
     const table = `
-        <div class="glass-panel rounded-xl overflow-hidden">
+        <div class="glass-panel rounded-xl overflow-x-auto">
             <table class="min-w-full text-sm responsive-table">
                 <thead class="border-b border-slate-700 bg-slate-900/50"><tr>
-                    <th class="p-3 text-left font-semibold text-white">Username</th>
-                    
-                    <th class="p-3 text-left font-semibold text-white">
-                        <span class="sm:hidden">Contact</span>
-                        <span class="hidden sm:inline">Email / WhatsApp</span>
-                    </th>
-
-                    <th class="p-3 text-left font-semibold text-white">
-                        <span class="sm:hidden">Profiles</span>
-                        <span class="hidden sm:inline">V2Ray Profiles</span>
-                    </th>
-
+                    <th class="p-3 text-left font-semibold text-white whitespace-nowrap">Username</th>
+                    <th class="p-3 text-left font-semibold text-white whitespace-nowrap">Email / WhatsApp</th>
+                    <th class="p-3 text-left font-semibold text-white whitespace-nowrap">V2Ray Profiles</th>
                     <th class="p-3 text-center font-semibold text-white">Action</th>
                 </tr></thead>
                 <tbody class="divide-y divide-slate-800">${regularUsers.map(user => `
@@ -116,7 +110,8 @@ const renderUsers = (users = []) => {
     contentContainer.innerHTML = table;
 };
 
-// File Path: public/js/admin.js - Replace the existing renderResellers function with this one
+// File Path: public/js/admin.js 
+// Replace the entire renderResellers function with this new code
 
 const renderResellers = (users = []) => {
     contentTitle.textContent = "Reseller Management";
@@ -140,19 +135,13 @@ const renderResellers = (users = []) => {
         resellerListHtml = '<div class="glass-panel p-8 rounded-lg text-center text-gray-400">No resellers found.</div>';
     } else {
         resellerListHtml = `
-        <div class="glass-panel rounded-xl overflow-hidden">
+        <div class="glass-panel rounded-xl overflow-x-auto">
             <table class="min-w-full text-sm responsive-table">
                  <thead class="border-b border-slate-700 bg-slate-900/50"><tr>
-                    <th class="p-3 text-left font-semibold text-white">
-                        <span class="sm:hidden">Reseller</span>
-                        <span class="hidden sm:inline">Reseller Username</span>
-                    </th>
+                    <th class="p-3 text-left font-semibold text-white whitespace-nowrap">Reseller Username</th>
                     <th class="p-3 text-left font-semibold text-white">Contact</th>
-                    <th class="p-3 text-left font-semibold text-white">
-                        <span class="sm:hidden">Users</span>
-                        <span class="hidden sm:inline">Users Created</span>
-                    </th>
-                    <th class="p-3 text-center font-semibold text-white">Action</th>
+                    <th class="p-3 text-left font-semibold text-white whitespace-nowrap">Users Created</th>
+                    <th class="p-3 text-center font-semibold text-white">Actions</th>
                 </tr></thead>
                 <tbody class="divide-y divide-slate-800">${resellers.map(reseller => {
                     const createdUserCount = cachedData.allUsers.filter(u => u.created_by === reseller.id).length;
@@ -161,10 +150,15 @@ const renderResellers = (users = []) => {
                         <td data-label="Reseller">${reseller.username}</td>
                         <td data-label="Contact">${reseller.email}<br><span class="text-xs text-slate-400">${reseller.whatsapp || 'N/A'}</span></td>
                         <td data-label="Users Created">${createdUserCount}</td>
-                        <td data-label="Action" class="text-center">
-                            <button class="btn btn-ban" data-user-id="${reseller.id}" data-username="${reseller.username}">
-                                <i class="fa-solid fa-user-slash"></i> Ban
-                            </button>
+                        <td data-label="Actions" class="text-center">
+                            <div class="flex justify-center gap-2 flex-wrap">
+                                <button class="btn btn-view btn-edit-reseller" data-reseller-id="${reseller.id}">
+                                    <i class="fa-solid fa-pencil"></i> Edit
+                                </button>
+                                <button class="btn btn-ban" data-user-id="${reseller.id}" data-username="${reseller.username}">
+                                    <i class="fa-solid fa-user-slash"></i> Ban
+                                </button>
+                            </div>
                         </td>
                     </tr>`
                 }).join('')}
