@@ -15,18 +15,49 @@
         #app-container { position: relative; z-index: 1; }
         .glass-panel { background: rgba(10, 8, 28, 0.75); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); }
         .btn { padding: 8px 14px; border-radius: 6px; font-weight: 600; transition: all 0.2s; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
-        .btn-approve { background-color: #166534; color: #bbf7d0; } .btn-approve:hover { background-color: #15803d; }
-        .btn-reject { background-color: #991b1b; color: #fecaca; } .btn-reject:hover { background-color: #b91c1c; }
-        .btn-ban { background-color: #9a3412; color: #fdba74; } .btn-ban:hover { background-color: #c2410c; }
-        .btn-view { background-color: #1e3a8a; color: #bfdbfe; } .btn-view:hover { background-color: #1e40af; }
+        .btn-approve { background-color: #166534; color: #bbf7d0; } .btn-approve:hover:not(:disabled) { background-color: #15803d; }
+        .btn-reject { background-color: #991b1b; color: #fecaca; } .btn-reject:hover:not(:disabled) { background-color: #b91c1c; }
+        .btn-ban { background-color: #9a3412; color: #fdba74; } .btn-ban:hover:not(:disabled) { background-color: #c2410c; }
+        .btn-view { background-color: #1e3a8a; color: #bfdbfe; } .btn-view:hover:not(:disabled) { background-color: #1e40af; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .modal { display: none; } .modal.active { display: flex; }
-        /* --- Styles for Mobile Responsive Tables --- */
-        @media (max-width: 768px) {
-            .responsive-table thead { display: none; }
-            .responsive-table tr { display: block; margin-bottom: 1rem; border-radius: 0.75rem; border: 1px solid rgba(255, 255, 255, 0.1); padding: 1rem; background: rgba(255, 255, 255, 0.05); }
-            .responsive-table td { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; text-align: right; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
-            .responsive-table td:last-child { border-bottom: none; }
-            .responsive-table td::before { content: attr(data-label); font-weight: 600; text-align: left; color: #9ca3af; margin-right: 1rem; }
+        
+        /* --- NEW & IMPROVED STYLES FOR MOBILE RESPONSIVENESS --- */
+        @media (max-width: 767px) {
+            .responsive-table thead {
+                display: none;
+            }
+            .responsive-table tr {
+                display: block;
+                margin-bottom: 1rem;
+                border-radius: 0.75rem;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                padding: 1rem;
+                background: rgba(255, 255, 255, 0.05);
+            }
+            .responsive-table td {
+                display: grid;
+                grid-template-columns: 120px 1fr; /* Fixed width for label, flexible for value */
+                gap: 1rem;
+                align-items: center;
+                padding: 0.6rem 0;
+                text-align: left;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            }
+            .responsive-table td:last-child {
+                border-bottom: none;
+            }
+            .responsive-table td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                color: #9ca3af;
+            }
+            .responsive-table .actions-cell {
+                grid-template-columns: 1fr; /* Let actions take full width */
+            }
+             .responsive-table .actions-cell::before {
+                display: none; /* Hide label for action cell */
+            }
         }
     </style>
 </head>
@@ -46,19 +77,19 @@
             </div>
             <div id="card-approved" class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-green-400">
                 <div class="bg-green-500/10 text-green-400 p-3 rounded-lg hidden sm:block"><i class="fa-solid fa-check-circle fa-lg"></i></div>
-                <div><p class="text-xs sm:text-sm text-slate-400">Approved</p><h3 id="approved-orders-stat" class="text-2xl font-bold text-white">0</h3></div>
+                <div><p class="text-xs sm:text-sm text-slate-400">Approved</p><h3 id="approved-orders-stat" class="text-xl sm:text-2xl font-bold text-white">0</h3></div>
             </div>
             <div id="card-rejected" class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-red-400">
                 <div class="bg-red-500/10 text-red-400 p-3 rounded-lg hidden sm:block"><i class="fa-solid fa-times-circle fa-lg"></i></div>
-                <div><p class="text-xs sm:text-sm text-slate-400">Rejected</p><h3 id="rejected-orders-stat" class="text-2xl font-bold text-white">0</h3></div>
+                <div><p class="text-xs sm:text-sm text-slate-400">Rejected</p><h3 id="rejected-orders-stat" class="text-xl sm:text-2xl font-bold text-white">0</h3></div>
             </div>
             <div id="card-users" class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-sky-400">
                 <div class="bg-sky-500/10 text-sky-400 p-3 rounded-lg hidden sm:block"><i class="fa-solid fa-users fa-lg"></i></div>
-                <div><p class="text-xs sm:text-sm text-slate-400">Users</p><h3 id="total-users-stat" class="text-2xl font-bold text-white">0</h3></div>
+                <div><p class="text-xs sm:text-sm text-slate-400">Users</p><h3 id="total-users-stat" class="text-xl sm:text-2xl font-bold text-white">0</h3></div>
             </div>
             <div id="card-resellers" class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-purple-400">
                 <div class="bg-purple-500/10 text-purple-400 p-3 rounded-lg hidden sm:block"><i class="fa-solid fa-user-tag fa-lg"></i></div>
-                <div><p class="text-xs sm:text-sm text-slate-400">Resellers</p><h3 id="total-resellers-stat" class="text-2xl font-bold text-white">0</h3></div>
+                <div><p class="text-xs sm:text-sm text-slate-400">Resellers</p><h3 id="total-resellers-stat" class="text-xl sm:text-2xl font-bold text-white">0</h3></div>
             </div>
         </section>
         <main id="main-content-area">
@@ -69,6 +100,7 @@
             <div id="content-container" class="space-y-4"></div>
         </main>
     </div>
+
     <div id="image-modal" class="modal fixed inset-0 bg-black/80 justify-center items-center z-50 p-4">
         <div class="p-4 bg-slate-900 rounded-lg max-w-4xl max-h-[90vh] relative">
             <button id="modal-close-btn" class="absolute -top-4 -right-4 w-10 h-10 bg-red-600 rounded-full text-white text-xl z-10">&times;</button>
@@ -89,7 +121,7 @@
             </form>
         </div>
     </div>
-    <script src="/js/admin.js"></script>
+    
     <script src="/js/admin.js"></script>
     <script>
         VANTA.WAVES({ el: "#vanta-bg", mouseControls: true, touchControls: true, gyroControls: false, minHeight: 200.0, minWidth: 200.0, scale: 1.0, scaleMobile: 1.0, color: 0x20002f, shininess: 25.0, waveHeight: 15.0, waveSpeed: 0.65, zoom: 0.85 });
