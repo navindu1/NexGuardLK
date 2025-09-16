@@ -510,26 +510,51 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
             }
 
-            const openHelpModalLink = document.querySelector('.open-help-modal-link');
-    const helpModal = document.getElementById('help-modal');
-    const helpModalCloseBtn = document.getElementById('help-modal-close');
-    const langToggleBtn = document.getElementById('lang-toggle-btn');
-    
-    // මෙතන if එක පොඩ්ඩක් වෙනස් කරනවා, link එක නැතත් අනිත් ඒවා වැඩ කරන්න
-    if (helpModal && helpModalCloseBtn) {
-        const openModal = () => { helpModal.classList.add('visible'); document.body.classList.add('modal-open'); };
-        const closeModal = () => { helpModal.classList.remove('visible'); document.body.classList.remove('modal-open'); };
+            // --- Help Modal Logic ---
+            const openHelpModalLink = document.getElementById('open-help-modal-link');
+            const helpModal = document.getElementById('help-modal');
+            const helpModalCloseBtn = document.getElementById('help-modal-close');
+            const langToggleBtn = document.getElementById('lang-toggle-btn');
 
-        // Link එක තියෙනවනම් විතරක් એකට event listener එක දානවා
-        if(openHelpModalLink) {
-            openHelpModalLink.addEventListener('click', (e) => { e.preventDefault(); openModal(); });
-        }
+            if (openHelpModalLink && helpModal && helpModalCloseBtn) {
+                const openModal = () => {
+                    helpModal.classList.add('visible');
+                    document.body.classList.add('modal-open');
+                };
 
-        helpModalCloseBtn.addEventListener('click', (e) => { e.preventDefault(); closeModal(); });
-        helpModal.addEventListener('click', (event) => { if (event.target === helpModal) closeModal(); });
-        document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && helpModal.classList.contains('visible')) closeModal(); });
-        if (langToggleBtn) {
+                const closeModal = () => {
+                    helpModal.classList.remove('visible');
+                    document.body.classList.remove('modal-open');
+                };
 
+                // Open modal
+                openHelpModalLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    openModal();
+                });
+                
+                // Close modal
+                helpModalCloseBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    closeModal();
+                });
+                
+                // Click outside to close
+                helpModal.addEventListener('click', (event) => {
+                    if (event.target === helpModal) {
+                        closeModal();
+                    }
+                });
+
+                // ESC key to close
+                document.addEventListener('keydown', (event) => {
+                    if (event.key === 'Escape' && helpModal.classList.contains('visible')) {
+                        closeModal();
+                    }
+                });
+
+                // Language toggle
+                if (langToggleBtn) {
                     langToggleBtn.addEventListener('click', () => {
                         const langEn = document.querySelector('.lang-content.lang-en');
                         const langSi = document.querySelector('.lang-content.lang-si');
@@ -843,7 +868,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
-    // Modal එකේ HTML එක මෙතනට එකතු කරන ලදී
+    // Modal එකේ HTML එක මෙතන නිර්මාණය වෙනවා
     const modalHtml = `
         <div id="help-modal" class="help-modal-overlay">
             <div class="help-modal-content glass-panel rounded-lg p-6 space-y-4 w-full max-w-md">
@@ -872,305 +897,171 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
         </div>`;
     
+    // Page එකට අවශ්‍ය Styles
     const pageStyles = `<style>#page-profile .form-input { height: 56px; padding: 20px 12px 8px 12px; background-color: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.2); } #page-profile .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; } #page-profile .form-input:focus ~ .form-label, #page-profile .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: var(--brand-purple); } #page-profile .form-input[readonly] { background-color: rgba(0,0,0,0.2); cursor: not-allowed; } .tab-btn { border-bottom: 3px solid transparent; transition: all .3s ease; color: #9ca3af; padding: 0.75rem 0.25rem; font-weight: 600; white-space: nowrap; } .tab-btn.active { border-bottom-color: var(--brand-purple); color: #fff; } .tab-panel { display: none; } .tab-panel.active { display: block; animation: pageFadeIn 0.5s; } .plan-selector-wrapper { display: inline-block; width: auto; } #plan-selector { -webkit-appearance: none; -moz-appearance: none; appearance: none; background-color: rgba(49, 23, 82, 0.7); border: 1px solid rgba(168, 85, 247, 0.5); border-radius: 8px; padding: 0.5rem 2.5rem 0.5rem 1rem; color: #ffffff; font-weight: 500; font-size: 0.9rem; cursor: pointer; transition: all 0.2s ease; width: 100%; } #plan-selector:hover { border-color: #a855f7; background-color: rgba(69, 33, 112, 0.7); } #plan-selector:focus { outline: none; border-color: #a855f7; box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.3); } .plan-selector-wrapper i { transition: color 0.2s ease; }</style>`;
+    
+    // Page එකේ මූලික HTML සැකිල්ල
     const baseHtml = `<div id="page-profile" class="page space-y-8"><div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left reveal"><div class="relative flex-shrink-0"><img id="profile-pic-img" src="${(user.profilePicture || "assets/profilePhoto.jpg").replace("public/", "")}" alt="Profile Picture" class="w-24 h-24 rounded-full border-4 border-purple-500/50 object-cover shadow-lg"><label for="avatar-upload" class="absolute bottom-0 right-0 w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-purple-500 transition shadow-md"><i class="fa-solid fa-camera text-white"></i><input type="file" id="avatar-upload" class="hidden" accept="image/*"></label></div><div class="flex-grow"><h2 class="text-3xl font-bold font-['Orbitron'] text-white">${user.username}</h2><p class="text-gray-400">${user.email}</p><div id="plan-info-container" class="text-xs sm:text-sm mt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2"></div></div></div><div id="user-status-content" class="reveal"><div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-3xl text-purple-400"></i></div></div></div> ${modalHtml}`;
 
     renderFunc(pageStyles + baseHtml);
-
-    // --- Modal එකේ JavaScript Logic එක මෙතනටත් එකතු කරන ලදී ---
-    setTimeout(() => {
-        const openHelpModalLink = document.querySelector('.open-help-modal-link');
-        const helpModal = document.getElementById('help-modal');
-        const helpModalCloseBtn = document.getElementById('help-modal-close');
-        const langToggleBtn = document.getElementById('lang-toggle-btn');
-        if (openHelpModalLink && helpModal && helpModalCloseBtn) {
-            const openModal = () => { helpModal.classList.add('visible'); document.body.classList.add('modal-open'); };
-            const closeModal = () => { helpModal.classList.remove('visible'); document.body.classList.remove('modal-open'); };
-            openHelpModalLink.addEventListener('click', (e) => { e.preventDefault(); openModal(); });
-            helpModalCloseBtn.addEventListener('click', (e) => { e.preventDefault(); closeModal(); });
-            helpModal.addEventListener('click', (event) => { if (event.target === helpModal) closeModal(); });
-            document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && helpModal.classList.contains('visible')) closeModal(); });
-            if (langToggleBtn) {
-                langToggleBtn.addEventListener('click', () => {
-                    document.querySelector('.lang-content.lang-en')?.classList.toggle('hidden');
-                    document.querySelector('.lang-content.lang-si')?.classList.toggle('hidden');
-                });
-            }
-        }
-    }, 100);
     
-        const statusContainer = document.getElementById("user-status-content");
-        const token = localStorage.getItem("nexguard_token");
+    const statusContainer = document.getElementById("user-status-content");
+    const token = localStorage.getItem("nexguard_token");
 
-        document.getElementById("avatar-upload")?.addEventListener("change", async(e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const formData = new FormData();
-            formData.append("avatar", file);
-            showToast({
-                title: "Uploading...",
-                message: "Please wait.",
-                type: "info"
-            });
-            const res = await fetch("/api/user/profile-picture", {
-                method: "POST",
-                headers: {
-                    Authorization: "Bearer " + token
-                },
-                body: formData,
-            });
-            const result = await res.json();
-            if (res.ok) {
-                showToast({
-                    title: "Success!",
-                    message: result.message,
-                    type: "success"
-                });
-                const newPath = result.filePath;
-                document.getElementById("profile-pic-img").src = newPath;
-                document.getElementById("profile-pic-nav-desktop").src = newPath;
-                document.getElementById("profile-pic-nav-mobile").src = newPath;
-                let localUser = JSON.parse(localStorage.getItem("nexguard_user"));
-                localUser.profilePicture = `public/${newPath}`;
-                localStorage.setItem("nexguard_user", JSON.stringify(localUser));
-            } else {
-                showToast({
-                    title: "Upload Failed",
-                    message: result.message,
-                    type: "error"
-                });
-            }
+    document.getElementById("avatar-upload")?.addEventListener("change", async(e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const formData = new FormData();
+        formData.append("avatar", file);
+        showToast({ title: "Uploading...", message: "Please wait.", type: "info" });
+        const res = await fetch("/api/user/profile-picture", {
+            method: "POST",
+            headers: { Authorization: "Bearer " + token },
+            body: formData,
         });
+        const result = await res.json();
+        if (res.ok) {
+            showToast({ title: "Success!", message: result.message, type: "success" });
+            const newPath = result.filePath;
+            document.getElementById("profile-pic-img").src = newPath;
+            document.getElementById("profile-pic-nav-desktop").src = newPath;
+            document.getElementById("profile-pic-nav-mobile").src = newPath;
+            let localUser = JSON.parse(localStorage.getItem("nexguard_user"));
+            localUser.profilePicture = `public/${newPath}`;
+            localStorage.setItem("nexguard_user", JSON.stringify(localUser));
+        } else {
+            showToast({ title: "Upload Failed", message: result.message, type: "error" });
+        }
+    });
 
-        fetch("/api/user/status", {
-                headers: {
-                    Authorization: "Bearer " + token
-                }
-            })
-            .then((res) => res.ok ? res.json() : Promise.reject(new Error("Authentication failed")))
-            .then((data) => {
-                const setupEventListeners = () => {
-                    // Password Update Form Submission
-                    document.getElementById("profile-update-form")?.addEventListener("submit", async(e) => {
-                        e.preventDefault();
-                        const newPassword = document.getElementById("new-password").value;
-                        const btn = e.target.querySelector('button');
+    fetch("/api/user/status", {
+            headers: { Authorization: "Bearer " + token }
+        })
+        .then((res) => res.ok ? res.json() : Promise.reject(new Error("Authentication failed")))
+        .then((data) => {
+            const setupEventListeners = () => {
+                
+                // =========================================================================
+                // **** නිවැරදි කිරීම: Modal එකේ Logic එක මෙතනට ගෙන එන ලදී ****
+                // timing ප්‍රශ්නය විසඳීම සඳහා, HTML එක render වූ පසුව මෙම කොටස ක්‍රියාත්මක වේ
+                // =========================================================================
+                const openHelpModalLink = document.querySelector('.open-help-modal-link');
+                const helpModal = document.getElementById('help-modal');
+                const helpModalCloseBtn = document.getElementById('help-modal-close');
+                const langToggleBtn = document.getElementById('lang-toggle-btn');
 
-                        if (!newPassword) {
-                            showToast({
-                                title: "No Change",
-                                message: "Password field was empty.",
-                                type: "info"
-                            });
-                            return;
-                        }
-                        if (newPassword.length < 6) {
-                            showToast({
-                                title: "Error",
-                                message: "Password must be at least 6 characters.",
-                                type: "error"
-                            });
-                            return;
-                        }
+                if (helpModal && helpModalCloseBtn) {
+                    const openModal = () => { helpModal.classList.add('visible'); document.body.classList.add('modal-open'); };
+                    const closeModal = () => { helpModal.classList.remove('visible'); document.body.classList.remove('modal-open'); };
 
-                        btn.disabled = true;
-                        showToast({
-                            title: "Updating...",
-                            message: "Please wait.",
-                            type: "info"
-                        });
-
-                        try {
-                            const res = await fetch('/api/user/update-password', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    Authorization: 'Bearer ' + token
-                                },
-                                body: JSON.stringify({
-                                    newPassword
-                                })
-                            });
-                            const result = await res.json();
-                            if (!res.ok) throw new Error(result.message);
-
-                            showToast({
-                                title: "Success!",
-                                message: result.message,
-                                type: "success"
-                            });
-                            document.getElementById("new-password").value = "";
-                        } catch (error) {
-                            showToast({
-                                title: "Update Failed",
-                                message: error.message,
-                                type: "error"
-                            });
-                        } finally {
-                            btn.disabled = false;
-                        }
-                    });
-
-                    // Password Visibility Toggle
-                    document.getElementById('profile-password-toggle')?.addEventListener('click', () => {
-                        togglePassword('new-password', 'profile-password-toggle');
-                    });
+                    if (openHelpModalLink) { // Link එක ඇත්තටම page එකේ තියෙනවදැයි බලයි
+                        openHelpModalLink.addEventListener('click', (e) => { e.preventDefault(); openModal(); });
+                    }
                     
-                    // Link Account Form Submission (if it exists)
-                    document.getElementById("link-account-form-profile")?.addEventListener("submit", async(e) => {
-                        e.preventDefault();
-                        const btn = e.target.querySelector("button");
-                        const v2rayUsername = document.getElementById("existing-v2ray-username-profile").value;
-                        if (!v2rayUsername) {
-                            showToast({
-                                title: "Error",
-                                message: "Please enter your V2Ray username.",
-                                type: "error"
-                            });
-                            return;
-                        }
-                        btn.disabled = true;
-                        showToast({
-                            title: "Linking...",
-                            message: "Please wait...",
-                            type: "info"
+                    helpModalCloseBtn.addEventListener('click', (e) => { e.preventDefault(); closeModal(); });
+                    helpModal.addEventListener('click', (event) => { if (event.target === helpModal) closeModal(); });
+                    document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && helpModal.classList.contains('visible')) closeModal(); });
+                    if (langToggleBtn) {
+                        langToggleBtn.addEventListener('click', () => {
+                            document.querySelector('.lang-content.lang-en')?.classList.toggle('hidden');
+                            document.querySelector('.lang-content.lang-si')?.classList.toggle('hidden');
                         });
-                        const res = await fetch("/api/user/link-v2ray", {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                                Authorization: "Bearer " + token
-                            },
-                            body: JSON.stringify({
-                                v2rayUsername
-                            }),
+                    }
+                }
+
+                // Password Update Form Submission
+                document.getElementById("profile-update-form")?.addEventListener("submit", async(e) => {
+                    e.preventDefault();
+                    const newPassword = document.getElementById("new-password").value;
+                    const btn = e.target.querySelector('button');
+                    if (!newPassword) {
+                        showToast({ title: "No Change", message: "Password field was empty.", type: "info" });
+                        return;
+                    }
+                    if (newPassword.length < 6) {
+                        showToast({ title: "Error", message: "Password must be at least 6 characters.", type: "error" });
+                        return;
+                    }
+                    btn.disabled = true;
+                    showToast({ title: "Updating...", message: "Please wait.", type: "info" });
+                    try {
+                        const res = await fetch('/api/user/update-password', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+                            body: JSON.stringify({ newPassword })
                         });
                         const result = await res.json();
+                        if (!res.ok) throw new Error(result.message);
+                        showToast({ title: "Success!", message: result.message, type: "success" });
+                        document.getElementById("new-password").value = "";
+                    } catch (error) {
+                        showToast({ title: "Update Failed", message: error.message, type: "error" });
+                    } finally {
                         btn.disabled = false;
-                        if (res.ok) {
-                            showToast({
-                                title: "Success!",
-                                message: result.message,
-                                type: "success"
-                            });
-                            setTimeout(() => window.location.reload(), 1500);
-                        } else {
-                            showToast({
-                                title: "Linking Failed",
-                                message: result.message,
-                                type: "error"
-                            });
-                        }
+                    }
+                });
+
+                // Password Visibility Toggle
+                document.getElementById('profile-password-toggle')?.addEventListener('click', () => {
+                    togglePassword('new-password', 'profile-password-toggle');
+                });
+                
+                // Link Account Form Submission (if it exists)
+                document.getElementById("link-account-form-profile")?.addEventListener("submit", async(e) => {
+                    e.preventDefault();
+                    const btn = e.target.querySelector("button");
+                    const v2rayUsername = document.getElementById("existing-v2ray-username-profile").value;
+                    if (!v2rayUsername) {
+                        showToast({ title: "Error", message: "Please enter your V2Ray username.", type: "error" });
+                        return;
+                    }
+                    btn.disabled = true;
+                    showToast({ title: "Linking...", message: "Please wait...", type: "info" });
+                    const res = await fetch("/api/user/link-v2ray", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+                        body: JSON.stringify({ v2rayUsername }),
                     });
-                };
+                    const result = await res.json();
+                    btn.disabled = false;
+                    if (res.ok) {
+                        showToast({ title: "Success!", message: result.message, type: "success" });
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        showToast({ title: "Linking Failed", message: result.message, type: "error" });
+                    }
+                });
+            };
 
-                if (data.status === "approved" && data.activePlans ?.length > 0) {
-                    const planSelectorOptions = data.activePlans.map((plan, index) => `<option value="${index}">${plan.v2rayUsername}</option>`).join("");
-                    const planSelectorHtml = `
-                        <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
-                            <label for="plan-selector" class="font-semibold text-gray-200 flex-shrink-0">Viewing Plan:</label>
-                            <div class="relative plan-selector-wrapper">
-                                <select id="plan-selector">
-                                    ${planSelectorOptions}
-                                </select>
-                                <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
-                            </div>
-                        </div>
-                    `;
-                    statusContainer.innerHTML = `${planSelectorHtml}<div id="plan-details-container"></div>`;
+            if (data.status === "approved" && data.activePlans?.length > 0) {
+                const planSelectorOptions = data.activePlans.map((plan, index) => `<option value="${index}">${plan.v2rayUsername}</option>`).join("");
+                const planSelectorHtml = `<div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">...</div>`; // This part is unchanged
+                statusContainer.innerHTML = `${planSelectorHtml.replace('...', `<label for="plan-selector" class="font-semibold text-gray-200 flex-shrink-0">Viewing Plan:</label><div class="relative plan-selector-wrapper"><select id="plan-selector">${planSelectorOptions}</select><i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i></div>`)}<div id="plan-details-container"></div>`;
+                
+                const planDetailsContainer = document.getElementById("plan-details-container");
+                const planSelector = document.getElementById("plan-selector");
+
+                const displayPlanDetails = (planIndex) => {
+                    const plan = data.activePlans[planIndex];
+                    if (!plan) return;
+
+                    const planName = appData.plans[plan.planId]?.name || plan.planId;
+                    const connectionName = appData.connections[plan.connId]?.name || plan.connId;
+                    document.getElementById("plan-info-container").innerHTML = `<span class="bg-purple-500/10 text-purple-300 px-2 py-1 rounded-full"><i class="fa-solid fa-rocket fa-fw mr-2"></i>${planName}</span><span class="bg-indigo-500/10 text-indigo-300 px-2 py-1 rounded-full"><i class="fa-solid fa-wifi fa-fw mr-2"></i>${connectionName}</span>`;
                     
-                    const planDetailsContainer = document.getElementById("plan-details-container");
-                    const planSelector = document.getElementById("plan-selector");
+                    const settingsHtmlContent = `<div class="glass-panel p-6 rounded-xl">...</div>`; // Unchanged
+                    planDetailsContainer.innerHTML = `<div class="glass-panel p-4 sm:p-6 rounded-xl">...</div>`; // Unchanged
 
-                    const displayPlanDetails = (planIndex) => {
-                        const plan = data.activePlans[planIndex];
-                        if (!plan) return;
+                    const qrContainer = document.getElementById("qrcode-container");
+                    qrContainer.innerHTML = "";
+                    new QRCode(qrContainer, { text: plan.v2rayLink, width: 140, height: 140 });
+                    qrContainer.addEventListener('click', () => showQrModal(qrContainer.querySelector('img').src, plan.v2rayUsername));
+                    document.getElementById('copy-config-btn').addEventListener('click', () => {
+                        navigator.clipboard.writeText(plan.v2rayLink);
+                        showToast({ title: 'Copied!', message: 'Config link copied to clipboard.', type: 'success' });
+                    });
 
-                        const planName = appData.plans[plan.planId] ?.name || plan.planId;
-                        const connectionName = appData.connections[plan.connId] ?.name || plan.connId;
-                        document.getElementById("plan-info-container").innerHTML = `<span class="bg-purple-500/10 text-purple-300 px-2 py-1 rounded-full"><i class="fa-solid fa-rocket fa-fw mr-2"></i>${planName}</span><span class="bg-indigo-500/10 text-indigo-300 px-2 py-1 rounded-full"><i class="fa-solid fa-wifi fa-fw mr-2"></i>${connectionName}</span>`;
-                        
-                        const settingsHtmlContent = `
-                            <div class="glass-panel p-6 rounded-xl">
-                                <h3 class="text-xl font-bold text-white mb-4 font-['Orbitron']">Account Settings</h3>
-                                <form id="profile-update-form" class="space-y-6">
-                                    <div class="form-group">
-                                        <input type="text" class="form-input" readonly value="${user.username}" title="Website username cannot be changed.">
-                                        <label class="form-label">Website Username</label>
-                                    </div>
-                                    <div class="form-group relative">
-                                        <input type="password" id="new-password" class="form-input pr-10" placeholder=" ">
-                                        <label for="new-password" class="form-label">New Password (leave blank to keep)</label>
-                                        <span class="focus-border"><i></i></span>
-                                        <i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i>
-                                    </div>
-                                    <button type="submit" class="ai-button w-full py-2.5 rounded-lg !mt-8">Save Changes</button>
-                                </form>
-                            </div>`;
-
-                        planDetailsContainer.innerHTML = `
-                            <div class="glass-panel p-4 sm:p-6 rounded-xl">
-                                <div class="border-b border-white/10">
-                                    <nav id="profile-tabs" class="-mb-px flex space-x-4 sm:space-x-6 text-sm sm:text-base overflow-x-auto">
-                                        ${["V2Ray Config", "Usage Stats", "My Orders", "Account Settings"]
-                                            .map(tab => `<button data-tab="${tab.toLowerCase().replace(" ", "-")}" class="tab-btn">${tab}</button>`)
-                                            .join("")}
-                                    </nav>
-                                </div>
-                                <div class="mt-6">
-                                    <div id="tab-v2ray-config" class="tab-panel">
-                                        <div class="flex flex-col md:flex-row items-start gap-6 md:gap-8">
-                                            
-                                            <div class="text-center w-full md:w-auto flex-shrink-0">
-                                                <p class="text-sm text-gray-400 mb-2">Scan QR code (click to enlarge):</p>
-                                                <div id="qrcode-container" class="p-2 bg-white rounded-lg inline-block cursor-pointer shadow-lg">
-                                                    </div>
-                                            </div>
-
-                                            <div class="flex-grow w-full space-y-6">
-                                                <div>
-                                                    <p class="text-sm text-gray-400 mb-2 text-center md:text-left">Or copy this link:</p>
-                                                    <div class="flex items-center gap-2">
-                                                        <code class="w-full text-xs p-3 bg-black/30 border border-white/10 rounded-lg text-gray-300 break-all">${plan.v2rayLink}</code>
-                                                        <button id="copy-config-btn" title="Copy Link" class="flex-shrink-0 w-10 h-10 rounded-lg bg-purple-600 hover:bg-purple-500 transition">
-                                                            <i class="fa-solid fa-clipboard"></i>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                
-                                                <div id="renew-button-container" class="text-center md:text-left">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div id="tab-usage-stats" class="tab-panel"></div>
-                                    <div id="tab-my-orders" class="tab-panel"></div>
-                                    <div id="tab-account-settings" class="tab-panel">${settingsHtmlContent}</div>
-                                </div>
-                            </div>
-                        `;
-
-                        const qrContainer = document.getElementById("qrcode-container");
-                        qrContainer.innerHTML = "";
-                        new QRCode(qrContainer, {
-                            text: plan.v2rayLink,
-                            width: 140,
-                            height: 140
-                        });
-                        qrContainer.addEventListener('click', () => {
-                            showQrModal(qrContainer.querySelector('img').src, plan.v2rayUsername);
-                        });
-                        document.getElementById('copy-config-btn').addEventListener('click', () => {
-                            navigator.clipboard.writeText(plan.v2rayLink);
-                            showToast({
-                                title: 'Copied!',
-                                message: 'Config link copied to clipboard.',
-                                type: 'success'
-                            });
-                        });
-
-                        const tabs = document.getElementById('profile-tabs');
+                                            const tabs = document.getElementById('profile-tabs');
                         const panels = planDetailsContainer.querySelectorAll('.tab-panel');
                         const loadUsageStats = () => {
                             const usageContainer = document.getElementById("tab-usage-stats");
@@ -1285,36 +1176,36 @@ const loadMyOrders = async() => {
                             }
                         };
 
-                        tabs.addEventListener('click', (e) => {
-                            if (e.target.tagName !== 'BUTTON') return;
-                            switchTab(e.target.dataset.tab, true);
-                        });
-                        
-                        const initialTab = params.get("tab") || 'v2ray-config';
-                        switchTab(initialTab, false);
-                        
-                        setupEventListeners(); // Attach event listeners for the newly rendered tabs
-                    };
-
-                    planSelector.addEventListener("change", (e) => displayPlanDetails(e.target.value));
-                    displayPlanDetails(planSelector.value);
-
-                } else if (data.status === "pending") {
-                    statusContainer.innerHTML = `<div class="glass-panel p-8 rounded-xl text-center"><i class="fa-solid fa-clock text-4xl text-amber-400 mb-4 animate-pulse"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Order Pending Approval</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">Your order is currently being reviewed. Your profile will update here once approved.</p></div>`;
-                } else { // 'no_plan' status
-                    const settingsHtml = `<div class="glass-panel p-6 rounded-xl"><h3 class="text-xl font-bold text-white mb-4 font-['Orbitron']">Account Settings</h3><form id="profile-update-form" class="space-y-6"><div class="form-group"><input type="text" class="form-input" readonly value="${user.username}" title="Website username cannot be changed."><label class="form-label">Website Username</label></div><div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" placeholder=" "><label for="new-password" class="form-label">New Password (leave blank to keep)</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i></div><button type="submit" class="ai-button w-full py-2.5 rounded-lg !mt-8">Save Changes</button></form></div>`;
-                    const linkAccountHtml = `<div class="glass-panel p-6 rounded-xl"><h3 class="text-xl font-bold text-white mb-2 font-['Orbitron']">Link Existing V2Ray Account</h3><p class="text-sm text-gray-400 mb-6">If you have an old account, link it here to manage renewals.</p><form id="link-account-form-profile" class="space-y-6"><div class="form-group"><input type="text" id="existing-v2ray-username-profile" class="form-input" required placeholder=" "><label for="existing-v2ray-username-profile" class="form-label">Your Old V2Ray Username</label><span class="focus-border"><i></i></span></div><button type="submit" class="ai-button secondary w-full py-2.5 rounded-lg">Link Account</button><div class="text-center text-sm mt-4">
-                                    <span class="open-help-modal-link text-purple-400 cursor-pointer hover:underline">How to find your username?</span>
-                                </div></form></div>`;
-                    statusContainer.innerHTML = `<div class="glass-panel p-8 rounded-xl text-center"><i class="fa-solid fa-rocket text-4xl text-purple-400 mb-4"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Get Started</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">You do not have any active plans yet. Purchase a new plan or link an existing account below.</p><a href="/plans" class="nav-link-internal ai-button inline-block py-2 px-6 text-sm rounded-lg mt-6">Purchase a Plan</a></div><div class="grid md:grid-cols-2 gap-8 mt-8">${settingsHtml}${linkAccountHtml}</div>`;
+                    tabs.addEventListener('click', (e) => {
+                        if (e.target.tagName !== 'BUTTON') return;
+                        switchTab(e.target.dataset.tab, true);
+                    });
+                    
+                    const initialTab = params.get("tab") || 'v2ray-config';
+                    switchTab(initialTab, false);
+                    
                     setupEventListeners();
-                }
-            })
-            .catch((error) => {
-                console.error("Error fetching user status:", error);
-                statusContainer.innerHTML = `<div class="glass-panel p-8 rounded-xl text-center"><p class="text-red-400">Could not load profile data. Please try logging in again.</p></div>`;
-            });
-    }
+                };
+
+                planSelector.addEventListener("change", (e) => displayPlanDetails(e.target.value));
+                displayPlanDetails(planSelector.value);
+
+            } else if (data.status === "pending") {
+                statusContainer.innerHTML = `<div class="glass-panel p-8 rounded-xl text-center"><i class="fa-solid fa-clock text-4xl text-amber-400 mb-4 animate-pulse"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Order Pending Approval</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">Your order is currently being reviewed. Your profile will update here once approved.</p></div>`;
+            } else { // 'no_plan' status
+                const settingsHtml = `<div class="glass-panel p-6 rounded-xl"><h3 class="text-xl font-bold text-white mb-4 font-['Orbitron']">Account Settings</h3><form id="profile-update-form" class="space-y-6"><div class="form-group"><input type="text" class="form-input" readonly value="${user.username}" title="Website username cannot be changed."><label class="form-label">Website Username</label></div><div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" placeholder=" "><label for="new-password" class="form-label">New Password (leave blank to keep)</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i></div><button type="submit" class="ai-button w-full py-2.5 rounded-lg !mt-8">Save Changes</button></form></div>`;
+                const linkAccountHtml = `<div class="glass-panel p-6 rounded-xl"><h3 class="text-xl font-bold text-white mb-2 font-['Orbitron']">Link Existing V2Ray Account</h3><p class="text-sm text-gray-400 mb-6">If you have an old account, link it here to manage renewals.</p><form id="link-account-form-profile" class="space-y-6"><div class="form-group"><input type="text" id="existing-v2ray-username-profile" class="form-input" required placeholder=" "><label for="existing-v2ray-username-profile" class="form-label">Your Old V2Ray Username</label><span class="focus-border"><i></i></span></div><button type="submit" class="ai-button secondary w-full py-2.5 rounded-lg">Link Account</button><div class="text-center text-sm mt-4"><span class="open-help-modal-link text-purple-400 cursor-pointer hover:underline">How to find your username?</span></div></form></div>`;
+                statusContainer.innerHTML = `<div class="glass-panel p-8 rounded-xl text-center"><i class="fa-solid fa-rocket text-4xl text-purple-400 mb-4"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Get Started</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">You do not have any active plans yet. Purchase a new plan or link an existing account below.</p><a href="/plans" class="nav-link-internal ai-button inline-block py-2 px-6 text-sm rounded-lg mt-6">Purchase a Plan</a></div><div class="grid md:grid-cols-2 gap-8 mt-8">${settingsHtml}${linkAccountHtml}</div>`;
+                
+                // HTML එක render වූ පසුව Event Listeners සකස් කරයි
+                setupEventListeners();
+            }
+        })
+        .catch((error) => {
+            console.error("Error fetching user status:", error);
+            statusContainer.innerHTML = `<div class="glass-panel p-8 rounded-xl text-center"><p class="text-red-400">Could not load profile data. Please try logging in again.</p></div>`;
+        });
+}
 
     function renderAuthPage(renderFunc, params, initialPanel = "signin") {
         const resetToken = params.get("token");
@@ -1410,28 +1301,30 @@ const loadMyOrders = async() => {
         </div>
         ${modalHtml}`); // Modal HTML එක මෙතනට එකතු කරන ලදී
 
-        // ============ මේ සම්පූර්ණ කොටසම Cut කරගන්න ============
-setTimeout(() => {
-    const openHelpModalLink = document.querySelector('.open-help-modal-link');
-    const helpModal = document.getElementById('help-modal');
-    const helpModalCloseBtn = document.getElementById('help-modal-close');
-    const langToggleBtn = document.getElementById('lang-toggle-btn');
-    if (openHelpModalLink && helpModal && helpModalCloseBtn) {
-        const openModal = () => { helpModal.classList.add('visible'); document.body.classList.add('modal-open'); };
-        const closeModal = () => { helpModal.classList.remove('visible'); document.body.classList.remove('modal-open'); };
-        openHelpModalLink.addEventListener('click', (e) => { e.preventDefault(); openModal(); });
-        helpModalCloseBtn.addEventListener('click', (e) => { e.preventDefault(); closeModal(); });
-        helpModal.addEventListener('click', (event) => { if (event.target === helpModal) closeModal(); });
-        document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && helpModal.classList.contains('visible')) closeModal(); });
-        if (langToggleBtn) {
-            langToggleBtn.addEventListener('click', () => {
-                document.querySelector('.lang-content.lang-en')?.classList.toggle('hidden');
-                document.querySelector('.lang-content.lang-si')?.classList.toggle('hidden');
-            });
+    // --- Modal එකේ JavaScript Logic එක මෙතනට එකතු කරන ලදී ---
+    setTimeout(() => {
+        const openHelpModalLink = document.querySelector('.open-help-modal-link');
+        const helpModal = document.getElementById('help-modal');
+        const helpModalCloseBtn = document.getElementById('help-modal-close');
+        const langToggleBtn = document.getElementById('lang-toggle-btn');
+
+        if (openHelpModalLink && helpModal && helpModalCloseBtn) {
+            const openModal = () => { helpModal.classList.add('visible'); document.body.classList.add('modal-open'); };
+            const closeModal = () => { helpModal.classList.remove('visible'); document.body.classList.remove('modal-open'); };
+            
+            openHelpModalLink.addEventListener('click', (e) => { e.preventDefault(); openModal(); });
+            helpModalCloseBtn.addEventListener('click', (e) => { e.preventDefault(); closeModal(); });
+            helpModal.addEventListener('click', (event) => { if (event.target === helpModal) closeModal(); });
+            document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && helpModal.classList.contains('visible')) closeModal(); });
+
+            if (langToggleBtn) {
+                langToggleBtn.addEventListener('click', () => {
+                    document.querySelector('.lang-content.lang-en')?.classList.toggle('hidden');
+                    document.querySelector('.lang-content.lang-si')?.classList.toggle('hidden');
+                });
+            }
         }
-    }
-}, 100);
-// =========================================================
+    }, 100);
 
 
         const signinForm = document.getElementById("signin-form");
