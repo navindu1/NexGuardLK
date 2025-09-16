@@ -804,6 +804,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         <form id="checkout-form" class="space-y-4">
                             ${isRenewal ? `<input type="hidden" name="isRenewal" value="true">` : ""}
                             
+// Renew වන විට Username input එක සහ එයට අදාළ පණිවිඩය පෙන්වන කොටස
 <div class="form-group ${isRenewal ? 'pb-2' : ''}">
     <input type="text" id="checkout-username" name="username" class="form-input" required placeholder=" " value="${isRenewal ? userToRenew : user.username}" ${isRenewal ? "readonly" : ""}>
     <label class="form-label">V2Ray Username</label><span class="focus-border"><i></i></span>
