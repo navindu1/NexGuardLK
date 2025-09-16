@@ -36,3 +36,20 @@ exports.authenticateAdmin = (req, res, next) => {
     next();
   });
 };
+
+exports.authenticateReseller = (req, res, next) => {
+    const authHeader = req.headers["authorization"];
+    const token = authHeader && authHeader.split(" ")[1];
+
+    if (!token) {
+        return res.status(401).json({ success: false, message: "Unauthorized: No token provided." });
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+        if (err || user.role !== "reseller") {
+            return res.status(403).json({ success: false, message: "Forbidden: Reseller privileges required." });
+        }
+        req.user = user;
+        next();
+    });
+};

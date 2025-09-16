@@ -18,11 +18,13 @@ const usageController = require("../controllers/usageController"); // Assuming y
 const authRoutes = require("./authRoutes");
 const userRoutes = require("./userRoutes");
 const adminRoutes = require("./adminRoutes");
+const resellerRoutes = require("./resellerRoutes"); // <-- ADD THIS LINE
 
 // Route grouping
 router.use("/auth", authRoutes);
 router.use("/user", userRoutes);
 router.use("/admin", adminRoutes);
+router.use("/reseller", resellerRoutes);
 
 // General API routes
 router.get('/check-usage/:username', usageController.checkUsage);

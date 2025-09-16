@@ -185,6 +185,38 @@ exports.adminLogin = async (req, res) => {
     }
 };
 
+exports.resellerLogin = async (req, res) => {
+    const { username, password } = req.body;
+    try {
+        const { data: reseller, error } = await supabase
+            .from("users")
+            .select("*")
+            .ilike("username", username)
+            .eq("role", "reseller") // Check for 'reseller' role
+            .single();
+
+        if (error || !reseller) {
+            return res.status(401).json({ success: false, message: "Invalid credentials or not a reseller." });
+        }
+
+        const isPasswordValid = bcrypt.compareSync(password, reseller.password);
+
+        if (isPasswordValid) {
+            const token = jwt.sign(
+                { id: reseller.id, username: reseller.username, role: "reseller" },
+                process.env.JWT_SECRET,
+                { expiresIn: "8h" }
+            );
+            res.json({ success: true, token });
+        } else {
+            res.status(401).json({ success: false, message: "Invalid credentials." });
+        }
+    } catch (err) {
+        console.error("Reseller login error:", err);
+        res.status(500).json({ success: false, message: "An internal server error occurred." });
+    }
+};
+
 exports.forgotPassword = async (req, res) => {
     const { email } = req.body;
     if (!email) {

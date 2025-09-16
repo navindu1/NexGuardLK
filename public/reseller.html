@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reseller Dashboard - NexGuard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #020010; color: #e0e0e0; }
+        .glass-panel { background: rgba(10, 8, 28, 0.75); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); }
+    </style>
+</head>
+<body class="p-4 sm:p-6 lg:p-8">
+    <div class="max-w-7xl mx-auto">
+        <header class="flex justify-between items-center py-4 mb-8">
+            <h1 class="text-3xl font-bold font-['Orbitron'] text-white">Reseller Panel</h1>
+            <button id="logout-btn" class="text-sm font-semibold text-slate-400 hover:text-white transition-colors">
+                <span>Logout</span>
+                <i class="fa-solid fa-right-from-bracket ml-2"></i>
+            </button>
+        </header>
+        
+        <main id="main-content-area">
+            <div id="user-list-container">
+                <p class="text-center text-gray-400">Loading your users...</p>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/reseller.js"></script>
+</body>
+</html>

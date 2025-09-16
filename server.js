@@ -32,6 +32,15 @@ app.get("/admin", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
+app.get("/reseller/login", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "reseller-login.html"));
+});
+
+app.get("/reseller", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "reseller.html"));
+});
+
+
 
 // --- Cron Job for cleaning up old receipts ---
 cron.schedule("5 0 * * *", () => {

@@ -5,10 +5,17 @@ const router = express.Router();
 const adminController = require("../controllers/adminController");
 const { authenticateAdmin } = require("../middleware/authMiddleware");
 
-// Note: Admin login is a public route, handled in authController/authRoutes.
+// Dashboard data route
 router.get("/dashboard-data", authenticateAdmin, adminController.getDashboardData);
+
+// Order management routes
 router.post("/approve-order/:orderId", authenticateAdmin, adminController.approveOrder);
-router.post("/reject-order/:orderId", authenticateAdmin, adminController.rejectOrder); // <-- මෙය එකතු කරන ලදී
-router.delete("/ban-user", authenticateAdmin, adminController.banUser); // <-- මෙය එකතු කරන ලදී
+router.post("/reject-order/:orderId", authenticateAdmin, adminController.rejectOrder);
+
+// User management routes
+router.delete("/ban-user", authenticateAdmin, adminController.banUser);
+
+// --- ADD THE NEW RESELLER ROUTE HERE ---
+router.post("/resellers", authenticateAdmin, adminController.createReseller);
 
 module.exports = router;

@@ -3,6 +3,7 @@
 const supabase = require('../config/supabaseClient');
 const v2rayService = require('../services/v2rayService');
 const transporter = require('../config/mailer');
+const bcrypt = require('bcryptjs');
 const { generateEmailTemplate, generateApprovalEmailContent } = require('../services/emailService');
 const { v4: uuidv4 } = require('uuid');
 
@@ -221,5 +222,57 @@ exports.banUser = async (req, res) => {
     } catch (error) {
         console.error("Error banning user:", error.message);
         res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+ 
+
+exports.createReseller = async (req, res) => {
+    const { username, email, password, whatsapp } = req.body;
+
+    // Validate input
+    if (!username || !email || !password) {
+        return res.status(400).json({ success: false, message: "Username, email, and password are required." });
+    }
+
+    try {
+        // Check if username or email already exists
+        const { data: existingUser, error: checkError } = await supabase
+            .from('users')
+            .select('id')
+            .or(`username.eq.${username},email.eq.${email}`)
+            .limit(1);
+
+        if (checkError) throw checkError;
+
+        if (existingUser && existingUser.length > 0) {
+            return res.status(409).json({ success: false, message: 'Username or email already exists.' });
+        }
+
+        // Hash the password
+        const hashedPassword = bcrypt.hashSync(password, 10);
+
+        // Prepare new reseller data
+        const newReseller = {
+            id: uuidv4(),
+            username,
+            email,
+            password: hashedPassword,
+            whatsapp: whatsapp || null,
+            role: 'reseller', // Set the role to 'reseller'
+            profile_picture: "assets/profilePhoto.jpg",
+            active_plans: [],
+        };
+
+        // Insert new reseller into the database
+        const { error: insertError } = await supabase.from('users').insert(newReseller);
+
+        if (insertError) throw insertError;
+
+        res.status(201).json({ success: true, message: 'Reseller account created successfully.' });
+
+    } catch (error) {
+        console.error('Error creating reseller:', error);
+        res.status(500).json({ success: false, message: 'An internal server error occurred.' });
     }
 };
