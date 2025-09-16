@@ -276,3 +276,43 @@ exports.createReseller = async (req, res) => {
         res.status(500).json({ success: false, message: 'An internal server error occurred.' });
     }
 };
+
+// File Path: src/controllers/adminController.js
+
+// ... (exports.createReseller ශ්‍රිතයට පසුව මෙය එක් කරන්න)
+
+exports.updateReseller = async (req, res) => {
+    const { resellerId } = req.params;
+    const { username, email, whatsapp, password } = req.body;
+
+    if (!username || !email) {
+        return res.status(400).json({ success: false, message: "Username and email are required." });
+    }
+
+    try {
+        let updateData = {
+            username,
+            email,
+            whatsapp: whatsapp || null,
+        };
+
+        // Only hash and add the password if a new one is provided
+        if (password && password.length > 0) {
+            updateData.password = bcrypt.hashSync(password, 10);
+        }
+
+        const { error } = await supabase
+            .from('users')
+            .update(updateData)
+            .eq('id', resellerId)
+            .eq('role', 'reseller');
+
+        if (error) throw error;
+
+        res.status(200).json({ success: true, message: 'Reseller account updated successfully.' });
+
+    } catch (error) {
+        console.error('Error updating reseller:', error);
+        res.status(500).json({ success: false, message: 'An internal server error occurred.' });
+    }
+};

@@ -21,6 +21,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const imageModal = document.getElementById('image-modal');
     const modalImage = document.getElementById('modal-image');
+
+     const editResellerModal = document.getElementById('edit-reseller-modal');
+    const editResellerForm = document.getElementById('edit-reseller-form');
+    const editModalCloseBtn = document.getElementById('edit-modal-close-btn');
+   
     
     let cachedData = { stats: {}, pendingOrders: [], allOrders: [], allUsers: [] };
 
@@ -66,90 +71,109 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>`).join('');
     };
 
-    const renderUsers = (users = []) => {
-        contentTitle.textContent = "User Management";
-        searchBarContainer.classList.remove('hidden');
-        const regularUsers = users.filter(u => u.role === 'user');
-        if (regularUsers.length === 0) {
-            contentContainer.innerHTML = '<div class="glass-panel p-8 rounded-lg text-center text-gray-400">No users found.</div>';
-            return;
-        }
-        const table = `
-            <div class="glass-panel rounded-xl overflow-hidden">
-                <table class="min-w-full text-sm responsive-table">
-                    <thead class="border-b border-slate-700 bg-slate-900/50"><tr>
-                        <th class="p-3 text-left font-semibold text-white">Username</th>
-                        <th class="p-3 text-left font-semibold text-white">Contact</th>
-                        <th class="p-3 text-left font-semibold text-white">V2Ray Profiles</th>
-                        <th class="p-3 text-center font-semibold text-white">Action</th>
-                    </tr></thead>
-                    <tbody class="divide-y divide-slate-800">${regularUsers.map(user => `
-                        <tr id="user-${user.id}">
-                            <td data-label="Username">${user.username}</td>
-                            <td data-label="Contact">${user.email}<br><span class="text-xs text-slate-400">${user.whatsapp}</span></td>
-                            <td data-label="V2Ray Profiles">${(user.active_plans || []).map(p => p.v2rayUsername).join(', ') || 'None'}</td>
-                            <td data-label="Action" class="text-center">
-                                <button class="btn btn-ban" data-user-id="${user.id}" data-username="${user.username}">
-                                    <i class="fa-solid fa-user-slash"></i> Ban
-                                </button>
-                            </td>
-                        </tr>`).join('')}
-                    </tbody>
-                </table>
-            </div>`;
-        contentContainer.innerHTML = table;
-    };
+// File Path: public/js/admin.js - Replace the existing renderUsers function with this one
 
-    const renderResellers = (users = []) => {
-        contentTitle.textContent = "Reseller Management";
-        searchBarContainer.classList.add('hidden');
-        const resellers = users.filter(u => u.role === 'reseller');
+const renderUsers = (users = []) => {
+    contentTitle.textContent = "User Management";
+    searchBarContainer.classList.remove('hidden');
+    const regularUsers = users.filter(u => u.role === 'user');
+    if (regularUsers.length === 0) {
+        contentContainer.innerHTML = '<div class="glass-panel p-8 rounded-lg text-center text-gray-400">No users found.</div>';
+        return;
+    }
+    const table = `
+        <div class="glass-panel rounded-xl overflow-hidden">
+            <table class="min-w-full text-sm responsive-table">
+                <thead class="border-b border-slate-700 bg-slate-900/50"><tr>
+                    <th class="p-3 text-left font-semibold text-white">Username</th>
+                    
+                    <th class="p-3 text-left font-semibold text-white">
+                        <span class="sm:hidden">Contact</span>
+                        <span class="hidden sm:inline">Email / WhatsApp</span>
+                    </th>
 
-        const addResellerForm = `
-            <div class="glass-panel p-5 rounded-lg mb-6">
-                <h3 class="text-lg font-bold mb-4">Add New Reseller</h3>
-                <form id="add-reseller-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input type="text" name="username" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500" placeholder="Username" required>
-                    <input type="email" name="email" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500" placeholder="Email" required>
-                    <input type="password" name="password" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500" placeholder="Password" required>
-                    <input type="text" name="whatsapp" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500" placeholder="WhatsApp (Optional)">
-                    <button type="submit" class="btn btn-approve md:col-span-2 justify-center">Add Reseller</button>
-                </form>
-            </div>`;
+                    <th class="p-3 text-left font-semibold text-white">
+                        <span class="sm:hidden">Profiles</span>
+                        <span class="hidden sm:inline">V2Ray Profiles</span>
+                    </th>
 
-        let resellerListHtml;
-        if (resellers.length === 0) {
-            resellerListHtml = '<div class="glass-panel p-8 rounded-lg text-center text-gray-400">No resellers found.</div>';
-        } else {
-            resellerListHtml = `
-            <div class="glass-panel rounded-xl overflow-hidden">
-                <table class="min-w-full text-sm responsive-table">
-                     <thead class="border-b border-slate-700 bg-slate-900/50"><tr>
-                        <th class="p-3 text-left font-semibold text-white">Reseller</th>
-                        <th class="p-3 text-left font-semibold text-white">Contact</th>
-                        <th class="p-3 text-left font-semibold text-white">Users Created</th>
-                        <th class="p-3 text-center font-semibold text-white">Action</th>
-                    </tr></thead>
-                    <tbody class="divide-y divide-slate-800">${resellers.map(reseller => {
-                        const createdUserCount = cachedData.allUsers.filter(u => u.created_by === reseller.id).length;
-                        return `
-                        <tr>
-                            <td data-label="Reseller">${reseller.username}</td>
-                            <td data-label="Contact">${reseller.email}<br><span class="text-xs text-slate-400">${reseller.whatsapp || 'N/A'}</span></td>
-                            <td data-label="Users Created">${createdUserCount}</td>
-                            <td data-label="Action" class="text-center">
-                                <button class="btn btn-ban" data-user-id="${reseller.id}" data-username="${reseller.username}">
-                                    <i class="fa-solid fa-user-slash"></i> Ban
-                                </button>
-                            </td>
-                        </tr>`
-                    }).join('')}
-                    </tbody>
-                </table>
-            </div>`;
-        }
-        contentContainer.innerHTML = addResellerForm + resellerListHtml;
-    };
+                    <th class="p-3 text-center font-semibold text-white">Action</th>
+                </tr></thead>
+                <tbody class="divide-y divide-slate-800">${regularUsers.map(user => `
+                    <tr id="user-${user.id}">
+                        <td data-label="Username">${user.username}</td>
+                        <td data-label="Contact">${user.email}<br><span class="text-xs text-slate-400">${user.whatsapp}</span></td>
+                        <td data-label="V2Ray Profiles">${(user.active_plans || []).map(p => p.v2rayUsername).join(', ') || 'None'}</td>
+                        <td data-label="Action" class="text-center">
+                            <button class="btn btn-ban" data-user-id="${user.id}" data-username="${user.username}">
+                                <i class="fa-solid fa-user-slash"></i> Ban
+                            </button>
+                        </td>
+                    </tr>`).join('')}
+                </tbody>
+            </table>
+        </div>`;
+    contentContainer.innerHTML = table;
+};
+
+// File Path: public/js/admin.js - Replace the existing renderResellers function with this one
+
+const renderResellers = (users = []) => {
+    contentTitle.textContent = "Reseller Management";
+    searchBarContainer.classList.add('hidden');
+    const resellers = users.filter(u => u.role === 'reseller');
+
+    const addResellerForm = `
+        <div class="glass-panel p-5 rounded-lg mb-6">
+            <h3 class="text-lg font-bold mb-4">Add New Reseller</h3>
+            <form id="add-reseller-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input type="text" name="username" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500" placeholder="Username" required>
+                <input type="email" name="email" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500" placeholder="Email" required>
+                <input type="password" name="password" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500" placeholder="Password" required>
+                <input type="text" name="whatsapp" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500" placeholder="WhatsApp (Optional)">
+                <button type="submit" class="btn btn-approve md:col-span-2 justify-center">Add Reseller</button>
+            </form>
+        </div>`;
+
+    let resellerListHtml;
+    if (resellers.length === 0) {
+        resellerListHtml = '<div class="glass-panel p-8 rounded-lg text-center text-gray-400">No resellers found.</div>';
+    } else {
+        resellerListHtml = `
+        <div class="glass-panel rounded-xl overflow-hidden">
+            <table class="min-w-full text-sm responsive-table">
+                 <thead class="border-b border-slate-700 bg-slate-900/50"><tr>
+                    <th class="p-3 text-left font-semibold text-white">
+                        <span class="sm:hidden">Reseller</span>
+                        <span class="hidden sm:inline">Reseller Username</span>
+                    </th>
+                    <th class="p-3 text-left font-semibold text-white">Contact</th>
+                    <th class="p-3 text-left font-semibold text-white">
+                        <span class="sm:hidden">Users</span>
+                        <span class="hidden sm:inline">Users Created</span>
+                    </th>
+                    <th class="p-3 text-center font-semibold text-white">Action</th>
+                </tr></thead>
+                <tbody class="divide-y divide-slate-800">${resellers.map(reseller => {
+                    const createdUserCount = cachedData.allUsers.filter(u => u.created_by === reseller.id).length;
+                    return `
+                    <tr>
+                        <td data-label="Reseller">${reseller.username}</td>
+                        <td data-label="Contact">${reseller.email}<br><span class="text-xs text-slate-400">${reseller.whatsapp || 'N/A'}</span></td>
+                        <td data-label="Users Created">${createdUserCount}</td>
+                        <td data-label="Action" class="text-center">
+                            <button class="btn btn-ban" data-user-id="${reseller.id}" data-username="${reseller.username}">
+                                <i class="fa-solid fa-user-slash"></i> Ban
+                            </button>
+                        </td>
+                    </tr>`
+                }).join('')}
+                </tbody>
+            </table>
+        </div>`;
+    }
+    contentContainer.innerHTML = addResellerForm + resellerListHtml;
+};
 
     const loadAllData = async () => {
         contentContainer.innerHTML = '<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-3xl text-purple-400"></i></div>';
@@ -168,7 +192,28 @@ document.addEventListener('DOMContentLoaded', () => {
         Object.values(cards).forEach(card => card.classList.remove('border-purple-500', 'bg-slate-900/50'));
         if (cards[cardKey]) cards[cardKey].classList.add('border-purple-500', 'bg-slate-900/50');
     };
-    
+
+    contentContainer.addEventListener('click', async (e) => {
+        const button = e.target.closest('button');
+        if (!button) return;
+
+        // --- NEW: Handle Edit Reseller button click ---
+        if (button.classList.contains('btn-edit-reseller')) {
+            const resellerId = button.dataset.resellerId;
+            const resellerData = cachedData.allUsers.find(u => u.id === resellerId);
+            if (resellerData) {
+                // Populate the modal form
+                editResellerForm.elements.id.value = resellerData.id;
+                editResellerForm.elements.username.value = resellerData.username;
+                editResellerForm.elements.email.value = resellerData.email;
+                editResellerForm.elements.whatsapp.value = resellerData.whatsapp || '';
+                editResellerForm.elements.password.value = ''; // Clear password field
+                // Show the modal
+                editResellerModal.classList.add('active');
+            }
+        }
+    });
+ 
     contentContainer.addEventListener('click', async (e) => {
         const button = e.target.closest('button');
         if (!button) return;
@@ -226,6 +271,40 @@ document.addEventListener('DOMContentLoaded', () => {
         const searchTerm = userSearchInput.value.toLowerCase();
         const filteredUsers = (cachedData.allUsers || []).filter(user => (user.role === 'user') && (user.username.toLowerCase().includes(searchTerm) || user.email.toLowerCase().includes(searchTerm)));
         renderUsers(filteredUsers);
+    });
+
+    editResellerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const button = form.querySelector('button[type="submit"]');
+        button.disabled = true;
+        
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        const resellerId = data.id;
+
+        // Remove password from data if it's empty
+        if (!data.password) {
+            delete data.password;
+        }
+
+        const result = await api.put(`/api/admin/resellers/${resellerId}`, data);
+
+        if (result.success) {
+            alert('Reseller updated successfully!');
+            editResellerModal.classList.remove('active');
+            await loadAllData();
+            renderResellers(cachedData.allUsers);
+        } else {
+            alert(`Error: ${result.message}`);
+        }
+        button.disabled = false;
+    });
+
+    // --- NEW: Listeners to close the Edit modal ---
+    editModalCloseBtn.addEventListener('click', () => editResellerModal.classList.remove('active'));
+    editResellerModal.addEventListener('click', (e) => {
+        if (e.target === editResellerModal) editResellerModal.classList.remove('active');
     });
 
     const logout = () => {

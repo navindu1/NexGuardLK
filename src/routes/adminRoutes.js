@@ -18,4 +18,6 @@ router.delete("/ban-user", authenticateAdmin, adminController.banUser);
 // --- ADD THE NEW RESELLER ROUTE HERE ---
 router.post("/resellers", authenticateAdmin, adminController.createReseller);
 
+router.put("/resellers/:resellerId", authenticateAdmin, adminController.updateReseller);
+
 module.exports = router;

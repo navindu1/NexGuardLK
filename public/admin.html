@@ -75,6 +75,21 @@
             <img id="modal-image" src="" alt="Payment Proof" class="max-w-full max-h-[85vh] object-contain rounded">
         </div>
     </div>
+    <div id="edit-reseller-modal" class="modal fixed inset-0 bg-black/80 justify-center items-center z-50 p-4">
+        <div class="glass-panel w-full max-w-md p-6 rounded-lg relative">
+            <button id="edit-modal-close-btn" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
+            <h3 class="text-xl font-bold mb-4 font-['Orbitron']">Edit Reseller</h3>
+            <form id="edit-reseller-form" class="space-y-4">
+                <input type="hidden" name="id">
+                <input type="text" name="username" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" placeholder="Username" required>
+                <input type="email" name="email" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" placeholder="Email" required>
+                <input type="text" name="whatsapp" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" placeholder="WhatsApp (Optional)">
+                <input type="password" name="password" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" placeholder="New Password (Leave blank to keep old one)">
+                <button type="submit" class="btn btn-approve w-full justify-center">Update Reseller</button>
+            </form>
+        </div>
+    </div>
+    <script src="/js/admin.js"></script>
     <script src="/js/admin.js"></script>
     <script>
         VANTA.WAVES({ el: "#vanta-bg", mouseControls: true, touchControls: true, gyroControls: false, minHeight: 200.0, minWidth: 200.0, scale: 1.0, scaleMobile: 1.0, color: 0x20002f, shininess: 25.0, waveHeight: 15.0, waveSpeed: 0.65, zoom: 0.85 });
