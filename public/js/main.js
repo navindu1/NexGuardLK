@@ -807,7 +807,7 @@ document.addEventListener("DOMContentLoaded", () => {
     <input type="text" id="checkout-username" name="username" class="form-input" required placeholder=" " value="${isRenewal ? userToRenew : user.username}" ${isRenewal ? "readonly" : ""}>
     <label class="form-label">V2Ray Username</label><span class="focus-border"><i></i></span>
 </div>
-${isRenewal ? '<p class="text-xs text-amber-400 -mt-2 mb-2 px-1">Username cannot be changed during renewal.</p>' : ""}
+${isRenewal ? '<p class="text-xs text-amber-400 -mt-5 mb-3 px-1">Username cannot be changed during renewal.</p>' : ""}
                             <div class="form-group">
                                 <input type="text" name="whatsapp" id="checkout-whatsapp" class="form-input" required placeholder=" " value="${user.whatsapp}">
                                 <label class="form-label">WhatsApp Number</label><span class="focus-border"><i></i></span>
