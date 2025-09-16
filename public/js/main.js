@@ -1237,7 +1237,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             }
                         };
                         
-                        const loadMyOrders = async() => {
+const loadMyOrders = async() => {
                             const ordersContainer = document.getElementById("tab-my-orders");
                             ordersContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-purple-400"></i></div>`;
                             try {
@@ -1257,8 +1257,9 @@ document.addEventListener("DOMContentLoaded", () => {
                                 }
 
                                 const ordersHtml = orders.map(order => {
-                                    const planName = appData.plans[order.planId] ?.name || order.planId;
-                                    const connName = appData.connections[order.connId] ?.name || order.connId;
+                                    // FIX: order.planId -> order.plan_id and order.connId -> order.conn_id ලෙස වෙනස් කරන ලදී
+                                    const planName = appData.plans[order.plan_id]?.name || order.plan_id;
+                                    const connName = appData.connections[order.conn_id]?.name || order.conn_id;
                                     const statusColors = {
                                         pending: "text-amber-400",
                                         approved: "text-green-400",
@@ -1275,8 +1276,8 @@ document.addEventListener("DOMContentLoaded", () => {
                                         <div>
                                             <p class="font-bold text-white">${planName} <span class="text-gray-400 font-normal">for</span> ${connName}</p>
                                             <p class="text-xs text-gray-400 mt-1">
-                                                Ordered on: ${new Date(order.createdAt).toLocaleDateString()}
-                                                ${order.status === 'approved' && order.finalUsername ? `| V2Ray User: <strong class="text-purple-300">${order.finalUsername}</strong>` : ''}
+                                                Ordered on: ${new Date(order.created_at).toLocaleDateString()}
+                                                ${order.status === 'approved' && order.final_username ? `| V2Ray User: <strong class="text-purple-300">${order.final_username}</strong>` : ''}
                                             </p>
                                         </div>
                                         <div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'}">
