@@ -8,4 +8,6 @@ const { authenticateAdmin } = require("../middleware/authMiddleware");
 // Note: Admin login is a public route, handled in authController/authRoutes.
 router.get("/dashboard-data", authenticateAdmin, adminController.getDashboardData);
 router.post("/approve-order/:orderId", authenticateAdmin, adminController.approveOrder);
-// ... other admin routes
+
+
+module.exports = router;
