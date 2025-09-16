@@ -1,4 +1,3 @@
-// File Path: public/js/admin.js
 document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('nexguard_admin_token');
     if (!token) {
@@ -177,7 +176,4 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         contentContainer.innerHTML = addResellerForm + resellerListHtml;
     };
-
-    // ... (All other functions and event listeners from the previous correct version remain here) ...
-    // Make sure to copy the full correct admin.js from the last response if you are unsure.
 });
