@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('total-users-stat').textContent = stats.users || 0;
     };
 
-    const renderPendingOrders = (orders = []) => {
+const renderPendingOrders = (orders = []) => {
         contentTitle.textContent = "Pending Order Approvals";
         searchBarContainer.classList.add('hidden');
         if (!orders || orders.length === 0) {
@@ -60,11 +60,15 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="glass-panel p-4 rounded-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4" id="order-${order.id}">
                 <div>
                     <p class="font-bold text-lg">${order.username}</p>
-                    <p class="text-sm text-slate-300">${order.planId} | ${order.connId} ${order.pkg ? `(${order.pkg})` : ''}</p>
-                    <p class="text-xs text-slate-400 mt-1">Contact: ${order.whatsapp} | Ordered By: ${order.websiteUsername}</p>
+                    
+                    <p class="text-sm text-slate-300">${order.plan_id} | ${order.conn_id} ${order.pkg ? `(${order.pkg})` : ''}</p>
+                    
+                    <p class="text-xs text-slate-400 mt-1">Contact: ${order.whatsapp} | Ordered By: ${order.website_username}</p>
                 </div>
                 <div class="flex items-center gap-3 self-end md:self-center">
+
                     <button class="btn btn-view view-proof-btn" data-proof-url="${order.receipt_path}"><i class="fa-solid fa-receipt"></i> View Proof</button>
+                    
                     <button class="btn btn-approve" data-order-id="${order.id}"><i class="fa-solid fa-check"></i> Approve</button>
                     <button class="btn btn-reject" data-order-id="${order.id}"><i class="fa-solid fa-times"></i> Reject</button>
                 </div>
@@ -90,10 +94,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     </tr></thead>
                     <tbody class="divide-y divide-slate-800">${filteredOrders.map(order => `
                         <tr>
-                            <td class="p-3 text-slate-400">${new Date(order.approvedAt || order.rejectedAt || order.createdAt).toLocaleDateString()}</td>
-                            <td class="p-3">${order.finalUsername || order.username}</td>
-                            <td class="p-3">${order.planId}</td>
-                            <td class="p-3">${order.websiteUsername}</td>
+                            <td class="p-3 text-slate-400">${new Date(order.approved_at || order.rejected_at || order.created_at).toLocaleDateString()}</td>
+                            
+                            <td class="p-3">${order.final_username || order.username}</td>
+                            
+                            <td class="p-3">${order.plan_id}</td>
+                            
+                            <td class="p-3">${order.website_username}</td>
                         </tr>`).join('')}
                     </tbody>
                 </table>
