@@ -9,6 +9,17 @@ require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 3000;
 
+// API Routes
+const apiRoutes = require("./src/routes");
+app.use("/api", apiRoutes);
+
+// --- ADD THIS NEW ROUTE FOR THE ADMIN LOGIN PAGE ---
+app.get("/admin/login", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "admin-login.html"));
+});
+// --- END OF NEW ROUTE ---
+
+
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

@@ -201,7 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const logout = () => {
         localStorage.removeItem('nexguard_admin_token');
-        window.location.href = '/admin-login.html';
+        window.location.href = '/admin/login';
     };
 
     document.getElementById('logout-btn').addEventListener('click', logout);

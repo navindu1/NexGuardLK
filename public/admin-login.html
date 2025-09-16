@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Login - NexGuard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #020010; color: #e0e0e0; }
@@ -21,9 +22,10 @@
                 <label for="username" class="sr-only">Username</label>
                 <input type="text" id="username" class="form-input" required placeholder="Admin Username">
             </div>
-            <div>
+            <div class="relative">
                 <label for="password" class="sr-only">Password</label>
-                <input type="password" id="password" class="form-input" required placeholder="Admin Password">
+                <input type="password" id="password" class="form-input pr-10" required placeholder="Admin Password">
+                <i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="password-toggle"></i>
             </div>
             <div id="error-message" class="text-red-400 text-sm text-center min-h-[20px]"></div>
             <button type="submit" class="w-full py-2.5 font-semibold text-white rounded-lg ai-button">Login</button>
@@ -31,15 +33,31 @@
     </div>
 
     <script>
+        // --- Password Toggle Logic ---
+        const passwordInput = document.getElementById('password');
+        const passwordToggle = document.getElementById('password-toggle');
+        passwordToggle.addEventListener('click', () => {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            // Toggle the icon
+            passwordToggle.classList.toggle('fa-eye');
+            passwordToggle.classList.toggle('fa-eye-slash');
+        });
+
+        // --- Login Form Submit Logic ---
         document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             const errorDiv = document.getElementById('error-message');
+            const submitButton = e.target.querySelector('button');
             errorDiv.textContent = '';
+            submitButton.disabled = true;
+            submitButton.textContent = 'Logging in...';
 
             try {
-                const res = await fetch('/api/admin/login', {
+                // CORRECTED API URL HERE
+                const res = await fetch('/api/auth/admin/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
@@ -49,10 +67,13 @@
                     localStorage.setItem('nexguard_admin_token', result.token);
                     window.location.href = '/admin';
                 } else {
-                    errorDiv.textContent = result.message;
+                    errorDiv.textContent = result.message || 'An unknown error occurred.';
                 }
             } catch (err) {
                 errorDiv.textContent = 'An error occurred. Please try again.';
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Login';
             }
         });
     </script>
