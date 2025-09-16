@@ -801,15 +801,14 @@ document.addEventListener("DOMContentLoaded", () => {
                     <div id="checkout-view">
                         <h2 class="text-xl font-bold text-center text-white mb-2">${isRenewal ? "Renew Your Plan" : "Final Step: Checkout"}</h2>
                         <div id="checkout-summary" class="text-center mb-6 text-gray-300 text-sm">${summaryHtml}</div>
-                        <div class="space-y-4">
-                        <form id="checkout-form" >
+                        <form id="checkout-form" class="space-y-4">
                             ${isRenewal ? `<input type="hidden" name="isRenewal" value="true">` : ""}
-                            <div class="form-group">
-                        <input type="text" id="checkout-username" name="username" class="form-input" required placeholder=" " value="${isRenewal ? userToRenew : user.username}" ${isRenewal ? "readonly" : ""}>
-                       <label class="form-label">V2Ray Username</label><span class="focus-border"><i></i></span>
+                            
+<div class="form-group ${isRenewal ? 'pb-2' : ''}">
+    <input type="text" id="checkout-username" name="username" class="form-input" required placeholder=" " value="${isRenewal ? userToRenew : user.username}" ${isRenewal ? "readonly" : ""}>
+    <label class="form-label">V2Ray Username</label><span class="focus-border"><i></i></span>
+    ${isRenewal ? '<p class="text-xs text-amber-400 mt-2 px-1">Username cannot be changed during renewal.</p>' : ""}
 </div>
-${isRenewal ? '<h6 class="text-xs text-amber-400 mt-5 mb-2 px-1">Username cannot be changed during renewal.</h6>' : ""}
-</div?
                             <div class="form-group">
                                 <input type="text" name="whatsapp" id="checkout-whatsapp" class="form-input" required placeholder=" " value="${user.whatsapp}">
                                 <label class="form-label">WhatsApp Number</label><span class="focus-border"><i></i></span>
