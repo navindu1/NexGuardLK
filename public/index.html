@@ -7,6 +7,18 @@
     <link rel="icon" type="image/x-icon" href="./assets/logobox.ico" />
     <title>NexGuardLK STORE</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+  try {
+    const token = localStorage.getItem('nexguard_token');
+    if (token) {
+      document.documentElement.classList.add('logged-in');
+    } else {
+      document.documentElement.classList.add('logged-out');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('logged-out');
+  }
+</script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://gstatic.com" crossorigin />
     <link
@@ -43,11 +55,37 @@
       body.modal-open {
         overflow: hidden;
       }
-      body.initializing #desktop-auth-buttons,
-body.initializing #desktop-user-profile,
-body.initializing #mobile-auth-buttons,
-body.initializing #mobile-user-profile {
+      /* REMOVE the 'body.initializing' CSS and ADD this new CSS instead */
+/* By default, hide the profile/logout buttons */
+html.logged-out #desktop-user-profile,
+html.logged-out #mobile-user-profile {
     display: none !important;
+}
+
+/* By default, show the login/signup buttons */
+html.logged-out #desktop-auth-buttons,
+html.logged-out #mobile-auth-buttons {
+    display: flex !important; /* Use 'flex' as per your layout */
+}
+
+/* If logged in, hide the login/signup buttons */
+html.logged-in #desktop-auth-buttons,
+html.logged-in #mobile-auth-buttons {
+    display: none !important;
+}
+
+/* If logged in, show the profile/logout buttons */
+html.logged-in #desktop-user-profile {
+    /* Use 'flex' for desktop, respecting Tailwind's sm breakpoint */
+    display: none !important; 
+}
+@media (min-width: 640px) {
+    html.logged-in #desktop-user-profile {
+        display: flex !important;
+    }
+}
+html.logged-in #mobile-user-profile {
+    display: flex !important;
 }
       #vanta-bg {
         position: fixed;
@@ -602,7 +640,7 @@ body.initializing #mobile-user-profile {
 }
     </style>
   </head>
-  <body class="p-2 sm:p-4 initializing">
+  <body class="p-2 sm:p-4">
     <div id="page-loader">
   <div class="loader"></div>
 </div>

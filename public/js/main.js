@@ -1812,6 +1812,4 @@ const router = () => {
     // --- Initial Application Load ---
     loadSession();
     router(); // Initial route call
-
-    document.body.classList.remove('initializing');
 });
