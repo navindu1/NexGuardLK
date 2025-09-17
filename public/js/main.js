@@ -1593,33 +1593,45 @@ const loadMyOrders = async () => {
             }
         });
 
-        forgotPasswordForm ?.addEventListener("submit", async(e) => {
-            e.preventDefault();
-            const btn = e.target.querySelector("button");
-            btn.disabled = true;
-            showToast({
-                title: "Processing",
-                message: "Sending password reset link...",
-                type: "info",
-            });
-            const payload = {
-                email: e.target.elements["forgot-email"].value
-            };
-            const res = await fetch("/api/auth/forgot-password", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(payload),
-            });
-            const result = await res.json();
-            btn.disabled = false;
-            showToast({
-                title: "Check Your Email",
-                message: result.message,
-                type: "success",
-            });
+        // REPLACE the entire forgotPasswordForm event listener with this new version
+
+forgotPasswordForm?.addEventListener("submit", async(e) => {
+    e.preventDefault();
+    const btn = e.target.querySelector("button");
+    btn.disabled = true;
+    showToast({
+        title: "Processing",
+        message: "Sending password reset link...",
+        type: "info",
+    });
+    const payload = {
+        email: e.target.elements["forgot-email"].value
+    };
+    const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload),
+    });
+    const result = await res.json();
+    btn.disabled = false;
+
+    // FIX: Check if the response was successful or an error
+    if (res.ok) {
+        showToast({
+            title: "Check Your Email",
+            message: result.message,
+            type: "success",
         });
+    } else {
+        showToast({
+            title: "Error",
+            message: result.message, // Show the error message from the server
+            type: "error",
+        });
+    }
+});
 
         resetPasswordForm ?.addEventListener("submit", async(e) => {
             e.preventDefault();

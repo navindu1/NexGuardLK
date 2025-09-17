@@ -217,38 +217,45 @@ exports.resellerLogin = async (req, res) => {
     }
 };
 
+// REPLACE the entire exports.forgotPassword function with this new version
+
 exports.forgotPassword = async (req, res) => {
     const { email } = req.body;
     if (!email) {
         return res.status(400).json({ success: false, message: "Email address is required." });
     }
-  
+
     const { data: user } = await supabase.from("users").select("id, username, email").eq("email", email).single();
 
-    if (user) {
-        const token = crypto.randomBytes(32).toString("hex");
-        const expiry = new Date(Date.now() + 3600000); // 1 hour
-
-        await supabase
-            .from("users")
-            .update({ reset_token: token, reset_token_expiry: expiry.toISOString() })
-            .eq("id", user.id);
-
-        const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
-        const mailOptions = {
-            from: `NexGuard Support <${process.env.EMAIL_SENDER}>`,
-            to: user.email,
-            subject: "NexGuard Password Reset Request",
-            html: generateEmailTemplate(
-                "Reset Your Password",
-                `A request was made to reset your password.`,
-                generatePasswordResetEmailContent(user.username, resetLink)
-            ),
-        };
-        transporter.sendMail(mailOptions).catch((err) => console.error("Failed to send reset email:", err));
+    // FIX: Check if the user exists. If not, return a 404 error.
+    if (!user) {
+        return res.status(404).json({ success: false, message: "No account is associated with this email address." });
     }
 
-    res.json({ success: true, message: "If an account exists, a reset link has been sent." });
+    // If user exists, proceed to send the email
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiry = new Date(Date.now() + 3600000); // 1 hour
+
+    await supabase
+        .from("users")
+        .update({ reset_token: token, reset_token_expiry: expiry.toISOString() })
+        .eq("id", user.id);
+
+    const FRONTEND_URL = process.env.FRONTEND_URL || 'https://app.nexguardlk.store';
+    const resetLink = `${FRONTEND_URL}/reset-password?token=${token}`;
+    const mailOptions = {
+        from: `NexGuard Support <${process.env.EMAIL_SENDER}>`,
+        to: user.email,
+        subject: "NexGuard Password Reset Request",
+        html: generateEmailTemplate(
+            "Reset Your Password",
+            `A request was made to reset your password.`,
+            generatePasswordResetEmailContent(user.username, resetLink)
+        ),
+    };
+    transporter.sendMail(mailOptions).catch((err) => console.error("Failed to send reset email:", err));
+
+    res.json({ success: true, message: "A password reset link has been sent to your email." });
 };
 
 exports.resetPassword = async (req, res) => {
