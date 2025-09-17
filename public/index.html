@@ -43,6 +43,12 @@
       body.modal-open {
         overflow: hidden;
       }
+      body.initializing #desktop-auth-buttons,
+body.initializing #desktop-user-profile,
+body.initializing #mobile-auth-buttons,
+body.initializing #mobile-user-profile {
+    display: none !important;
+}
       #vanta-bg {
         position: fixed;
         top: 0;
@@ -596,7 +602,7 @@
 }
     </style>
   </head>
-  <body class="p-2 sm:p-4">
+  <body class="p-2 sm:p-4 initializing">
     <div id="page-loader">
   <div class="loader"></div>
 </div>
