@@ -41,40 +41,31 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     const updateNavUI = (isLoggedIn) => {
-        const desktopAuth = document.getElementById("desktop-auth-buttons");
-        const mobileAuth = document.getElementById("mobile-auth-buttons");
-        const desktopProfile = document.getElementById("desktop-user-profile");
-        const mobileProfile = document.getElementById("mobile-user-profile");
+    const htmlElement = document.documentElement; // <html> ටැගය ලබා ගනී
+
+    if (isLoggedIn && userSession) {
+        // ලොග් වූ විට, 'logged-in' class එක එකතු කර 'logged-out' ඉවත් කරයි
+        htmlElement.classList.remove('logged-out');
+        htmlElement.classList.add('logged-in');
+
+        // Profile පින්තූරය යාවත්කාලීන කිරීම
         const profilePicDesktop = document.getElementById("profile-pic-nav-desktop");
         const profilePicMobile = document.getElementById("profile-pic-nav-mobile");
-        const baseProfileClasses = "items-center gap-3";
-        const baseAuthClasses = "items-center gap-2";
-        if (isLoggedIn && userSession) {
-            if (desktopAuth) desktopAuth.className = `hidden ${baseAuthClasses}`;
-            if (mobileAuth) mobileAuth.classList.add("hidden");
-            if (desktopProfile) desktopProfile.className = `hidden sm:flex ${baseProfileClasses}`;
-            if (mobileProfile) {
-                mobileProfile.classList.remove("hidden");
-                mobileProfile.classList.add("flex");
-            }
-            // REPLACE with this NEW code
-let profilePicturePath = (userSession.profilePicture || "/assets/profilePhoto.jpg").replace("public/", "");
-// Ensure the path is always absolute
-if (profilePicturePath && !profilePicturePath.startsWith('/')) {
-    profilePicturePath = '/' + profilePicturePath;
-}
-if (profilePicDesktop) profilePicDesktop.src = profilePicturePath;
-if (profilePicMobile) profilePicMobile.src = profilePicturePath;
-        } else {
-            if (desktopAuth) desktopAuth.className = `hidden sm:flex ${baseAuthClasses}`;
-            if (mobileAuth) mobileAuth.classList.remove("hidden");
-            if (desktopProfile) desktopProfile.className = `hidden ${baseProfileClasses}`;
-            if (mobileProfile) {
-                mobileProfile.classList.add("hidden");
-                mobileProfile.classList.remove("flex");
-            }
+        
+        let profilePicturePath = (userSession.profilePicture || "/assets/profilePhoto.jpg").replace("public/", "");
+        if (profilePicturePath && !profilePicturePath.startsWith('/')) {
+            profilePicturePath = '/' + profilePicturePath;
         }
-    };
+        
+        if (profilePicDesktop) profilePicDesktop.src = profilePicturePath;
+        if (profilePicMobile) profilePicMobile.src = profilePicturePath;
+
+    } else {
+        // ලොග් අවුට් වූ විට, 'logged-out' class එක එකතු කර 'logged-in' ඉවත් කරයි
+        htmlElement.classList.remove('logged-in');
+        htmlElement.classList.add('logged-out');
+    }
+};
 
     const saveSession = (data) => {
         localStorage.setItem("nexguard_token", data.token);
