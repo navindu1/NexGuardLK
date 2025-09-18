@@ -31,13 +31,24 @@ document.addEventListener("DOMContentLoaded", () => {
             "200GB": { name: "200GB Plan", price: "500", features: ["Ultra-Fast Speeds", "Perfect for Gaming", "30-Day Validity"] },
             Unlimited: { name: "Unlimited Plan", price: "800", features: ["No Data Caps", "Ultimate Freedom", "Best for Power Users"] },
         },
-        connections: {
-            dialog: { name: "Dialog Router", icon: "fa-solid fa-wifi", requiresPackageChoice: false, requiredPackage: "Work and Learn Unlimited (LKR 724)" },
-            slt_router: { name: "SLT Router", icon: "fa-solid fa-wifi", requiresPackageChoice: true, requiredPackage: ["Meet Max 100GB (LKR 490)", "Netflix Unlimited (LKR 1990)"], packageOptions: ["Meet Max 100GB (LKR 490)", "Netflix Unlimited (LKR 1990)"] },
-            slt_fiber: { name: "SLT Fiber", icon: "fa-solid fa-network-wired", requiresPackageChoice: true, requiredPackage: ["Meet Max 100GB (LKR 490)", "Netflix Unlimited (LKR 1990)"], packageOptions: ["Meet Max 100GB (LKR 490)", "Netflix Unlimited (LKR 1990)"] },
-            hutch: { name: "Hutch SIM", icon: "fa-solid fa-sim-card", requiresPackageChoice: false, requiredPackage: "Gaming Unlimited (LKR 505)" },
-        },
         bankDetails: `Name: N.R Lekamge\nBank: BOC Bank\nBranch: Eheliyagoda\nAccount Number: 93129972`.trim(),
+    };
+
+    let dynamicConnections = []; // Variable to hold connections from the database
+
+    // --- NEW FUNCTION to fetch connections from the server ---
+    const loadConnections = async () => {
+        try {
+            const res = await fetch('/api/public/connections');
+            const result = await res.json();
+            if(result.success) {
+                dynamicConnections = result.data;
+            } else {
+                console.error("Failed to load dynamic connections.");
+            }
+        } catch (error) {
+            console.error("Error fetching connections:", error);
+        }
     };
 
     const updateNavUI = (isLoggedIn) => {

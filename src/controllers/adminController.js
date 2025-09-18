@@ -264,18 +264,23 @@ exports.updateAppSettings = async (req, res) => {
         res.status(500).json({ success: false, message: 'Failed to update settings.' });
     }
 };
-
 exports.getSalesSummary = async (req, res) => {
     try {
-        const { data: orders, error } = await supabase
+        const { data: orders, error: ordersError } = await supabase
             .from('orders')
             .select('plan_id, created_at, approved_at')
             .eq('status', 'approved');
-        if (error) throw error;
+        if (ordersError) throw ordersError;
+        
+        // --- MODIFIED: Fetch plan prices from the database ---
+        const { data: plans, error: plansError } = await supabase.from('plans').select('plan_name, price');
+        if (plansError) throw plansError;
 
-        // Basic plan prices - for a real app, this should come from a database table
-        const planPrices = { "100GB": 300, "200GB": 500, "Unlimited": 800 };
-
+        const planPrices = plans.reduce((acc, plan) => {
+            acc[plan.plan_name] = parseFloat(plan.price);
+            return acc;
+        }, {});
+        
         const now = new Date();
         const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);

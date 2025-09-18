@@ -51,18 +51,17 @@ exports.createUser = async (req, res) => {
     }
 
     try {
-        const planPrice = planPrices[planId];
-        if (planPrice === undefined) {
+        // --- MODIFIED: Fetch plan price from the database ---
+        const { data: plan, error: planError } = await supabase
+            .from('plans')
+            .select('price')
+            .eq('plan_name', planId)
+            .single();
+
+        if (planError || !plan) {
             return res.status(400).json({ success: false, message: 'Invalid plan selected.' });
         }
-
-        // 1. Check reseller's credit balance
-        const { data: reseller, error: resellerError } = await supabase
-            .from('users')
-            .select('credit_balance')
-            .eq('id', resellerId)
-            .single();
-        if (resellerError || !reseller) throw new Error('Could not verify reseller.');
+        const planPrice = parseFloat(plan.price);
 
         if (reseller.credit_balance < planPrice) {
             return res.status(403).json({ success: false, message: 'Insufficient credit balance to create this user.' });
