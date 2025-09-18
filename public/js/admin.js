@@ -36,8 +36,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const autoReloadCheckbox = document.getElementById('auto-reload-checkbox');
 
     // --- Data Cache & State ---
-    let cachedData = { stats: {}, pendingOrders: [], allOrders: [], allUsers: [], unconfirmedOrders: [] };
+    let cachedData = { stats: {}, pendingOrders: [], allOrders: [], allUsers: [], unconfirmedOrders: [], connections: [] };
     let autoReloadInterval = null;
+    let salesChart = null;
 
     // --- API Helper ---
     const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -107,120 +108,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     </tbody>
                 </table>
             </div>`;
-    };
-
-
-    const renderReportsView = (summaryData = {}) => {
-        contentTitle.textContent = "Sales & Revenue Reports";
-        searchBarContainer.classList.add('hidden');
-
-        const { last7Days, last30Days, allTime } = summaryData;
-
-        contentContainer.innerHTML = `
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div class="glass-panel p-5 rounded-xl">
-                    <p class="text-sm text-slate-400">Revenue (Last 7 Days)</p>
-                    <h3 class="text-3xl font-bold text-white mt-2">LKR ${last7Days.totalRevenue.toLocaleString()}</h3>
-                </div>
-                <div class="glass-panel p-5 rounded-xl">
-                    <p class="text-sm text-slate-400">Revenue (Last 30 Days)</p>
-                    <h3 class="text-3xl font-bold text-white mt-2">LKR ${last30Days.totalRevenue.toLocaleString()}</h3>
-                </div>
-                <div class="glass-panel p-5 rounded-xl">
-                    <p class="text-sm text-slate-400">Total Revenue (All Time)</p>
-                    <h3 class="text-3xl font-bold text-white mt-2">LKR ${allTime.totalRevenue.toLocaleString()}</h3>
-                </div>
-            </div>
-            <div class="glass-panel p-5 rounded-xl">
-                 <h4 class="text-lg font-bold text-white mb-4">Daily Sales (Last 7 Days)</h4>
-                 <canvas id="salesChart" class="max-h-80"></canvas>
-            </div>
-        `;
-
-        const ctx = document.getElementById('salesChart').getContext('2d');
-        if (salesChart) {
-            salesChart.destroy(); // Destroy previous chart instance
-        }
-        salesChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: last7Days.salesByDay.map(d => new Date(d.date).toLocaleDateString('en-US', { weekday: 'short' })),
-                datasets: [{
-                    label: 'Orders',
-                    data: last7Days.salesByDay.map(d => d.count),
-                    backgroundColor: 'rgba(168, 85, 247, 0.2)',
-                    borderColor: 'rgba(168, 85, 247, 1)',
-                    borderWidth: 2,
-                    tension: 0.4,
-                    fill: true,
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#9ca3af' } },
-                    x: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#9ca3af' } }
-                },
-                plugins: { legend: { labels: { color: '#e0e0e0' } } }
-            }
-        });
-    };
-
-    const renderConnectionSettings = (connections = []) => {
-        const addForm = `
-            <div class="glass-panel p-5 rounded-lg mb-6">
-                <h3 class="text-lg font-bold mb-4">Add New Connection</h3>
-                <form id="add-connection-form" class="space-y-4">
-                    <input type="text" name="name" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" placeholder="Connection Name (e.g., Dialog 4G)" required>
-                    <input type="number" name="inbound_id" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" placeholder="V2Ray Inbound ID" required>
-                    <textarea name="vless_template" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" rows="3" placeholder="VLESS Template (e.g., vless://{uuid}@...&remark={remark})" required></textarea>
-                    <button type="submit" class="btn btn-approve justify-center w-full">Add Connection</button>
-                </form>
-            </div>`;
-
-        const listHtml = connections.length === 0 ? '<div class="glass-panel p-8 rounded-lg text-center text-gray-400">No connections configured.</div>' : `
-            <div class="glass-panel rounded-xl overflow-hidden">
-                <table class="min-w-full text-sm responsive-table">
-                     <thead class="border-b border-slate-700 bg-slate-900/50"><tr>
-                        <th class="p-3 text-left font-semibold text-white">Name</th>
-                        <th class="p-3 text-left font-semibold text-white">Inbound ID</th>
-                        <th class="p-3 text-center font-semibold text-white">Actions</th>
-                    </tr></thead>
-                    <tbody>${connections.map(c => `
-                        <tr>
-                            <td data-label="Name">${c.name}</td>
-                            <td data-label="Inbound ID">${c.inbound_id}</td>
-                            <td data-label="Actions" class="actions-cell">
-                                <div class="flex justify-end md:justify-center gap-2">
-                                    <button class="btn btn-reject btn-delete-connection" data-conn-id="${c.id}"><i class="fa-solid fa-trash"></i></button>
-                                </div>
-                            </td>
-                        </tr>`).join('')}
-                    </tbody>
-                </table>
-            </div>`;
-        return addForm + listHtml;
-    };
-    
-    const renderSettings = (settings = []) => {
-        // ... (No change to this function, but we add a new tab for connections)
-        const allConnectionKeys = ['dialog', 'hutch', 'slt_zoom', 'slt_netflix', 'dialog_sim'];
-        let settingsMap = {};
-        settings.forEach(s => { settingsMap[s.setting_key] = s.setting_value; });
-
-        document.getElementById('settings-content').innerHTML = `
-            <div id="settings-tabs" class="flex items-center gap-4 border-b border-white/10 mb-4">
-                <button data-tab="auto-approve" class="py-2 px-1 text-sm font-semibold border-b-2 border-purple-500 text-white">Auto-Approval</button>
-                <button data-tab="connections" class="py-2 px-1 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-white">Connections</button>
-            </div>
-            <div id="tab-auto-approve" class="settings-tab-panel">
-                 <p class="text-xs text-slate-400 mb-4">Enable auto-approval for specific connection types. Orders will be approved automatically after 10 minutes if not handled by an admin.</p>
-                 ${allConnectionKeys.map(key => { /* ... (rest of the HTML generation is the same) ... */ }).join('')}
-            </div>
-            <div id="tab-connections" class="settings-tab-panel hidden">
-                </div>
-        `;
     };
 
     const renderUsers = (users = []) => {
@@ -386,6 +273,138 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>`).join('');
     };
+    
+    const renderReportsView = (summaryData = {}) => {
+        contentTitle.textContent = "Sales & Revenue Reports";
+        searchBarContainer.classList.add('hidden');
+
+        if (!summaryData.last7Days) {
+             contentContainer.innerHTML = `<div class="glass-panel p-8 rounded-lg text-center text-gray-400">Could not load report data.</div>`;
+             return;
+        }
+
+        const { last7Days, last30Days, allTime } = summaryData;
+
+        contentContainer.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="glass-panel p-5 rounded-xl">
+                    <p class="text-sm text-slate-400">Revenue (Last 7 Days)</p>
+                    <h3 class="text-3xl font-bold text-white mt-2">LKR ${last7Days.totalRevenue.toLocaleString()}</h3>
+                </div>
+                <div class="glass-panel p-5 rounded-xl">
+                    <p class="text-sm text-slate-400">Revenue (Last 30 Days)</p>
+                    <h3 class="text-3xl font-bold text-white mt-2">LKR ${last30Days.totalRevenue.toLocaleString()}</h3>
+                </div>
+                <div class="glass-panel p-5 rounded-xl">
+                    <p class="text-sm text-slate-400">Total Revenue (All Time)</p>
+                    <h3 class="text-3xl font-bold text-white mt-2">LKR ${allTime.totalRevenue.toLocaleString()}</h3>
+                </div>
+            </div>
+            <div class="glass-panel p-5 rounded-xl">
+                 <h4 class="text-lg font-bold text-white mb-4">Daily Sales (Last 7 Days)</h4>
+                 <canvas id="salesChart" class="max-h-80"></canvas>
+            </div>
+        `;
+
+        const ctx = document.getElementById('salesChart').getContext('2d');
+        if (salesChart) {
+            salesChart.destroy();
+        }
+        salesChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: last7Days.salesByDay.map(d => new Date(d.date).toLocaleDateString('en-US', { weekday: 'short' })),
+                datasets: [{
+                    label: 'Orders',
+                    data: last7Days.salesByDay.map(d => d.count),
+                    backgroundColor: 'rgba(168, 85, 247, 0.2)',
+                    borderColor: 'rgba(168, 85, 247, 1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#9ca3af' } },
+                    x: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#9ca3af' } }
+                },
+                plugins: { legend: { labels: { color: '#e0e0e0' } } }
+            }
+        });
+    };
+
+    const renderConnectionSettings = (connections = []) => {
+        const addForm = `
+            <div class="glass-panel p-5 rounded-lg mb-6">
+                <h3 class="text-lg font-bold mb-4">Add New Connection</h3>
+                <form id="add-connection-form" class="space-y-4">
+                    <input type="text" name="name" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" placeholder="Connection Name (e.g., Dialog 4G)" required>
+                    <input type="number" name="inbound_id" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" placeholder="V2Ray Inbound ID" required>
+                    <textarea name="vless_template" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" rows="3" placeholder="VLESS Template (e.g., vless://{uuid}@...&remark={remark})" required></textarea>
+                    <button type="submit" class="btn btn-approve justify-center w-full">Add Connection</button>
+                </form>
+            </div>`;
+
+        const listHtml = connections.length === 0 ? '<div class="glass-panel p-8 rounded-lg text-center text-gray-400">No connections configured.</div>' : `
+            <div class="glass-panel rounded-xl overflow-hidden">
+                <table class="min-w-full text-sm responsive-table">
+                     <thead class="border-b border-slate-700 bg-slate-900/50"><tr>
+                        <th class="p-3 text-left font-semibold text-white">Name</th>
+                        <th class="p-3 text-left font-semibold text-white">Inbound ID</th>
+                        <th class="p-3 text-center font-semibold text-white">Actions</th>
+                    </tr></thead>
+                    <tbody>${connections.map(c => `
+                        <tr>
+                            <td data-label="Name">${c.name}</td>
+                            <td data-label="Inbound ID">${c.inbound_id}</td>
+                            <td data-label="Actions" class="actions-cell">
+                                <div class="flex justify-end md:justify-center gap-2">
+                                    <button class="btn btn-reject btn-delete-connection" data-conn-id="${c.id}"><i class="fa-solid fa-trash"></i></button>
+                                </div>
+                            </td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table>
+            </div>`;
+        return addForm + listHtml;
+    };
+    
+    const renderSettings = (settings = [], connections = []) => {
+        let settingsMap = {};
+        settings.forEach(s => { settingsMap[s.setting_key] = s.setting_value; });
+
+        const autoApprovalHtml = connections.length > 0
+            ? connections.map(conn => {
+                const settingKey = `auto_approve_${conn.name}`;
+                const isChecked = settingsMap[settingKey] || false;
+                return `
+                <div class="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg">
+                    <span class="font-medium text-slate-200">${conn.name}</span>
+                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" name="${settingKey}" id="${settingKey}" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" ${isChecked ? 'checked' : ''}/>
+                        <label for="${settingKey}" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
+                    </div>
+                </div>`;
+            }).join('')
+            : '<p class="text-xs text-slate-400 text-center">No connections found. Please add connections in the "Connections" tab first.</p>';
+
+        document.getElementById('settings-content').innerHTML = `
+            <div id="settings-tabs" class="flex items-center gap-4 border-b border-white/10 mb-4">
+                <button data-tab="auto-approve" class="py-2 px-1 text-sm font-semibold border-b-2 border-purple-500 text-white">Auto-Approval</button>
+                <button data-tab="connections" class="py-2 px-1 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-white">Connections</button>
+            </div>
+            <div id="tab-auto-approve" class="settings-tab-panel space-y-3">
+                 <p class="text-xs text-slate-400">Enable auto-approval for specific connection types. Orders will be approved automatically after 10 minutes.</p>
+                 ${autoApprovalHtml}
+            </div>
+            <div id="tab-connections" class="settings-tab-panel hidden">
+                ${renderConnectionSettings(connections)}
+            </div>
+        `;
+    };
 
     const loadAllData = async (isReload = false) => {
         if (!isReload) {
@@ -521,14 +540,15 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const form = e.target;
             const button = form.querySelector('button[type="submit"]');
-            button.disabled = true;
+            button.disabled = true; button.textContent = 'Adding...';
             const data = Object.fromEntries(new FormData(form).entries());
             const result = await api.post('/api/admin/connections', data);
             if (result.success) {
                 form.reset();
                 const connResult = await api.get('/api/admin/connections');
                 if (connResult.success) {
-                    document.getElementById('tab-connections').innerHTML = renderConnectionSettings(connResult.data);
+                    cachedData.connections = connResult.data;
+                    document.getElementById('tab-connections').innerHTML = renderConnectionSettings(cachedData.connections);
                 }
             } else {
                 alert(`Error: ${result.message}`);
@@ -565,28 +585,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
     logoutBtn.addEventListener('click', logout);
 
+    // --- CORRECTED AND IMPROVED click listener for cards ---
     Object.keys(cards).forEach(key => {
         if (cards[key]) {
             cards[key].addEventListener('click', async () => {
                 setActiveCard(key);
-                switch (key) {
-                    case 'pending': renderPendingOrders(cachedData.pendingOrders); break;
-                    case 'approved': renderOrderHistory(cachedData.allOrders, 'approved'); break;
-                    case 'rejected': renderOrderHistory(cachedData.allOrders, 'rejected'); break;
-                    case 'users': renderUsers(cachedData.allUsers); break;
-                    case 'resellers': renderResellers(cachedData.allUsers); break;
-                    case 'unconfirmed': 
-                        const res = await api.get('/api/admin/unconfirmed-orders');
-                        if(res.success) renderUnconfirmedOrders(res.data);
-                        break;
-                    case 'connections':
-                        const inboundsRes = await api.get('/api/admin/inbounds');
-                        if (inboundsRes.success) renderConnectionsView(inboundsRes.data);
-                        break;
-                    case 'reports': 
-                        const summaryRes = await api.get('/api/admin/reports/summary');
-                        if (summaryRes.success) renderReportsView(summaryRes.data);
-                        break;
+                try {
+                    switch (key) {
+                        case 'pending': renderPendingOrders(cachedData.pendingOrders); break;
+                        case 'approved': renderOrderHistory(cachedData.allOrders, 'approved'); break;
+                        case 'rejected': renderOrderHistory(cachedData.allOrders, 'rejected'); break;
+                        case 'users': renderUsers(cachedData.allUsers); break;
+                        case 'resellers': renderResellers(cachedData.allUsers); break;
+                        case 'unconfirmed': 
+                            contentContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-purple-400"></i></div>`;
+                            const res = await api.get('/api/admin/unconfirmed-orders');
+                            if (res.success) renderUnconfirmedOrders(res.data);
+                            else throw new Error(res.message);
+                            break;
+                        case 'connections':
+                            contentContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-purple-400"></i></div>`;
+                            const inboundsRes = await api.get('/api/admin/inbounds');
+                            if (inboundsRes.success) renderConnectionsView(inboundsRes.data);
+                            else throw new Error(inboundsRes.message);
+                            break;
+                        case 'reports': 
+                            contentContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-purple-400"></i></div>`;
+                            const summaryRes = await api.get('/api/admin/reports/summary');
+                            if (summaryRes.success) renderReportsView(summaryRes.data);
+                            else throw new Error(summaryRes.message);
+                            break;
+                    }
+                } catch (error) {
+                    console.error(`Error loading view for ${key}:`, error);
+                    contentContainer.innerHTML = `<div class="glass-panel p-8 rounded-lg text-center text-red-400"><strong>Error:</strong> Could not load data. ${error.message || 'Check panel connection.'}</div>`;
                 }
             });
         }
@@ -603,21 +635,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     settingsBtn.addEventListener('click', async () => {
-        const result = await api.get('/api/admin/settings');
-        if (result.success) {
-            renderSettings(result.data);
+        const [settingsResult, connectionsResult] = await Promise.all([
+            api.get('/api/admin/settings'),
+            api.get('/api/admin/connections')
+        ]);
+
+        if (settingsResult.success && connectionsResult.success) {
+            cachedData.connections = connectionsResult.data || [];
+            renderSettings(settingsResult.data || [], cachedData.connections);
             settingsModal.classList.add('active');
-            // Initially, load and render connections
-            const connResult = await api.get('/api/admin/connections');
-            if(connResult.success) {
-                cachedData.connections = connResult.data;
-                document.getElementById('tab-connections').innerHTML = renderConnectionSettings(connResult.data);
-            }
+        } else {
+            alert('Could not load settings. Please try again.');
         }
     });
     
     document.getElementById('save-settings-btn')?.addEventListener('click', async () => {
-        const checkboxes = settingsModal.querySelectorAll('input[type="checkbox"]');
+        const checkboxes = settingsModal.querySelectorAll('#tab-auto-approve input[type="checkbox"]');
         const settingsPayload = Array.from(checkboxes).map(cb => ({ key: cb.name, value: cb.checked }));
         await api.post('/api/admin/settings', { settings: settingsPayload });
         settingsModal.classList.remove('active');
@@ -636,19 +669,19 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.settings-tab-panel').forEach(panel => panel.classList.add('hidden'));
             document.getElementById(`tab-${tabId}`).classList.remove('hidden');
         }
-        if (e.target.matches('.btn-delete-connection')) {
-            const connId = e.target.dataset.connId;
+        const deleteButton = e.target.closest('.btn-delete-connection');
+        if (deleteButton) {
+            const connId = deleteButton.dataset.connId;
             if (confirm('Are you sure you want to delete this connection?')) {
                 await api.delete(`/api/admin/connections/${connId}`);
                 const connResult = await api.get('/api/admin/connections');
                 if (connResult.success) {
-                    document.getElementById('tab-connections').innerHTML = renderConnectionSettings(connResult.data);
+                    cachedData.connections = connResult.data;
+                    document.getElementById('tab-connections').innerHTML = renderConnectionSettings(cachedData.connections);
                 }
             }
         }
     });
-
-
 
     document.querySelectorAll('.modal').forEach(modal => {
         modal.addEventListener('click', (e) => {
