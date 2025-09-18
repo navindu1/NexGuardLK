@@ -616,6 +616,16 @@ document.addEventListener("DOMContentLoaded", () => {
             connectionsHtml =
                 '<div class="text-red-400 text-center col-span-full"><p class="font-semibold">Invalid plan. Please go back.</p><a href="/plans" class="nav-link-internal underline mt-2 inline-block"><i class="fa-solid fa-arrow-left mr-2"></i>Back to Plans</a></div>';
         } else {
+            if (dynamicConnections.length > 0) {
+                 connectionsHtml = dynamicConnections.map(conn => {
+                    return `<a href="/checkout?planId=${planId}&connId=${encodeURIComponent(conn.name)}" class="nav-link-internal card reveal selectable glass-panel p-5 rounded-xl text-center flex flex-col items-center justify-center">
+                        <i class="fa-solid fa-wifi text-3xl gradient-text mb-3"></i>
+                        <h3 class="text-lg font-bold text-white mb-2">${conn.name}</h3>
+                    </a>`;
+                }).join("");
+            } else {
+                 connectionsHtml = '<div class="text-amber-400 text-center col-span-full"><p>No connection types are currently available. Please check back later.</p></div>';
+            }
             connectionsHtml = Object.entries(appData.connections)
                 .map(([key, conn]) => {
                     const destination = conn.requiresPackageChoice ?
