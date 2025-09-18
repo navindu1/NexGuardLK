@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.waves.min.js"></script>
-    <style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <style>
         body { font-family: 'Inter', sans-serif; color: #e0e0e0; background-color: #020010; }
         #vanta-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
         #app-container { position: relative; z-index: 1; }
@@ -89,10 +89,13 @@
         <main id="main-content-area">
             <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-4">
                 <h2 id="content-title" class="text-xl font-bold text-white"></h2>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-4">
                     <div id="auto-reload-container" class="flex items-center gap-2">
-                        <input type="checkbox" id="auto-reload-checkbox" class="h-4 w-4 rounded border-gray-500 bg-gray-700 text-purple-600 focus:ring-purple-600">
-                        <label for="auto-reload-checkbox" class="text-xs text-gray-400">Auto-reload</label>
+                        <label for="auto-reload-checkbox" class="text-xs text-gray-400 cursor-pointer">Auto-reload</label>
+                        <div class="relative inline-block w-10 align-middle select-none">
+                            <input type="checkbox" id="auto-reload-checkbox" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                            <label for="auto-reload-checkbox" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
+                        </div>
                     </div>
                     <button id="manual-reload-btn" class="text-slate-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-slate-700"><i class="fa-solid fa-sync"></i></button>
                     <div id="search-bar-container" class="relative hidden"><i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"></i><input type="text" id="user-search" class="bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500 w-full sm:w-64" placeholder="Search users..."></div>
@@ -126,8 +129,7 @@
         <div class="glass-panel w-full max-w-lg p-6 rounded-lg relative">
             <button class="modal-close-btn absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
             <h3 class="text-xl font-bold mb-6 font-['Orbitron']">Application Settings</h3>
-            <div id="settings-content" class="space-y-4 max-h-[70vh] overflow-y-auto">
-                </div>
+            <div id="settings-content" class="space-y-4 max-h-[70vh] overflow-y-auto"></div>
             <button id="save-settings-btn" class="btn btn-approve w-full justify-center mt-6">Save Settings</button>
         </div>
     </div>

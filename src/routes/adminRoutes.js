@@ -34,4 +34,9 @@ router.post("/settings", authenticateAdmin, adminController.updateAppSettings);
 // Reporting routes
 router.get("/reports/summary", authenticateAdmin, adminController.getSalesSummary);
 
+// Connection Management Routes
+router.get("/connections", authenticateAdmin, adminController.getConnections);
+router.post("/connections", authenticateAdmin, adminController.createConnection);
+router.delete("/connections/:id", authenticateAdmin, adminController.deleteConnection);
+
 module.exports = router;

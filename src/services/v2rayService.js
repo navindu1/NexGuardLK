@@ -176,37 +176,19 @@ exports.resetClientTraffic = async (inboundId, clientEmail) => {
 }
 
 /**
- * Generates a V2Ray configuration link from a template.
+ * Generates a V2Ray configuration link from a dynamic template.
+ * @param {string} linkTemplate - The VLESS template string from the database.
+ * @param {object} client - The client object containing id and email.
+ * @returns {string|null} The generated config link.
  */
-exports.generateV2rayConfigLink = (inboundId, client) => {
-    // ... (මෙම function එකේ කිසිඳු වෙනසක් සිදු නොකරන්න) ...
-    if (!client || !client.id || !client.email) return null;
+exports.generateV2rayConfigLink = (linkTemplate, client) => {
+    if (!linkTemplate || !client || !client.id || !client.email) return null;
+    
     const uuid = client.id;
     const remark = encodeURIComponent(client.email);
-    let templateKey;
-
-    const numericInboundId = parseInt(inboundId);
-    const configIds = {
-        dialog: parseInt(process.env.INBOUND_ID_DIALOG),
-        hutch: parseInt(process.env.INBOUND_ID_HUTCH),
-        slt_zoom: parseInt(process.env.INBOUND_ID_SLT_ZOOM),
-        slt_netflix: parseInt(process.env.INBOUND_ID_SLT_NETFLIX),
-        dialog_sim: parseInt(process.env.INBOUND_ID_DIALOG_SIM),
-    };
     
-    if (numericInboundId === configIds.dialog) templateKey = "VLESS_TEMPLATE_DIALOG";
-    else if (numericInboundId === configIds.hutch) templateKey = "VLESS_TEMPLATE_HUTCH";
-    else if (numericInboundId === configIds.slt_zoom) templateKey = "VLESS_TEMPLATE_SLT_ZOOM";
-    else if (numericInboundId === configIds.slt_netflix) templateKey = "VLESS_TEMPLATE_SLT_NETFLIX";
-    else if (numericInboundId === configIds.dialog_sim) templateKey = "VLESS_TEMPLATE_DIALOG_SIM";
-    else {
-        console.error(`No VLESS template found for inbound ID: ${numericInboundId}`);
-        return null;
-    }
-
-    const linkTemplate = process.env[templateKey];
-    if (!linkTemplate) {
-        console.error(`Environment variable for template key "${templateKey}" is not defined.`);
+    if (!linkTemplate.includes("{uuid}") || !linkTemplate.includes("{remark}")) {
+        console.error(`VLESS template is invalid. It must contain {uuid} and {remark} placeholders.`);
         return null;
     }
     

@@ -9,9 +9,6 @@ const { generateEmailTemplate, generateApprovalEmailContent } = require('./email
 const planConfig = {
     "100GB": { totalGB: 100 }, "200GB": { totalGB: 200 }, "Unlimited": { totalGB: 0 },
 };
-const inboundIdConfig = {
-    dialog: process.env.INBOUND_ID_DIALOG, hutch: process.env.INBOUND_ID_HUTCH, dialog_sim: process.env.INBOUND_ID_DIALOG_SIM,
-};
 
 exports.approveOrder = async (orderId, isAutoApproved = false) => {
     let finalUsername = ''; 
@@ -20,25 +17,40 @@ exports.approveOrder = async (orderId, isAutoApproved = false) => {
         if (orderError || !order) return { success: false, message: "Order not found." };
         if (order.status === 'approved') return { success: false, message: "Order is already approved." };
 
+        // --- DYNAMIC CONNECTION FETCHING (NEW) ---
+        // Fetch connection details from the new 'connections' table instead of a hardcoded config
+        const { data: connection, error: connError } = await supabase
+            .from('connections')
+            .select('inbound_id, vless_template')
+            .eq('name', order.conn_id) // Match based on the name stored in the order
+            .single();
+
+        if (connError || !connection) {
+            return { success: false, message: `Connection type "${order.conn_id}" is not configured in Settings -> Connections.` };
+        }
+        
+        const inboundId = connection.inbound_id;
+        const vlessTemplate = connection.vless_template;
+        // --- END OF NEW LOGIC ---
+
         finalUsername = order.username; 
         const { data: websiteUser } = await supabase.from("users").select("*").ilike("username", order.website_username).single();
         if (!websiteUser) return { success: false, message: `Website user "${order.website_username}" not found.` };
 
         const plan = planConfig[order.plan_id];
-        let inboundId = inboundIdConfig[order.conn_id];
-        if (["slt_fiber", "slt_router"].includes(order.conn_id)) {
-            inboundId = order.pkg?.toLowerCase().includes("netflix") ? process.env.INBOUND_ID_SLT_NETFLIX : process.env.INBOUND_ID_SLT_ZOOM;
+        
+        // This check is now more robust
+        if (!inboundId || !plan || !vlessTemplate) {
+            return { success: false, message: "Invalid plan or connection configuration." };
         }
-        if (!inboundId || !plan) return { success: false, message: "Invalid plan/connection in order." };
 
         const expiryTime = Date.now() + 30 * 24 * 60 * 60 * 1000;
         const totalGBValue = (plan.totalGB || 0) * 1024 * 1024 * 1024;
         
         let clientLink;
-        let clientInPanel;
-
+        
         if (order.is_renewal) {
-            clientInPanel = await v2rayService.findV2rayClient(order.username);
+            const clientInPanel = await v2rayService.findV2rayClient(order.username);
             if (clientInPanel) {
                 const updatedClientSettings = {
                     id: clientInPanel.client.id, email: clientInPanel.client.email, total: totalGBValue,
@@ -46,15 +58,17 @@ exports.approveOrder = async (orderId, isAutoApproved = false) => {
                 };
                 await v2rayService.updateClient(clientInPanel.inboundId, clientInPanel.client.id, updatedClientSettings);
                 await v2rayService.resetClientTraffic(clientInPanel.inboundId, clientInPanel.client.email);
-                clientLink = v2rayService.generateV2rayConfigLink(clientInPanel.inboundId, clientInPanel.client);
+                // Use the dynamic template from the database
+                clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientInPanel.client);
                 finalUsername = clientInPanel.client.email;
             } else {
+                // If renewal user not found, create a new one
                 const clientSettings = { id: uuidv4(), email: finalUsername, total: totalGBValue, expiryTime, enable: true };
                 await v2rayService.addClient(inboundId, clientSettings);
-                clientLink = v2rayService.generateV2rayConfigLink(inboundId, clientSettings);
+                clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientSettings);
             }
         } else {
-            clientInPanel = await v2rayService.findV2rayClient(finalUsername);
+            const clientInPanel = await v2rayService.findV2rayClient(finalUsername);
             if (clientInPanel) {
                 let counter = 1, newUsername;
                 do { newUsername = `${order.username}-${counter++}`; } while (await v2rayService.findV2rayClient(newUsername));
@@ -62,7 +76,8 @@ exports.approveOrder = async (orderId, isAutoApproved = false) => {
             }
             const clientSettings = { id: uuidv4(), email: finalUsername, total: totalGBValue, expiryTime, enable: true };
             await v2rayService.addClient(inboundId, clientSettings);
-            clientLink = v2rayService.generateV2rayConfigLink(inboundId, clientSettings);
+            // Use the dynamic template from the database
+            clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientSettings);
         }
         
         let updatedActivePlans = websiteUser.active_plans || [];

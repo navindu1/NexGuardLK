@@ -267,15 +267,93 @@ exports.updateAppSettings = async (req, res) => {
 
 exports.getSalesSummary = async (req, res) => {
     try {
-        // This is a basic summary. Can be expanded with more complex SQL queries.
-        const { data, error } = await supabase
+        const { data: orders, error } = await supabase
             .from('orders')
-            .select('plan_id, created_at')
+            .select('plan_id, created_at, approved_at')
             .eq('status', 'approved');
-
         if (error) throw error;
-        res.json({ success: true, data });
+
+        // Basic plan prices - for a real app, this should come from a database table
+        const planPrices = { "100GB": 300, "200GB": 500, "Unlimited": 800 };
+
+        const now = new Date();
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+        const summary = {
+            last7Days: { totalRevenue: 0, salesByDay: [] },
+            last30Days: { totalRevenue: 0, orderCount: 0 },
+            allTime: { totalRevenue: 0, orderCount: 0 },
+        };
+
+        // Initialize salesByDay for the last 7 days
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+            summary.last7Days.salesByDay.push({ date: date.toISOString().split('T')[0], count: 0 });
+        }
+        
+        orders.forEach(order => {
+            const price = planPrices[order.plan_id] || 0;
+            const approvedDate = new Date(order.approved_at || order.created_at);
+
+            summary.allTime.totalRevenue += price;
+            summary.allTime.orderCount++;
+
+            if (approvedDate >= thirtyDaysAgo) {
+                summary.last30Days.totalRevenue += price;
+                summary.last30Days.orderCount++;
+            }
+            if (approvedDate >= sevenDaysAgo) {
+                summary.last7Days.totalRevenue += price;
+                const dateString = approvedDate.toISOString().split('T')[0];
+                const dayData = summary.last7Days.salesByDay.find(d => d.date === dateString);
+                if (dayData) {
+                    dayData.count++;
+                }
+            }
+        });
+        
+        res.json({ success: true, data: summary });
     } catch (error) {
+        console.error("Error generating sales summary:", error);
         res.status(500).json({ success: false, message: 'Failed to generate summary.' });
+    }
+};
+
+// --- NEW CONNECTION MANAGEMENT FUNCTIONS ---
+exports.getConnections = async (req, res) => {
+    try {
+        const { data, error } = await supabase.from('connections').select('*').order('created_at');
+        if (error) throw error;
+        res.json({ success: true, data: data || [] });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to fetch connections.' });
+    }
+};
+
+exports.createConnection = async (req, res) => {
+    const { name, inbound_id, vless_template } = req.body;
+    if (!name || !inbound_id || !vless_template) {
+        return res.status(400).json({ success: false, message: 'All fields are required.' });
+    }
+    try {
+        const { error } = await supabase.from('connections').insert({ name, inbound_id, vless_template });
+        if (error) throw error;
+        await logAction(req.user.username, 'CONNECTION_CREATED', { name, inbound_id });
+        res.status(201).json({ success: true, message: 'Connection created successfully.' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to create connection.' });
+    }
+};
+
+exports.deleteConnection = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const { error } = await supabase.from('connections').delete().eq('id', id);
+        if (error) throw error;
+        await logAction(req.user.username, 'CONNECTION_DELETED', { connectionId: id });
+        res.json({ success: true, message: 'Connection deleted.' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to delete connection.' });
     }
 };
