@@ -1,5 +1,3 @@
-// File Path: public/js/admin.js
-
 document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('nexguard_admin_token');
     if (!token) {
@@ -586,11 +584,16 @@ document.addEventListener('DOMContentLoaded', () => {
     logoutBtn.addEventListener('click', logout);
 
     // --- CORRECTED AND IMPROVED click listener for cards ---
-    Object.keys(cards).forEach(key => {
+     Object.keys(cards).forEach(key => {
         if (cards[key]) {
             cards[key].addEventListener('click', async () => {
                 setActiveCard(key);
                 try {
+                    // Show a loading spinner for API-dependent views
+                    if (['unconfirmed', 'connections', 'reports'].includes(key)) {
+                        contentContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-purple-400"></i></div>`;
+                    }
+
                     switch (key) {
                         case 'pending': renderPendingOrders(cachedData.pendingOrders); break;
                         case 'approved': renderOrderHistory(cachedData.allOrders, 'approved'); break;
@@ -598,19 +601,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         case 'users': renderUsers(cachedData.allUsers); break;
                         case 'resellers': renderResellers(cachedData.allUsers); break;
                         case 'unconfirmed': 
-                            contentContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-purple-400"></i></div>`;
                             const res = await api.get('/api/admin/unconfirmed-orders');
                             if (res.success) renderUnconfirmedOrders(res.data);
                             else throw new Error(res.message);
                             break;
                         case 'connections':
-                            contentContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-purple-400"></i></div>`;
                             const inboundsRes = await api.get('/api/admin/inbounds');
                             if (inboundsRes.success) renderConnectionsView(inboundsRes.data);
                             else throw new Error(inboundsRes.message);
                             break;
                         case 'reports': 
-                            contentContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-purple-400"></i></div>`;
                             const summaryRes = await api.get('/api/admin/reports/summary');
                             if (summaryRes.success) renderReportsView(summaryRes.data);
                             else throw new Error(summaryRes.message);
