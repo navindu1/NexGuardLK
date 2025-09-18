@@ -6,22 +6,23 @@ const { generateEmailTemplate, generateOrderPlacedEmailContent } = require('../s
 const { v4: uuidv4 } = require('uuid');
 
 exports.createOrder = async (req, res) => {
-    const { planId, connId, pkg, whatsapp, username, isRenewal } = req.body;
-    if (!planId || !connId || !whatsapp || !username || !req.file)
+    // --- ADD 'inboundId' and 'vlessTemplate' HERE ---
+    const { planId, connId, pkg, whatsapp, username, isRenewal, inboundId, vlessTemplate } = req.body;
+    
+    if (!planId || !connId || !whatsapp || !username || !req.file || !inboundId || !vlessTemplate)
         return res.status(400).json({
             success: false,
-            message: "Missing required order information or receipt file.",
+            message: "Missing required order information, receipt file, or connection details.",
         });
 
     try {
-        // --- 1. Supabase Storage වෙත Receipt එක Upload කිරීම ---
         const file = req.file;
         const fileExt = file.originalname.split('.').pop();
         const fileName = `receipt-${Date.now()}.${fileExt}`;
         const filePath = `${fileName}`;
 
-        const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('receipts') // අපි සාදාගත් bucket එකේ නම
+        const { error: uploadError } = await supabase.storage
+            .from('receipts')
             .upload(filePath, file.buffer, {
                 contentType: file.mimetype,
                 upsert: false,
@@ -32,14 +33,12 @@ exports.createOrder = async (req, res) => {
             throw new Error("Failed to upload the receipt file.");
         }
 
-        // --- 2. Upload කල ගොනුවේ Public URL එක ලබාගැනීම ---
         const { data: urlData } = supabase.storage
             .from('receipts')
             .getPublicUrl(filePath);
 
         const publicUrl = urlData.publicUrl;
 
-        // --- 3. Order එක Database එකේ සෑදීම ---
         const newOrder = {
             id: uuidv4(),
             username: username,
@@ -48,15 +47,16 @@ exports.createOrder = async (req, res) => {
             conn_id: connId,
             pkg: pkg || null,
             whatsapp,
-            receipt_path: publicUrl, // මෙතනට public URL එක ලබාදෙමු
+            receipt_path: publicUrl,
             status: "pending",
             is_renewal: isRenewal === "true",
+            inbound_id: parseInt(inboundId, 10),
+            vless_template: vlessTemplate 
         };
 
         const { error: orderError } = await supabase.from("orders").insert([newOrder]);
         if (orderError) throw orderError;
 
-        // --- 4. පරිශීලකයාට Email එකක් යැවීම ---
         const { data: websiteUser } = await supabase
             .from("users")
             .select("email, username")

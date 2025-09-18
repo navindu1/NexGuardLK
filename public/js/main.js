@@ -606,18 +606,33 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>`);
     }
 
-    function renderConnectionsPage(renderFunc, params) {
+     function renderConnectionsPage(renderFunc, params) {
         const planId = params.get("planId");
         if (!planId || !appData.plans[planId]) {
             renderFunc('<div class="page text-center"><p class="text-red-400">Invalid plan selection.</p><a href="/plans" class="nav-link-internal underline mt-2">Go back to plans</a></div>');
             return;
         }
-        
+
         let connectionsHtml = dynamicConnections.length > 0
             ? dynamicConnections.map(conn => {
-                return `<a href="/checkout?planId=${planId}&connId=${encodeURIComponent(conn.name)}" class="nav-link-internal card reveal selectable glass-panel p-5 rounded-xl text-center flex flex-col items-center justify-center">
-                            <i class="fa-solid fa-wifi text-3xl gradient-text mb-3"></i>
+                let linkUrl = '';
+                let packageInfoHtml = '';
+
+                if (conn.requires_package_choice) {
+                    linkUrl = `/package-choice?planId=${planId}&connId=${encodeURIComponent(conn.name)}`;
+                    const packageCount = conn.package_options ? conn.package_options.length : 0;
+                    packageInfoHtml = `<p class="text-xs text-purple-300 mt-2 font-semibold">${packageCount} Packages Available</p>`;
+                } else {
+                    linkUrl = `/checkout?planId=${planId}&connId=${encodeURIComponent(conn.name)}&inboundId=${conn.default_inbound_id}&vlessTemplate=${encodeURIComponent(conn.default_vless_template)}`;
+                    if (conn.default_package) {
+                        packageInfoHtml = `<p class="text-xs text-purple-300 mt-2 font-semibold">${conn.default_package}</p>`;
+                    }
+                }
+                
+                return `<a href="${linkUrl}" class="nav-link-internal card reveal selectable glass-panel p-5 rounded-xl text-center flex flex-col items-center justify-center">
+                            <i class="${conn.icon || 'fa-solid fa-wifi'} text-3xl gradient-text mb-3"></i>
                             <h3 class="text-lg font-bold text-white mb-2">${conn.name}</h3>
+                            ${packageInfoHtml}
                         </a>`;
             }).join("")
             : '<div class="text-amber-400 text-center col-span-full"><p>No connection types are currently available. Please check back later.</p></div>';
@@ -633,25 +648,25 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>`);
     }
 
+
     function renderPackageChoicePage(renderFunc, params) {
         const planId = params.get("planId");
-        const connId = params.get("connId");
-        const conn = appData.connections[connId];
+        const connId = decodeURIComponent(params.get("connId"));
+        const conn = dynamicConnections.find(c => c.name === connId);
 
-        if (!planId || !conn || !conn.packageOptions) {
+        if (!planId || !conn || !conn.package_options) {
             navigateTo("/plans");
             return;
         }
 
-        let choiceHtml = conn.packageOptions
-            .map((option) => {
-                const encodedOption = encodeURIComponent(option);
-                return `<a href="/checkout?planId=${planId}&connId=${connId}&pkg=${encodedOption}" class="nav-link-internal card reveal selectable glass-panel p-8 rounded-xl text-center flex flex-col items-center justify-center">
-                    <i class="fa-solid fa-box-open text-3xl gradient-text mb-3"></i>
-                    <h3 class="text-lg font-bold text-white">${option}</h3>
-                </a>`;
-            })
-            .join("");
+        let choiceHtml = conn.package_options.map((option) => {
+            const encodedOptionName = encodeURIComponent(option.name);
+            const encodedTemplate = encodeURIComponent(option.template);
+            return `<a href="/checkout?planId=${planId}&connId=${encodeURIComponent(connId)}&pkg=${encodedOptionName}&inboundId=${option.inbound_id}&vlessTemplate=${encodedTemplate}" class="nav-link-internal card reveal selectable glass-panel p-8 rounded-xl text-center flex flex-col items-center justify-center">
+                <i class="fa-solid fa-box-open text-3xl gradient-text mb-3"></i>
+                <h3 class="text-lg font-bold text-white">${option.name}</h3>
+            </a>`;
+        }).join("");
 
         renderFunc(`
             <div id="page-package-choice" class="page">
@@ -755,7 +770,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         const planId = params.get("planId");
-        const connId = decodeURIComponent(params.get("connId")); // Decode the connection name
+        const connId = decodeURIComponent(params.get("connId"));
+        const pkg = decodeURIComponent(params.get("pkg") || "");
         const plan = appData.plans[planId];
         const conn = dynamicConnections.find(c => c.name === connId);
 
@@ -764,7 +780,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
         let summaryHtml;
         if (plan && conn) {
+            const finalPackage = pkg || conn.default_package || '';
             summaryHtml = `You are purchasing the <strong class="text-purple-400">${plan.name}</strong> for <strong class="text-purple-400">${conn.name}</strong>.`;
+            if(finalPackage) {
+                 summaryHtml += `<br>Selected Package: <strong class="text-purple-400">${finalPackage}</strong>`;
+            }
             if (isRenewal) {
                 summaryHtml += `<br>You are renewing for V2Ray user: <strong class="text-purple-400">${userToRenew}</strong>.`;
             }
@@ -780,12 +800,11 @@ document.addEventListener("DOMContentLoaded", () => {
                         <div id="checkout-summary" class="text-center mb-6 text-gray-300 text-sm">${summaryHtml}</div>
                         <form id="checkout-form" class="space-y-4">
                             ${isRenewal ? `<input type="hidden" name="isRenewal" value="true">` : ""}
-                            
-<div class="form-group ${isRenewal ? 'pb-2' : ''}">
-    <input type="text" id="checkout-username" name="username" class="form-input ${isRenewal ? 'disabled:bg-slate-800/50 disabled:text-slate-400 disabled:cursor-not-allowed' : ''}" required placeholder=" " value="${isRenewal ? userToRenew : user.username}" ${isRenewal ? 'disabled' : ''}>
-    <label class="form-label">V2Ray Username</label><span class="focus-border"><i></i></span>
-    ${isRenewal ? '<p class="text-xs text-amber-400 mt-2 px-1">Username cannot be changed during renewal.</p>' : ''}
-</div>
+                            <div class="form-group ${isRenewal ? 'pb-2' : ''}">
+                                <input type="text" id="checkout-username" name="username" class="form-input ${isRenewal ? 'disabled:bg-slate-800/50 disabled:text-slate-400 disabled:cursor-not-allowed' : ''}" required placeholder=" " value="${isRenewal ? userToRenew : user.username}" ${isRenewal ? 'disabled' : ''}>
+                                <label class="form-label">V2Ray Username</label><span class="focus-border"><i></i></span>
+                                ${isRenewal ? '<p class="text-xs text-amber-400 mt-2 px-1">Username cannot be changed during renewal.</p>' : ''}
+                            </div>
                             <div class="form-group">
                                 <input type="text" name="whatsapp" id="checkout-whatsapp" class="form-input" required placeholder=" " value="${user.whatsapp}">
                                 <label class="form-label">WhatsApp Number</label><span class="focus-border"><i></i></span>
@@ -807,35 +826,35 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
             </div>`);
 
-        document
-            .getElementById("checkout-form")
-            .addEventListener("submit", async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                formData.append("planId", params.get("planId"));
-                formData.append("connId", params.get("connId"));
-                if (params.get("pkg")) formData.append("pkg", params.get("pkg"));
+        document.getElementById("checkout-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            formData.append("planId", params.get("planId"));
+            formData.append("connId", params.get("connId"));
+            formData.append("inboundId", params.get("inboundId"));
+            formData.append("vlessTemplate", params.get("vlessTemplate"));
+            if (params.get("pkg")) {
+                formData.append("pkg", params.get("pkg"));
+            }
 
-                document.querySelector('#checkout-view button[type="submit"]').disabled = true;
-                document.querySelector('#checkout-view button[type="submit"]').textContent = "SUBMITTING...";
+            document.querySelector('#checkout-view button[type="submit"]').disabled = true;
+            document.querySelector('#checkout-view button[type="submit"]').textContent = "SUBMITTING...";
 
-                const res = await fetch("/api/create-order", {
-                    method: "POST",
-                    headers: {
-                        Authorization: "Bearer " + localStorage.getItem("nexguard_token"),
-                    },
-                    body: formData,
-                });
-                if (res.ok) {
-                    document.getElementById("checkout-view").style.display = "none";
-                    document.getElementById("success-view").classList.remove("hidden");
-                } else {
-                    const result = await res.json();
-                    alert(`Error: ${result.message}`);
-                    document.querySelector('#checkout-view button[type="submit"]').disabled = false;
-                    document.querySelector('#checkout-view button[type="submit"]').textContent = "SUBMIT FOR APPROVAL";
-                }
+            const res = await fetch("/api/create-order", {
+                method: "POST",
+                headers: { Authorization: "Bearer " + localStorage.getItem("nexguard_token"), },
+                body: formData,
             });
+            if (res.ok) {
+                document.getElementById("checkout-view").style.display = "none";
+                document.getElementById("success-view").classList.remove("hidden");
+            } else {
+                const result = await res.json();
+                alert(`Error: ${result.message}`);
+                document.querySelector('#checkout-view button[type="submit"]').disabled = false;
+                document.querySelector('#checkout-view button[type="submit"]').textContent = "SUBMIT FOR APPROVAL";
+            }
+        });
     }
 
     function renderProfilePage(renderFunc, params) {
@@ -1799,3 +1818,4 @@ const router = () => {
     loadConnections();
     router(); // Initial route call
 });
+

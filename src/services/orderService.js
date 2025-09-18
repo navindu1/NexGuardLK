@@ -17,21 +17,15 @@ exports.approveOrder = async (orderId, isAutoApproved = false) => {
         if (orderError || !order) return { success: false, message: "Order not found." };
         if (order.status === 'approved') return { success: false, message: "Order is already approved." };
 
-        // --- DYNAMIC CONNECTION FETCHING (NEW) ---
-        // Fetch connection details from the new 'connections' table instead of a hardcoded config
-        const { data: connection, error: connError } = await supabase
-            .from('connections')
-            .select('inbound_id, vless_template')
-            .eq('name', order.conn_id) // Match based on the name stored in the order
-            .single();
-
-        if (connError || !connection) {
-            return { success: false, message: `Connection type "${order.conn_id}" is not configured in Settings -> Connections.` };
-        }
+        // --- UPDATED LOGIC ---
+        // Get the inbound_id and vless_template directly from the order itself.
+        const inboundId = order.inbound_id;
+        const vlessTemplate = order.vless_template;
         
-        const inboundId = connection.inbound_id;
-        const vlessTemplate = connection.vless_template;
-        // --- END OF NEW LOGIC ---
+        if (!inboundId || !vlessTemplate) {
+             return { success: false, message: `Inbound ID or VLESS Template is missing for this order. Cannot approve.` };
+        }
+        // --- END OF UPDATED LOGIC ---
 
         finalUsername = order.username; 
         const { data: websiteUser } = await supabase.from("users").select("*").ilike("username", order.website_username).single();
@@ -39,9 +33,8 @@ exports.approveOrder = async (orderId, isAutoApproved = false) => {
 
         const plan = planConfig[order.plan_id];
         
-        // This check is now more robust
-        if (!inboundId || !plan || !vlessTemplate) {
-            return { success: false, message: "Invalid plan or connection configuration." };
+        if (!plan) {
+            return { success: false, message: "Invalid plan configuration." };
         }
 
         const expiryTime = Date.now() + 30 * 24 * 60 * 60 * 1000;
@@ -56,13 +49,12 @@ exports.approveOrder = async (orderId, isAutoApproved = false) => {
                     id: clientInPanel.client.id, email: clientInPanel.client.email, total: totalGBValue,
                     expiryTime: expiryTime, enable: true, tgId: clientInPanel.client.tgId || "", subId: clientInPanel.client.subId || ""
                 };
-                await v2rayService.updateClient(clientInPanel.inboundId, clientInPanel.client.id, updatedClientSettings);
-                await v2rayService.resetClientTraffic(clientInPanel.inboundId, clientInPanel.client.email);
-                // Use the dynamic template from the database
+                // Use the correct inbound ID for update
+                await v2rayService.updateClient(inboundId, clientInPanel.client.id, updatedClientSettings);
+                await v2rayService.resetClientTraffic(inboundId, clientInPanel.client.email);
                 clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientInPanel.client);
                 finalUsername = clientInPanel.client.email;
             } else {
-                // If renewal user not found, create a new one
                 const clientSettings = { id: uuidv4(), email: finalUsername, total: totalGBValue, expiryTime, enable: true };
                 await v2rayService.addClient(inboundId, clientSettings);
                 clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientSettings);
@@ -76,7 +68,6 @@ exports.approveOrder = async (orderId, isAutoApproved = false) => {
             }
             const clientSettings = { id: uuidv4(), email: finalUsername, total: totalGBValue, expiryTime, enable: true };
             await v2rayService.addClient(inboundId, clientSettings);
-            // Use the dynamic template from the database
             clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientSettings);
         }
         
@@ -111,6 +102,7 @@ exports.approveOrder = async (orderId, isAutoApproved = false) => {
 };
 
 exports.checkAndApprovePendingOrders = async () => {
+    // This function remains unchanged.
     try {
         const { data: settings, error: settingsError } = await supabase.from('app_settings').select('*');
         if (settingsError) throw settingsError;
