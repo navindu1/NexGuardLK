@@ -217,13 +217,8 @@ async function getPanelCookie() {
     return newCookie;
 }
 
-// --- EXPORT THE HELPER FUNCTION SO CONTROLLERS CAN USE IT ---
 exports.getPanelCookie = getPanelCookie;
 
-
-/**
- * Finds a V2Ray client by their username (email) across all inbounds.
- */
 exports.findV2rayClient = async (username) => {
     if (typeof username !== "string" || !username) {
         return null;
@@ -273,9 +268,6 @@ exports.findV2rayClient = async (username) => {
     }
 };
 
-/**
- * Adds a new client to a specified inbound.
- */
 exports.addClient = async (inboundId, clientSettings) => {
     const cookie = await getPanelCookie();
     const payload = {
@@ -286,9 +278,6 @@ exports.addClient = async (inboundId, clientSettings) => {
     return data;
 };
 
-/**
- * Deletes a client from a specified inbound using their UUID.
- */
 exports.deleteClient = async (inboundId, clientUuid) => {
     const cookie = await getPanelCookie();
     const url = DEL_CLIENT_BY_UUID_URL(inboundId, clientUuid);

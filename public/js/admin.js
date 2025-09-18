@@ -623,7 +623,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-     document.body.addEventListener('submit', async (e) => {
+        document.body.addEventListener('submit', async (e) => {
         if (e.target.id === 'add-reseller-form' || e.target.id === 'add-connection-form' || e.target.id === 'edit-reseller-form') {
             e.preventDefault();
             const form = e.target;
@@ -671,7 +671,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert(`Error: ${error.message}`);
             } finally {
                 button.disabled = false;
-                // Reset button text based on form id
                 if (form.id === 'add-reseller-form') button.textContent = 'Add Reseller';
                 if (form.id === 'add-connection-form') button.textContent = 'Add Connection';
                 if (form.id === 'edit-reseller-form') button.textContent = 'Update Reseller';
@@ -679,10 +678,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-
+    // --- THIS IS THE FIX FOR BUG #3 ---
     manualReloadBtn.addEventListener('click', () => loadAllData(true));
+    
     autoReloadCheckbox.addEventListener('change', (e) => {
-        localStorage.setItem('autoReloadEnabled', e.target.checked);
+        localStorage.setItem('autoReloadEnabled', e.target.checked); // Save state
         if (e.target.checked) {
             if (autoReloadInterval) clearInterval(autoReloadInterval);
             autoReloadInterval = setInterval(() => loadAllData(true), 30000);
@@ -692,7 +692,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const initializeAutoReload = () => {
-        const isEnabled = localStorage.getItem('autoReloadEnabled') === 'true';
+        const isEnabled = localStorage.getItem('autoReloadEnabled') === 'true'; // Load state
         autoReloadCheckbox.checked = isEnabled;
         if (isEnabled) {
             if (autoReloadInterval) clearInterval(autoReloadInterval);

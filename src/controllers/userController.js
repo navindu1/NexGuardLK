@@ -160,6 +160,23 @@ exports.linkV2rayAccount = async (req, res) => {
 
         let currentPlans = currentUser.active_plans || [];
         
+        // --- THIS SECTION IS REFACTORED TO USE THE DATABASE ---
+        const inboundId = clientData.inboundId;
+        const { data: connection, error: connError } = await supabase
+            .from('connections')
+            .select('name, vless_template')
+            .eq('inbound_id', inboundId)
+            .single();
+
+        if (connError || !connection) {
+             return res.status(404).json({ success: false, message: "Could not identify the connection type for this user." });
+        }
+
+        const detectedConnId = connection.name;
+        const vlessTemplate = connection.vless_template;
+        const v2rayLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientData.client);
+        // --- END OF REFACTORED SECTION ---
+
         let detectedPlanId = "Unlimited";
         const totalBytes = clientData.client.total || 0;
         if (totalBytes > 0) {
@@ -168,20 +185,10 @@ exports.linkV2rayAccount = async (req, res) => {
                 detectedPlanId = `${totalGB}GB`;
             }
         }
-        
-        const inboundId = clientData.inboundId;
-        const inboundIdMap = {
-            [process.env.INBOUND_ID_DIALOG]: "dialog",
-            [process.env.INBOUND_ID_HUTCH]: "hutch",
-            [process.env.INBOUND_ID_SLT_ZOOM]: "slt_fiber",
-            [process.env.INBOUND_ID_SLT_NETFLIX]: "slt_router",
-            [process.env.INBOUND_ID_DIALOG_SIM]: "dialog_sim",
-        };
-        const detectedConnId = inboundIdMap[inboundId] || "Unknown";
 
         const newPlan = {
             v2rayUsername: clientData.client.email,
-            v2rayLink: v2rayService.generateV2rayConfigLink(clientData.inboundId, clientData.client),
+            v2rayLink: v2rayLink,
             planId: detectedPlanId,
             connId: detectedConnId,
             activatedAt: new Date().toISOString(),
@@ -200,6 +207,7 @@ exports.linkV2rayAccount = async (req, res) => {
         res.status(500).json({ success: false, message: "An internal server error occurred." });
     }
 };
+
 
 exports.updatePassword = async (req, res) => {
     const { newPassword } = req.body;
