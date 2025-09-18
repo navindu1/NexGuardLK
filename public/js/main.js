@@ -1033,6 +1033,7 @@ const baseHtml = `<div id="page-profile" class="page space-y-8"><div class="flex
 
                     const connection = dynamicConnections.find(c => c.name === plan.connId);
                         const connectionName = connection ? connection.name : (plan.connId || 'N/A');
+                    const planName = appData.plans[plan.planId]?.name || plan.planId;
                     document.getElementById("plan-info-container").innerHTML = `<span class="bg-purple-500/10 text-purple-300 px-2 py-1 rounded-full"><i class="fa-solid fa-rocket fa-fw mr-2"></i>${planName}</span><span class="bg-indigo-500/10 text-indigo-300 px-2 py-1 rounded-full"><i class="fa-solid fa-wifi fa-fw mr-2"></i>${connectionName}</span>`;
                     
                     const settingsHtml = `
