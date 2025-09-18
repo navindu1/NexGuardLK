@@ -55,37 +55,31 @@
       body.modal-open {
         overflow: hidden;
       }
-      /* REMOVE the 'body.initializing' CSS and ADD this new CSS instead */
-/* By default, hide the profile/logout buttons */
-html.logged-out #desktop-user-profile,
-html.logged-out #mobile-user-profile {
-    display: none !important;
+ /* --- Default (Mobile View) --- */
+
+/* Hide desktop-specific buttons on mobile by default */
+#desktop-auth-buttons,
+#desktop-user-profile {
+  display: none !important;
 }
 
-/* By default, show the login/signup buttons */
-html.logged-out #desktop-auth-buttons,
-html.logged-out #mobile-auth-buttons {
-    display: flex !important; /* Use 'flex' as per your layout */
-}
+/* Control MOBILE (Sidebar) buttons based on login state */
+html.logged-out #mobile-auth-buttons { display: flex !important; }
+html.logged-out #mobile-user-profile { display: none !important; }
 
-/* If logged in, hide the login/signup buttons */
-html.logged-in #desktop-auth-buttons,
-html.logged-in #mobile-auth-buttons {
-    display: none !important;
-}
+html.logged-in #mobile-auth-buttons { display: none !important; }
+html.logged-in #mobile-user-profile { display: flex !important; }
 
-/* If logged in, show the profile/logout buttons */
-html.logged-in #desktop-user-profile {
-    /* Use 'flex' for desktop, respecting Tailwind's sm breakpoint */
-    display: none !important; 
-}
+
+/* --- Desktop View (sm breakpoint: 640px and up) --- */
 @media (min-width: 640px) {
-    html.logged-in #desktop-user-profile {
-        display: flex !important;
-    }
-}
-html.logged-in #mobile-user-profile {
-    display: flex !important;
+  /* When logged out on DESKTOP */
+  html.logged-out #desktop-auth-buttons { display: flex !important; }
+  html.logged-out #desktop-user-profile { display: none !important; }
+
+  /* When logged in on DESKTOP */
+  html.logged-in #desktop-auth-buttons { display: none !important; }
+  html.logged-in #desktop-user-profile { display: flex !important; }
 }
       #vanta-bg {
         position: fixed;
