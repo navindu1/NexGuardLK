@@ -1796,5 +1796,6 @@ const router = () => {
 
     // --- Initial Application Load ---
     loadSession();
+    loadConnections();
     router(); // Initial route call
 });
