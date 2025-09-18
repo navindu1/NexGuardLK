@@ -4,6 +4,7 @@ const express = require("express");
 const path = require("path");
 const cron = require("node-cron");
 const { cleanupOldReceipts } = require("./src/services/cronService");
+const { checkAndApprovePendingOrders } = require("./src/services/orderService"); // <-- ADD THIS
 require("dotenv").config();
 
 const app = express();
@@ -17,17 +18,14 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(process.cwd(), "public")));
 
 // --- API Routes ---
-// 'apiRoutes' is declared only ONCE here
 const apiRoutes = require("./src/routes");
 app.use("/api", apiRoutes);
 
 // --- Custom Page Routes ---
-// Route for the "pretty" admin login URL
 app.get("/admin/login", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "admin-login.html"));
 });
 
-// Route for the admin dashboard
 app.get("/admin", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
@@ -40,13 +38,19 @@ app.get("/reseller", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "reseller.html"));
 });
 
-
-
-// --- Cron Job for cleaning up old receipts ---
+// --- Cron Jobs ---
+// Runs at midnight every day to clean receipts
 cron.schedule("5 0 * * *", () => {
   console.log("Running scheduled task: Deleting old receipts...");
   cleanupOldReceipts();
 });
+
+// Runs every minute to check for orders to auto-approve
+cron.schedule("* * * * *", () => {
+    console.log("Running scheduled task: Checking for pending orders to auto-approve...");
+    checkAndApprovePendingOrders();
+});
+
 
 // --- Frontend Catch-All Route (This MUST be the last route) ---
 app.get("*", (req, res) => {

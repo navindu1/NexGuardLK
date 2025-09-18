@@ -1,4 +1,4 @@
-// File Path: public/js/admin.js (Complete and Final Version)
+// File Path: public/js/admin.js
 
 document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('nexguard_admin_token');
@@ -15,22 +15,29 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const cards = {
         pending: document.getElementById('card-pending'),
+        unconfirmed: document.getElementById('card-unconfirmed'),
         approved: document.getElementById('card-approved'),
         rejected: document.getElementById('card-rejected'),
         users: document.getElementById('card-users'),
-        resellers: document.getElementById('card-resellers')
+        resellers: document.getElementById('card-resellers'),
+        connections: document.getElementById('card-connections'),
+        reports: document.getElementById('card-reports'),
     };
 
     const imageModal = document.getElementById('image-modal');
     const modalImage = document.getElementById('modal-image');
     const editResellerModal = document.getElementById('edit-reseller-modal');
+    const settingsModal = document.getElementById('settings-modal');
     const editResellerForm = document.getElementById('edit-reseller-form');
-    const editModalCloseBtn = document.getElementById('edit-modal-close-btn');
-    const modalCloseBtn = document.getElementById('modal-close-btn');
+    
     const logoutBtn = document.getElementById('logout-btn');
+    const settingsBtn = document.getElementById('settings-btn');
+    const manualReloadBtn = document.getElementById('manual-reload-btn');
+    const autoReloadCheckbox = document.getElementById('auto-reload-checkbox');
 
-    // --- Data Cache ---
-    let cachedData = { stats: {}, pendingOrders: [], allOrders: [], allUsers: [] };
+    // --- Data Cache & State ---
+    let cachedData = { stats: {}, pendingOrders: [], allOrders: [], allUsers: [], unconfirmedOrders: [] };
+    let autoReloadInterval = null;
 
     // --- API Helper ---
     const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -41,10 +48,10 @@ document.addEventListener('DOMContentLoaded', () => {
         delete: (endpoint, body) => fetch(endpoint, { method: 'DELETE', headers, body: JSON.stringify(body) }).then(res => res.json())
     };
 
-    // --- Render Functions (These create the HTML content) ---
-
+    // --- Render Functions ---
     const renderStats = (stats = {}, allUsers = []) => {
         document.getElementById('pending-orders-stat').textContent = stats.pending || 0;
+        document.getElementById('unconfirmed-orders-stat').textContent = stats.unconfirmed || 0;
         document.getElementById('approved-orders-stat').textContent = stats.approved || 0;
         document.getElementById('rejected-orders-stat').textContent = stats.rejected || 0;
         document.getElementById('total-users-stat').textContent = (allUsers.filter(u => u.role === 'user')).length;
@@ -61,12 +68,12 @@ document.addEventListener('DOMContentLoaded', () => {
         contentContainer.innerHTML = orders.map(order => `
             <div class="glass-panel p-4 rounded-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4" id="order-${order.id}">
                 <div class="flex-grow">
-                    <p class="font-bold text-lg">     ${order.username}</p>
+                    <p class="font-bold text-lg">${order.username}</p>
                     <p class="text-sm text-slate-300">${order.plan_id} | ${order.conn_id} ${order.pkg ? `(${order.pkg})` : ''}</p>
                     <p class="text-xs text-slate-400 mt-1">Contact: ${order.whatsapp} | Ordered By: ${order.website_username}</p>
                 </div>
                 <div class="flex items-center gap-2 sm:gap-3 self-end md:self-center flex-wrap">
-                    <button class="btn btn-view view-proof-btn" data-proof-url="/${order.receipt_path}"><i class="fa-solid fa-receipt"></i><span class="hidden sm:inline">Proof</span></button>
+                    <button class="btn btn-view view-proof-btn" data-proof-url="${order.receipt_path}"><i class="fa-solid fa-receipt"></i><span class="hidden sm:inline">Proof</span></button>
                     <button class="btn btn-approve" data-order-id="${order.id}"><i class="fa-solid fa-check"></i><span class="hidden sm:inline">Approve</span></button>
                     <button class="btn btn-reject" data-order-id="${order.id}"><i class="fa-solid fa-times"></i><span class="hidden sm:inline">Reject</span></button>
                 </div>
@@ -121,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </tr></thead>
                     <tbody>${regularUsers.map(user => `
                         <tr>
-                            <td data-label="Username">     ${user.username}</td>
+                            <td data-label="Username">${user.username}</td>
                             <td data-label="Contact"><div>${user.email}</div><div class="text-xs text-slate-400">${user.whatsapp}</div></td>
                             <td data-label="V2Ray Profiles" class="break-all">${(user.active_plans || []).map(p => p.v2rayUsername).join(', ') || 'None'}</td>
                             <td data-label="Action" class="actions-cell">
@@ -165,10 +172,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         <th class="p-3 text-center font-semibold text-white">Actions</th>
                     </tr></thead>
                     <tbody>${resellers.map(reseller => {
-                        const createdUserCount = cachedData.allUsers.filter(u => u.created_by === reseller.id).length;
+                        const createdUserCount = (cachedData.allUsers || []).filter(u => u.created_by === reseller.id).length;
                         return `
                         <tr>
-                            <td data-label="Reseller">     ${reseller.username}</td>
+                            <td data-label="Reseller">${reseller.username}</td>
                             <td data-label="Contact"><div>${reseller.email}</div><div class="text-xs text-slate-400">${reseller.whatsapp || 'N/A'}</div></td>
                             <td data-label="Users Created">${createdUserCount}</td>
                             <td data-label="Actions" class="actions-cell">
@@ -186,24 +193,147 @@ document.addEventListener('DOMContentLoaded', () => {
         contentContainer.innerHTML = addResellerForm + resellerListHtml;
     };
 
+    const renderConnectionsView = (inbounds = []) => {
+        contentTitle.textContent = "Live V2Ray Inbounds & Clients";
+        searchBarContainer.classList.add('hidden');
+        if (inbounds.length === 0) {
+            contentContainer.innerHTML = '<div class="glass-panel p-8 rounded-lg text-center text-gray-400">No V2Ray inbounds found or failed to connect to the panel.</div>';
+            return;
+        }
 
-    // --- Core Logic ---
+        const formatBytes = (bytes, decimals = 2) => {
+            if (!bytes || bytes === 0) return '0 B';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        };
 
-    const loadAllData = async () => {
-        contentContainer.innerHTML = '<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-3xl text-purple-400"></i></div>';
-        const result = await api.get('/api/admin/dashboard-data');
-        if (result.success && result.data) {
-            cachedData = result.data;
-            renderStats(cachedData.stats, cachedData.allUsers);
-            setActiveCard('pending');
-            renderPendingOrders(cachedData.pendingOrders);
-        } else {
-            contentContainer.innerHTML = `<div class="glass-panel p-8 rounded-lg text-center text-red-500">${result.message || 'Failed to load dashboard data.'}</div>`;
+        contentContainer.innerHTML = inbounds.map(inbound => `
+            <div class="glass-panel rounded-xl overflow-hidden mb-6">
+                <button class="w-full p-4 text-left bg-slate-900/50 hover:bg-slate-800/60 transition-colors flex justify-between items-center inbound-toggle">
+                    <div>
+                        <h3 class="font-bold text-lg text-white font-['Orbitron']">${inbound.remark} (${inbound.protocol})</h3>
+                        <p class="text-xs text-slate-400">Port: ${inbound.port} | Clients: ${inbound.clientCount}</p>
+                    </div>
+                    <i class="fa-solid fa-chevron-down transition-transform"></i>
+                </button>
+                <div class="inbound-clients-table hidden p-1 sm:p-4">
+                    <table class="min-w-full text-sm responsive-table">
+                        <thead class="border-b border-slate-700">
+                            <tr>
+                                <th class="p-3 text-left font-semibold text-white">Client Email</th>
+                                <th class="p-3 text-left font-semibold text-white">Usage</th>
+                                <th class="p-3 text-left font-semibold text-white">Expiry</th>
+                                <th class="p-3 text-center font-semibold text-white">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${inbound.clients.length > 0 ? inbound.clients.map(client => `
+                                <tr>
+                                    <td data-label="Client">${client.email}</td>
+                                    <td data-label="Usage">${formatBytes(client.up + client.down)} / ${client.total > 0 ? formatBytes(client.total) : 'Unlimited'}</td>
+                                    <td data-label="Expiry">${client.expiryTime > 0 ? new Date(client.expiryTime).toLocaleDateString() : 'Never'}</td>
+                                    <td data-label="Status" class="actions-cell">
+                                        <div class="flex justify-end md:justify-center">
+                                            <span class="px-2 py-1 text-xs rounded-full ${client.enable ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}">
+                                                ${client.enable ? 'Enabled' : 'Disabled'}
+                                            </span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `).join('') : `<tr><td colspan="4" class="text-center p-4 text-slate-400">No clients in this inbound.</td></tr>`}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `).join('');
+    };
+
+    const renderUnconfirmedOrders = (orders = []) => {
+        contentTitle.textContent = "Unconfirmed Auto-Approved Orders";
+        searchBarContainer.classList.add('hidden');
+        if (orders.length === 0) {
+            contentContainer.innerHTML = '<div class="glass-panel p-8 rounded-lg text-center text-gray-400">No unconfirmed orders.</div>';
+            return;
+        }
+        contentContainer.innerHTML = orders.map(order => `
+            <div class="glass-panel p-4 rounded-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4" id="order-${order.id}">
+                <div class="flex-grow">
+                    <p class="font-bold text-lg">${order.final_username}</p>
+                    <p class="text-sm text-slate-300">${order.plan_id} | ${order.conn_id}</p>
+                    <p class="text-xs text-slate-400 mt-1">Auto-Approved on: ${new Date(order.approved_at).toLocaleString()}</p>
+                </div>
+                <div class="flex items-center gap-2 sm:gap-3 self-end md:self-center flex-wrap">
+                    <button class="btn btn-view view-proof-btn" data-proof-url="${order.receipt_path}"><i class="fa-solid fa-receipt"></i><span class="hidden sm:inline">Proof</span></button>
+                    <button class="btn btn-approve" data-order-id="${order.id}" data-action="confirm"><i class="fa-solid fa-check-double"></i><span class="hidden sm:inline">Confirm</span></button>
+                    <button class="btn btn-reject" data-order-id="${order.id}" data-action="reject-auto"><i class="fa-solid fa-user-times"></i><span class="hidden sm:inline">Reject</span></button>
+                </div>
+            </div>`).join('');
+    };
+
+    const renderSettings = (settings = []) => {
+        const settingsContent = document.getElementById('settings-content');
+        const allConnectionKeys = ['dialog', 'hutch', 'slt_zoom', 'slt_netflix', 'dialog_sim'];
+        
+        let settingsMap = {};
+        settings.forEach(s => { settingsMap[s.setting_key] = s.setting_value; });
+
+        settingsContent.innerHTML = `
+            <h4 class="text-lg font-bold text-purple-300 border-b border-purple-800 pb-2">Auto-Approval Settings</h4>
+            <p class="text-xs text-slate-400 -mt-2">Enable auto-approval for specific connection types. Orders will be approved automatically after 10 minutes if not handled by an admin.</p>
+            ${allConnectionKeys.map(key => {
+                const settingKey = `auto_approve_${key}`;
+                const isChecked = settingsMap[settingKey] || false;
+                return `
+                <div class="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg">
+                    <span class="font-medium text-slate-200 capitalize">${key.replace(/_/g, ' ')}</span>
+                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" name="${settingKey}" id="${settingKey}" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" ${isChecked ? 'checked' : ''}/>
+                        <label for="${settingKey}" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
+                    </div>
+                </div>`
+            }).join('')}
+        `;
+    };
+    
+    const renderReportsView = () => {
+        contentTitle.textContent = "Sales Reports";
+        searchBarContainer.classList.add('hidden');
+        contentContainer.innerHTML = `<div class="glass-panel p-8 rounded-lg text-center text-gray-400">Reporting feature is coming soon.</div>`;
+    };
+
+    const loadAllData = async (isReload = false) => {
+        if (!isReload) {
+            contentContainer.innerHTML = '<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-3xl text-purple-400"></i></div>';
+        }
+        try {
+            const result = await api.get('/api/admin/dashboard-data');
+            if (result.success && result.data) {
+                cachedData = result.data;
+                renderStats(cachedData.stats, cachedData.allUsers);
+                
+                const activeCardKey = document.querySelector('#stats-section .border-purple-500')?.id.replace('card-','');
+                if (!isReload) {
+                    setActiveCard('pending');
+                    renderPendingOrders(cachedData.pendingOrders);
+                } else if (activeCardKey) {
+                    document.getElementById(`card-${activeCardKey}`).click();
+                } else {
+                    renderPendingOrders(cachedData.pendingOrders);
+                }
+            } else {
+                contentContainer.innerHTML = `<div class="glass-panel p-8 rounded-lg text-center text-red-500">${result.message || 'Failed to load dashboard data.'}</div>`;
+            }
+        } catch (error) {
+            console.error("Failed to load data:", error);
+            contentContainer.innerHTML = `<div class="glass-panel p-8 rounded-lg text-center text-red-500">Connection error. Could not load data.</div>`;
         }
     };
     
     const setActiveCard = (cardKey) => {
-        Object.values(cards).forEach(card => card.classList.remove('border-purple-500', 'bg-slate-900/50'));
+        Object.values(cards).forEach(card => card?.classList.remove('border-purple-500', 'bg-slate-900/50'));
         if (cards[cardKey]) cards[cardKey].classList.add('border-purple-500', 'bg-slate-900/50');
     };
 
@@ -212,26 +342,67 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = '/admin/login';
     };
 
-
     // --- Event Listeners ---
-
     contentContainer.addEventListener('click', async (e) => {
-        const button = e.target.closest('button');
-        if (!button) return;
+        const targetElement = e.target.closest('button');
+        const toggleButton = e.target.closest('.inbound-toggle');
+        
+        if (toggleButton) {
+            const table = toggleButton.nextElementSibling;
+            const icon = toggleButton.querySelector('i');
+            table.classList.toggle('hidden');
+            icon.classList.toggle('rotate-180');
+            return;
+        }
 
-        if (button.classList.contains('view-proof-btn')) {
-            modalImage.src = button.dataset.proofUrl;
+        if (!targetElement) return;
+
+        const orderId = targetElement.dataset.orderId;
+        if (orderId) {
+            targetElement.disabled = true;
+            const action = targetElement.dataset.action || (targetElement.classList.contains('btn-approve') ? 'approve' : 'reject');
+
+            switch(action) {
+                case 'approve':
+                    targetElement.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Approving...';
+                    const approveResult = await api.post(`/api/admin/approve-order/${orderId}`);
+                    if (!approveResult.success) alert(`Error: ${approveResult.message}`);
+                    break;
+                case 'reject':
+                    targetElement.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Rejecting...';
+                    await api.post(`/api/admin/reject-order/${orderId}`);
+                    break;
+                case 'confirm':
+                    targetElement.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Confirming...';
+                    await api.post(`/api/admin/orders/${orderId}/confirm`);
+                    break;
+                case 'reject-auto':
+                    if (confirm('Are you sure? This will delete the V2Ray user.')) {
+                        targetElement.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Rejecting...';
+                        await api.post(`/api/admin/orders/${orderId}/reject-auto`);
+                    } else {
+                        targetElement.disabled = false;
+                    }
+                    break;
+            }
+            loadAllData(true);
+            return;
+        }
+        
+        if (targetElement.classList.contains('view-proof-btn')) {
+            modalImage.src = targetElement.dataset.proofUrl;
             imageModal.classList.add('active');
-        } else if (button.classList.contains('btn-ban')) {
-            const userId = button.dataset.userId;
-            const username = button.dataset.username;
-            if (!confirm(`Are you sure you want to ban "${username}"?`)) return;
-            button.disabled = true; button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Banning...';
-            const result = await api.delete('/api/admin/ban-user', { userId });
-            if (result.success) await loadAllData();
-            else { alert(`Error: ${result.message}`); button.disabled = false; button.innerHTML = '<i class="fa-solid fa-user-slash"></i> Ban'; }
-        } else if (button.classList.contains('btn-edit-reseller')) {
-            const resellerId = button.dataset.resellerId;
+        } else if (targetElement.classList.contains('btn-ban')) {
+            const userId = targetElement.dataset.userId;
+            const username = targetElement.dataset.username;
+            if (confirm(`Are you sure you want to ban "${username}"?`)) {
+                targetElement.disabled = true;
+                targetElement.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Banning...';
+                await api.delete('/api/admin/ban-user', { userId });
+                loadAllData(true);
+            }
+        } else if (targetElement.classList.contains('btn-edit-reseller')) {
+            const resellerId = targetElement.dataset.resellerId;
             const resellerData = cachedData.allUsers.find(u => u.id === resellerId);
             if (resellerData) {
                 editResellerForm.elements.id.value = resellerData.id;
@@ -242,21 +413,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 editResellerModal.classList.add('active');
             }
         }
-        
-        const orderId = button.dataset.orderId;
-        if (!orderId) return;
-
-        if (button.classList.contains('btn-approve')) {
-            button.disabled = true; button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Approving...';
-            const result = await api.post(`/api/admin/approve-order/${orderId}`);
-            if (result.success) await loadAllData();
-            else { alert(`Error: ${result.message}`); button.disabled = false; button.innerHTML = '<i class="fa-solid fa-check"></i> Approve'; }
-        } else if (button.classList.contains('btn-reject')) {
-            button.disabled = true; button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Rejecting...';
-            const result = await api.post(`/api/admin/reject-order/${orderId}`);
-            if (result.success) await loadAllData();
-            else { alert(`Error: ${result.message}`); button.disabled = false; button.innerHTML = '<i class="fa-solid fa-times"></i> Reject'; }
-        }
     });
 
     contentContainer.addEventListener('submit', async(e) => {
@@ -265,36 +421,39 @@ document.addEventListener('DOMContentLoaded', () => {
             const form = e.target;
             const button = form.querySelector('button[type="submit"]');
             button.disabled = true; button.textContent = 'Adding...';
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData.entries());
+            const data = Object.fromEntries(new FormData(form).entries());
             const result = await api.post('/api/admin/resellers', data);
             if (result.success) {
-                alert('Reseller created successfully!');
                 form.reset();
-                await loadAllData();
-                renderResellers(cachedData.allUsers);
-            } else { alert(`Error: ${result.message}`); }
-            button.disabled = false; button.textContent = 'Add Reseller';
+                loadAllData(true).then(() => {
+                    setActiveCard('resellers');
+                    renderResellers(cachedData.allUsers);
+                });
+            } else { 
+                alert(`Error: ${result.message}`);
+                button.disabled = false; button.textContent = 'Add Reseller';
+            }
         }
     });
 
     editResellerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const form = e.target;
-        const button = form.querySelector('button[type="submit"]');
+        const button = e.target.querySelector('button[type="submit"]');
         button.disabled = true; button.textContent = 'Updating...';
-        const formData = new FormData(form);
-        const data = Object.fromEntries(formData.entries());
+        const data = Object.fromEntries(new FormData(e.target).entries());
         const resellerId = data.id;
         if (!data.password) delete data.password;
         const result = await api.put(`/api/admin/resellers/${resellerId}`, data);
         if (result.success) {
-            alert('Reseller updated successfully!');
             editResellerModal.classList.remove('active');
-            await loadAllData();
-            renderResellers(cachedData.allUsers);
-        } else { alert(`Error: ${result.message}`); }
-        button.disabled = false; button.textContent = 'Update Reseller';
+            loadAllData(true).then(() => {
+                setActiveCard('resellers');
+                renderResellers(cachedData.allUsers);
+            });
+        } else { 
+            alert(`Error: ${result.message}`);
+            button.disabled = false; button.textContent = 'Update Reseller';
+        }
     });
     
     userSearchInput.addEventListener('input', () => {
@@ -304,14 +463,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     logoutBtn.addEventListener('click', logout);
-    modalCloseBtn.addEventListener('click', () => imageModal.classList.remove('active'));
-    imageModal.addEventListener('click', (e) => { if (e.target === imageModal) imageModal.classList.remove('active'); });
-    editModalCloseBtn.addEventListener('click', () => editResellerModal.classList.remove('active'));
-    editResellerModal.addEventListener('click', (e) => { if (e.target === editResellerModal) editResellerModal.classList.remove('active'); });
 
     Object.keys(cards).forEach(key => {
         if (cards[key]) {
-            cards[key].addEventListener('click', () => {
+            cards[key].addEventListener('click', async () => {
                 setActiveCard(key);
                 switch (key) {
                     case 'pending': renderPendingOrders(cachedData.pendingOrders); break;
@@ -319,11 +474,53 @@ document.addEventListener('DOMContentLoaded', () => {
                     case 'rejected': renderOrderHistory(cachedData.allOrders, 'rejected'); break;
                     case 'users': renderUsers(cachedData.allUsers); break;
                     case 'resellers': renderResellers(cachedData.allUsers); break;
+                    case 'unconfirmed': 
+                        const res = await api.get('/api/admin/unconfirmed-orders');
+                        if(res.success) renderUnconfirmedOrders(res.data);
+                        break;
+                    case 'connections':
+                        const inboundsRes = await api.get('/api/admin/inbounds');
+                        if (inboundsRes.success) renderConnectionsView(inboundsRes.data);
+                        break;
+                    case 'reports': renderReportsView(); break;
                 }
             });
         }
     });
+
+    manualReloadBtn.addEventListener('click', () => loadAllData(true));
+    autoReloadCheckbox.addEventListener('change', (e) => {
+        if (e.target.checked) {
+            if (autoReloadInterval) clearInterval(autoReloadInterval);
+            autoReloadInterval = setInterval(() => loadAllData(true), 30000);
+        } else {
+            clearInterval(autoReloadInterval);
+        }
+    });
+
+    settingsBtn.addEventListener('click', async () => {
+        const result = await api.get('/api/admin/settings');
+        if (result.success) {
+            renderSettings(result.data);
+            settingsModal.classList.add('active');
+        }
+    });
     
+    document.getElementById('save-settings-btn')?.addEventListener('click', async () => {
+        const checkboxes = settingsModal.querySelectorAll('input[type="checkbox"]');
+        const settingsPayload = Array.from(checkboxes).map(cb => ({ key: cb.name, value: cb.checked }));
+        await api.post('/api/admin/settings', { settings: settingsPayload });
+        settingsModal.classList.remove('active');
+    });
+
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal || e.target.closest('.modal-close-btn')) {
+                modal.classList.remove('active');
+            }
+        });
+    });
+
     // --- Initial Load ---
     loadAllData();
 });

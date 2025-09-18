@@ -15,9 +15,23 @@ router.post("/reject-order/:orderId", authenticateAdmin, adminController.rejectO
 // User management routes
 router.delete("/ban-user", authenticateAdmin, adminController.banUser);
 
-// --- ADD THE NEW RESELLER ROUTE HERE ---
+// Reseller management routes
 router.post("/resellers", authenticateAdmin, adminController.createReseller);
-
 router.put("/resellers/:resellerId", authenticateAdmin, adminController.updateReseller);
+
+// V2Ray Inbounds route
+router.get("/inbounds", authenticateAdmin, adminController.getInboundsWithClients);
+
+// Auto-approval management routes
+router.get("/unconfirmed-orders", authenticateAdmin, adminController.getUnconfirmedOrders);
+router.post("/orders/:orderId/confirm", authenticateAdmin, adminController.confirmAutoApprovedOrder);
+router.post("/orders/:orderId/reject-auto", authenticateAdmin, adminController.rejectAutoApprovedOrder);
+
+// Settings routes
+router.get("/settings", authenticateAdmin, adminController.getAppSettings);
+router.post("/settings", authenticateAdmin, adminController.updateAppSettings);
+
+// Reporting routes
+router.get("/reports/summary", authenticateAdmin, adminController.getSalesSummary);
 
 module.exports = router;

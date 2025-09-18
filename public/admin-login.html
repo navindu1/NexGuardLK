@@ -27,6 +27,14 @@
                 <input type="password" id="password" class="form-input pr-10" required placeholder="Admin Password">
                 <i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="password-toggle"></i>
             </div>
+            
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <input id="remember-me" name="remember-me" type="checkbox" class="h-4 w-4 rounded border-gray-500 bg-gray-700 text-purple-600 focus:ring-purple-600">
+                    <label for="remember-me" class="ml-2 block text-sm text-gray-300">Remember me</label>
+                </div>
+            </div>
+
             <div id="error-message" class="text-red-400 text-sm text-center min-h-[20px]"></div>
             <button type="submit" class="w-full py-2.5 font-semibold text-white rounded-lg ai-button">Login</button>
         </form>
@@ -39,7 +47,6 @@
         passwordToggle.addEventListener('click', () => {
             const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
             passwordInput.setAttribute('type', type);
-            // Toggle the icon
             passwordToggle.classList.toggle('fa-eye');
             passwordToggle.classList.toggle('fa-eye-slash');
         });
@@ -49,6 +56,7 @@
             e.preventDefault();
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
+            const rememberMe = document.getElementById('remember-me').checked; // <-- Get checkbox value
             const errorDiv = document.getElementById('error-message');
             const submitButton = e.target.querySelector('button');
             errorDiv.textContent = '';
@@ -56,11 +64,10 @@
             submitButton.textContent = 'Logging in...';
 
             try {
-                // CORRECTED API URL HERE
                 const res = await fetch('/api/auth/admin/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
+                    body: JSON.stringify({ username, password, rememberMe }) // <-- Send rememberMe value
                 });
                 const result = await res.json();
                 if (res.ok) {

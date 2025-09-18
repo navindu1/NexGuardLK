@@ -8,6 +8,7 @@ const supabase = require("../config/supabaseClient");
 const transporter = require("../config/mailer");
 const { generateEmailTemplate, generateOtpEmailContent, generatePasswordResetEmailContent } = require("../services/emailService");
 
+// ... (register, verifyOtp, login functions remain the same)
 exports.register = async (req, res) => {
     const { username, email, whatsapp, password } = req.body;
     if (!username || !email || !whatsapp || !password)
@@ -95,7 +96,6 @@ exports.verifyOtp = async (req, res) => {
         
         const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, { expiresIn: "1d" });
         
-        // ===== FIX START: 'newUser' changed to 'user' =====
         const userPayload = {
             id: user.id,
             username: user.username,
@@ -103,7 +103,6 @@ exports.verifyOtp = async (req, res) => {
             whatsapp: user.whatsapp,
             profilePicture: user.profile_picture,
         };
-        // ===== FIX END =====
 
         res.status(201).json({ success: true, message: "Account verified successfully!", token, user: userPayload });
     } catch (error) {
@@ -153,8 +152,9 @@ exports.login = async (req, res) => {
     }
 };
 
+
 exports.adminLogin = async (req, res) => {
-    const { username, password } = req.body;
+    const { username, password, rememberMe } = req.body; // <-- rememberMe added
     try {
         const { data: adminUser, error } = await supabase
             .from("users")
@@ -170,10 +170,11 @@ exports.adminLogin = async (req, res) => {
         const isPasswordValid = bcrypt.compareSync(password, adminUser.password);
 
         if (isPasswordValid) {
+            const expiresIn = rememberMe ? "30d" : "8h"; // <-- Set expiry based on rememberMe
             const token = jwt.sign(
                 { id: adminUser.id, username: adminUser.username, role: "admin" },
                 process.env.JWT_SECRET,
-                { expiresIn: "8h" }
+                { expiresIn }
             );
             res.json({ success: true, token });
         } else {
@@ -185,6 +186,7 @@ exports.adminLogin = async (req, res) => {
     }
 };
 
+// ... (resellerLogin, forgotPassword, resetPassword functions remain the same)
 exports.resellerLogin = async (req, res) => {
     const { username, password } = req.body;
     try {
@@ -216,9 +218,6 @@ exports.resellerLogin = async (req, res) => {
         res.status(500).json({ success: false, message: "An internal server error occurred." });
     }
 };
-
-// REPLACE the entire exports.forgotPassword function with this new version
-
 exports.forgotPassword = async (req, res) => {
     const { email } = req.body;
     if (!email) {
@@ -227,12 +226,10 @@ exports.forgotPassword = async (req, res) => {
 
     const { data: user } = await supabase.from("users").select("id, username, email").eq("email", email).single();
 
-    // FIX: Check if the user exists. If not, return a 404 error.
     if (!user) {
         return res.status(404).json({ success: false, message: "No account is associated with this email address." });
     }
 
-    // If user exists, proceed to send the email
     const token = crypto.randomBytes(32).toString("hex");
     const expiry = new Date(Date.now() + 3600000); // 1 hour
 
