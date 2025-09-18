@@ -589,7 +589,6 @@ document.addEventListener('DOMContentLoaded', () => {
             cards[key].addEventListener('click', async () => {
                 setActiveCard(key);
                 try {
-                    // Show a loading spinner for API-dependent views
                     if (['unconfirmed', 'connections', 'reports'].includes(key)) {
                         contentContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-purple-400"></i></div>`;
                     }
@@ -624,8 +623,66 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+     document.body.addEventListener('submit', async (e) => {
+        if (e.target.id === 'add-reseller-form' || e.target.id === 'add-connection-form' || e.target.id === 'edit-reseller-form') {
+            e.preventDefault();
+            const form = e.target;
+            const button = form.querySelector('button[type="submit"]');
+            button.disabled = true;
+
+            const data = Object.fromEntries(new FormData(form).entries());
+
+            try {
+                let result;
+                if (form.id === 'add-reseller-form') {
+                    button.textContent = 'Adding...';
+                    result = await api.post('/api/admin/resellers', data);
+                    if (result.success) {
+                        form.reset();
+                        await loadAllData(true);
+                        renderResellers(cachedData.allUsers);
+                    }
+                } else if (form.id === 'add-connection-form') {
+                    button.textContent = 'Adding...';
+                    result = await api.post('/api/admin/connections', data);
+                     if (result.success) {
+                        form.reset();
+                        const connResult = await api.get('/api/admin/connections');
+                        if (connResult.success) {
+                            cachedData.connections = connResult.data;
+                            document.getElementById('tab-connections').innerHTML = renderConnectionSettings(cachedData.connections);
+                        }
+                    }
+                } else if (form.id === 'edit-reseller-form') {
+                    button.textContent = 'Updating...';
+                    const resellerId = data.id;
+                    if (!data.password) delete data.password;
+                    result = await api.put(`/api/admin/resellers/${resellerId}`, data);
+                    if (result.success) {
+                        editResellerModal.classList.remove('active');
+                        await loadAllData(true);
+                        renderResellers(cachedData.allUsers);
+                    }
+                }
+                
+                if (!result.success) throw new Error(result.message);
+
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            } finally {
+                button.disabled = false;
+                // Reset button text based on form id
+                if (form.id === 'add-reseller-form') button.textContent = 'Add Reseller';
+                if (form.id === 'add-connection-form') button.textContent = 'Add Connection';
+                if (form.id === 'edit-reseller-form') button.textContent = 'Update Reseller';
+            }
+        }
+    });
+    
+
     manualReloadBtn.addEventListener('click', () => loadAllData(true));
     autoReloadCheckbox.addEventListener('change', (e) => {
+        localStorage.setItem('autoReloadEnabled', e.target.checked);
         if (e.target.checked) {
             if (autoReloadInterval) clearInterval(autoReloadInterval);
             autoReloadInterval = setInterval(() => loadAllData(true), 30000);
@@ -634,6 +691,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    const initializeAutoReload = () => {
+        const isEnabled = localStorage.getItem('autoReloadEnabled') === 'true';
+        autoReloadCheckbox.checked = isEnabled;
+        if (isEnabled) {
+            if (autoReloadInterval) clearInterval(autoReloadInterval);
+            autoReloadInterval = setInterval(() => loadAllData(true), 30000);
+        }
+    };
+    
     settingsBtn.addEventListener('click', async () => {
         const [settingsResult, connectionsResult] = await Promise.all([
             api.get('/api/admin/settings'),
