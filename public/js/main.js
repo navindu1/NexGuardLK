@@ -608,42 +608,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function renderConnectionsPage(renderFunc, params) {
         const planId = params.get("planId");
-        let connectionsHtml = "";
-
-        // appData.plans[planId] is the correct way to check if the plan exists.
-        // It's already correctly implemented in the user's provided code.
         if (!planId || !appData.plans[planId]) {
-            connectionsHtml =
-                '<div class="text-red-400 text-center col-span-full"><p class="font-semibold">Invalid plan. Please go back.</p><a href="/plans" class="nav-link-internal underline mt-2 inline-block"><i class="fa-solid fa-arrow-left mr-2"></i>Back to Plans</a></div>';
-        } else {
-            if (dynamicConnections.length > 0) {
-                 connectionsHtml = dynamicConnections.map(conn => {
-                    return `<a href="/checkout?planId=${planId}&connId=${encodeURIComponent(conn.name)}" class="nav-link-internal card reveal selectable glass-panel p-5 rounded-xl text-center flex flex-col items-center justify-center">
-                        <i class="fa-solid fa-wifi text-3xl gradient-text mb-3"></i>
-                        <h3 class="text-lg font-bold text-white mb-2">${conn.name}</h3>
-                    </a>`;
-                }).join("");
-            } else {
-                 connectionsHtml = '<div class="text-amber-400 text-center col-span-full"><p>No connection types are currently available. Please check back later.</p></div>';
-            }
-            connectionsHtml = Object.entries(appData.connections)
-                .map(([key, conn]) => {
-                    const destination = conn.requiresPackageChoice ?
-                        `/package-choice?planId=${planId}&connId=${key}` :
-                        `/checkout?planId=${planId}&connId=${key}`;
-                    const packageInfo = Array.isArray(conn.requiredPackage) ?
-                        conn.requiredPackage[0] + " or..." :
-                        conn.requiredPackage;
-
-                    return `<a href="${destination}" class="nav-link-internal card reveal selectable glass-panel p-5 rounded-xl text-center flex flex-col items-center justify-center">
-                        <i class="${conn.icon} text-3xl gradient-text mb-3"></i>
-                        <h3 class="text-lg font-bold text-white mb-2">${conn.name}</h3>
-                        <div class="text-xs bg-purple-900/50 text-purple-300 rounded-full px-3 py-1">Required:</div>
-                        <p class="text-sm text-gray-300 mt-2">${packageInfo}</p>
-                    </a>`;
-                })
-                .join("");
+            renderFunc('<div class="page text-center"><p class="text-red-400">Invalid plan selection.</p><a href="/plans" class="nav-link-internal underline mt-2">Go back to plans</a></div>');
+            return;
         }
+        
+        let connectionsHtml = dynamicConnections.length > 0
+            ? dynamicConnections.map(conn => {
+                return `<a href="/checkout?planId=${planId}&connId=${encodeURIComponent(conn.name)}" class="nav-link-internal card reveal selectable glass-panel p-5 rounded-xl text-center flex flex-col items-center justify-center">
+                            <i class="fa-solid fa-wifi text-3xl gradient-text mb-3"></i>
+                            <h3 class="text-lg font-bold text-white mb-2">${conn.name}</h3>
+                        </a>`;
+            }).join("")
+            : '<div class="text-amber-400 text-center col-span-full"><p>No connection types are currently available. Please check back later.</p></div>';
 
         renderFunc(`
             <div id="page-connections" class="page">
@@ -777,37 +754,20 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        const planId = params.get("planId"),
-            connId = params.get("connId"),
-            pkg = params.get("pkg");
-        const plan = appData.plans[planId],
-            conn = appData.connections[connId];
+        const planId = params.get("planId");
+        const connId = decodeURIComponent(params.get("connId")); // Decode the connection name
+        const plan = appData.plans[planId];
+        const conn = dynamicConnections.find(c => c.name === connId);
 
         const userToRenew = params.get("renew");
         const isRenewal = !!userToRenew;
 
         let summaryHtml;
         if (plan && conn) {
-            let summary = `You are purchasing the <strong class="text-purple-400">${plan.name}</strong> for <strong class="text-purple-400">${conn.name}</strong>.`;
-            const selectedPackage = pkg ? decodeURIComponent(pkg) : null;
-            let packageInfoText = '';
-            if (selectedPackage) {
-                packageInfoText = `With the <strong class="text-amber-400">${selectedPackage}</strong> add-on.`;
-            } else if (conn.requiredPackage && typeof conn.requiredPackage === 'string') {
-                const requiredPkg = conn.requiredPackage;
-                if (requiredPkg.toLowerCase().includes('required')) {
-                    packageInfoText = `Please note: <strong class="text-amber-400">${requiredPkg}</strong>.`;
-                } else {
-                    packageInfoText = `With the <strong class="text-amber-400">${requiredPkg}</strong> package.`;
-                }
-            }
-            if (packageInfoText) {
-                summary += `<br>${packageInfoText}`;
-            }
+            summaryHtml = `You are purchasing the <strong class="text-purple-400">${plan.name}</strong> for <strong class="text-purple-400">${conn.name}</strong>.`;
             if (isRenewal) {
-                summary += `<br>You are renewing for V2Ray user: <strong class="text-purple-400">${userToRenew}</strong>.`;
+                summaryHtml += `<br>You are renewing for V2Ray user: <strong class="text-purple-400">${userToRenew}</strong>.`;
             }
-            summaryHtml = summary;
         } else {
             summaryHtml = `<p class="text-red-400">Invalid selection. Please <a href="/plans" class="nav-link-internal underline">start over</a>.</p>`;
         }
@@ -1071,8 +1031,8 @@ const baseHtml = `<div id="page-profile" class="page space-y-8"><div class="flex
                     const plan = data.activePlans[planIndex];
                     if (!plan) return;
 
-                    const planName = appData.plans[plan.planId]?.name || plan.planId;
-                    const connectionName = appData.connections[plan.connId]?.name || plan.connId;
+                    const connection = dynamicConnections.find(c => c.name === plan.connId);
+                        const connectionName = connection ? connection.name : (plan.connId || 'N/A');
                     document.getElementById("plan-info-container").innerHTML = `<span class="bg-purple-500/10 text-purple-300 px-2 py-1 rounded-full"><i class="fa-solid fa-rocket fa-fw mr-2"></i>${planName}</span><span class="bg-indigo-500/10 text-indigo-300 px-2 py-1 rounded-full"><i class="fa-solid fa-wifi fa-fw mr-2"></i>${connectionName}</span>`;
                     
                     const settingsHtml = `
