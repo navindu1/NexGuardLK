@@ -21,6 +21,11 @@ app.use(express.static(path.join(process.cwd(), "public")));
 const apiRoutes = require("./src/routes");
 app.use("/api", apiRoutes);
 
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+
 // --- Custom Page Routes ---
 app.get("/admin/login", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "admin-login.html"));
