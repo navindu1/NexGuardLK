@@ -159,7 +159,6 @@ document.addEventListener("DOMContentLoaded", () => {
             </tbody></table></div>`;
     }
 
-    // ++++++++++ START: UPDATED RENDER CONNECTIONS FUNCTION ++++++++++
     function renderConnections() {
         currentView = 'connections';
         contentTitle.textContent = `Connections & Packages`;
@@ -176,7 +175,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         contentContainer.innerHTML = connections.map((conn, index) => {
             const isMultiPackage = conn.requires_package_choice;
-            const isCollapsed = index > 0; // Collapse all except the first one
+            const isCollapsed = index > 0;
 
             const headerHtml = `
                 <div class="connection-header ${isCollapsed ? 'collapsed' : ''}" data-collapsible-target="conn-body-${conn.id}">
@@ -245,7 +244,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         }).join('');
     }
-    // ++++++++++ END: UPDATED RENDER CONNECTIONS FUNCTION ++++++++++
     
     function renderPlans() {
         currentView = 'plans';
@@ -294,20 +292,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // --- FORM RENDERING ---
     function showConnectionForm(conn = {}) {
-        formModalTitle.textContent = conn.id ? 'Edit Connection' : 'Create New Connection';
+        const isEditing = !!conn.id;
+        formModalTitle.textContent = isEditing ? 'Edit Connection' : 'Create New Connection';
+        
         formModalContent.innerHTML = `
             <input type="hidden" name="id" value="${conn.id || ''}">
             <input type="text" name="name" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" placeholder="Connection Name (e.g., Dialog 4G)" value="${conn.name || ''}" required>
             <input type="text" name="icon" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" placeholder="FontAwesome Icon (e.g., fa-solid fa-wifi)" value="${conn.icon || ''}" required>
             <div class="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg">
                 <label for="requires_package_choice" class="font-medium text-slate-200">Requires Multiple Packages?</label>
-                <div class="relative inline-block w-10 align-middle select-none"><input type="checkbox" id="requires_package_choice" name="requires_package_choice" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" ${conn.requires_package_choice ? 'checked' : ''}/><label for="requires_package_choice" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label></div>
+                <div class="relative inline-block w-10 align-middle select-none">
+                    <input type="checkbox" id="requires_package_choice" name="requires_package_choice" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" ${conn.requires_package_choice ? 'checked' : ''}/>
+                    <label for="requires_package_choice" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
+                </div>
             </div>
             <div id="single-package-fields" class="${conn.requires_package_choice ? 'hidden' : ''} space-y-4">
                 <input type="text" name="default_package" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" placeholder="Default Package Name (Optional)" value="${conn.default_package || ''}">
                 <input type="number" name="default_inbound_id" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" placeholder="Default Inbound ID" value="${conn.default_inbound_id || ''}">
                 <textarea name="default_vless_template" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" rows="3" placeholder="Default VLESS Template">${conn.default_vless_template || ''}</textarea>
             </div>`;
+            
         formModal.dataset.formType = 'connection';
         formModal.classList.add('active');
         document.getElementById('requires_package_choice').addEventListener('change', e => document.getElementById('single-package-fields').classList.toggle('hidden', e.target.checked));
@@ -370,54 +374,64 @@ document.addEventListener("DOMContentLoaded", () => {
         if (type === 'plan') showPlanForm();
     });
 
-    // නව, නිවැරදි කරන ලද කේතය (මෙය ඇතුළත් කරන්න)
-
-// ++++++++++ START: CORRECTED EVENT LISTENER ++++++++++
-contentContainer.addEventListener('click', async e => {
-    const button = e.target.closest('button');
-    const header = e.target.closest('[data-collapsible-target]');
-
-    // PRIORITY 1: Handle BUTTON clicks first.
-    if (button) {
-        const id = button.dataset.id ? parseInt(button.dataset.id, 10) : null;
-        const connId = button.dataset.connId ? parseInt(button.dataset.connId, 10) : null;
-
-        if (button.classList.contains('view-receipt-btn')) { modalImage.src = button.dataset.url; imageModal.classList.add('active'); }
-        else if (button.classList.contains('approve-btn')) await handleAction(`/orders/approve`, { orderId: id }, 'Approving...', 'Order Approved', 'POST', button);
-        else if (button.classList.contains('reject-btn')) await handleAction(`/orders/reject`, { orderId: id }, 'Rejecting...', 'Order Rejected', 'POST', button);
-        else if (button.classList.contains('edit-conn-btn')) showConnectionForm(dataCache.connections.find(c => c.id === id));
-        else if (button.classList.contains('delete-conn-btn')) if(confirm('SURE? This deletes connection & ALL its packages.')) await handleAction(`/connections/${id}`, null, 'Deleting...', 'Connection Deleted', 'DELETE', button);
-        else if (button.classList.contains('add-pkg-btn')) showPackageForm({}, id);
-        else if (button.classList.contains('edit-pkg-btn')) {
-            const conn = dataCache.connections.find(c => c.id === connId);
-            if (conn) {
-                const pkg = conn.packages.find(p => p.id === id);
-                if (pkg) {
-                    showPackageForm(pkg, connId);
+    // ++++++++++ START: CORRECTED EVENT LISTENER ++++++++++
+    contentContainer.addEventListener('click', async e => {
+        const button = e.target.closest('button');
+        const header = e.target.closest('[data-collapsible-target]');
+    
+        // PRIORITY 1: Handle BUTTON clicks first.
+        if (button) {
+            // Get IDs from data attributes. Use loose comparison (==) to avoid string/number issues.
+            const id = button.dataset.id;
+            const connId = button.dataset.connId;
+    
+            if (button.classList.contains('view-receipt-btn')) { modalImage.src = button.dataset.url; imageModal.classList.add('active'); }
+            else if (button.classList.contains('approve-btn')) await handleAction(`/orders/approve`, { orderId: id }, 'Approving...', 'Order Approved', 'POST', button);
+            else if (button.classList.contains('reject-btn')) await handleAction(`/orders/reject`, { orderId: id }, 'Rejecting...', 'Order Rejected', 'POST', button);
+            else if (button.classList.contains('edit-conn-btn')) {
+                const connToEdit = dataCache.connections.find(c => c.id == id); // Use == for comparison
+                if (connToEdit) {
+                    showConnectionForm(connToEdit);
+                } else {
+                    console.error(`Connection with ID ${id} not found in cache.`);
                 }
             }
+            else if (button.classList.contains('delete-conn-btn')) if(confirm('SURE? This deletes connection & ALL its packages.')) await handleAction(`/connections/${id}`, null, 'Deleting...', 'Connection Deleted', 'DELETE', button);
+            else if (button.classList.contains('add-pkg-btn')) showPackageForm({}, id);
+            else if (button.classList.contains('edit-pkg-btn')) {
+                const conn = dataCache.connections.find(c => c.id == connId); // Use == for comparison
+                if (conn) {
+                    const pkg = conn.packages.find(p => p.id == id); // Use == for comparison
+                    if (pkg) {
+                        showPackageForm(pkg, connId);
+                    } else {
+                        console.error(`Package with ID ${id} not found in connection ${connId}.`);
+                    }
+                } else {
+                    console.error(`Connection with ID ${connId} for package not found.`);
+                }
+            }
+            else if (button.classList.contains('delete-pkg-btn')) if(confirm('Delete this package?')) await handleAction(`/packages/${id}`, null, 'Deleting...', 'Package Deleted', 'DELETE', button);
+            else if (button.classList.contains('delete-plan-btn')) if(confirm('Delete this plan?')) await handleAction(`/plans/${id}`, null, 'Deleting...', 'Plan Deleted', 'DELETE', button);
+            else if (button.classList.contains('add-credit-btn')) {
+                const amount = prompt(`Add credit for ${button.dataset.username}:`);
+                if (amount && !isNaN(parseFloat(amount))) await handleAction(`/users/credit`, { userId: id, amount: parseFloat(amount) }, 'Adding Credit...', 'Credit Added', 'POST', button);
+            }
+            return; // Stop after a button action is handled.
         }
-        else if (button.classList.contains('delete-pkg-btn')) if(confirm('Delete this package?')) await handleAction(`/packages/${id}`, null, 'Deleting...', 'Package Deleted', 'DELETE', button);
-        else if (button.classList.contains('delete-plan-btn')) if(confirm('Delete this plan?')) await handleAction(`/plans/${id}`, null, 'Deleting...', 'Plan Deleted', 'DELETE', button);
-        else if (button.classList.contains('add-credit-btn')) {
-            const amount = prompt(`Add credit for ${button.dataset.username}:`);
-            if (amount && !isNaN(parseFloat(amount))) await handleAction(`/users/credit`, { userId: id, amount: parseFloat(amount) }, 'Adding Credit...', 'Credit Added', 'POST', button);
+    
+        // PRIORITY 2: If no button was clicked, handle the header click for collapsing.
+        if (header) {
+            const targetId = header.dataset.collapsibleTarget;
+            const targetBody = document.getElementById(targetId);
+            if (targetBody) {
+                header.classList.toggle('collapsed');
+                targetBody.classList.toggle('expanded');
+            }
         }
-        return; // Stop after a button action is handled.
-    }
-
-    // PRIORITY 2: If no button was clicked, handle the header click for collapsing.
-    if (header) {
-        const targetId = header.dataset.collapsibleTarget;
-        const targetBody = document.getElementById(targetId);
-        if (targetBody) {
-            header.classList.toggle('collapsed');
-            targetBody.classList.toggle('expanded');
-        }
-    }
-});
-// ++++++++++ END: CORRECTED EVENT LISTENER ++++++++++
-
+    });
+    // ++++++++++ END: CORRECTED EVENT LISTENER ++++++++++
+    
     formModalSaveBtn.addEventListener('click', (e) => {
         const form = e.target.closest('.modal').querySelector('#form-modal-content');
         const formData = new FormData(form);
@@ -491,3 +505,4 @@ contentContainer.addEventListener('click', async e => {
     setActiveCard(document.getElementById(`card-${currentView}`));
     loadDataAndRender(currentView);
 });
+
