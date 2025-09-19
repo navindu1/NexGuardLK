@@ -232,3 +232,25 @@ exports.updateSettings = async (req, res) => {
     }
 };
 
+module.exports = {
+    getDashboardStats,
+    getOrders,
+    approveOrder,
+    rejectOrder,
+    getUsers,
+    updateUserCredit,
+    getResellers,
+    getConnectionsAndPackages,
+    createConnection,
+    updateConnection,
+    deleteConnection,
+    createPackage,
+    updatePackage,
+    deletePackage,
+    getPlans,
+    createPlan,
+    deletePlan,
+    getSettings,
+    updateSettings,
+    getV2rayInbounds, // <-- මෙම ශ්‍රිතය මෙතනට එකතු කරන්න
+};
