@@ -48,7 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // This part will only run if it's NOT the login page.
     
     // 1. Basic Setup & Authentication
-    const token = localStorage.getItem('adminToken');
+    const token = localStorage.getItem('nexguard_admin_token');
     if (!token) {
         window.location.href = '/admin/login';
         return;
