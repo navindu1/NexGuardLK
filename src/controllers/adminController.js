@@ -1,6 +1,8 @@
 const supabase = require('../config/supabaseClient');
 const { approveOrder: approveOrderService } = require('../services/orderService');
 const v2rayService = require('../services/v2rayService');
+const transporter = require('../config/mailer');
+const { generateEmailTemplate, generateRejectionEmailContent } = require('../services/emailService');
 
 // --- 1. DASHBOARD & STATS ---
 const getDashboardStats = async (req, res) => {
@@ -44,13 +46,47 @@ const approveOrder = async (req, res) => {
     }
 };
 
+// **** REPLACE THE OLD rejectOrder FUNCTION WITH THIS NEW ONE ****
 const rejectOrder = async (req, res) => {
     try {
         const { orderId } = req.body;
-        const { error } = await supabase.from('orders').update({ status: 'rejected' }).eq('id', orderId);
-        if (error) throw error;
-        res.json({ success: true, message: 'Order rejected successfully.' });
+
+        // Step 1: Update the order status to 'rejected' and fetch the updated order.
+        const { data: rejectedOrder, error: updateError } = await supabase
+            .from('orders')
+            .update({ status: 'rejected' })
+            .eq('id', orderId)
+            .select()
+            .single();
+
+        if (updateError) throw updateError;
+        if (!rejectedOrder) return res.status(404).json({ success: false, message: 'Order not found.' });
+
+        // Step 2: Find the user to send the email to.
+        const { data: websiteUser } = await supabase
+            .from("users")
+            .select("email, username")
+            .eq("username", rejectedOrder.website_username)
+            .single();
+
+        // Step 3: If the user and email exist, send the rejection email.
+        if (websiteUser && websiteUser.email) {
+            const mailOptions = {
+                from: `NexGuard Orders <${process.env.EMAIL_SENDER}>`,
+                to: websiteUser.email,
+                subject: "Important Update Regarding Your NexGuard Order",
+                html: generateEmailTemplate(
+                    "Your Order Has Been Rejected",
+                    `Unfortunately, your order for the ${rejectedOrder.plan_id} plan could not be approved.`,
+                    generateRejectionEmailContent(websiteUser.username, rejectedOrder.plan_id, rejectedOrder.id)
+                ),
+            };
+            transporter.sendMail(mailOptions).catch(err => console.error(`FAILED to send rejection email:`, err));
+        }
+
+        res.json({ success: true, message: 'Order rejected successfully and user notified.' });
     } catch (error) {
+        console.error("Error rejecting order:", error);
         res.status(500).json({ success: false, message: 'Failed to reject order.' });
     }
 };
@@ -236,8 +272,6 @@ const getResellers = (req, res) => {
     res.json({ success: true, data: [] });
 };
 
-// --- THIS IS THE MOST IMPORTANT PART ---
-// --- MAKE SURE THIS EXPORT BLOCK IS AT THE VERY END OF THE FILE ---
 module.exports = {
     getDashboardStats,
     getOrders,
@@ -245,7 +279,7 @@ module.exports = {
     rejectOrder,
     getUsers,
     updateUserCredit,
-    getResellers, // Added getResellers here
+    getResellers,
     getConnectionsAndPackages,
     createConnection,
     updateConnection,

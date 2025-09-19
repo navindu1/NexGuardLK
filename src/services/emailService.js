@@ -58,6 +58,7 @@ exports.generateEmailTemplate = (title, preheader, content) => `
     </div>
 </body>
 </html>`;
+
 exports.generateOtpEmailContent = (otp) => `
 <p style="font-size: 16px; line-height: 24px; margin: 0 0 16px; color: #c7d2fe;">Your One-Time Password (OTP) for your NexGuard account is ready. Use the code below to complete your verification:</p>
 <div style="background-color: #1e1b4b; border-radius: 8px; padding: 20px; text-align: center; margin: 24px 0;">
@@ -65,6 +66,7 @@ exports.generateOtpEmailContent = (otp) => `
     <p style="font-family: 'Orbitron', sans-serif; font-size: 36px; font-weight: 900; letter-spacing: 4px; margin: 8px 0 0 0; color: #ffffff; line-height: 1.2;">${otp}</p>
 </div>
 <p style="font-size: 14px; line-height: 20px; margin: 0; color: #9ca3af;">This code is valid for 10 minutes. If you did not request this, you can safely ignore this email.</p>`;
+
 exports.generateApprovalEmailContent = (username, planId, finalUsername) => `
 <p style="font-size: 16px; line-height: 24px; margin: 0 0 16px; color: #c7d2fe;">Congratulations, <strong>${username}</strong>! Your NexGuard plan has been approved and is now active.</p>
 <div style="background-color: #1e1b4b; border-radius: 8px; padding: 24px; margin: 24px 0; border-left: 4px solid #4ade80;">
@@ -84,6 +86,7 @@ exports.generateApprovalEmailContent = (username, planId, finalUsername) => `
 <div style="text-align: center; margin-top: 24px;">
     <a href="${FRONTEND_URL}/profile" target="_blank" style="background: linear-gradient(90deg, #818cf8, #a78bfa, #f472b6); color: #ffffff; padding: 14px 24px; font-size: 16px; font-weight: bold; text-decoration: none; border-radius: 8px; display: inline-block; font-family: 'Orbitron', sans-serif;">Go to My Profile</a>
 </div>`;
+
 exports.generateOrderPlacedEmailContent = (username, planId) => `
 <p style="font-size: 16px; line-height: 24px; margin: 0 0 16px; color: #c7d2fe;">Hello, <strong>${username}</strong>!</p>
 <p style="font-size: 16px; line-height: 24px; margin: 0 0 24px; color: #c7d2fe;">We have successfully received your order for the <strong>${planId}</strong> plan. It is now pending approval from our administrators.</p>
@@ -91,8 +94,9 @@ exports.generateOrderPlacedEmailContent = (username, planId) => `
     <p style="margin: 0; font-size: 16px; color: #e0e0e0;">You will receive another email once your plan is activated. You can check the status of your order at any time on your profile page.</p>
 </div>
 <div style="text-align: center; margin-top: 24px;">
-    <a href="${FRONTEND_URL}/profile?tab=my-orders" target="_blank" style="background: linear-gradient(90deg, #818cf8, #a78bfa, #f472b6); color: #ffffff; padding: 14px 24px; font-size: 16px; font-weight: bold; text-decoration: none; border-radius: 8px; display: inline-block; font-family: 'Orbitron', sans-serif;">Check Order Status</a>
+    <a href="${FRONTEND_URL}/profile?tab=orders" target="_blank" style="background: linear-gradient(90deg, #818cf8, #a78bfa, #f472b6); color: #ffffff; padding: 14px 24px; font-size: 16px; font-weight: bold; text-decoration: none; border-radius: 8px; display: inline-block; font-family: 'Orbitron', sans-serif;">Check Order Status</a>
 </div>`;
+
 exports.generatePasswordResetEmailContent = (username, resetLink) => `
 <p style="font-size: 16px; line-height: 24px; margin: 0 0 16px; color: #c7d2fe;">Hello, <strong>${username}</strong>!</p>
 <p style="font-size: 16px; line-height: 24px; margin: 0 0 24px; color: #c7d2fe;">We received a request to reset your password. Click the button below to set a new one. If you did not make this request, please ignore this email.</p>
@@ -100,3 +104,14 @@ exports.generatePasswordResetEmailContent = (username, resetLink) => `
     <a href="${resetLink}" target="_blank" style="background: linear-gradient(90deg, #818cf8, #a78bfa, #f472b6); color: #ffffff; padding: 14px 24px; font-size: 16px; font-weight: bold; text-decoration: none; border-radius: 8px; display: inline-block; font-family: 'Orbitron', sans-serif;">Reset Your Password</a>
 </div>
 <p style="font-size: 14px; line-height: 20px; margin: 24px 0 0; color: #9ca3af;">This password reset link is valid for 1 hour.</p>`;
+
+// **** ADD THIS NEW FUNCTION AT THE END OF THE FILE ****
+exports.generateRejectionEmailContent = (username, planId, orderId) => `
+<p style="font-size: 16px; line-height: 24px; margin: 0 0 16px; color: #c7d2fe;">Hello, <strong>${username}</strong>,</p>
+<p style="font-size: 16px; line-height: 24px; margin: 0 0 24px; color: #c7d2fe;">We regret to inform you that your order for the <strong>${planId}</strong> plan has been rejected.</p>
+<div style="background-color: #1e1b4b; border-radius: 8px; padding: 24px; margin: 24px 0; border-left: 4px solid #ef4444;">
+    <p style="margin: 0; font-size: 16px; color: #e0e0e0;">This could be due to an issue with the payment receipt or other order details. Please contact our support team via WhatsApp for further clarification.</p>
+    <p style="margin: 16px 0 0; font-size: 14px; color: #9ca3af;">Your Order ID: ${orderId}</p>
+</div>
+<p style="font-size: 16px; line-height: 24px; margin: 24px 0 0; color: #c7d2fe;">We apologize for any inconvenience this may cause.</p>
+`;

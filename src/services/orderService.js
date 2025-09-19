@@ -4,13 +4,14 @@ const supabase = require('../config/supabaseClient');
 const v2rayService = require('./v2rayService');
 const { v4: uuidv4 } = require('uuid');
 const transporter = require('../config/mailer');
-const { generateEmailTemplate, generateApprovalEmailContent } = require('./emailService'); // <-- නිවැරදි කරන ලදී (දැන් ඇත්තේ එක වරක් පමණි)
+const { generateEmailTemplate, generateApprovalEmailContent } = require('./emailService');
 
 const planConfig = {
-    "100GB": { totalGB: 100 }, "200GB": { totalGB: 200 }, "Unlimited": { totalGB: 0 },
+    "100GB": { totalGB: 100 },
+    "200GB": { totalGB: 200 },
+    "300GB": { totalGB: 300 },
+    "Unlimited": { totalGB: 0 },
 };
-
-// src/services/orderService.js
 
 exports.approveOrder = async (orderId, isAutoApproved = false) => {
     let finalUsername = '';
@@ -91,14 +92,12 @@ exports.approveOrder = async (orderId, isAutoApproved = false) => {
             updatedActivePlans.push(newPlanDetails);
         }
         
-        // --- Database operations start here ---
         await supabase.from("users").update({ active_plans: updatedActivePlans }).eq("id", websiteUser.id);
         
         await supabase.from("orders").update({
             status: "approved", final_username: finalUsername, approved_at: new Date().toISOString(), auto_approved: isAutoApproved
         }).eq("id", orderId);
 
-        // --- Send email after all operations are successful ---
         if (websiteUser.email) {
             const mailOptions = { from: `NexGuard Orders <${process.env.EMAIL_SENDER}>`, to: websiteUser.email, subject: `Your NexGuard Plan is ${order.is_renewal ? "Renewed" : "Activated"}!`, html: generateEmailTemplate( `Plan ${order.is_renewal ? "Renewed" : "Activated"}!`, `Your ${order.plan_id} plan is ready.`, generateApprovalEmailContent(websiteUser.username, order.plan_id, finalUsername))};
             transporter.sendMail(mailOptions).catch(error => console.error(`FAILED to send approval email:`, error));
@@ -109,8 +108,6 @@ exports.approveOrder = async (orderId, isAutoApproved = false) => {
     } catch (error) {
         console.error(`Error processing order ${orderId} for user ${finalUsername}:`, error.message, error.stack);
 
-        // !! ROLLBACK LOGIC !!
-        // If a new V2Ray client was created (and it's not a renewal update) and an error occurred afterward
         if (createdV2rayClient && !createdV2rayClient.isRenewal) {
             console.log(`[ROLLBACK] An error occurred after creating V2Ray client ${createdV2rayClient.settings.email}. Attempting to delete client...`);
             try {
@@ -127,12 +124,17 @@ exports.approveOrder = async (orderId, isAutoApproved = false) => {
 
 exports.checkAndApprovePendingOrders = async () => {
     try {
-        const { data: settings, error: settingsError } = await supabase.from('app_settings').select('*');
+        // --- FIX 1: Changed table name from 'app_settings' to 'settings' ---
+        const { data: settings, error: settingsError } = await supabase.from('settings').select('*');
         if (settingsError) throw settingsError;
 
-        const enabledSettings = settings.filter(s => s.setting_value === true).map(s => s.setting_key.replace('auto_approve_', ''));
+        // --- FIX 2: Changed column names to 'key' and 'value' and made check more robust ---
+        const enabledSettings = settings
+            .filter(s => s.key.startsWith('auto_approve_') && (s.value === true || s.value === 'true'))
+            .map(s => s.key.replace('auto_approve_', ''));
 
         if (enabledSettings.length === 0) {
+            // console.log('Auto-Approve Cron: No connections are enabled for auto-approval.');
             return;
         }
 
@@ -157,4 +159,3 @@ exports.checkAndApprovePendingOrders = async () => {
         console.error('Error during auto-approval cron job:', error.message);
     }
 };
-
