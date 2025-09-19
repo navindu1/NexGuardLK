@@ -374,48 +374,70 @@ document.addEventListener("DOMContentLoaded", () => {
         if (type === 'plan') showPlanForm();
     });
 
-    // ++++++++++ START: CORRECTED EVENT LISTENER ++++++++++
+    // ++++++++++ START: FINAL CORRECTED EVENT LISTENER ++++++++++
     contentContainer.addEventListener('click', async e => {
         const button = e.target.closest('button');
         const header = e.target.closest('[data-collapsible-target]');
     
         // PRIORITY 1: Handle BUTTON clicks first.
         if (button) {
-            // Get IDs from data attributes. Use loose comparison (==) to avoid string/number issues.
+            // Get IDs from data attributes. Use loose comparison (==) to handle string/number issues.
             const id = button.dataset.id;
             const connId = button.dataset.connId;
     
-            if (button.classList.contains('view-receipt-btn')) { modalImage.src = button.dataset.url; imageModal.classList.add('active'); }
-            else if (button.classList.contains('approve-btn')) await handleAction(`/orders/approve`, { orderId: id }, 'Approving...', 'Order Approved', 'POST', button);
-            else if (button.classList.contains('reject-btn')) await handleAction(`/orders/reject`, { orderId: id }, 'Rejecting...', 'Order Rejected', 'POST', button);
-            else if (button.classList.contains('edit-conn-btn')) {
-                const connToEdit = dataCache.connections.find(c => c.id == id); // Use == for comparison
-                if (connToEdit) {
-                    showConnectionForm(connToEdit);
-                } else {
-                    console.error(`Connection with ID ${id} not found in cache.`);
-                }
-            }
-            else if (button.classList.contains('delete-conn-btn')) if(confirm('SURE? This deletes connection & ALL its packages.')) await handleAction(`/connections/${id}`, null, 'Deleting...', 'Connection Deleted', 'DELETE', button);
-            else if (button.classList.contains('add-pkg-btn')) showPackageForm({}, id);
-            else if (button.classList.contains('edit-pkg-btn')) {
-                const conn = dataCache.connections.find(c => c.id == connId); // Use == for comparison
-                if (conn) {
-                    const pkg = conn.packages.find(p => p.id == id); // Use == for comparison
-                    if (pkg) {
-                        showPackageForm(pkg, connId);
-                    } else {
-                        console.error(`Package with ID ${id} not found in connection ${connId}.`);
+            switch (true) {
+                case button.classList.contains('view-receipt-btn'):
+                    modalImage.src = button.dataset.url;
+                    imageModal.classList.add('active');
+                    break;
+                case button.classList.contains('approve-btn'):
+                    await handleAction(`/orders/approve`, { orderId: id }, 'Approving...', 'Order Approved', 'POST', button);
+                    break;
+                case button.classList.contains('reject-btn'):
+                    await handleAction(`/orders/reject`, { orderId: id }, 'Rejecting...', 'Order Rejected', 'POST', button);
+                    break;
+                case button.classList.contains('edit-conn-btn'): {
+                    const connToEdit = dataCache.connections.find(c => c.id == id); // Use ==
+                    if (connToEdit) {
+                        showConnectionForm(connToEdit);
                     }
-                } else {
-                    console.error(`Connection with ID ${connId} for package not found.`);
+                    break;
                 }
-            }
-            else if (button.classList.contains('delete-pkg-btn')) if(confirm('Delete this package?')) await handleAction(`/packages/${id}`, null, 'Deleting...', 'Package Deleted', 'DELETE', button);
-            else if (button.classList.contains('delete-plan-btn')) if(confirm('Delete this plan?')) await handleAction(`/plans/${id}`, null, 'Deleting...', 'Plan Deleted', 'DELETE', button);
-            else if (button.classList.contains('add-credit-btn')) {
-                const amount = prompt(`Add credit for ${button.dataset.username}:`);
-                if (amount && !isNaN(parseFloat(amount))) await handleAction(`/users/credit`, { userId: id, amount: parseFloat(amount) }, 'Adding Credit...', 'Credit Added', 'POST', button);
+                case button.classList.contains('delete-conn-btn'):
+                    if(confirm('SURE? This deletes connection & ALL its packages.')) {
+                        await handleAction(`/connections/${id}`, null, 'Deleting...', 'Connection Deleted', 'DELETE', button);
+                    }
+                    break;
+                case button.classList.contains('add-pkg-btn'):
+                    showPackageForm({}, id); // id here is the connection ID
+                    break;
+                case button.classList.contains('edit-pkg-btn'): {
+                    const conn = dataCache.connections.find(c => c.id == connId); // Use ==
+                    if (conn) {
+                        const pkg = conn.packages.find(p => p.id == id); // Use ==
+                        if (pkg) {
+                            showPackageForm(pkg, connId);
+                        }
+                    }
+                    break;
+                }
+                case button.classList.contains('delete-pkg-btn'):
+                    if(confirm('Delete this package?')) {
+                        await handleAction(`/packages/${id}`, null, 'Deleting...', 'Package Deleted', 'DELETE', button);
+                    }
+                    break;
+                case button.classList.contains('delete-plan-btn'):
+                     if(confirm('Delete this plan?')) {
+                        await handleAction(`/plans/${id}`, null, 'Deleting...', 'Plan Deleted', 'DELETE', button);
+                    }
+                    break;
+                case button.classList.contains('add-credit-btn'): {
+                    const amount = prompt(`Add credit for ${button.dataset.username}:`);
+                    if (amount && !isNaN(parseFloat(amount))) {
+                        await handleAction(`/users/credit`, { userId: id, amount: parseFloat(amount) }, 'Adding Credit...', 'Credit Added', 'POST', button);
+                    }
+                    break;
+                }
             }
             return; // Stop after a button action is handled.
         }
@@ -430,7 +452,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
     });
-    // ++++++++++ END: CORRECTED EVENT LISTENER ++++++++++
+    // ++++++++++ END: FINAL CORRECTED EVENT LISTENER ++++++++++
     
     formModalSaveBtn.addEventListener('click', (e) => {
         const form = e.target.closest('.modal').querySelector('#form-modal-content');
@@ -505,4 +527,3 @@ document.addEventListener("DOMContentLoaded", () => {
     setActiveCard(document.getElementById(`card-${currentView}`));
     loadDataAndRender(currentView);
 });
-
