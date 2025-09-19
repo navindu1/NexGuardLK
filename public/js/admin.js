@@ -370,28 +370,18 @@ document.addEventListener("DOMContentLoaded", () => {
         if (type === 'plan') showPlanForm();
     });
 
-    // ++++++++++ START: UPDATED EVENT LISTENER ++++++++++
-    contentContainer.addEventListener('click', async e => {
-        // --- Collapsible Card Logic ---
-        const header = e.target.closest('[data-collapsible-target]');
-        if (header) {
-            if (e.target.closest('button')) return; // Ignore clicks on buttons inside header
-            const targetId = header.dataset.collapsibleTarget;
-            const targetBody = document.getElementById(targetId);
-            if (targetBody) {
-                header.classList.toggle('collapsed');
-                targetBody.classList.toggle('expanded');
-            }
-            return; 
-        }
+    // නව, නිවැරදි කරන ලද කේතය (මෙය ඇතුළත් කරන්න)
 
-        // --- Button Click Logic ---
-        const button = e.target.closest('button');
-        if (!button) return;
-        
+// ++++++++++ START: CORRECTED EVENT LISTENER ++++++++++
+contentContainer.addEventListener('click', async e => {
+    const button = e.target.closest('button');
+    const header = e.target.closest('[data-collapsible-target]');
+
+    // PRIORITY 1: Handle BUTTON clicks first.
+    if (button) {
         const id = button.dataset.id ? parseInt(button.dataset.id, 10) : null;
         const connId = button.dataset.connId ? parseInt(button.dataset.connId, 10) : null;
-        
+
         if (button.classList.contains('view-receipt-btn')) { modalImage.src = button.dataset.url; imageModal.classList.add('active'); }
         else if (button.classList.contains('approve-btn')) await handleAction(`/orders/approve`, { orderId: id }, 'Approving...', 'Order Approved', 'POST', button);
         else if (button.classList.contains('reject-btn')) await handleAction(`/orders/reject`, { orderId: id }, 'Rejecting...', 'Order Rejected', 'POST', button);
@@ -413,9 +403,21 @@ document.addEventListener("DOMContentLoaded", () => {
             const amount = prompt(`Add credit for ${button.dataset.username}:`);
             if (amount && !isNaN(parseFloat(amount))) await handleAction(`/users/credit`, { userId: id, amount: parseFloat(amount) }, 'Adding Credit...', 'Credit Added', 'POST', button);
         }
-    });
-    // ++++++++++ END: UPDATED EVENT LISTENER ++++++++++
-    
+        return; // Stop after a button action is handled.
+    }
+
+    // PRIORITY 2: If no button was clicked, handle the header click for collapsing.
+    if (header) {
+        const targetId = header.dataset.collapsibleTarget;
+        const targetBody = document.getElementById(targetId);
+        if (targetBody) {
+            header.classList.toggle('collapsed');
+            targetBody.classList.toggle('expanded');
+        }
+    }
+});
+// ++++++++++ END: CORRECTED EVENT LISTENER ++++++++++
+
     formModalSaveBtn.addEventListener('click', (e) => {
         const form = e.target.closest('.modal').querySelector('#form-modal-content');
         const formData = new FormData(form);
