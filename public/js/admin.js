@@ -2,7 +2,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // --- 1. Basic Setup & Authentication ---
     const token = localStorage.getItem('adminToken');
     if (!token) {
-        window.location.href = '/admin-login.html';
+        // --- FIX 1: Changed redirect to the professional URL ---
+        window.location.href = '/admin/login';
         return;
     }
 
@@ -288,9 +289,9 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             const rendererView = view === 'users' ? () => renderUsers(dataCache.users, 'user') :
-                                view === 'resellers' ? () => renderUsers(dataCache.users, 'reseller') :
-                                view === 'connections' ? renderConnections :
-                                view === 'plans' ? renderPlans : () => renderOrders(view);
+                                 view === 'resellers' ? () => renderUsers(dataCache.users, 'reseller') :
+                                 view === 'connections' ? renderConnections :
+                                 view === 'plans' ? renderPlans : () => renderOrders(view);
             rendererView();
 
         } catch (error) {
@@ -347,7 +348,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (type === 'package') { endpoint = data.id ? `/packages/${data.id}` : '/packages'; method = data.id ? 'PUT' : 'POST'; }
         if (type === 'connection') { endpoint = data.id ? `/connections/${data.id}` : '/connections'; method = data.id ? 'PUT' : 'POST'; }
         if (type === 'plan') { endpoint = data.id ? `/plans/${data.id}` : '/plans'; method = data.id ? 'PUT' : 'POST'; }
-        handleAction(endpoint, data, 'Saving...', 'Saved successfully', method, formModalSaveBtn);
+        handleAction(endpoint, body, 'Saving...', 'Saved successfully', method, formModalSaveBtn);
         formModal.classList.remove('active');
     });
 
@@ -366,7 +367,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     document.querySelectorAll('.modal-close-btn').forEach(btn => btn.addEventListener('click', (e) => e.target.closest('.modal').classList.remove('active')));
-    document.getElementById('logout-btn').addEventListener('click', () => { localStorage.removeItem('adminToken'); window.location.href = '/admin-login.html'; });
+    
+    document.getElementById('logout-btn').addEventListener('click', () => { 
+        localStorage.removeItem('adminToken'); 
+        // --- FIX 2: Changed redirect to the professional URL ---
+        window.location.href = '/admin/login'; 
+    });
+
     document.getElementById('manual-reload-btn').addEventListener('click', () => loadDataAndRender(currentView));
     searchInput.addEventListener('input', () => {
         if (currentView === 'users' || currentView === 'resellers') renderUsers(dataCache.users, currentView === 'users' ? 'user' : 'reseller');

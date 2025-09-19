@@ -25,7 +25,19 @@ document.addEventListener('DOMContentLoaded', () => {
     let allUsers = [];
     let connections = [];
 
-    // --- API Helper ---
+    // --- Helper Functions (Toast & API) ---
+    function showToast(message, isError = false) {
+        const toast = document.createElement('div');
+        toast.className = `fixed top-5 right-5 p-4 rounded-lg shadow-lg text-white text-sm z-[100] transition-transform transform translate-x-full ${isError ? 'bg-red-600' : 'bg-green-600'}`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.classList.remove('translate-x-full'), 100);
+        setTimeout(() => {
+            toast.classList.add('translate-x-full');
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
+    }
+
     const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
     const api = {
         get: (endpoint) => fetch(endpoint, { headers }).then(res => res.json()),
@@ -64,9 +76,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const renderCreateUserModal = () => {
         const planOptions = `<option value="" disabled selected>Select Plan</option>
-                             <option value="100GB">100GB Plan</option>
-                             <option value="200GB">200GB Plan</option>
-                             <option value="Unlimited">Unlimited Plan</option>`;
+                                 <option value="100GB">100GB Plan</option>
+                                 <option value="200GB">200GB Plan</option>
+                                 <option value="Unlimited">Unlimited Plan</option>`;
         const connOptions = connections.length > 0
             ? connections.map(c => `<option value="${c.name}">${c.name}</option>`).join('')
             : '<option disabled>No connections available</option>';
@@ -149,8 +161,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Event Listeners ---
     createUserBtn.addEventListener('click', async () => {
         if (connections.length === 0) {
-            const result = await api.get('/api/connections');
-            if (result.success) connections = result.data;
+            try {
+                const result = await api.get('/api/connections');
+                if (result.success) connections = result.data;
+            } catch (error) {
+                 showToast('Could not load connections.', true);
+            }
         }
         renderCreateUserModal();
     });
@@ -180,7 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderUserCreatedModal(result.data.v2rayUsername, result.data.v2rayLink);
                 await loadDashboardData();
             } catch (error) {
-                alert(`Error: ${error.message}`);
+                showToast(`Error: ${error.message}`, true);
             } finally {
                 button.disabled = false;
                 button.innerHTML = 'Create User';
@@ -195,7 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const copyBtn = e.target.closest('.copy-btn');
         if (copyBtn) {
             navigator.clipboard.writeText(copyBtn.dataset.link);
-            alert('Link Copied!');
+            showToast('Link Copied!');
         }
         
         const deleteBtn = e.target.closest('.delete-user-btn');
@@ -205,10 +221,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (confirm(`Are you sure you want to permanently delete user "${username}"?`)) {
                 api.delete(`/api/reseller/users/${userId}`).then(result => {
                     if (result.success) {
+                        showToast('User deleted successfully.');
                         userDetailsModal.classList.remove('active');
                         loadDashboardData();
                     } else {
-                        alert(`Error: ${result.message}`);
+                        showToast(`Error: ${result.message}`, true);
                     }
                 });
             }
@@ -232,3 +249,4 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Initial Load ---
     loadDashboardData();
 });
+
