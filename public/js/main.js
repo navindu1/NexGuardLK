@@ -50,6 +50,190 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
+    document.addEventListener('DOMContentLoaded', () => {
+    const connectionsGrid = document.getElementById('connections-grid');
+    const orderModal = new bootstrap.Modal(document.getElementById('orderModal'));
+    const orderForm = document.getElementById('order-form');
+    const connectionDetails = document.getElementById('connection-details');
+    let selectedConnection = null;
+
+    const fetchConnections = async () => {
+        try {
+            const response = await fetch('/api/connections');
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            const connections = await response.json();
+            renderConnections(connections);
+        } catch (error) {
+            console.error('Failed to fetch connections:', error);
+            connectionsGrid.innerHTML = '<p class="text-danger">Failed to load connections. Please try again later.</p>';
+        }
+    };
+
+    const renderConnections = (connections) => {
+        connectionsGrid.innerHTML = '';
+        if (connections.length === 0) {
+            connectionsGrid.innerHTML = '<p>No available connections at the moment.</p>';
+            return;
+        }
+
+        connections.forEach(connection => {
+            const col = document.createElement('div');
+            col.className = 'col-md-4 mb-4';
+
+            let packageSelectorHtml = '';
+            if (connection.requires_package_choice && connection.package_options) {
+                 try {
+                    const options = JSON.parse(connection.package_options);
+                    if (Array.isArray(options) && options.length > 0) {
+                        packageSelectorHtml = `
+                            <select class="form-select form-select-sm mt-2 package-selector">
+                                <option value="" selected disabled>Select a package</option>
+                                ${options.map((pkg, index) => `<option value="${index}">${pkg.name}</option>`).join('')}
+                            </select>
+                        `;
+                    }
+                } catch (e) {
+                    console.error('Error parsing package_options for connection:', connection.name, e);
+                }
+            }
+
+
+            const card = `
+                <div class="card h-100 text-center connection-card" 
+                    data-id="${connection.id}"
+                    data-name="${connection.name}"
+                    data-requires-package-choice="${connection.requires_package_choice}"
+                    data-packages='${connection.requires_package_choice ? connection.package_options : JSON.stringify([{name: connection.default_package, template: connection.default_vless_template, inbound_id: connection.default_inbound_id}]) }'>
+                    <div class="card-body">
+                        <i class="${connection.icon} fa-3x mb-3"></i>
+                        <h5 class="card-title">${connection.name}</h5>
+                        ${packageSelectorHtml}
+                    </div>
+                </div>
+            `;
+            col.innerHTML = card;
+            connectionsGrid.appendChild(col);
+        });
+
+        document.querySelectorAll('.connection-card').forEach(card => {
+            card.addEventListener('click', (event) => {
+                 // Stop the event from bubbling up to the card if a select element is clicked
+                if (event.target.tagName === 'SELECT') {
+                    return;
+                }
+                handleCardClick(card);
+            });
+        });
+    };
+
+    const handleCardClick = (card) => {
+        const requiresPackageChoice = card.dataset.requiresPackageChoice === 'true';
+        
+        let selectedPackage = null;
+        let packages = [];
+        try {
+            packages = JSON.parse(card.dataset.packages);
+        } catch(e) {
+            console.error("Failed to parse packages data", e);
+            alert("Could not process this connection's data.");
+            return;
+        }
+
+        if (requiresPackageChoice) {
+            const selector = card.querySelector('.package-selector');
+            if (!selector || selector.value === "") {
+                alert('Please select a package from the dropdown first.');
+                return;
+            }
+            selectedPackage = packages[parseInt(selector.value)];
+        } else {
+            selectedPackage = packages[0];
+        }
+
+        if (!selectedPackage) {
+            alert('Could not determine the selected package. Please try again.');
+            return;
+        }
+        
+        selectedConnection = {
+            id: card.dataset.id,
+            name: card.dataset.name,
+            packageName: selectedPackage.name,
+            inbound_id: selectedPackage.inbound_id,
+            vless_template: selectedPackage.template
+        };
+
+        connectionDetails.innerHTML = `
+            <p><strong>Connection:</strong> ${selectedConnection.name}</p>
+            <p><strong>Package:</strong> ${selectedConnection.packageName}</p>
+        `;
+        orderModal.show();
+    }
+
+
+    orderForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!selectedConnection) {
+            alert('No connection selected.');
+            return;
+        }
+
+        const formData = new FormData(orderForm);
+        const orderData = {
+            connection_id: selectedConnection.id,
+            inbound_id: selectedConnection.inbound_id,
+            name: formData.get('name'),
+            email: formData.get('email'),
+            remark: formData.get('remark'),
+            vless_template: selectedConnection.vless_template
+        };
+
+        try {
+            const response = await fetch('/api/order', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(orderData),
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                document.getElementById('vless-link').value = result.vlessLink;
+                document.getElementById('order-result').classList.remove('d-none');
+                orderForm.classList.add('d-none');
+            } else {
+                throw new Error(result.message || 'Failed to create order');
+            }
+        } catch (error) {
+            console.error('Order submission error:', error);
+            alert(`Error: ${error.message}`);
+        }
+    });
+    
+    document.getElementById('copy-link-btn').addEventListener('click', () => {
+        const vlessLink = document.getElementById('vless-link');
+        vlessLink.select();
+        document.execCommand('copy');
+        alert('VLESS link copied to clipboard!');
+    });
+
+    // Reset form when modal is hidden
+    document.getElementById('orderModal').addEventListener('hidden.bs.modal', () => {
+        orderForm.reset();
+        orderForm.classList.remove('d-none');
+        document.getElementById('order-result').classList.add('d-none');
+        document.getElementById('vless-link').value = '';
+    });
+
+
+    fetchConnections();
+});
+
+
     const updateNavUI = (isLoggedIn) => {
         const htmlElement = document.documentElement;
         if (isLoggedIn && userSession) {

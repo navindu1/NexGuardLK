@@ -33,6 +33,119 @@ document.addEventListener('DOMContentLoaded', () => {
     const manualReloadBtn = document.getElementById('manual-reload-btn');
     const autoReloadCheckbox = document.getElementById('auto-reload-checkbox');
 
+      const addConnectionForm = document.getElementById('addConnectionForm');
+    const addPackageOptionBtn = document.getElementById('addPackageOptionBtn');
+    const packageOptionsContainer = document.getElementById('packageOptionsContainer');
+    const requiresPackageChoiceCheckbox = document.getElementById('requires_package_choice');
+    const singlePackageFields = document.getElementById('singlePackageFields');
+    const multiplePackageFields = document.getElementById('multiplePackageFields');
+
+    // Function to toggle visibility of package fields
+    const togglePackageFields = () => {
+        if (requiresPackageChoiceCheckbox.checked) {
+            singlePackageFields.style.display = 'none';
+            multiplePackageFields.style.display = 'block';
+        } else {
+            singlePackageFields.style.display = 'block';
+            multiplePackageFields.style.display = 'none';
+        }
+    };
+
+    // Initial check
+    togglePackageFields();
+
+    // Event listener for the checkbox
+    requiresPackageChoiceCheckbox.addEventListener('change', togglePackageFields);
+
+    addPackageOptionBtn.addEventListener('click', () => {
+        const newPackageOption = document.createElement('div');
+        newPackageOption.classList.add('package-option', 'mb-3');
+        newPackageOption.innerHTML = `
+            <input type="text" class="form-control mb-1 package-name" placeholder="Package Name" required>
+            <input type="text" class="form-control mb-1 package-template" placeholder="VLESS Template" required>
+            <input type="number" class="form-control mb-1 package-inbound-id" placeholder="Inbound ID" required>
+            <button type="button" class="btn btn-danger btn-sm remove-package-option">Remove</button>
+        `;
+        packageOptionsContainer.appendChild(newPackageOption);
+    });
+
+    packageOptionsContainer.addEventListener('click', (e) => {
+        if (e.target.classList.contains('remove-package-option')) {
+            e.target.parentElement.remove();
+        }
+    });
+
+    addConnectionForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const requires_package_choice = requiresPackageChoiceCheckbox.checked;
+        let package_options = null;
+        let default_package = null;
+        let default_inbound_id = null;
+        let default_vless_template = null;
+
+        if (requires_package_choice) {
+            package_options = [];
+            const packageOptionElements = packageOptionsContainer.querySelectorAll('.package-option');
+            packageOptionElements.forEach(optionEl => {
+                const name = optionEl.querySelector('.package-name').value;
+                const template = optionEl.querySelector('.package-template').value;
+                const inbound_id = parseInt(optionEl.querySelector('.package-inbound-id').value, 10);
+                if (name && template && inbound_id) {
+                    package_options.push({ name, template, inbound_id });
+                }
+            });
+
+            // If there are no valid packages, prevent form submission
+            if(package_options.length === 0) {
+                 alert('Please add at least one package option.');
+                 return;
+            }
+
+        } else {
+            default_package = document.getElementById('default_package').value;
+            default_inbound_id = parseInt(document.getElementById('default_inbound_id').value, 10);
+            default_vless_template = document.getElementById('default_vless_template').value;
+        }
+
+
+        const connectionData = {
+            name: document.getElementById('name').value,
+            icon: document.getElementById('icon').value,
+            is_active: document.getElementById('is_active').checked,
+            requires_package_choice: requires_package_choice,
+            default_package: default_package,
+            package_options: package_options ? JSON.stringify(package_options) : null,
+            default_inbound_id: default_inbound_id,
+            default_vless_template: default_vless_template
+        };
+        
+        try {
+            const response = await fetch('/api/admin/connections', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(connectionData)
+            });
+
+            if (response.ok) {
+                alert('Connection added successfully!');
+                addConnectionForm.reset();
+                togglePackageFields(); // Reset field visibility
+                packageOptionsContainer.innerHTML = ''; // Clear dynamic fields
+                // Optionally, reload connections list
+            } else {
+                const errorData = await response.json();
+                alert(`Failed to add connection: ${errorData.message}`);
+            }
+        } catch (error) {
+            console.error('Error adding connection:', error);
+            alert('An error occurred. Please try again.');
+        }
+    });
+
     // --- Data Cache & State ---
     let cachedData = { stats: {}, pendingOrders: [], allOrders: [], allUsers: [], unconfirmedOrders: [], connections: [] };
     let autoReloadInterval = null;
@@ -622,6 +735,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     });
+
+
 
         document.body.addEventListener('submit', async (e) => {
         if (e.target.id === 'add-reseller-form' || e.target.id === 'add-connection-form' || e.target.id === 'edit-reseller-form') {
