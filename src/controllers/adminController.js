@@ -1,334 +1,90 @@
-// File Path: src/controllers/adminController.js
-
 const supabase = require('../config/supabaseClient');
-const v2rayService = require('../services/v2rayService');
-const bcrypt = require('bcryptjs');
-const { v4: uuidv4 } = require('uuid');
-const axios = require('axios');
 const { approveOrder: approveOrderService } = require('../services/orderService');
-const { logAction } = require('../services/logService');
+const v2rayService = require('../services/v2rayService');
 
-
-exports.getDashboardData = async (req, res) => {
+// --- 1. DASHBOARD & STATS ---
+exports.getDashboardStats = async (req, res) => {
     try {
-        const { data: orders, error: oError } = await supabase.from("orders").select("id, status");
-        const { data: users, error: uError } = await supabase.from("users").select("id, role");
-        const { count: unconfirmedCount, error: unconfirmedError } = await supabase
-            .from('orders')
-            .select('id', { count: 'exact', head: true })
-            .eq('auto_approved', true)
-            .is('admin_confirmed_at', null);
-
-        if (oError || uError || unconfirmedError) throw oError || uError || unconfirmedError;
-
-        const { data: allOrdersData, error: allOrdersError } = await supabase.from("orders").select("*").order("created_at", { ascending: false });
-        const { data: allUsersData, error: allUsersError } = await supabase.from("users").select("id, username, email, whatsapp, active_plans, role");
-        if(allOrdersError || allUsersError) throw allOrdersError || allUsersError;
-
-        const data = {
-            stats: {
-                pending: orders.filter((o) => o.status === "pending").length,
-                approved: orders.filter((o) => o.status === "approved").length,
-                rejected: orders.filter((o) => o.status === "rejected").length,
-                users: users.length,
-                unconfirmed: unconfirmedCount
-            },
-            pendingOrders: allOrdersData.filter((o) => o.status === "pending").sort((a, b) => new Date(a.created_at) - new Date(b.created_at)),
-            allOrders: allOrdersData,
-            allUsers: allUsersData,
+        const { data: orders, error: ordersError } = await supabase.from('orders').select('status');
+        const { data: users, error: usersError } = await supabase.from('users').select('role');
+        if (ordersError || usersError) throw ordersError || usersError;
+        const stats = {
+            pending: orders.filter(o => o.status === 'pending').length,
+            unconfirmed: orders.filter(o => o.status === 'unconfirmed').length,
+            approved: orders.filter(o => o.status === 'approved').length,
+            rejected: orders.filter(o => o.status === 'rejected').length,
+            users: users.filter(u => u.role === 'user').length,
+            resellers: users.filter(u => u.role === 'reseller').length,
         };
+        res.json({ success: true, data: stats });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to fetch dashboard stats.' });
+    }
+};
+
+// --- 2. ORDER MANAGEMENT ---
+exports.getOrders = async (req, res) => {
+    try {
+        const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+        if (error) throw error;
         res.json({ success: true, data });
     } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-        res.status(500).json({ success: false, message: "Failed to load dashboard data." });
+        res.status(500).json({ success: false, message: 'Failed to fetch orders.' });
     }
 };
 
 exports.approveOrder = async (req, res) => {
-    const { orderId } = req.params;
     try {
-        const result = await approveOrderService(orderId, false); // false = not auto-approved
-        if (!result.success) {
-            return res.status(400).json(result);
-        }
-        await logAction(req.user.username, 'ORDER_APPROVED', { orderId, client: result.finalUsername });
+        const { orderId } = req.body;
+        const result = await approveOrderService(orderId);
+        if (!result.success) return res.status(400).json(result);
         res.json(result);
     } catch (error) {
-        console.error(`Error manually approving order ${orderId}:`, error.message);
-        res.status(500).json({ success: false, message: error.message || "An error occurred." });
-    }
-};
-
-exports.rejectOrder = async (req, res) => {
-    const { orderId } = req.params;
-    try {
-        const { error } = await supabase.from("orders").update({ status: "rejected" }).eq("id", orderId);
-        if (error) throw error;
-        await logAction(req.user.username, 'ORDER_REJECTED', { orderId });
-        res.json({ success: true, message: "Order rejected" });
-    } catch (error) {
-        res.status(500).json({ success: false, message: "Server error." });
-    }
-};
-
-exports.banUser = async (req, res) => {
-    const { userId } = req.body;
-    try {
-        const { data: userToBan, error: findError } = await supabase.from("users").select("username, active_plans").eq("id", userId).single();
-        if(findError) throw findError;
-
-        if (userToBan && userToBan.active_plans) {
-            for(const plan of userToBan.active_plans) {
-                const clientData = await v2rayService.findV2rayClient(plan.v2rayUsername);
-                if (clientData) {
-                    await v2rayService.deleteClient(clientData.inboundId, clientData.client.id);
-                }
-            }
-        }
-        
-        const { error: deleteError } = await supabase.from("users").delete().eq("id", userId);
-        if (deleteError) throw deleteError;
-        
-        await logAction(req.user.username, 'USER_BANNED', { bannedUserId: userId, bannedUsername: userToBan.username });
-        res.json({ success: true, message: `User has been banned.` });
-    } catch (error) {
-        console.error("Error banning user:", error.message);
         res.status(500).json({ success: false, message: error.message });
     }
 };
 
-exports.createReseller = async (req, res) => {
-    const { username, email, password, whatsapp } = req.body;
-    if (!username || !email || !password) {
-        return res.status(400).json({ success: false, message: "Username, email, and password are required." });
-    }
+exports.rejectOrder = async (req, res) => {
     try {
-        const { data: existingUser } = await supabase
-            .from('users')
-            .select('id')
-            .or(`username.eq.${username},email.eq.${email}`)
-            .limit(1);
-
-        if (existingUser && existingUser.length > 0) {
-            return res.status(409).json({ success: false, message: 'Username or email already exists.' });
-        }
-        const hashedPassword = bcrypt.hashSync(password, 10);
-        const newReseller = {
-            id: uuidv4(),
-            username,
-            email,
-            password: hashedPassword,
-            whatsapp: whatsapp || null,
-            role: 'reseller',
-            profile_picture: "assets/profilePhoto.jpg",
-            active_plans: [],
-        };
-        const { error: insertError } = await supabase.from('users').insert(newReseller);
-        if (insertError) throw insertError;
-        await logAction(req.user.username, 'RESELLER_CREATED', { newResellerUsername: username });
-        res.status(201).json({ success: true, message: 'Reseller account created successfully.' });
-    } catch (error) {
-        console.error('Error creating reseller:', error);
-        res.status(500).json({ success: false, message: 'An internal server error occurred.' });
-    }
-};
-
-exports.updateReseller = async (req, res) => {
-    const { resellerId } = req.params;
-    const { username, email, whatsapp, password } = req.body;
-
-    if (!username || !email) {
-        return res.status(400).json({ success: false, message: "Username and email are required." });
-    }
-    try {
-        let updateData = { username, email, whatsapp: whatsapp || null };
-        if (password && password.length > 0) {
-            updateData.password = bcrypt.hashSync(password, 10);
-        }
-        const { error } = await supabase.from('users').update(updateData).eq('id', resellerId).eq('role', 'reseller');
+        const { orderId } = req.body;
+        const { error } = await supabase.from('orders').update({ status: 'rejected' }).eq('id', orderId);
         if (error) throw error;
-        await logAction(req.user.username, 'RESELLER_UPDATED', { resellerId, updatedUsername: username });
-        res.status(200).json({ success: true, message: 'Reseller account updated successfully.' });
+        res.json({ success: true, message: 'Order rejected successfully.' });
     } catch (error) {
-        console.error('Error updating reseller:', error);
-        res.status(500).json({ success: false, message: 'An internal server error occurred.' });
-    }
-};
-
-exports.getInboundsWithClients = async (req, res) => {
-    try {
-        const cookie = await v2rayService.getPanelCookie();
-        if (!cookie) throw new Error("Failed to authenticate with V2Ray panel.");
-        
-        const INBOUNDS_LIST_URL = `${process.env.PANEL_URL}/panel/api/inbounds/list`;
-        const { data: inboundsData } = await axios.get(INBOUNDS_LIST_URL, { headers: { Cookie: cookie } });
-
-        if (!inboundsData || !inboundsData.success) throw new Error("Failed to fetch inbounds from V2Ray panel.");
-        
-        const processedInbounds = inboundsData.obj.map(inbound => {
-            const settings = JSON.parse(inbound.settings || '{}');
-            const clients = settings.clients || [];
-            return {
-                id: inbound.id,
-                remark: inbound.remark,
-                port: inbound.port,
-                protocol: inbound.protocol,
-                clientCount: clients.length,
-                clients: clients.map(c => ({ email: c.email, id: c.id, total: c.total, expiryTime: c.expiryTime, enable: c.enable, up: c.up, down: c.down }))
-            };
-        }).sort((a, b) => a.id - b.id);
-
-        res.json({ success: true, data: processedInbounds });
-    } catch (error) {
-        console.error("Error fetching inbounds with clients:", error.message);
-        res.status(500).json({ success: false, message: error.message || "An error occurred." });
-    }
-};
-
-exports.getUnconfirmedOrders = async (req, res) => {
-    try {
-        const { data, error } = await supabase
-            .from('orders')
-            .select('*')
-            .eq('auto_approved', true)
-            .is('admin_confirmed_at', null)
-            .order('created_at', { ascending: true });
-        if (error) throw error;
-        res.json({ success: true, data: data || [] });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to fetch unconfirmed orders.' });
-    }
-};
-
-exports.confirmAutoApprovedOrder = async (req, res) => {
-    const { orderId } = req.params;
-    try {
-        const { error } = await supabase
-            .from('orders')
-            .update({ admin_confirmed_at: new Date().toISOString() })
-            .eq('id', orderId);
-        if (error) throw error;
-        await logAction(req.user.username, 'AUTO_APPROVAL_CONFIRMED', { orderId });
-        res.json({ success: true, message: 'Order confirmed.' });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to confirm order.' });
-    }
-};
-
-exports.rejectAutoApprovedOrder = async (req, res) => {
-    const { orderId } = req.params;
-    try {
-        const { data: order, error: orderError } = await supabase.from('orders').select('*').eq('id', orderId).single();
-        if (orderError || !order) return res.status(404).json({ success: false, message: 'Order not found.' });
-
-        if (order.final_username) {
-            const clientData = await v2rayService.findV2rayClient(order.final_username);
-            if (clientData) {
-                await v2rayService.deleteClient(clientData.inboundId, clientData.client.id);
-            }
-        }
-        const { error } = await supabase
-            .from('orders')
-            .update({ status: 'rejected', admin_confirmed_at: new Date().toISOString() })
-            .eq('id', orderId);
-        if (error) throw error;
-
-        await logAction(req.user.username, 'AUTO_APPROVAL_REJECTED', { orderId, rejectedClient: order.final_username });
-        res.json({ success: true, message: 'Auto-approved order has been rejected and the client removed.' });
-    } catch (error) {
-        console.error(`Error rejecting auto-approved order ${orderId}:`, error);
         res.status(500).json({ success: false, message: 'Failed to reject order.' });
     }
 };
 
-exports.getAppSettings = async (req, res) => {
+// --- 3. USER & RESELLER MANAGEMENT ---
+exports.getUsers = async (req, res) => {
     try {
-        const { data, error } = await supabase.from('app_settings').select('*');
+        const { data, error } = await supabase.from('users').select('*').neq('role', 'admin').order('created_at', { ascending: false });
         if (error) throw error;
-        res.json({ success: true, data: data || [] });
+        res.json({ success: true, data });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to fetch settings.' });
+        res.status(500).json({ success: false, message: 'Failed to fetch users.' });
     }
 };
 
-exports.updateAppSettings = async (req, res) => {
-    const settings = req.body.settings; // Expects an array of {key, value}
+exports.updateUserCredit = async (req, res) => {
     try {
-        const upsertPromises = settings.map(s =>
-            supabase.from('app_settings').upsert({ setting_key: s.key, setting_value: s.value }, { onConflict: 'setting_key' })
-        );
-        await Promise.all(upsertPromises);
-        await logAction(req.user.username, 'SETTINGS_UPDATED', { settings });
-        res.json({ success: true, message: 'Settings updated successfully.' });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to update settings.' });
-    }
-};
-exports.getSalesSummary = async (req, res) => {
-    try {
-        const { data: orders, error: ordersError } = await supabase
-            .from('orders')
-            .select('plan_id, created_at, approved_at')
-            .eq('status', 'approved');
-        if (ordersError) throw ordersError;
-        
-        // --- MODIFIED: Fetch plan prices from the database ---
-        const { data: plans, error: plansError } = await supabase.from('plans').select('plan_name, price');
-        if (plansError) throw plansError;
-
-        const planPrices = plans.reduce((acc, plan) => {
-            acc[plan.plan_name] = parseFloat(plan.price);
-            return acc;
-        }, {});
-        
-        const now = new Date();
-        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-        const summary = {
-            last7Days: { totalRevenue: 0, salesByDay: [] },
-            last30Days: { totalRevenue: 0, orderCount: 0 },
-            allTime: { totalRevenue: 0, orderCount: 0 },
-        };
-
-        // Initialize salesByDay for the last 7 days
-        for (let i = 6; i >= 0; i--) {
-            const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-            summary.last7Days.salesByDay.push({ date: date.toISOString().split('T')[0], count: 0 });
+        const { userId, amount } = req.body;
+        if (!userId || isNaN(parseFloat(amount))) {
+            return res.status(400).json({ success: false, message: 'User ID and a valid amount are required.' });
         }
-        
-        orders.forEach(order => {
-            const price = planPrices[order.plan_id] || 0;
-            const approvedDate = new Date(order.approved_at || order.created_at);
-
-            summary.allTime.totalRevenue += price;
-            summary.allTime.orderCount++;
-
-            if (approvedDate >= thirtyDaysAgo) {
-                summary.last30Days.totalRevenue += price;
-                summary.last30Days.orderCount++;
-            }
-            if (approvedDate >= sevenDaysAgo) {
-                summary.last7Days.totalRevenue += price;
-                const dateString = approvedDate.toISOString().split('T')[0];
-                const dayData = summary.last7Days.salesByDay.find(d => d.date === dateString);
-                if (dayData) {
-                    dayData.count++;
-                }
-            }
-        });
-        
-        res.json({ success: true, data: summary });
+        // This requires a Supabase Function named 'add_user_credit'. If not created, use the commented out code.
+        const { error } = await supabase.rpc('add_user_credit', { user_id_param: userId, amount_param: parseFloat(amount) });
+        if (error) throw error;
+        res.json({ success: true, message: 'Credit added successfully.' });
     } catch (error) {
-        console.error("Error generating sales summary:", error);
-        res.status(500).json({ success: false, message: 'Failed to generate summary.' });
+        res.status(500).json({ success: false, message: 'Failed to update credit.' });
     }
 };
 
-// --- NEW CONNECTION MANAGEMENT FUNCTIONS ---
-exports.getConnections = async (req, res) => {
+// --- 4. CONNECTION & PACKAGE MANAGEMENT ---
+exports.getConnectionsAndPackages = async (req, res) => {
     try {
-        const { data, error } = await supabase.from('connections').select('*').order('created_at');
+        const { data, error } = await supabase.from('connections').select('*, packages(*)').order('created_at', { ascending: true });
         if (error) throw error;
         res.json({ success: true, data: data || [] });
     } catch (error) {
@@ -337,28 +93,142 @@ exports.getConnections = async (req, res) => {
 };
 
 exports.createConnection = async (req, res) => {
-    const { name, inbound_id, vless_template } = req.body;
-    if (!name || !inbound_id || !vless_template) {
-        return res.status(400).json({ success: false, message: 'All fields are required.' });
-    }
     try {
-        const { error } = await supabase.from('connections').insert({ name, inbound_id, vless_template });
+        const { name, icon, requires_package_choice, default_package, default_inbound_id, default_vless_template } = req.body;
+        const { data, error } = await supabase.from('connections').insert([{ name, icon, requires_package_choice, default_package, default_inbound_id, default_vless_template }]).select().single();
         if (error) throw error;
-        await logAction(req.user.username, 'CONNECTION_CREATED', { name, inbound_id });
-        res.status(201).json({ success: true, message: 'Connection created successfully.' });
+        res.status(201).json({ success: true, message: 'Connection created successfully.', data });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to create connection.' });
+        res.status(500).json({ success: false, message: 'Failed to create connection.', error: error.message });
+    }
+};
+
+exports.updateConnection = async (req, res) => {
+     try {
+        const { id } = req.params;
+        const { name, icon, requires_package_choice, default_package, default_inbound_id, default_vless_template } = req.body;
+        const { data, error } = await supabase.from('connections').update({ name, icon, requires_package_choice, default_package, default_inbound_id, default_vless_template }).eq('id', id).select().single();
+        if (error) throw error;
+        res.json({ success: true, message: 'Connection updated successfully.', data });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to update connection.' });
     }
 };
 
 exports.deleteConnection = async (req, res) => {
-    const { id } = req.params;
     try {
+        const { id } = req.params;
         const { error } = await supabase.from('connections').delete().eq('id', id);
         if (error) throw error;
-        await logAction(req.user.username, 'CONNECTION_DELETED', { connectionId: id });
-        res.json({ success: true, message: 'Connection deleted.' });
+        res.json({ success: true, message: 'Connection and its packages deleted successfully.' });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Failed to delete connection.' });
     }
 };
+
+exports.createPackage = async (req, res) => {
+    try {
+        const { connection_id, name, template, inbound_id } = req.body;
+        const { data, error } = await supabase.from('packages').insert([{ connection_id, name, template, inbound_id }]).select().single();
+        if (error) throw error;
+        res.status(201).json({ success: true, message: 'Package created successfully.', data });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to create package.' });
+    }
+};
+
+exports.updatePackage = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, template, inbound_id } = req.body;
+        const { data, error } = await supabase.from('packages').update({ name, template, inbound_id }).eq('id', id).select().single();
+        if (error) throw error;
+        res.json({ success: true, message: 'Package updated successfully.', data });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to update package.' });
+    }
+};
+
+exports.deletePackage = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { error } = await supabase.from('packages').delete().eq('id', id);
+        if (error) throw error;
+        res.json({ success: true, message: 'Package deleted successfully.' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to delete package.' });
+    }
+};
+
+// --- 5. PLAN MANAGEMENT ---
+exports.getPlans = async (req, res) => {
+    try {
+        const { data, error } = await supabase.from('plans').select('*');
+        if (error) throw error;
+        res.json({ success: true, data });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to fetch plans.' });
+    }
+};
+
+exports.createPlan = async (req, res) => {
+     try {
+        const { plan_name, price, total_gb } = req.body;
+        const { data, error } = await supabase.from('plans').insert([{ plan_name, price: parseFloat(price), total_gb: parseInt(total_gb, 10) }]).select().single();
+        if (error) throw error;
+        res.status(201).json({ success: true, message: 'Plan created successfully.', data });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to create plan.' });
+    }
+};
+
+exports.deletePlan = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { error } = await supabase.from('plans').delete().eq('id', id);
+        if (error) throw error;
+        res.json({ success: true, message: 'Plan deleted successfully.' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to delete plan.' });
+    }
+};
+
+// --- 6. LIVE V2RAY PANEL & REPORTS (Restored from old logic) ---
+exports.getV2rayInbounds = async (req, res) => {
+    try {
+        const inbounds = await v2rayService.getInboundsWithClients();
+        res.json({ success: true, data: inbounds });
+    } catch (error) {
+        res.status(500).json({ success: false, message: `Failed to fetch V2Ray inbounds: ${error.message}` });
+    }
+};
+
+// --- 7. SETTINGS MANAGEMENT ---
+exports.getSettings = async (req, res) => {
+    try {
+        const { data, error } = await supabase.from('settings').select('*');
+        if (error) throw error;
+        const settingsObj = (data || []).reduce((acc, setting) => {
+            acc[setting.key] = setting.value;
+            return acc;
+        }, {});
+        res.json({ success: true, data: settingsObj });
+    } catch(error) {
+        res.status(500).json({ success: false, message: 'Failed to fetch settings.' });
+    }
+};
+
+exports.updateSettings = async (req, res) => {
+    try {
+        const settings = req.body;
+        const upsertPromises = Object.entries(settings).map(([key, value]) => 
+            supabase.from('settings').upsert({ key, value }, { onConflict: 'key' })
+        );
+        const results = await Promise.all(upsertPromises);
+        results.forEach(result => { if (result.error) throw result.error; });
+        res.json({ success: true, message: 'Settings updated successfully.' });
+    } catch(error) {
+        res.status(500).json({ success: false, message: 'Failed to update settings.' });
+    }
+};
+

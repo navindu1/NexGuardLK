@@ -1,42 +1,52 @@
-// File Path: src/routes/adminRoutes.js
-
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const adminController = require("../controllers/adminController");
-const { authenticateAdmin } = require("../middleware/authMiddleware");
+const adminController = require('../controllers/adminController');
+const { authenticateToken, isAdmin } = require('../middleware/authMiddleware');
 
-// Dashboard data route
-router.get("/dashboard-data", authenticateAdmin, adminController.getDashboardData);
+// Middleware to protect all admin routes
+router.use(authenticateToken, isAdmin);
 
-// Order management routes
-router.post("/approve-order/:orderId", authenticateAdmin, adminController.approveOrder);
-router.post("/reject-order/:orderId", authenticateAdmin, adminController.rejectOrder);
+// Dashboard
+router.get('/stats', adminController.getDashboardStats);
 
-// User management routes
-router.delete("/ban-user", authenticateAdmin, adminController.banUser);
+// Orders
+router.get('/orders', adminController.getOrders);
+router.post('/orders/approve', adminController.approveOrder);
 
-// Reseller management routes
-router.post("/resellers", authenticateAdmin, adminController.createReseller);
-router.put("/resellers/:resellerId", authenticateAdmin, adminController.updateReseller);
+router.post('/orders/reject', adminController.rejectOrder);
 
-// V2Ray Inbounds route
-router.get("/inbounds", authenticateAdmin, adminController.getInboundsWithClients);
+// Users & Resellers
+router.get('/users', adminController.getUsers);
+router.post('/users/credit', adminController.updateUserCredit);
+router.get('/resellers', adminController.getResellers);
 
-// Auto-approval management routes
-router.get("/unconfirmed-orders", authenticateAdmin, adminController.getUnconfirmedOrders);
-router.post("/orders/:orderId/confirm", authenticateAdmin, adminController.confirmAutoApprovedOrder);
-router.post("/orders/:orderId/reject-auto", authenticateAdmin, adminController.rejectAutoApprovedOrder);
+// --- START: NEW AND UPDATED ROUTES FOR CONNECTIONS AND PACKAGES ---
 
-// Settings routes
-router.get("/settings", authenticateAdmin, adminController.getAppSettings);
-router.post("/settings", authenticateAdmin, adminController.updateAppSettings);
+// Connections Routes
+router.get('/connections', adminController.getConnectionsAndPackages);
+router.post('/connections', adminController.createConnection);
+router.put('/connections/:id', adminController.updateConnection);
+router.delete('/connections/:id', adminController.deleteConnection);
 
-// Reporting routes
-router.get("/reports/summary", authenticateAdmin, adminController.getSalesSummary);
+// Packages Routes
+router.post('/packages', adminController.createPackage);
+router.put('/packages/:id', adminController.updatePackage);
+router.delete('/packages/:id', adminController.deletePackage);
 
-// Connection Management Routes
-router.get("/connections", authenticateAdmin, adminController.getConnections);
-router.post("/connections", authenticateAdmin, adminController.createConnection);
-router.delete("/connections/:id", authenticateAdmin, adminController.deleteConnection);
+// --- END: NEW AND UPDATED ROUTES ---
+
+
+// Plans Routes
+router.get('/plans', adminController.getPlans);
+router.post('/plans', adminController.createPlan);
+router.delete('/plans/:id', adminController.deletePlan);
+router.get('/settings', adminController.getSettings);
+router.post('/settings', adminController.updateSettings);
+
+router.get('/inbounds', adminController.getV2rayInbounds); 
+
 
 module.exports = router;
+
+
+

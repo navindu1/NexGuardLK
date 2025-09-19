@@ -9,7 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.waves.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
         body { font-family: 'Inter', sans-serif; color: #e0e0e0; background-color: #020010; }
         #vanta-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
         #app-container { position: relative; z-index: 1; }
@@ -78,11 +79,11 @@
             </div>
             <div id="card-connections" class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-teal-400">
                 <div class="bg-teal-500/10 text-teal-400 p-3 rounded-lg hidden sm:block"><i class="fa-solid fa-server fa-lg"></i></div>
-                <div><p class="text-xs sm:text-sm text-slate-400">V2Ray Inbounds</p><h3 class="text-lg sm:text-xl font-bold text-white">View Live</h3></div>
+                <div><p class="text-xs sm:text-sm text-slate-400">Connections</p><h3 class="text-lg sm:text-xl font-bold text-white">Manage</h3></div>
             </div>
-             <div id="card-reports" class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-indigo-400">
-                <div class="bg-indigo-500/10 text-indigo-400 p-3 rounded-lg hidden sm:block"><i class="fa-solid fa-chart-line fa-lg"></i></div>
-                <div><p class="text-xs sm:text-sm text-slate-400">Reports</p><h3 class="text-lg sm:text-xl font-bold text-white">Generate</h3></div>
+             <div id="card-plans" class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-indigo-400">
+                <div class="bg-indigo-500/10 text-indigo-400 p-3 rounded-lg hidden sm:block"><i class="fa-solid fa-list-alt fa-lg"></i></div>
+                <div><p class="text-xs sm:text-sm text-slate-400">Plans</p><h3 class="text-lg sm:text-xl font-bold text-white">Manage</h3></div>
             </div>
         </section>
 
@@ -98,7 +99,8 @@
                         </div>
                     </div>
                     <button id="manual-reload-btn" class="text-slate-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-slate-700"><i class="fa-solid fa-sync"></i></button>
-                    <div id="search-bar-container" class="relative hidden"><i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"></i><input type="text" id="user-search" class="bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500 w-full sm:w-64" placeholder="Search users..."></div>
+                    <div id="search-bar-container" class="relative hidden"><i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"></i><input type="text" id="search-input" class="bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500 w-full sm:w-64" placeholder="Search..."></div>
+                    <button id="add-new-btn" class="btn btn-approve hidden"><i class="fa-solid fa-plus"></i> Add New</button>
                 </div>
             </div>
             <div id="content-container" class="space-y-4"></div>
@@ -111,26 +113,13 @@
             <img id="modal-image" src="" alt="Payment Proof" class="max-w-full max-h-[85vh] object-contain rounded">
         </div>
     </div>
-    <div id="edit-reseller-modal" class="modal fixed inset-0 bg-black/80 justify-center items-center z-50 p-4">
-        <div class="glass-panel w-full max-w-md p-6 rounded-lg relative">
-            <button class="modal-close-btn absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
-            <h3 class="text-xl font-bold mb-4 font-['Orbitron']">Edit Reseller</h3>
-            <form id="edit-reseller-form" class="space-y-4">
-                <input type="hidden" name="id">
-                <input type="text" name="username" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" placeholder="Username" required>
-                <input type="email" name="email" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" placeholder="Email" required>
-                <input type="text" name="whatsapp" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" placeholder="WhatsApp (Optional)">
-                <input type="password" name="password" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" placeholder="New Password (Leave blank to keep old one)">
-                <button type="submit" class="btn btn-approve w-full justify-center">Update Reseller</button>
-            </form>
-        </div>
-    </div>
-    <div id="settings-modal" class="modal fixed inset-0 bg-black/80 justify-center items-center z-50 p-4">
+    
+    <div id="form-modal" class="modal fixed inset-0 bg-black/80 justify-center items-center z-50 p-4">
         <div class="glass-panel w-full max-w-lg p-6 rounded-lg relative">
-            <button class="modal-close-btn absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
-            <h3 class="text-xl font-bold mb-6 font-['Orbitron']">Application Settings</h3>
-            <div id="settings-content" class="space-y-4 max-h-[70vh] overflow-y-auto"></div>
-            <button id="save-settings-btn" class="btn btn-approve w-full justify-center mt-6">Save Settings</button>
+             <button class="modal-close-btn absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
+             <h3 id="form-modal-title" class="text-xl font-bold mb-6 font-['Orbitron']"></h3>
+             <form id="form-modal-content" class="space-y-4 max-h-[70vh] overflow-y-auto"></form>
+             <button id="form-modal-save-btn" class="btn btn-approve w-full justify-center mt-6">Save Changes</button>
         </div>
     </div>
     
