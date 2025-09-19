@@ -822,9 +822,7 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>`);
     }
 
-    // public/js/main.js - සම්පූර්ණයෙන්ම නිවැරදි කරන ලද ශ්‍රිතය
-
-function renderConnectionsPage(renderFunc, params) {
+    function renderConnectionsPage(renderFunc, params) {
     const planId = params.get("planId");
     if (!planId || !appData.plans[planId]) {
         renderFunc('<div class="page text-center"><p class="text-red-400">Invalid plan selection.</p><a href="/plans" class="nav-link-internal underline mt-2">Go back to plans</a></div>');
@@ -841,8 +839,9 @@ function renderConnectionsPage(renderFunc, params) {
                 linkUrl = `/package-choice?planId=${planId}&connId=${encodeURIComponent(conn.name)}`;
                 
                 let packageCount = 0;
-                // නිවැරදි කිරීම: Backend එකෙන් දැන් ලැබෙන්නේ array එකක් නිසා, JSON.parse අවශ්‍ය නැත.
-                // conn.package_options යනු array එකක්දැයි කෙලින්ම පරීක්ෂා කරයි.
+                // නිවැරදි කිරීම: Backend එකෙන් දැන් ලැබෙන්නේ string එකක් නොව, array (ලැයිස්තුවක්) එකකි.
+                // එම නිසා JSON.parse කිරීම අනවශ්‍යයි.
+                // conn.package_options යනු array එකක්දැයි කෙලින්ම පරීක්ෂා කර එහි දිග (length) ලබාගනී.
                 if (conn.package_options && Array.isArray(conn.package_options)) {
                     packageCount = conn.package_options.length;
                 }
@@ -860,6 +859,7 @@ function renderConnectionsPage(renderFunc, params) {
                 }
             }
             
+            // HTML ප්‍රතිදානය (මෙය නිවැරදිය)
             return `<a href="${linkUrl}" class="nav-link-internal card reveal selectable glass-panel p-5 rounded-xl text-center flex flex-col items-center justify-center">
                         <i class="${conn.icon || 'fa-solid fa-wifi'} text-3xl gradient-text mb-3"></i>
                         <h3 class="text-lg font-bold text-white mb-2">${conn.name}</h3>
@@ -874,7 +874,7 @@ function renderConnectionsPage(renderFunc, params) {
                 <h2 class="text-2xl font-bold text-white">Select Your Connection</h2>
                 <p class="text-gray-400 mt-2">Step 2: Choose your ISP.</p>
             </header>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg-grid-cols-4 gap-6">${connectionsHtml}</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">${connectionsHtml}</div>
             <div class="text-center mt-8 reveal"><a href="/plans" class="nav-link-internal text-purple-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back to Plans</a></div>
         </div>`);
 }
