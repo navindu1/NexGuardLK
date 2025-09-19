@@ -23,7 +23,7 @@ const getDashboardStats = async (req, res) => {
 };
 
 // --- 2. ORDER MANAGEMENT ---
-exports.getOrders = async (req, res) => {
+const getOrders = async (req, res) => {
     try {
         const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
         if (error) throw error;
@@ -33,7 +33,7 @@ exports.getOrders = async (req, res) => {
     }
 };
 
-exports.approveOrder = async (req, res) => {
+const approveOrder = async (req, res) => {
     try {
         const { orderId } = req.body;
         const result = await approveOrderService(orderId);
@@ -44,7 +44,7 @@ exports.approveOrder = async (req, res) => {
     }
 };
 
-exports.rejectOrder = async (req, res) => {
+const rejectOrder = async (req, res) => {
     try {
         const { orderId } = req.body;
         const { error } = await supabase.from('orders').update({ status: 'rejected' }).eq('id', orderId);
@@ -56,7 +56,7 @@ exports.rejectOrder = async (req, res) => {
 };
 
 // --- 3. USER & RESELLER MANAGEMENT ---
-exports.getUsers = async (req, res) => {
+const getUsers = async (req, res) => {
     try {
         const { data, error } = await supabase.from('users').select('*').neq('role', 'admin').order('created_at', { ascending: false });
         if (error) throw error;
@@ -66,7 +66,7 @@ exports.getUsers = async (req, res) => {
     }
 };
 
-exports.updateUserCredit = async (req, res) => {
+const updateUserCredit = async (req, res) => {
     try {
         const { userId, amount } = req.body;
         if (!userId || isNaN(parseFloat(amount))) {
@@ -82,7 +82,7 @@ exports.updateUserCredit = async (req, res) => {
 };
 
 // --- 4. CONNECTION & PACKAGE MANAGEMENT ---
-exports.getConnectionsAndPackages = async (req, res) => {
+const getConnectionsAndPackages = async (req, res) => {
     try {
         const { data, error } = await supabase.from('connections').select('*, packages(*)').order('created_at', { ascending: true });
         if (error) throw error;
@@ -92,7 +92,7 @@ exports.getConnectionsAndPackages = async (req, res) => {
     }
 };
 
-exports.createConnection = async (req, res) => {
+const createConnection = async (req, res) => {
     try {
         const { name, icon, requires_package_choice, default_package, default_inbound_id, default_vless_template } = req.body;
         const { data, error } = await supabase.from('connections').insert([{ name, icon, requires_package_choice, default_package, default_inbound_id, default_vless_template }]).select().single();
@@ -103,7 +103,7 @@ exports.createConnection = async (req, res) => {
     }
 };
 
-exports.updateConnection = async (req, res) => {
+const updateConnection = async (req, res) => {
      try {
         const { id } = req.params;
         const { name, icon, requires_package_choice, default_package, default_inbound_id, default_vless_template } = req.body;
@@ -115,7 +115,7 @@ exports.updateConnection = async (req, res) => {
     }
 };
 
-exports.deleteConnection = async (req, res) => {
+const deleteConnection = async (req, res) => {
     try {
         const { id } = req.params;
         const { error } = await supabase.from('connections').delete().eq('id', id);
@@ -126,7 +126,7 @@ exports.deleteConnection = async (req, res) => {
     }
 };
 
-exports.createPackage = async (req, res) => {
+const createPackage = async (req, res) => {
     try {
         const { connection_id, name, template, inbound_id } = req.body;
         const { data, error } = await supabase.from('packages').insert([{ connection_id, name, template, inbound_id }]).select().single();
@@ -137,7 +137,7 @@ exports.createPackage = async (req, res) => {
     }
 };
 
-exports.updatePackage = async (req, res) => {
+const updatePackage = async (req, res) => {
     try {
         const { id } = req.params;
         const { name, template, inbound_id } = req.body;
@@ -149,7 +149,7 @@ exports.updatePackage = async (req, res) => {
     }
 };
 
-exports.deletePackage = async (req, res) => {
+const deletePackage = async (req, res) => {
     try {
         const { id } = req.params;
         const { error } = await supabase.from('packages').delete().eq('id', id);
@@ -161,7 +161,7 @@ exports.deletePackage = async (req, res) => {
 };
 
 // --- 5. PLAN MANAGEMENT ---
-exports.getPlans = async (req, res) => {
+const getPlans = async (req, res) => {
     try {
         const { data, error } = await supabase.from('plans').select('*');
         if (error) throw error;
@@ -171,7 +171,7 @@ exports.getPlans = async (req, res) => {
     }
 };
 
-exports.createPlan = async (req, res) => {
+const createPlan = async (req, res) => {
      try {
         const { plan_name, price, total_gb } = req.body;
         const { data, error } = await supabase.from('plans').insert([{ plan_name, price: parseFloat(price), total_gb: parseInt(total_gb, 10) }]).select().single();
@@ -182,7 +182,7 @@ exports.createPlan = async (req, res) => {
     }
 };
 
-exports.deletePlan = async (req, res) => {
+const deletePlan = async (req, res) => {
     try {
         const { id } = req.params;
         const { error } = await supabase.from('plans').delete().eq('id', id);
@@ -194,7 +194,7 @@ exports.deletePlan = async (req, res) => {
 };
 
 // --- 6. LIVE V2RAY PANEL & REPORTS (Restored from old logic) ---
-exports.getV2rayInbounds = async (req, res) => {
+const getV2rayInbounds = async (req, res) => {
     try {
         const inbounds = await v2rayService.getInboundsWithClients();
         res.json({ success: true, data: inbounds });
@@ -204,7 +204,7 @@ exports.getV2rayInbounds = async (req, res) => {
 };
 
 // --- 7. SETTINGS MANAGEMENT ---
-exports.getSettings = async (req, res) => {
+const getSettings = async (req, res) => {
     try {
         const { data, error } = await supabase.from('settings').select('*');
         if (error) throw error;
@@ -218,7 +218,7 @@ exports.getSettings = async (req, res) => {
     }
 };
 
-exports.updateSettings = async (req, res) => {
+const updateSettings = async (req, res) => {
     try {
         const settings = req.body;
         const upsertPromises = Object.entries(settings).map(([key, value]) => 
