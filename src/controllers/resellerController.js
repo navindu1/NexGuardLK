@@ -42,8 +42,6 @@ exports.getDashboardData = async (req, res) => {
     }
 };
 
-// src/controllers/resellerController.js
-
 exports.createUser = async (req, res) => {
     const resellerId = req.user.id;
     const { username, planId, connId, pkg } = req.body; // Added pkg for multi-package connections
@@ -254,4 +252,4 @@ exports.getUserDetails = async (req, res) => {
     } catch (error) {
         res.status(500).json({ success: false, message: 'Failed to get user details.' });
     }
-}
+};
