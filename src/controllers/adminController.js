@@ -232,3 +232,24 @@ const updateSettings = async (req, res) => {
     }
 };
 
+module.exports = {
+    getDashboardStats,
+    getOrders,
+    approveOrder,
+    rejectOrder,
+    getUsers,
+    updateUserCredit,
+    getConnectionsAndPackages,
+    createConnection,
+    updateConnection,
+    deleteConnection,
+    createPackage,
+    updatePackage,
+    deletePackage,
+    getPlans,
+    createPlan,
+    deletePlan,
+    getV2rayInbounds,
+    getSettings,
+    updateSettings
+};
