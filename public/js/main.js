@@ -822,7 +822,7 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>`);
     }
 
-    // public/js/main.js - සම්පූර්ණයෙන් නිවැරදි කරන ලද ශ්‍රිතය
+    // public/js/main.js - සම්පූර්ණයෙන්ම නිවැරදි කරන ලද ශ්‍රිතය
 
 function renderConnectionsPage(renderFunc, params) {
     const planId = params.get("planId");
@@ -834,39 +834,30 @@ function renderConnectionsPage(renderFunc, params) {
     let connectionsHtml = dynamicConnections.length > 0
         ? dynamicConnections.map(conn => {
             let linkUrl = '';
-            let packageInfoHtml = '';
+            let packageInfoHtml = ''; // Starts as empty string
 
             if (conn.requires_package_choice) {
-                // පැකේජ කිහිපයක් සඳහා වන තර්කනය (මෙය නිවැරදිව ක්‍රියා කරයි)
+                // --- පැකේජ කිහිපයක් සඳහා වන නිවැරදි කළ තර්කනය ---
                 linkUrl = `/package-choice?planId=${planId}&connId=${encodeURIComponent(conn.name)}`;
                 
                 let packageCount = 0;
-                if (conn.package_options && typeof conn.package_options === 'string') {
-                    try {
-                        const options = JSON.parse(conn.package_options);
-                        if (Array.isArray(options)) {
-                            packageCount = options.length;
-                        }
-                    } catch (e) {
-                        console.error(`Error parsing package_options for ${conn.name}:`, conn.package_options, e);
-                    }
+                // නිවැරදි කිරීම: Backend එකෙන් දැන් ලැබෙන්නේ array එකක් නිසා, JSON.parse අවශ්‍ය නැත.
+                // conn.package_options යනු array එකක්දැයි කෙලින්ම පරීක්ෂා කරයි.
+                if (conn.package_options && Array.isArray(conn.package_options)) {
+                    packageCount = conn.package_options.length;
                 }
                 
                 packageInfoHtml = `<p class="text-xs text-purple-300 mt-2 font-semibold">${packageCount} Packages Available</p>`;
 
             } else {
-                // --- START: තනි පැකේජ සඳහා නිවැරදි කිරීම ---
-                // තනි පැකේජයක් සඳහා වන තර්කනය
+                // --- තනි පැකේජයක් සඳහා වන තර්කනය (මෙය පෙර පරිදිම නිවැරදිය) ---
                 linkUrl = `/checkout?planId=${planId}&connId=${encodeURIComponent(conn.name)}&pkg=${encodeURIComponent(conn.default_package || '')}&inboundId=${conn.default_inbound_id}&vlessTemplate=${encodeURIComponent(conn.default_vless_template)}`;
                 
-                // දෝෂය තිබුනේ මෙතනයි. default_package එකක් ඇත්නම්, එය packageInfoHtml එකට ලබා දිය යුතුයි.
                 if (conn.default_package) {
                     packageInfoHtml = `<p class="text-xs text-purple-300 mt-2 font-semibold">${conn.default_package}</p>`;
                 } else {
-                    // default_package එකක් නොමැති නම්, සාමාන්‍ය පාඨයක් පෙන්වීම
                     packageInfoHtml = `<p class="text-xs text-purple-300 mt-2 font-semibold">Standard Connection</p>`;
                 }
-                // --- END: තනි පැකේජ සඳහා නිවැරදි කිරීම ---
             }
             
             return `<a href="${linkUrl}" class="nav-link-internal card reveal selectable glass-panel p-5 rounded-xl text-center flex flex-col items-center justify-center">
@@ -883,7 +874,7 @@ function renderConnectionsPage(renderFunc, params) {
                 <h2 class="text-2xl font-bold text-white">Select Your Connection</h2>
                 <p class="text-gray-400 mt-2">Step 2: Choose your ISP.</p>
             </header>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">${connectionsHtml}</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg-grid-cols-4 gap-6">${connectionsHtml}</div>
             <div class="text-center mt-8 reveal"><a href="/plans" class="nav-link-internal text-purple-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back to Plans</a></div>
         </div>`);
 }
