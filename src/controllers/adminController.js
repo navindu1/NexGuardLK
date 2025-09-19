@@ -46,30 +46,40 @@ const approveOrder = async (req, res) => {
     }
 };
 
-// **** REPLACE THE OLD rejectOrder FUNCTION WITH THIS NEW ONE ****
 const rejectOrder = async (req, res) => {
     try {
         const { orderId } = req.body;
 
-        // Step 1: Update the order status to 'rejected' and fetch the updated order.
-        const { data: rejectedOrder, error: updateError } = await supabase
+        const { data: orderToReject, error: fetchError } = await supabase
             .from('orders')
-            .update({ status: 'rejected' })
+            .select('receipt_path, website_username, plan_id, id')
             .eq('id', orderId)
-            .select()
             .single();
 
-        if (updateError) throw updateError;
-        if (!rejectedOrder) return res.status(404).json({ success: false, message: 'Order not found.' });
+        if (fetchError || !orderToReject) {
+            return res.status(404).json({ success: false, message: 'Order not found.' });
+        }
 
-        // Step 2: Find the user to send the email to.
+        await supabase.from('orders').update({ status: 'rejected' }).eq('id', orderId);
+
+        if (orderToReject.receipt_path && orderToReject.receipt_path !== 'created_by_reseller') {
+            try {
+                const urlParts = orderToReject.receipt_path.split('/');
+                const fileName = urlParts[urlParts.length - 1];
+                if (fileName) {
+                    await supabase.storage.from('receipts').remove([fileName]);
+                }
+            } catch (e) {
+                console.error(`Error parsing or deleting receipt from storage: ${e.message}`);
+            }
+        }
+
         const { data: websiteUser } = await supabase
             .from("users")
             .select("email, username")
-            .eq("username", rejectedOrder.website_username)
+            .eq("username", orderToReject.website_username)
             .single();
 
-        // Step 3: If the user and email exist, send the rejection email.
         if (websiteUser && websiteUser.email) {
             const mailOptions = {
                 from: `NexGuard Orders <${process.env.EMAIL_SENDER}>`,
@@ -77,14 +87,14 @@ const rejectOrder = async (req, res) => {
                 subject: "Important Update Regarding Your NexGuard Order",
                 html: generateEmailTemplate(
                     "Your Order Has Been Rejected",
-                    `Unfortunately, your order for the ${rejectedOrder.plan_id} plan could not be approved.`,
-                    generateRejectionEmailContent(websiteUser.username, rejectedOrder.plan_id, rejectedOrder.id)
+                    `Unfortunately, your order for the ${orderToReject.plan_id} plan could not be approved.`,
+                    generateRejectionEmailContent(websiteUser.username, orderToReject.plan_id, orderToReject.id)
                 ),
             };
             transporter.sendMail(mailOptions).catch(err => console.error(`FAILED to send rejection email:`, err));
         }
 
-        res.json({ success: true, message: 'Order rejected successfully and user notified.' });
+        res.json({ success: true, message: 'Order rejected and receipt deleted.' });
     } catch (error) {
         console.error("Error rejecting order:", error);
         res.status(500).json({ success: false, message: 'Failed to reject order.' });
@@ -294,3 +304,4 @@ module.exports = {
     getSettings,
     updateSettings
 };
+

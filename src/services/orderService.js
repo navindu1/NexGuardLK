@@ -1,5 +1,3 @@
-// File Path: src/services/orderService.js
-
 const supabase = require('../config/supabaseClient');
 const v2rayService = require('./v2rayService');
 const { v4: uuidv4 } = require('uuid');
@@ -15,7 +13,7 @@ const planConfig = {
 
 exports.approveOrder = async (orderId, isAutoApproved = false) => {
     let finalUsername = '';
-    let createdV2rayClient = null; // To keep track of the created client for rollback
+    let createdV2rayClient = null;
 
     try {
         const { data: order, error: orderError } = await supabase.from("orders").select("*").eq("id", orderId).single();
@@ -53,14 +51,13 @@ exports.approveOrder = async (orderId, isAutoApproved = false) => {
                 };
                 await v2rayService.updateClient(inboundId, clientInPanel.client.id, updatedClientSettings);
                 await v2rayService.resetClientTraffic(inboundId, clientInPanel.client.email);
-                createdV2rayClient = { ...clientInPanel, isRenewal: true }; // Mark for potential logging, no rollback needed for update
+                createdV2rayClient = { ...clientInPanel, isRenewal: true };
                 clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientInPanel.client);
                 finalUsername = clientInPanel.client.email;
             } else {
-                // If renewal target does not exist, create a new one.
                 const clientSettings = { id: uuidv4(), email: finalUsername, total: totalGBValue, expiryTime, enable: true };
                 await v2rayService.addClient(inboundId, clientSettings);
-                createdV2rayClient = { settings: clientSettings, inboundId: inboundId }; // Track for rollback
+                createdV2rayClient = { settings: clientSettings, inboundId: inboundId };
                 clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientSettings);
             }
         } else {
@@ -72,7 +69,7 @@ exports.approveOrder = async (orderId, isAutoApproved = false) => {
             }
             const clientSettings = { id: uuidv4(), email: finalUsername, total: totalGBValue, expiryTime, enable: true };
             await v2rayService.addClient(inboundId, clientSettings);
-            createdV2rayClient = { settings: clientSettings, inboundId: inboundId }; // Track for rollback
+            createdV2rayClient = { settings: clientSettings, inboundId: inboundId };
             clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientSettings);
         }
         
@@ -85,10 +82,8 @@ exports.approveOrder = async (orderId, isAutoApproved = false) => {
         };
 
         if (order.is_renewal && planIndex !== -1) {
-            // Update the existing plan entry
             updatedActivePlans[planIndex] = { ...updatedActivePlans[planIndex], ...newPlanDetails };
         } else {
-            // Add a new plan entry
             updatedActivePlans.push(newPlanDetails);
         }
         
@@ -122,40 +117,41 @@ exports.approveOrder = async (orderId, isAutoApproved = false) => {
     }
 };
 
-exports.checkAndApprovePendingOrders = async () => {
+exports.processAutoConfirmableOrders = async () => {
     try {
-        // --- FIX 1: Changed table name from 'app_settings' to 'settings' ---
         const { data: settings, error: settingsError } = await supabase.from('settings').select('*');
         if (settingsError) throw settingsError;
 
-        // --- FIX 2: Changed column names to 'key' and 'value' and made check more robust ---
         const enabledSettings = settings
             .filter(s => s.key.startsWith('auto_approve_') && (s.value === true || s.value === 'true'))
             .map(s => s.key.replace('auto_approve_', ''));
 
         if (enabledSettings.length === 0) {
-            // console.log('Auto-Approve Cron: No connections are enabled for auto-approval.');
             return;
         }
 
         const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-        const { data: orders, error: ordersError } = await supabase
+        const { data: ordersToConfirm, error: ordersError } = await supabase
             .from('orders')
-            .select('*')
+            .select('id')
             .eq('status', 'pending')
             .in('conn_id', enabledSettings)
             .lte('created_at', tenMinutesAgo);
 
         if (ordersError) throw ordersError;
 
-        if (orders.length > 0) {
-            console.log(`Found ${orders.length} order(s) to auto-approve.`);
-            for (const order of orders) {
-                console.log(`Auto-approving order ID: ${order.id}`);
-                await exports.approveOrder(order.id, true);
-            }
+        if (ordersToConfirm && ordersToConfirm.length > 0) {
+            const orderIds = ordersToConfirm.map(o => o.id);
+            console.log(`Found ${orderIds.length} order(s) to move to Unconfirmed status.`);
+            
+            const { error: updateError } = await supabase
+                .from('orders')
+                .update({ status: 'unconfirmed' })
+                .in('id', orderIds);
+
+            if (updateError) throw updateError;
         }
     } catch (error) {
-        console.error('Error during auto-approval cron job:', error.message);
+        console.error('Error during auto-confirmation cron job:', error.message);
     }
 };

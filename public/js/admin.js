@@ -1,8 +1,10 @@
 document.addEventListener("DOMContentLoaded", () => {
     
-    // --- PART 1: LOGIN PAGE LOGIC ---
+    // This logic runs on both admin.html and admin-login.html
+    // So we handle the login form first.
     const loginForm = document.getElementById('admin-login-form');
     if (loginForm) {
+        // --- PART 1: LOGIN PAGE LOGIC ---
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('username').value;
@@ -34,10 +36,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 loginButton.innerHTML = 'Login';
             }
         });
+        // If we are on the login page, we don't need to run the dashboard logic.
         return; 
     }
 
-    // --- PART 2: ADMIN DASHBOARD LOGIC ---
+    // --- PART 2: ADMIN DASHBOARD LOGIC (Runs only on admin.html) ---
     const token = localStorage.getItem('nexguard_admin_token');
     if (!token) {
         window.location.href = '/admin/login';
@@ -339,20 +342,36 @@ document.addEventListener("DOMContentLoaded", () => {
         formModal.classList.add('active');
     }
 
-    // --- Main Data Loading & View Dispatcher ---
     async function loadDataAndRender(view) {
         currentView = view;
         renderLoading();
         try {
-            const [stats, orders, connections, users, plans] = await Promise.all([apiFetch('/stats'), apiFetch('/orders'), apiFetch('/connections'), apiFetch('/users'), apiFetch('/plans')]);
-            if (!stats) return;
-            dataCache = { stats: stats.data, orders: orders.data, connections: connections.data, users: users.data, plans: plans.data };
+            const result = await apiFetch('/stats');
+            if (!result) return;
+            dataCache.stats = result.data;
+            
             Object.keys(dataCache.stats).forEach(key => {
                 const el = document.getElementById(`${key}-orders-stat`) || document.getElementById(`total-${key}-stat`);
                 if (el) el.textContent = dataCache.stats[key];
             });
-            const rendererView = view === 'users' ? () => renderUsers(dataCache.users, 'user') : view === 'resellers' ? () => renderUsers(dataCache.users, 'reseller') : view === 'connections' ? renderConnections : view === 'plans' ? renderPlans : () => renderOrders(view);
-            rendererView();
+
+            if (['pending', 'unconfirmed', 'approved', 'rejected'].includes(view)) {
+                const ordersResult = await apiFetch('/orders');
+                dataCache.orders = ordersResult.data;
+                renderOrders(view);
+            } else if (['users', 'resellers'].includes(view)) {
+                const usersResult = await apiFetch('/users');
+                dataCache.users = usersResult.data;
+                renderUsers(dataCache.users, view === 'users' ? 'user' : 'reseller');
+            } else if (view === 'connections') {
+                const connResult = await apiFetch('/connections');
+                dataCache.connections = connResult.data;
+                renderConnections();
+            } else if (view === 'plans') {
+                const plansResult = await apiFetch('/plans');
+                dataCache.plans = plansResult.data;
+                renderPlans();
+            }
         } catch (error) {
             showToast(error.message, true);
             contentContainer.innerHTML = `<div class="glass-panel p-6 text-center rounded-lg text-red-400">Failed to load data. Please refresh.</div>`;
@@ -374,14 +393,11 @@ document.addEventListener("DOMContentLoaded", () => {
         if (type === 'plan') showPlanForm();
     });
 
-    // ++++++++++ START: FINAL CORRECTED EVENT LISTENER ++++++++++
     contentContainer.addEventListener('click', async e => {
         const button = e.target.closest('button');
         const header = e.target.closest('[data-collapsible-target]');
     
-        // PRIORITY 1: Handle BUTTON clicks first.
         if (button) {
-            // Get IDs from data attributes. Use loose comparison (==) to handle string/number issues.
             const id = button.dataset.id;
             const connId = button.dataset.connId;
     
@@ -397,10 +413,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     await handleAction(`/orders/reject`, { orderId: id }, 'Rejecting...', 'Order Rejected', 'POST', button);
                     break;
                 case button.classList.contains('edit-conn-btn'): {
-                    const connToEdit = dataCache.connections.find(c => c.id == id); // Use ==
-                    if (connToEdit) {
-                        showConnectionForm(connToEdit);
-                    }
+                    const connToEdit = dataCache.connections.find(c => c.id == id);
+                    if (connToEdit) showConnectionForm(connToEdit);
                     break;
                 }
                 case button.classList.contains('delete-conn-btn'):
@@ -409,15 +423,13 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                     break;
                 case button.classList.contains('add-pkg-btn'):
-                    showPackageForm({}, id); // id here is the connection ID
+                    showPackageForm({}, id);
                     break;
                 case button.classList.contains('edit-pkg-btn'): {
-                    const conn = dataCache.connections.find(c => c.id == connId); // Use ==
+                    const conn = dataCache.connections.find(c => c.id == connId);
                     if (conn) {
-                        const pkg = conn.packages.find(p => p.id == id); // Use ==
-                        if (pkg) {
-                            showPackageForm(pkg, connId);
-                        }
+                        const pkg = conn.packages.find(p => p.id == id);
+                        if (pkg) showPackageForm(pkg, connId);
                     }
                     break;
                 }
@@ -439,10 +451,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     break;
                 }
             }
-            return; // Stop after a button action is handled.
+            return;
         }
     
-        // PRIORITY 2: If no button was clicked, handle the header click for collapsing.
         if (header) {
             const targetId = header.dataset.collapsibleTarget;
             const targetBody = document.getElementById(targetId);
@@ -452,7 +463,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
     });
-    // ++++++++++ END: FINAL CORRECTED EVENT LISTENER ++++++++++
     
     formModalSaveBtn.addEventListener('click', (e) => {
         const form = e.target.closest('.modal').querySelector('#form-modal-content');
@@ -477,7 +487,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const [settingsResult, connectionsResult] = await Promise.all([apiFetch('/settings'), apiFetch('/connections')]);
             const settings = settingsResult.data || {};
             const connections = connectionsResult.data || [];
-            let settingsHtml = `<div><h4 class="font-bold text-lg text-purple-300 mb-2">Auto-Approve Orders</h4><p class="text-xs text-slate-400 mb-4">Enable this to automatically approve orders for a specific connection type after 10 minutes of pending.</p><div class="space-y-3">`;
+            let settingsHtml = `<div><h4 class="font-bold text-lg text-purple-300 mb-2">Auto-Confirm Orders</h4><p class="text-xs text-slate-400 mb-4">Enable this to automatically move pending orders to 'Unconfirmed' for review after 10 minutes.</p><div class="space-y-3">`;
             connections.forEach(conn => {
                 const settingKey = `auto_approve_${conn.name}`;
                 const isChecked = settings[settingKey] === 'true' || settings[settingKey] === true;
@@ -523,7 +533,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (currentView === 'users' || currentView === 'resellers') renderUsers(dataCache.users, currentView === 'users' ? 'user' : 'reseller');
     });
 
-    // --- Initial Load ---
     setActiveCard(document.getElementById(`card-${currentView}`));
     loadDataAndRender(currentView);
 });
+
