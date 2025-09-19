@@ -3,7 +3,7 @@ const { approveOrder: approveOrderService } = require('../services/orderService'
 const v2rayService = require('../services/v2rayService');
 
 // --- 1. DASHBOARD & STATS ---
-exports.getDashboardStats = async (req, res) => {
+const getDashboardStats = async (req, res) => {
     try {
         const { data: orders, error: ordersError } = await supabase.from('orders').select('status');
         const { data: users, error: usersError } = await supabase.from('users').select('role');
@@ -232,25 +232,3 @@ exports.updateSettings = async (req, res) => {
     }
 };
 
-module.exports = {
-    getDashboardStats,
-    getOrders,
-    approveOrder,
-    rejectOrder,
-    getUsers,
-    updateUserCredit,
-    getResellers,
-    getConnectionsAndPackages,
-    createConnection,
-    updateConnection,
-    deleteConnection,
-    createPackage,
-    updatePackage,
-    deletePackage,
-    getPlans,
-    createPlan,
-    deletePlan,
-    getSettings,
-    updateSettings,
-    getV2rayInbounds, // <-- මෙම ශ්‍රිතය මෙතනට එකතු කරන්න
-};
