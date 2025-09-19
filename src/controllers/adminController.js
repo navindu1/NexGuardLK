@@ -72,7 +72,6 @@ const updateUserCredit = async (req, res) => {
         if (!userId || isNaN(parseFloat(amount))) {
             return res.status(400).json({ success: false, message: 'User ID and a valid amount are required.' });
         }
-        // This requires a Supabase Function named 'add_user_credit'. If not created, use the commented out code.
         const { error } = await supabase.rpc('add_user_credit', { user_id_param: userId, amount_param: parseFloat(amount) });
         if (error) throw error;
         res.json({ success: true, message: 'Credit added successfully.' });
@@ -193,7 +192,7 @@ const deletePlan = async (req, res) => {
     }
 };
 
-// --- 6. LIVE V2RAY PANEL & REPORTS (Restored from old logic) ---
+// --- 6. LIVE V2RAY PANEL & REPORTS ---
 const getV2rayInbounds = async (req, res) => {
     try {
         const inbounds = await v2rayService.getInboundsWithClients();
@@ -232,6 +231,13 @@ const updateSettings = async (req, res) => {
     }
 };
 
+const getResellers = (req, res) => {
+    // This is a placeholder. You need to implement the logic to get resellers.
+    res.json({ success: true, data: [] });
+};
+
+// --- THIS IS THE MOST IMPORTANT PART ---
+// --- MAKE SURE THIS EXPORT BLOCK IS AT THE VERY END OF THE FILE ---
 module.exports = {
     getDashboardStats,
     getOrders,
@@ -239,6 +245,7 @@ module.exports = {
     rejectOrder,
     getUsers,
     updateUserCredit,
+    getResellers, // Added getResellers here
     getConnectionsAndPackages,
     createConnection,
     updateConnection,
