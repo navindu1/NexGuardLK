@@ -3,7 +3,6 @@ const v2rayService = require('./v2rayService');
 const { v4: uuidv4 } = require('uuid');
 const transporter = require('../config/mailer');
 const supabase = require('../config/supabaseClient');
-const transporter = require('../config/mailer');
 const { generateEmailTemplate, generateOrderPlacedEmailContent } = require('../services/emailService');
 const { generateEmailTemplate, generateApprovalEmailContent } = require('./emailService');
 
