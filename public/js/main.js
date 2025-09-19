@@ -34,9 +34,8 @@ document.addEventListener("DOMContentLoaded", () => {
         bankDetails: `Name: N.R Lekamge\nBank: BOC Bank\nBranch: Eheliyagoda\nAccount Number: 93129972`.trim(),
     };
 
-    let dynamicConnections = []; // Variable to hold connections from the database
+    let dynamicConnections = [];
 
-    // --- NEW FUNCTION to fetch connections from the server ---
     const loadConnections = async () => {
         try {
             const res = await fetch('/api/public/connections');
@@ -52,31 +51,23 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     const updateNavUI = (isLoggedIn) => {
-    const htmlElement = document.documentElement; // <html> ටැගය ලබා ගනී
-
-    if (isLoggedIn && userSession) {
-        // ලොග් වූ විට, 'logged-in' class එක එකතු කර 'logged-out' ඉවත් කරයි
-        htmlElement.classList.remove('logged-out');
-        htmlElement.classList.add('logged-in');
-
-        // Profile පින්තූරය යාවත්කාලීන කිරීම
-        const profilePicDesktop = document.getElementById("profile-pic-nav-desktop");
-        const profilePicMobile = document.getElementById("profile-pic-nav-mobile");
-        
-        let profilePicturePath = (userSession.profilePicture || "/assets/profilePhoto.jpg").replace("public/", "");
-        if (profilePicturePath && !profilePicturePath.startsWith('/')) {
-            profilePicturePath = '/' + profilePicturePath;
+        const htmlElement = document.documentElement;
+        if (isLoggedIn && userSession) {
+            htmlElement.classList.remove('logged-out');
+            htmlElement.classList.add('logged-in');
+            const profilePicDesktop = document.getElementById("profile-pic-nav-desktop");
+            const profilePicMobile = document.getElementById("profile-pic-nav-mobile");
+            let profilePicturePath = (userSession.profilePicture || "/assets/profilePhoto.jpg").replace("public/", "");
+            if (profilePicturePath && !profilePicturePath.startsWith('/')) {
+                profilePicturePath = '/' + profilePicturePath;
+            }
+            if (profilePicDesktop) profilePicDesktop.src = profilePicturePath;
+            if (profilePicMobile) profilePicMobile.src = profilePicturePath;
+        } else {
+            htmlElement.classList.remove('logged-in');
+            htmlElement.classList.add('logged-out');
         }
-        
-        if (profilePicDesktop) profilePicDesktop.src = profilePicturePath;
-        if (profilePicMobile) profilePicMobile.src = profilePicturePath;
-
-    } else {
-        // ලොග් අවුට් වූ විට, 'logged-out' class එක එකතු කර 'logged-in' ඉවත් කරයි
-        htmlElement.classList.remove('logged-in');
-        htmlElement.classList.add('logged-out');
-    }
-};
+    };
 
     const saveSession = (data) => {
         localStorage.setItem("nexguard_token", data.token);
@@ -152,6 +143,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
     };
+    
 
     const qrModal = document.getElementById("qr-modal");
     const qrModalContent = document.getElementById("modal-qr-code");
@@ -606,7 +598,7 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>`);
     }
 
-     function renderConnectionsPage(renderFunc, params) {
+        function renderConnectionsPage(renderFunc, params) {
         const planId = params.get("planId");
         if (!planId || !appData.plans[planId]) {
             renderFunc('<div class="page text-center"><p class="text-red-400">Invalid plan selection.</p><a href="/plans" class="nav-link-internal underline mt-2">Go back to plans</a></div>');
@@ -648,7 +640,6 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>`);
     }
 
-
     function renderPackageChoicePage(renderFunc, params) {
         const planId = params.get("planId");
         const connId = decodeURIComponent(params.get("connId"));
@@ -677,87 +668,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">${choiceHtml}</div>
                 <div class="text-center mt-8 reveal">
                     <a href="/connections?planId=${planId}" class="nav-link-internal text-purple-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back to Connections</a>
-                </div>
-            </div>`);
-    }
-
-    function renderAboutPage(renderFunc) {
-        renderFunc(`
-            <div id="page-about" class="page">
-                <div class="flex flex-col lg:flex-row gap-8">
-                    <div class="flex-grow glass-panel p-8 rounded-lg space-y-5 reveal">
-                        <h2 class="text-2xl font-bold">About NexGuard LK</h2>
-                        <p class="text-gray-300 text-sm">NexGuard is dedicated to providing secure, fast, and reliable internet freedom in Sri Lanka. Our mission is to deliver top-tier V2Ray services that are both affordable and powerful.</p>
-                        <div><h3 class="text-lg font-bold text-white mb-2"><i class="fa-solid fa-rocket text-purple-400 mr-2"></i> Our Mission</h3><p class="text-gray-300 text-sm">To democratize internet access by providing robust, uncensored, and private connectivity solutions to every Sri Lankan.</p></div>
-                        <div><h3 class="text-lg font-bold text-white mb-2"><i class="fa-solid fa-server text-purple-400 mr-2"></i> Our Technology</h3><p class="text-gray-300 text-sm">We leverage cutting-edge V2Ray technology with advanced protocols like VLESS and VMess, coupled with optimized routing over Sri Lankan ISPs.</p></div>
-                        <div class="pt-4 mt-4 border-t border-white/10">
-                            <h3 class="text-lg font-bold text-white mb-3"><i class="fa-solid fa-star text-purple-400 mr-2"></i> Our Core Features</h3>
-                            <div class="space-y-3 text-sm">
-                                <p><i class="fa-solid fa-shield-virus text-green-400 w-5 text-center"></i> <strong>Strict No-Log Policy:</strong> Your privacy is paramount. We never track or store your online activity.</p>
-                                <p><i class="fa-solid fa-mobile-screen-button text-green-400 w-5 text-center"></i> <strong>Multi-Device Support:</strong> Use your single account on your phone, laptop, and tablet simultaneously.</p>
-                                <p><i class="fa-solid fa-bolt-lightning text-green-400 w-5 text-center"></i> <strong>Admin-Approved Setup:</strong> Your account is securely created and delivered after payment verification.</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="lg:w-80 flex-shrink-0 reveal">
-                        <div class="glass-panel p-6 rounded-2xl text-center sticky top-28 shadow-xl">
-                            
-                            <img src="/assets/ceo.jpg" alt="Nexguard Founder" class="w-24 h-24 rounded-full mx-auto border-4 border-purple-500 shadow-md">
-                            
-                            <h3 class="text-xl font-bold mt-4 text-white">Navindu R.</h3>
-                            <p class="text-purple-400 text-sm font-medium">CEO & Founder</p>
-                            
-                            <p class="text-xs text-gray-300 mt-3 leading-relaxed">A passionate advocate for digital privacy, I founded <span class="text-purple-400 font-semibold">NexGuard</span> to bring world-class, unrestricted connectivity to Sri Lanka.</p>
-
-                            <div class="mt-4 text-sm text-gray-300 space-y-3 text-left">
-                                <p class="flex items-center gap-2"><i class="fas fa-map-marker-alt text-purple-400"></i> Based in Eheliyagoda, Sri Lanka</p>
-                                <p class="flex items-center gap-2"><i class="fas fa-shield-alt text-purple-400"></i> 2+ Years in Networking & Cybersecurity</p>
-                                <p class="flex items-center gap-2"><i class="fas fa-bullseye text-purple-400"></i> Mission: Empowering Digital Freedom</p>
-                            </div>
-
-                            <div class="flex justify-center space-x-5 mt-6">
-                                <a href="https://wa.me/94770492554" target="_blank" class="text-green-400 hover:text-green-500 transition transform hover:scale-110"><i class="fab fa-whatsapp fa-lg"></i></a>
-                                <a href="https://www.facebook.com/nexguardlk" target="_blank" class="text-blue-400 hover:text-blue-500 transition transform hover:scale-110"><i class="fab fa-facebook fa-lg"></i></a>
-                                <a href="https://t.me/nexguardusagebot" target="_blank" class="text-gray-400 hover:text-redgray-500 transition transform hover:scale-110"><i class="fab fa-telegram fa-lg"></i></a>
-                            </div>
-
-                        </div>
-                    </div>
-
-                </div>
-                <div id="contact-section" class="mt-20">
-                    <header class="text-center mb-10 reveal"><h2 class="text-2xl font-bold text-white">Get In Touch</h2></header>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-                        <a href="https://chat.whatsapp.com/DoErFmB8KSW6XLmjmJPWar" target="_blank" class="card reveal glass-panel p-5 rounded-xl text-center flex flex-col items-center justify-center"><i class="fa-brands fa-whatsapp text-3xl text-green-400 mb-3"></i><h3 class="text-lg font-bold text-white">WhatsApp</h3><p class="text-gray-400 mt-1 text-xs">Tap to chat for quick support.</p></a>
-                        <a href="https://t.me/nexguardusagebot" target="_blank" class="card reveal glass-panel p-5 rounded-xl text-center flex flex-col items-center justify-center"><i class="fa-brands fa-telegram text-3xl text-sky-400 mb-3"></i><h3 class="text-lg font-bold text-white">Telegram</h3><p class="text-gray-400 mt-1 text-xs">Join our channel or contact our bot.</p></a>
-                        <a href="mailto:navindu4000@gmail.com" class="card reveal glass-panel p-5 rounded-xl text-center flex flex-col items-center justify-center"><i class="fa-solid fa-envelope-open-text text-3xl text-red-400 mb-3"></i><h3 class="text-lg font-bold text-white">Email</h3><p class="text-gray-400 mt-1 text-xs">Send us an email for detailed inquiries.</p></a>
-                    </div>
-                </div>
-            </div>`);
-    }
-
-    function renderPrivacyPage(renderFunc) {
-        renderFunc(`
-            <div id="page-privacy" class="page">
-                <div class="glass-panel p-8 rounded-lg space-y-5 max-w-4xl mx-auto reveal">
-                    <h2 class="text-2xl font-bold">Privacy & Refund Policy</h2>
-                    <div>
-                        <h3 class="text-lg font-bold text-white mb-2">Our Commitment to Privacy</h3>
-                        <p class="text-gray-300 text-sm">Your privacy is critically important to us. We do not store logs of your online activity. We store account information only for service provision. We aim for full transparency on how we handle your data.</p>
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-bold text-white mb-2">Information We Collect</h3>
-                        <p class="text-gray-300 text-sm">We collect the bare minimum information to create and manage your account: your chosen username, WhatsApp number for support, and an encrypted password. We do not track the websites you visit.</p>
-                    </div>
-                    <div class="pt-4 border-t border-white/10">
-                        <h3 class="text-xl font-bold">Refund Policy</h3>
-                        <p class="text-gray-300 mt-2 text-sm">We offer a conditional refund for our V2Ray packages. You are eligible for a full refund under the following conditions:</p>
-                        <ul class="list-disc list-inside text-gray-300 space-y-2 pl-4 mt-2 text-sm">
-                            <li>The request must be made within <strong>2 days (48 hours)</strong> of the purchase.</li>
-                            <li>Your total data usage must be less than <strong>10 GB</strong>.</li>
-                        </ul>
-                        <p class="font-semibold text-amber-400 mt-2 text-sm">If these conditions are not met, you will not be eligible for a refund.</p>
-                    </div>
                 </div>
             </div>`);
     }
@@ -856,6 +766,89 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     }
+
+
+    function renderAboutPage(renderFunc) {
+        renderFunc(`
+            <div id="page-about" class="page">
+                <div class="flex flex-col lg:flex-row gap-8">
+                    <div class="flex-grow glass-panel p-8 rounded-lg space-y-5 reveal">
+                        <h2 class="text-2xl font-bold">About NexGuard LK</h2>
+                        <p class="text-gray-300 text-sm">NexGuard is dedicated to providing secure, fast, and reliable internet freedom in Sri Lanka. Our mission is to deliver top-tier V2Ray services that are both affordable and powerful.</p>
+                        <div><h3 class="text-lg font-bold text-white mb-2"><i class="fa-solid fa-rocket text-purple-400 mr-2"></i> Our Mission</h3><p class="text-gray-300 text-sm">To democratize internet access by providing robust, uncensored, and private connectivity solutions to every Sri Lankan.</p></div>
+                        <div><h3 class="text-lg font-bold text-white mb-2"><i class="fa-solid fa-server text-purple-400 mr-2"></i> Our Technology</h3><p class="text-gray-300 text-sm">We leverage cutting-edge V2Ray technology with advanced protocols like VLESS and VMess, coupled with optimized routing over Sri Lankan ISPs.</p></div>
+                        <div class="pt-4 mt-4 border-t border-white/10">
+                            <h3 class="text-lg font-bold text-white mb-3"><i class="fa-solid fa-star text-purple-400 mr-2"></i> Our Core Features</h3>
+                            <div class="space-y-3 text-sm">
+                                <p><i class="fa-solid fa-shield-virus text-green-400 w-5 text-center"></i> <strong>Strict No-Log Policy:</strong> Your privacy is paramount. We never track or store your online activity.</p>
+                                <p><i class="fa-solid fa-mobile-screen-button text-green-400 w-5 text-center"></i> <strong>Multi-Device Support:</strong> Use your single account on your phone, laptop, and tablet simultaneously.</p>
+                                <p><i class="fa-solid fa-bolt-lightning text-green-400 w-5 text-center"></i> <strong>Admin-Approved Setup:</strong> Your account is securely created and delivered after payment verification.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="lg:w-80 flex-shrink-0 reveal">
+                        <div class="glass-panel p-6 rounded-2xl text-center sticky top-28 shadow-xl">
+                            
+                            <img src="/assets/ceo.jpg" alt="Nexguard Founder" class="w-24 h-24 rounded-full mx-auto border-4 border-purple-500 shadow-md">
+                            
+                            <h3 class="text-xl font-bold mt-4 text-white">Navindu R.</h3>
+                            <p class="text-purple-400 text-sm font-medium">CEO & Founder</p>
+                            
+                            <p class="text-xs text-gray-300 mt-3 leading-relaxed">A passionate advocate for digital privacy, I founded <span class="text-purple-400 font-semibold">NexGuard</span> to bring world-class, unrestricted connectivity to Sri Lanka.</p>
+
+                            <div class="mt-4 text-sm text-gray-300 space-y-3 text-left">
+                                <p class="flex items-center gap-2"><i class="fas fa-map-marker-alt text-purple-400"></i> Based in Eheliyagoda, Sri Lanka</p>
+                                <p class="flex items-center gap-2"><i class="fas fa-shield-alt text-purple-400"></i> 2+ Years in Networking & Cybersecurity</p>
+                                <p class="flex items-center gap-2"><i class="fas fa-bullseye text-purple-400"></i> Mission: Empowering Digital Freedom</p>
+                            </div>
+
+                            <div class="flex justify-center space-x-5 mt-6">
+                                <a href="https://wa.me/94770492554" target="_blank" class="text-green-400 hover:text-green-500 transition transform hover:scale-110"><i class="fab fa-whatsapp fa-lg"></i></a>
+                                <a href="https://www.facebook.com/nexguardlk" target="_blank" class="text-blue-400 hover:text-blue-500 transition transform hover:scale-110"><i class="fab fa-facebook fa-lg"></i></a>
+                                <a href="https://t.me/nexguardusagebot" target="_blank" class="text-gray-400 hover:text-redgray-500 transition transform hover:scale-110"><i class="fab fa-telegram fa-lg"></i></a>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+                <div id="contact-section" class="mt-20">
+                    <header class="text-center mb-10 reveal"><h2 class="text-2xl font-bold text-white">Get In Touch</h2></header>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+                        <a href="https://chat.whatsapp.com/DoErFmB8KSW6XLmjmJPWar" target="_blank" class="card reveal glass-panel p-5 rounded-xl text-center flex flex-col items-center justify-center"><i class="fa-brands fa-whatsapp text-3xl text-green-400 mb-3"></i><h3 class="text-lg font-bold text-white">WhatsApp</h3><p class="text-gray-400 mt-1 text-xs">Tap to chat for quick support.</p></a>
+                        <a href="https://t.me/nexguardusagebot" target="_blank" class="card reveal glass-panel p-5 rounded-xl text-center flex flex-col items-center justify-center"><i class="fa-brands fa-telegram text-3xl text-sky-400 mb-3"></i><h3 class="text-lg font-bold text-white">Telegram</h3><p class="text-gray-400 mt-1 text-xs">Join our channel or contact our bot.</p></a>
+                        <a href="mailto:navindu4000@gmail.com" class="card reveal glass-panel p-5 rounded-xl text-center flex flex-col items-center justify-center"><i class="fa-solid fa-envelope-open-text text-3xl text-red-400 mb-3"></i><h3 class="text-lg font-bold text-white">Email</h3><p class="text-gray-400 mt-1 text-xs">Send us an email for detailed inquiries.</p></a>
+                    </div>
+                </div>
+            </div>`);
+    }
+
+    function renderPrivacyPage(renderFunc) {
+        renderFunc(`
+            <div id="page-privacy" class="page">
+                <div class="glass-panel p-8 rounded-lg space-y-5 max-w-4xl mx-auto reveal">
+                    <h2 class="text-2xl font-bold">Privacy & Refund Policy</h2>
+                    <div>
+                        <h3 class="text-lg font-bold text-white mb-2">Our Commitment to Privacy</h3>
+                        <p class="text-gray-300 text-sm">Your privacy is critically important to us. We do not store logs of your online activity. We store account information only for service provision. We aim for full transparency on how we handle your data.</p>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-white mb-2">Information We Collect</h3>
+                        <p class="text-gray-300 text-sm">We collect the bare minimum information to create and manage your account: your chosen username, WhatsApp number for support, and an encrypted password. We do not track the websites you visit.</p>
+                    </div>
+                    <div class="pt-4 border-t border-white/10">
+                        <h3 class="text-xl font-bold">Refund Policy</h3>
+                        <p class="text-gray-300 mt-2 text-sm">We offer a conditional refund for our V2Ray packages. You are eligible for a full refund under the following conditions:</p>
+                        <ul class="list-disc list-inside text-gray-300 space-y-2 pl-4 mt-2 text-sm">
+                            <li>The request must be made within <strong>2 days (48 hours)</strong> of the purchase.</li>
+                            <li>Your total data usage must be less than <strong>10 GB</strong>.</li>
+                        </ul>
+                        <p class="font-semibold text-amber-400 mt-2 text-sm">If these conditions are not met, you will not be eligible for a refund.</p>
+                    </div>
+                </div>
+            </div>`);
+    }
+
 
     function renderProfilePage(renderFunc, params) {
     const user = JSON.parse(localStorage.getItem("nexguard_user"));
@@ -1720,7 +1713,7 @@ forgotPasswordForm?.addEventListener("submit", async(e) => {
         document.getElementById("reset-toggle") ?.addEventListener("click", () => togglePassword("new-password", "reset-toggle"));
     }
 
-    const allRoutes = {
+        const allRoutes = {
         home: renderHomePage,
         usage: renderUsagePage,
         plans: renderPlansPage,
@@ -1734,66 +1727,44 @@ forgotPasswordForm?.addEventListener("submit", async(e) => {
         checkout: renderCheckoutPage,
         profile: renderProfilePage,
     };
-
-    const navigateTo = (path) => {
-        history.pushState(null, null, path);
-        router();
-    };
-
-    // REPLACE WITH THIS NEW router FUNCTION
-const router = () => {
-    const pathName = window.location.pathname;
-    const params = new URLSearchParams(window.location.search);
     
-    // New logic to handle paths like /profile/config
-    const pathParts = pathName.substring(1).split('/');
-    let pageKey = pathParts[0] || 'home';
-    if (pageKey === '') pageKey = 'home';
-
-    if (userSession && ["login", "signup", "reset-password"].includes(pageKey)) {
-        navigateTo("/profile");
-        return;
-    }
-    if (["checkout", "profile"].includes(pageKey) && !userSession) {
-        navigateTo("/login");
-        return;
-    }
-
-    const renderFunction = allRoutes[pageKey] || allRoutes["home"];
-    if (renderFunction) {
-        mainContentArea.innerHTML = "";
-        renderFunction(
-            (html) => {
-                mainContentArea.innerHTML = html;
-                initAnimations();
-                const scrollTargetId = params.get("scroll");
-                if (scrollTargetId) {
-                    setTimeout(() => {
-                        const scrollTargetElement = document.getElementById(scrollTargetId);
-                        if (scrollTargetElement) {
-                            scrollTargetElement.scrollIntoView({
-                                behavior: "smooth",
-                                block: "start"
-                            });
-                        }
-                    }, 100);
-                }
-            },
-            params,
-            pageKey
-        );
-    }
-    document.querySelectorAll("#main-nav a, #mobile-nav a").forEach((link) => {
-        const linkPath = link.getAttribute("href")?.split("?")[0].replace('/', '');
-        const currentPath = pageKey.split('/')[0];
-        const isActive = linkPath === currentPath || (linkPath === 'home' && currentPath === 'home');
-        link.classList.toggle("active", isActive);
-    });
-    window.scrollTo(0, 0);
-};
-
+    const navigateTo = (path) => { history.pushState(null, null, path); router(); };
+    const router = async () => { 
+        const pathName = window.location.pathname; 
+        const params = new URLSearchParams(window.location.search); 
+        const pathParts = pathName.substring(1).split('/'); 
+        let pageKey = pathParts[0] || 'home'; 
+        if (pageKey === '') pageKey = 'home'; 
+        if (userSession && ["login", "signup", "reset-password"].includes(pageKey)) { navigateTo("/profile"); return; } 
+        if (["checkout", "profile", "connections", "package-choice"].includes(pageKey) && !userSession) { navigateTo("/login"); return; } 
+        const renderFunction = allRoutes[pageKey] || allRoutes["home"]; 
+        if (renderFunction) { 
+            mainContentArea.innerHTML = ""; 
+            renderFunction((html) => { 
+                mainContentArea.innerHTML = html; 
+                initAnimations(); 
+            }, params, pageKey); 
+        } 
+        document.querySelectorAll("#main-nav a, #mobile-nav a").forEach((link) => { 
+            const linkPath = link.getAttribute("href")?.split("?")[0].replace('/', ''); 
+            const currentPath = pageKey.split('/')[0]; 
+            const isActive = linkPath === currentPath || (linkPath === 'home' && currentPath === ''); 
+            link.classList.toggle("active", isActive); 
+        }); 
+        window.scrollTo(0, 0); 
+    };
+    
     window.addEventListener("popstate", router);
-
+    document.addEventListener("click", (e) => { 
+        const link = e.target.closest("a.nav-link-internal"); 
+        if (link) { 
+            const href = link.getAttribute("href"); 
+            if (href) { 
+                e.preventDefault(); 
+                navigateTo(href); 
+            } 
+        } 
+    });
     window.addEventListener('load', function() {
   const loader = document.getElementById('page-loader');
   loader.style.opacity = '0';
@@ -1802,20 +1773,13 @@ const router = () => {
   }, 500);
 });
 
-    document.addEventListener("click", (e) => {
-        const link = e.target.closest("a.nav-link-internal");
-        if (link) {
-            const href = link.getAttribute("href");
-            if (href) {
-                e.preventDefault();
-                navigateTo(href);
-            }
-        }
-    });
-
+    
     // --- Initial Application Load ---
-    loadSession();
-    loadConnections();
-    router(); // Initial route call
-});
+    const init = async () => {
+        loadSession();
+        await loadConnections();
+        router();
+    };
 
+    init();
+});

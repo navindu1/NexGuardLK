@@ -1,14 +1,17 @@
-// File Path: src/services/orderService.js
 
-const supabase = require('../config/supabaseClient');
 const v2rayService = require('./v2rayService');
 const { v4: uuidv4 } = require('uuid');
 const transporter = require('../config/mailer');
+const supabase = require('../config/supabaseClient');
+const transporter = require('../config/mailer');
+const { generateEmailTemplate, generateOrderPlacedEmailContent } = require('../services/emailService');
 const { generateEmailTemplate, generateApprovalEmailContent } = require('./emailService');
+
 
 const planConfig = {
     "100GB": { totalGB: 100 }, "200GB": { totalGB: 200 }, "Unlimited": { totalGB: 0 },
 };
+
 
 exports.approveOrder = async (orderId, isAutoApproved = false) => {
     let finalUsername = ''; 
@@ -17,15 +20,12 @@ exports.approveOrder = async (orderId, isAutoApproved = false) => {
         if (orderError || !order) return { success: false, message: "Order not found." };
         if (order.status === 'approved') return { success: false, message: "Order is already approved." };
 
-        // --- UPDATED LOGIC ---
-        // Get the inbound_id and vless_template directly from the order itself.
         const inboundId = order.inbound_id;
         const vlessTemplate = order.vless_template;
         
         if (!inboundId || !vlessTemplate) {
              return { success: false, message: `Inbound ID or VLESS Template is missing for this order. Cannot approve.` };
         }
-        // --- END OF UPDATED LOGIC ---
 
         finalUsername = order.username; 
         const { data: websiteUser } = await supabase.from("users").select("*").ilike("username", order.website_username).single();
@@ -49,7 +49,6 @@ exports.approveOrder = async (orderId, isAutoApproved = false) => {
                     id: clientInPanel.client.id, email: clientInPanel.client.email, total: totalGBValue,
                     expiryTime: expiryTime, enable: true, tgId: clientInPanel.client.tgId || "", subId: clientInPanel.client.subId || ""
                 };
-                // Use the correct inbound ID for update
                 await v2rayService.updateClient(inboundId, clientInPanel.client.id, updatedClientSettings);
                 await v2rayService.resetClientTraffic(inboundId, clientInPanel.client.email);
                 clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientInPanel.client);
@@ -132,5 +131,82 @@ exports.checkAndApprovePendingOrders = async () => {
         }
     } catch (error) {
         console.error('Error during auto-approval cron job:', error.message);
+    }
+};
+
+exports.createOrder = async (req, res) => {
+    const { planId, connId, pkg, whatsapp, username, isRenewal, inboundId, vlessTemplate } = req.body;
+    
+    if (!planId || !connId || !whatsapp || !username || !req.file || !inboundId || !vlessTemplate)
+        return res.status(400).json({
+            success: false,
+            message: "Missing required order information, receipt file, or connection details.",
+        });
+
+    try {
+        const file = req.file;
+        const fileExt = file.originalname.split('.').pop();
+        const fileName = `receipt-${Date.now()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+            .from('receipts')
+            .upload(filePath, file.buffer, {
+                contentType: file.mimetype,
+                upsert: false,
+            });
+
+        if (uploadError) {
+            console.error("Supabase storage error:", uploadError);
+            throw new Error("Failed to upload the receipt file.");
+        }
+
+        const { data: urlData } = supabase.storage
+            .from('receipts')
+            .getPublicUrl(filePath);
+
+        const publicUrl = urlData.publicUrl;
+
+        const newOrder = {
+            id: uuidv4(),
+            username: username,
+            website_username: req.user.username,
+            plan_id: planId,
+            conn_id: connId,
+            pkg: pkg || null,
+            whatsapp,
+            receipt_path: publicUrl,
+            status: "pending",
+            is_renewal: isRenewal === "true",
+            inbound_id: parseInt(inboundId, 10),
+            vless_template: vlessTemplate 
+        };
+
+        const { error: orderError } = await supabase.from("orders").insert([newOrder]);
+        if (orderError) throw orderError;
+
+        const { data: websiteUser } = await supabase
+            .from("users")
+            .select("email, username")
+            .eq("username", req.user.username)
+            .single();
+
+        if (websiteUser && websiteUser.email) {
+            const mailOptions = {
+                from: `NexGuard Orders <${process.env.EMAIL_SENDER}>`,
+                to: websiteUser.email,
+                subject: "Your NexGuard Order Has Been Received!",
+                html: generateEmailTemplate(
+                    "Order Received!",
+                    `Your order for the ${planId} plan is pending approval.`,
+                    generateOrderPlacedEmailContent(websiteUser.username, planId)
+                ),
+            };
+            transporter.sendMail(mailOptions).catch(err => console.error(`FAILED to send order placed email:`, err));
+        }
+        res.status(201).json({ success: true, message: "Order submitted successfully!" });
+    } catch (error) {
+        console.error("Error creating order:", error.message);
+        res.status(500).json({ success: false, message: error.message || "Failed to create order." });
     }
 };
