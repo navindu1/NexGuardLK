@@ -831,33 +831,39 @@ function renderConnectionsPage(renderFunc, params) {
         return;
     }
 
-    // dynamicConnections is now an array of full connection objects from the backend
     let connectionsHtml = dynamicConnections.length > 0
         ? dynamicConnections.map(conn => {
             let linkUrl = '';
             let packageInfoHtml = '';
 
-            // This logic now works correctly because the backend sends all required fields
             if (conn.requires_package_choice) {
                 linkUrl = `/package-choice?planId=${planId}&connId=${encodeURIComponent(conn.name)}`;
                 
-                // Safely parse package_options and show count
+                // --- START: FIX FOR PACKAGE COUNT ---
                 let packageCount = 0;
-                try {
-                    const options = JSON.parse(conn.package_options);
-                    if (Array.isArray(options)) packageCount = options.length;
-                } catch(e) { /* ignore parse error */ }
+                // Check if package_options exists and is a non-empty string before parsing
+                if (conn.package_options && typeof conn.package_options === 'string') {
+                    try {
+                        const options = JSON.parse(conn.package_options);
+                        // Check if the parsed result is actually an array
+                        if (Array.isArray(options)) {
+                            packageCount = options.length;
+                        }
+                    } catch (e) {
+                        console.error(`Error parsing package_options for ${conn.name}:`, conn.package_options, e);
+                        // In case of a parsing error, the count remains 0.
+                    }
+                }
+                // --- END: FIX FOR PACKAGE COUNT ---
 
                 packageInfoHtml = `<p class="text-xs text-purple-300 mt-2 font-semibold">${packageCount} Packages Available</p>`;
             } else {
-                // Construct checkout URL with all necessary details from the connection object
                 linkUrl = `/checkout?planId=${planId}&connId=${encodeURIComponent(conn.name)}&pkg=${encodeURIComponent(conn.default_package || '')}&inboundId=${conn.default_inbound_id}&vlessTemplate=${encodeURIComponent(conn.default_vless_template)}`;
                 if (conn.default_package) {
                     packageInfoHtml = `<p class="text-xs text-purple-300 mt-2 font-semibold">${conn.default_package}</p>`;
                 }
             }
             
-            // Fix: Use the 'icon' field from the database. Fallback to a default wifi icon if not present.
             return `<a href="${linkUrl}" class="nav-link-internal card reveal selectable glass-panel p-5 rounded-xl text-center flex flex-col items-center justify-center">
                         <i class="${conn.icon || 'fa-solid fa-wifi'} text-3xl gradient-text mb-3"></i>
                         <h3 class="text-lg font-bold text-white mb-2">${conn.name}</h3>
