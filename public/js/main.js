@@ -822,7 +822,7 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>`);
     }
 
-    // public/js/main.js - නිවැරදි කරන ලද සම්පූර්ණ ශ්‍රිතය
+    // public/js/main.js - සම්පූර්ණයෙන් නිවැරදි කරන ලද ශ්‍රිතය
 
 function renderConnectionsPage(renderFunc, params) {
     const planId = params.get("planId");
@@ -837,31 +837,36 @@ function renderConnectionsPage(renderFunc, params) {
             let packageInfoHtml = '';
 
             if (conn.requires_package_choice) {
+                // පැකේජ කිහිපයක් සඳහා වන තර්කනය (මෙය නිවැරදිව ක්‍රියා කරයි)
                 linkUrl = `/package-choice?planId=${planId}&connId=${encodeURIComponent(conn.name)}`;
                 
-                // --- START: FIX FOR PACKAGE COUNT ---
                 let packageCount = 0;
-                // Check if package_options exists and is a non-empty string before parsing
                 if (conn.package_options && typeof conn.package_options === 'string') {
                     try {
                         const options = JSON.parse(conn.package_options);
-                        // Check if the parsed result is actually an array
                         if (Array.isArray(options)) {
                             packageCount = options.length;
                         }
                     } catch (e) {
                         console.error(`Error parsing package_options for ${conn.name}:`, conn.package_options, e);
-                        // In case of a parsing error, the count remains 0.
                     }
                 }
-                // --- END: FIX FOR PACKAGE COUNT ---
-
+                
                 packageInfoHtml = `<p class="text-xs text-purple-300 mt-2 font-semibold">${packageCount} Packages Available</p>`;
+
             } else {
+                // --- START: තනි පැකේජ සඳහා නිවැරදි කිරීම ---
+                // තනි පැකේජයක් සඳහා වන තර්කනය
                 linkUrl = `/checkout?planId=${planId}&connId=${encodeURIComponent(conn.name)}&pkg=${encodeURIComponent(conn.default_package || '')}&inboundId=${conn.default_inbound_id}&vlessTemplate=${encodeURIComponent(conn.default_vless_template)}`;
+                
+                // දෝෂය තිබුනේ මෙතනයි. default_package එකක් ඇත්නම්, එය packageInfoHtml එකට ලබා දිය යුතුයි.
                 if (conn.default_package) {
                     packageInfoHtml = `<p class="text-xs text-purple-300 mt-2 font-semibold">${conn.default_package}</p>`;
+                } else {
+                    // default_package එකක් නොමැති නම්, සාමාන්‍ය පාඨයක් පෙන්වීම
+                    packageInfoHtml = `<p class="text-xs text-purple-300 mt-2 font-semibold">Standard Connection</p>`;
                 }
+                // --- END: තනි පැකේජ සඳහා නිවැරදි කිරීම ---
             }
             
             return `<a href="${linkUrl}" class="nav-link-internal card reveal selectable glass-panel p-5 rounded-xl text-center flex flex-col items-center justify-center">
