@@ -1,13 +1,60 @@
 document.addEventListener("DOMContentLoaded", () => {
-    // --- 1. Basic Setup & Authentication ---
+    
+    // --- PART 1: LOGIN PAGE LOGIC ---
+    // This part only runs if it finds the login form on the page.
+    const loginForm = document.getElementById('admin-login-form');
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const messageDiv = document.getElementById('message');
+            const loginButton = loginForm.querySelector('button[type="submit"]');
+
+            loginButton.disabled = true;
+            loginButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Logging in...';
+
+            try {
+                const response = await fetch('/api/auth/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password }),
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Save the token with the key 'adminToken'
+                    localStorage.setItem('adminToken', result.token);
+                    // Redirect to the professional /admin URL
+                    window.location.href = '/admin'; 
+                } else {
+                    messageDiv.textContent = result.message;
+                    messageDiv.style.color = '#ff5555'; // Red color for error
+                }
+            } catch (error) {
+                messageDiv.textContent = 'An error occurred. Please try again.';
+                messageDiv.style.color = '#ff5555';
+            } finally {
+                loginButton.disabled = false;
+                loginButton.innerHTML = 'Login';
+            }
+        });
+        // Stop the script here because we are on the login page
+        return; 
+    }
+
+    // --- PART 2: ADMIN DASHBOARD LOGIC ---
+    // This part will only run if it's NOT the login page.
+    
+    // 1. Basic Setup & Authentication
     const token = localStorage.getItem('adminToken');
     if (!token) {
-        // --- FIX 1: Changed redirect to the professional URL ---
         window.location.href = '/admin/login';
         return;
     }
 
-    // --- 2. Element Selectors ---
+    // 2. Element Selectors
     const contentTitle = document.getElementById('content-title');
     const contentContainer = document.getElementById('content-container');
     const searchBarContainer = document.getElementById('search-bar-container');
@@ -21,13 +68,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const formModalSaveBtn = document.getElementById('form-modal-save-btn');
     const settingsModal = document.getElementById('settings-modal');
 
-    // --- 3. State Management & Caching ---
+    // 3. State Management & Caching
     let currentView = 'pending';
     let dataCache = { orders: [], users: [], connections: [], plans: [], settings: {} };
-    let salesChart = null;
-    let autoReloadInterval = null;
 
-    // --- 4. Helper Functions (API, UI, Formatting) ---
+    // 4. Helper Functions (API, UI, Formatting)
+    function logout() {
+        localStorage.removeItem('adminToken');
+        window.location.href = '/admin/login';
+    }
+
     function showToast(message, isError = false) {
         const toast = document.createElement('div');
         toast.className = `fixed top-5 right-5 p-4 rounded-lg shadow-lg text-white text-sm z-[100] transition-transform transform translate-x-full ${isError ? 'bg-red-600' : 'bg-green-600'}`;
@@ -43,6 +93,10 @@ document.addEventListener("DOMContentLoaded", () => {
     async function apiFetch(url, options = {}) {
         const defaultOptions = { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } };
         const response = await fetch(`/api/admin${url}`, { ...defaultOptions, ...options });
+         if (response.status === 401 || response.status === 403) {
+            logout(); // If token is invalid or expired, log out the user
+            return; 
+        }
         const data = await response.json();
         if (!response.ok) throw new Error(data.message || 'An API error occurred');
         return data;
@@ -59,17 +113,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    function formatBytes(bytes, decimals = 2) {
-        if (!bytes || bytes === 0) return '0 B';
-        const k = 1024;
-        const dm = decimals < 0 ? 0 : decimals;
-        const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-    };
-
     // --- 5. RENDER FUNCTIONS FOR EACH VIEW ---
-
     function renderOrders(status) {
         currentView = status;
         contentTitle.textContent = `${status.charAt(0).toUpperCase() + status.slice(1)} Orders`;
@@ -281,6 +325,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const [stats, orders, connections, users, plans] = await Promise.all([
                 apiFetch('/stats'), apiFetch('/orders'), apiFetch('/connections'), apiFetch('/users'), apiFetch('/plans')
             ]);
+            if (!stats) return; // Stop if apiFetch caused a logout
             dataCache = { stats: stats.data, orders: orders.data, connections: connections.data, users: users.data, plans: plans.data };
 
             Object.keys(dataCache.stats).forEach(key => {
@@ -338,17 +383,23 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
     
-    formModalSaveBtn.addEventListener('click', () => {
-        const form = formModalContent;
+    formModalSaveBtn.addEventListener('click', (e) => {
+        const form = e.target.closest('.modal').querySelector('#form-modal-content');
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
-        if(form.querySelector('#requires_package_choice')) data.requires_package_choice = form.querySelector('#requires_package_choice').checked;
+
+        if(form.querySelector('#requires_package_choice')) {
+             data.requires_package_choice = form.querySelector('#requires_package_choice').checked;
+        }
+       
         const type = formModal.dataset.formType;
         let endpoint, method;
+
         if (type === 'package') { endpoint = data.id ? `/packages/${data.id}` : '/packages'; method = data.id ? 'PUT' : 'POST'; }
         if (type === 'connection') { endpoint = data.id ? `/connections/${data.id}` : '/connections'; method = data.id ? 'PUT' : 'POST'; }
-        if (type === 'plan') { endpoint = data.id ? `/plans/${data.id}` : '/plans'; method = data.id ? 'PUT' : 'POST'; }
-        handleAction(endpoint, body, 'Saving...', 'Saved successfully', method, formModalSaveBtn);
+        if (type === 'plan') { endpoint = data.id ? `/plans/${data.id}` : '/plans'; method = data.id ? 'PUT' : 'POST'; } // Even though there is no edit for plan now
+        
+        handleAction(endpoint, data, 'Saving...', 'Saved successfully', method, formModalSaveBtn);
         formModal.classList.remove('active');
     });
 
@@ -368,11 +419,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.querySelectorAll('.modal-close-btn').forEach(btn => btn.addEventListener('click', (e) => e.target.closest('.modal').classList.remove('active')));
     
-    document.getElementById('logout-btn').addEventListener('click', () => { 
-        localStorage.removeItem('adminToken'); 
-        // --- FIX 2: Changed redirect to the professional URL ---
-        window.location.href = '/admin/login'; 
-    });
+    document.getElementById('logout-btn').addEventListener('click', logout);
 
     document.getElementById('manual-reload-btn').addEventListener('click', () => loadDataAndRender(currentView));
     searchInput.addEventListener('input', () => {
