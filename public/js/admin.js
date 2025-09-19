@@ -6,9 +6,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('email').value;
+            // --- FIX: Correctly get username and password from the form ---
+            const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-            const messageDiv = document.getElementById('message');
+            const rememberMe = document.getElementById('remember-me').checked;
+            const messageDiv = document.getElementById('error-message');
             const loginButton = loginForm.querySelector('button[type="submit"]');
 
             loginButton.disabled = true;
@@ -18,43 +20,37 @@ document.addEventListener("DOMContentLoaded", () => {
                 const response = await fetch('/api/auth/admin/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password }),
+                    // --- FIX: Send username, password, and rememberMe ---
+                    body: JSON.stringify({ username, password, rememberMe }),
                 });
 
                 const result = await response.json();
 
                 if (result.success) {
-                    // Save the token with the key 'adminToken'
-                    localStorage.setItem('adminToken', result.token);
-                    // Redirect to the professional /admin URL
+                    // --- FIX: Save token under the correct key ---
+                    localStorage.setItem('nexguard_admin_token', result.token);
                     window.location.href = '/admin'; 
                 } else {
                     messageDiv.textContent = result.message;
-                    messageDiv.style.color = '#ff5555'; // Red color for error
                 }
             } catch (error) {
                 messageDiv.textContent = 'An error occurred. Please try again.';
-                messageDiv.style.color = '#ff5555';
             } finally {
                 loginButton.disabled = false;
                 loginButton.innerHTML = 'Login';
             }
         });
-        // Stop the script here because we are on the login page
         return; 
     }
 
     // --- PART 2: ADMIN DASHBOARD LOGIC ---
-    // This part will only run if it's NOT the login page.
-    
-    // 1. Basic Setup & Authentication
     const token = localStorage.getItem('nexguard_admin_token');
     if (!token) {
         window.location.href = '/admin/login';
         return;
     }
 
-    // 2. Element Selectors
+    // --- Element Selectors ---
     const contentTitle = document.getElementById('content-title');
     const contentContainer = document.getElementById('content-container');
     const searchBarContainer = document.getElementById('search-bar-container');
@@ -66,15 +62,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const formModalTitle = document.getElementById('form-modal-title');
     const formModalContent = document.getElementById('form-modal-content');
     const formModalSaveBtn = document.getElementById('form-modal-save-btn');
-    const settingsModal = document.getElementById('settings-modal');
-
-    // 3. State Management & Caching
+    
+    // --- State Management ---
     let currentView = 'pending';
     let dataCache = { orders: [], users: [], connections: [], plans: [], settings: {} };
 
-    // 4. Helper Functions (API, UI, Formatting)
+    // --- Helper Functions ---
     function logout() {
-        localStorage.removeItem('adminToken');
+        // --- FIX: Remove the correct token key ---
+        localStorage.removeItem('nexguard_admin_token');
         window.location.href = '/admin/login';
     }
 
@@ -94,7 +90,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const defaultOptions = { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } };
         const response = await fetch(`/api/admin${url}`, { ...defaultOptions, ...options });
          if (response.status === 401 || response.status === 403) {
-            logout(); // If token is invalid or expired, log out the user
+            logout();
             return; 
         }
         const data = await response.json();
@@ -113,7 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // --- 5. RENDER FUNCTIONS FOR EACH VIEW ---
+    // --- RENDER FUNCTIONS ---
     function renderOrders(status) {
         currentView = status;
         contentTitle.textContent = `${status.charAt(0).toUpperCase() + status.slice(1)} Orders`;
@@ -147,100 +143,106 @@ document.addEventListener("DOMContentLoaded", () => {
         searchBarContainer.classList.remove('hidden');
         searchInput.placeholder = `Search ${title}s...`;
         addNewBtn.classList.add('hidden');
-
-        const filteredUsers = (users || []).filter(u => u.role === role && (
-            u.username.toLowerCase().includes(searchInput.value.toLowerCase()) || 
-            (u.email || '').toLowerCase().includes(searchInput.value.toLowerCase())
-        ));
-
+        const filteredUsers = (users || []).filter(u => u.role === role && (u.username.toLowerCase().includes(searchInput.value.toLowerCase()) || (u.email || '').toLowerCase().includes(searchInput.value.toLowerCase())));
         if (filteredUsers.length === 0) {
             contentContainer.innerHTML = `<div class="glass-panel p-6 text-center rounded-lg">No ${title.toLowerCase()}s found.</div>`;
             return;
         }
-        
-        const tableHeaders = role === 'user'
-            ? `<th class="p-3 text-left font-semibold">Active Plans</th>`
-            : `<th class="p-3 text-left font-semibold">Credit Balance</th>`;
-
+        const tableHeaders = role === 'user' ? `<th class="p-3 text-left font-semibold">Active Plans</th>` : `<th class="p-3 text-left font-semibold">Credit Balance</th>`;
         contentContainer.innerHTML = `<div class="glass-panel rounded-xl overflow-hidden"><table class="min-w-full text-sm responsive-table">
             <thead class="border-b border-slate-700 bg-slate-900/50"><tr>
-                <th class="p-3 text-left font-semibold">Username</th>
-                <th class="p-3 text-left font-semibold">Contact</th>
-                ${tableHeaders}
-                <th class="p-3 text-center font-semibold">Actions</th>
+                <th class="p-3 text-left font-semibold">Username</th><th class="p-3 text-left font-semibold">Contact</th>${tableHeaders}<th class="p-3 text-center font-semibold">Actions</th>
             </tr></thead>
             <tbody>${filteredUsers.map(user => {
-                const roleSpecificData = role === 'user'
-                    ? `<td data-label="Active Plans">${(user.active_plans || []).length}</td>`
-                    : `<td data-label="Credit">LKR ${user.credit_balance.toFixed(2)}</td>`;
-                
-                const roleSpecificButtons = role === 'reseller'
-                    ? `<button class="btn btn-approve add-credit-btn" data-id="${user.id}" data-username="${user.username}"><i class="fa-solid fa-coins"></i></button>`
-                    : '';
-
+                const roleSpecificData = role === 'user' ? `<td data-label="Active Plans">${(user.active_plans || []).length}</td>` : `<td data-label="Credit">LKR ${user.credit_balance.toFixed(2)}</td>`;
+                const roleSpecificButtons = role === 'reseller' ? `<button class="btn btn-approve add-credit-btn" data-id="${user.id}" data-username="${user.username}"><i class="fa-solid fa-coins"></i></button>` : '';
                 return `<tr class="border-b border-slate-800 hover:bg-slate-800/50">
                     <td data-label="Username">${user.username}</td>
                     <td data-label="Contact"><div>${user.email}</div><div class="text-xs text-slate-400">${user.whatsapp || ''}</div></td>
                     ${roleSpecificData}
-                    <td data-label="Actions" class="actions-cell">
-                        <div class="flex justify-center gap-2">
-                            ${roleSpecificButtons}
-                            <button class="btn btn-ban" data-id="${user.id}"><i class="fa-solid fa-user-slash"></i></button>
-                        </div>
-                    </td>
-                </tr>`
-            }).join('')}
+                    <td data-label="Actions" class="actions-cell"><div class="flex justify-center gap-2">${roleSpecificButtons}<button class="btn btn-ban" data-id="${user.id}"><i class="fa-solid fa-user-slash"></i></button></div></td>
+                </tr>`}).join('')}
             </tbody></table></div>`;
     }
 
+    // ++++++++++ START: REPLACED FUNCTION ++++++++++
     function renderConnections() {
         currentView = 'connections';
         contentTitle.textContent = `Connections & Packages`;
         searchBarContainer.classList.add('hidden');
         addNewBtn.classList.remove('hidden');
-        addNewBtn.textContent = 'Add Connection';
+        addNewBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Add Connection';
         addNewBtn.dataset.type = 'connection';
 
         const connections = dataCache.connections || [];
         if (connections.length === 0) {
-            contentContainer.innerHTML = `<div class="glass-panel p-6 text-center rounded-lg">No connections configured.</div>`;
+            contentContainer.innerHTML = `<div class="glass-panel p-6 text-center rounded-lg">No connections configured. Click 'Add Connection' to start.</div>`;
             return;
         }
-        contentContainer.innerHTML = connections.map(conn => `
-            <div class="glass-panel p-4 rounded-lg mb-4">
-                <div class="flex justify-between items-center flex-wrap gap-2">
-                    <div>
-                        <h3 class="text-xl font-bold flex items-center"><i class="${conn.icon} mr-3"></i> ${conn.name}</h3>
-                        <p class="text-sm text-slate-400">Type: ${conn.requires_package_choice ? 'Multi-Package' : 'Single-Package'}</p>
+
+        contentContainer.innerHTML = connections.map(conn => {
+            const isMultiPackage = conn.requires_package_choice;
+
+            const headerHtml = `
+                <div class="connection-header">
+                    <div class="connection-title">
+                        <h3>
+                            <i class="${conn.icon || 'fa-solid fa-server'} text-purple-400"></i>
+                            <span>${conn.name}</span>
+                            <span class="type-badge ${isMultiPackage ? 'multi-package' : 'single-package'}">
+                                ${isMultiPackage ? 'Multi-Package' : 'Single-Package'}
+                            </span>
+                        </h3>
                     </div>
                     <div class="flex gap-2">
                         <button class="btn btn-view edit-conn-btn" data-id="${conn.id}"><i class="fa-solid fa-pencil"></i> Edit</button>
                         <button class="btn btn-reject delete-conn-btn" data-id="${conn.id}"><i class="fa-solid fa-trash"></i> Delete</button>
-                        ${conn.requires_package_choice ? `<button class="btn btn-approve add-pkg-btn" data-id="${conn.id}"><i class="fa-solid fa-plus"></i> Add Package</button>` : ''}
+                        ${isMultiPackage ? `<button class="btn btn-approve add-pkg-btn" data-id="${conn.id}"><i class="fa-solid fa-plus"></i> Add Package</button>` : ''}
                     </div>
-                </div>
-                ${conn.requires_package_choice ? `
-                <div class="mt-4 overflow-x-auto"><table class="w-full text-left text-sm">
-                    <thead class="border-b border-slate-700"><tr class="bg-slate-900/50"><th class="p-3">Name</th><th class="p-3">Inbound</th><th class="p-3">Template</th><th class="p-3 text-right">Actions</th></tr></thead>
-                    <tbody>${(conn.packages || []).length > 0 ? (conn.packages || []).map(pkg => `
-                        <tr class="border-b border-slate-700 hover:bg-slate-800/50">
-                            <td class="p-3">${pkg.name}</td>
-                            <td class="p-3">${pkg.inbound_id}</td>
-                            <td class="p-3"><textarea readonly class="w-full bg-slate-800 p-1 rounded h-16 text-xs">${pkg.template}</textarea></td>
-                            <td class="p-3 text-right">
-                                <button class="btn btn-view edit-pkg-btn" data-id="${pkg.id}" data-conn-id="${conn.id}"><i class="fa-solid fa-pencil"></i></button>
-                                <button class="btn btn-reject delete-pkg-btn" data-id="${pkg.id}"><i class="fa-solid fa-trash"></i></button>
-                            </td>
-                        </tr>`).join('') : '<tr><td colspan="4" class="p-3 text-center text-slate-400">No packages yet.</td></tr>'}</tbody>
-                </table></div>`
-                : `<div class="mt-4 grid grid-cols-2 gap-4 text-sm">
-                    <p><strong>Default Package:</strong> ${conn.default_package || 'N/A'}</p>
-                    <p><strong>Default Inbound ID:</strong> ${conn.default_inbound_id || 'N/A'}</p>
-                    <p class="col-span-2"><strong>Default Template:</strong> <textarea readonly class="w-full bg-slate-800 p-1 rounded h-16 text-xs">${conn.default_vless_template || ''}</textarea></p>
-                </div>`}
-            </div>
-        `).join('');
+                </div>`;
+
+            let bodyHtml = '';
+
+            if (isMultiPackage) {
+                const packages = conn.packages || [];
+                const packageListHtml = packages.length > 0
+                    ? packages.map(pkg => `
+                        <div class="package-item">
+                            <div class="name">${pkg.name}</div>
+                            <div class="inbound">Inbound: <strong>${pkg.inbound_id}</strong></div>
+                            <div class="actions">
+                                <button class="btn btn-view edit-pkg-btn" data-id="${pkg.id}" data-conn-id="${conn.id}" title="Edit Package"><i class="fa-solid fa-pencil"></i></button>
+                                <button class="btn btn-reject delete-pkg-btn" data-id="${pkg.id}" title="Delete Package"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>`).join('')
+                    : '<div class="text-center p-4 text-slate-400 text-sm">No packages added for this connection yet.</div>';
+                
+                bodyHtml = `<div class="package-list">${packageListHtml}</div>`;
+
+            } else {
+                const templateValue = conn.default_vless_template || '';
+                bodyHtml = `
+                    <div class="details-grid">
+                        <div class="detail-item">
+                            <div class="label">Default Package</div>
+                            <div class="value">${conn.default_package || 'N/A'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="label">Default Inbound ID</div>
+                            <div class="value">${conn.default_inbound_id || 'N/A'}</div>
+                        </div>
+                    </div>
+                    <div class="detail-item template-box">
+                        <div class="label">Default Template</div>
+                        <textarea readonly>${templateValue}</textarea>
+                        <button class="copy-template-btn" onclick="navigator.clipboard.writeText('${templateValue.replace(/'/g, "\\'")}')">Copy</button>
+                    </div>`;
+            }
+
+            return `<div class="connection-card">${headerHtml}<div class="connection-body">${bodyHtml}</div></div>`;
+        }).join('');
     }
+    // ++++++++++ END: REPLACED FUNCTION ++++++++++
     
     function renderPlans() {
         currentView = 'plans';
@@ -261,19 +263,13 @@ document.addEventListener("DOMContentLoaded", () => {
             </tr></thead>
             <tbody>${plans.map(plan => `
                 <tr class="border-b border-slate-800 hover:bg-slate-800/50">
-                    <td data-label="Plan Name">${plan.plan_name}</td>
-                    <td data-label="Price">LKR ${plan.price.toFixed(2)}</td>
-                    <td data-label="Data">${plan.total_gb} GB</td>
-                    <td data-label="Actions" class="actions-cell">
-                        <div class="flex justify-center gap-2">
-                             <button class="btn btn-reject delete-plan-btn" data-id="${plan.id}"><i class="fa-solid fa-trash"></i></button>
-                        </div>
-                    </td>
+                    <td data-label="Plan Name">${plan.plan_name}</td><td data-label="Price">LKR ${plan.price.toFixed(2)}</td><td data-label="Data">${plan.total_gb} GB</td>
+                    <td data-label="Actions" class="actions-cell"><div class="flex justify-center gap-2"><button class="btn btn-reject delete-plan-btn" data-id="${plan.id}"><i class="fa-solid fa-trash"></i></button></div></td>
                 </tr>`).join('')}
             </tbody></table></div>`;
     }
 
-    // --- 6. FORM RENDERING ---
+    // --- FORM RENDERING ---
     function showConnectionForm(conn = {}) {
         formModalTitle.textContent = conn.id ? 'Edit Connection' : 'Create New Connection';
         formModalContent.innerHTML = `
@@ -297,8 +293,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function showPackageForm(pkg = {}, connId) {
         formModalTitle.textContent = pkg.id ? 'Edit Package' : 'Create New Package';
         formModalContent.innerHTML = `
-            <input type="hidden" name="id" value="${pkg.id || ''}">
-            <input type="hidden" name="connection_id" value="${connId}">
+            <input type="hidden" name="id" value="${pkg.id || ''}"><input type="hidden" name="connection_id" value="${connId}">
             <input type="text" name="name" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" placeholder="Package Name" value="${pkg.name || ''}" required>
             <input type="number" name="inbound_id" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" placeholder="Inbound ID" value="${pkg.inbound_id || ''}" required>
             <textarea name="template" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" rows="4" placeholder="VLESS Template">${pkg.template || ''}</textarea>`;
@@ -317,35 +312,27 @@ document.addEventListener("DOMContentLoaded", () => {
         formModal.classList.add('active');
     }
 
-    // --- 7. Main Data Loading & View Dispatcher ---
+    // --- Main Data Loading & View Dispatcher ---
     async function loadDataAndRender(view) {
         currentView = view;
         renderLoading();
         try {
-            const [stats, orders, connections, users, plans] = await Promise.all([
-                apiFetch('/stats'), apiFetch('/orders'), apiFetch('/connections'), apiFetch('/users'), apiFetch('/plans')
-            ]);
-            if (!stats) return; // Stop if apiFetch caused a logout
+            const [stats, orders, connections, users, plans] = await Promise.all([apiFetch('/stats'), apiFetch('/orders'), apiFetch('/connections'), apiFetch('/users'), apiFetch('/plans')]);
+            if (!stats) return;
             dataCache = { stats: stats.data, orders: orders.data, connections: connections.data, users: users.data, plans: plans.data };
-
             Object.keys(dataCache.stats).forEach(key => {
                 const el = document.getElementById(`${key}-orders-stat`) || document.getElementById(`total-${key}-stat`);
                 if (el) el.textContent = dataCache.stats[key];
             });
-
-            const rendererView = view === 'users' ? () => renderUsers(dataCache.users, 'user') :
-                                 view === 'resellers' ? () => renderUsers(dataCache.users, 'reseller') :
-                                 view === 'connections' ? renderConnections :
-                                 view === 'plans' ? renderPlans : () => renderOrders(view);
+            const rendererView = view === 'users' ? () => renderUsers(dataCache.users, 'user') : view === 'resellers' ? () => renderUsers(dataCache.users, 'reseller') : view === 'connections' ? renderConnections : view === 'plans' ? renderPlans : () => renderOrders(view);
             rendererView();
-
         } catch (error) {
             showToast(error.message, true);
             contentContainer.innerHTML = `<div class="glass-panel p-6 text-center rounded-lg text-red-400">Failed to load data. Please refresh.</div>`;
         }
     }
 
-    // --- 8. Event Listeners ---
+    // --- Event Listeners ---
     document.getElementById('stats-section').addEventListener('click', e => {
         const card = e.target.closest('.glass-panel[id^="card-"]');
         if (!card) return;
@@ -387,18 +374,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const form = e.target.closest('.modal').querySelector('#form-modal-content');
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
-
-        if(form.querySelector('#requires_package_choice')) {
-             data.requires_package_choice = form.querySelector('#requires_package_choice').checked;
-        }
-       
+        if(form.querySelector('#requires_package_choice')) { data.requires_package_choice = form.querySelector('#requires_package_choice').checked; }
         const type = formModal.dataset.formType;
         let endpoint, method;
-
         if (type === 'package') { endpoint = data.id ? `/packages/${data.id}` : '/packages'; method = data.id ? 'PUT' : 'POST'; }
         if (type === 'connection') { endpoint = data.id ? `/connections/${data.id}` : '/connections'; method = data.id ? 'PUT' : 'POST'; }
-        if (type === 'plan') { endpoint = data.id ? `/plans/${data.id}` : '/plans'; method = data.id ? 'PUT' : 'POST'; } // Even though there is no edit for plan now
-        
+        if (type === 'plan') { endpoint = data.id ? `/plans/${data.id}` : '/plans'; method = data.id ? 'PUT' : 'POST'; }
         handleAction(endpoint, data, 'Saving...', 'Saved successfully', method, formModalSaveBtn);
         formModal.classList.remove('active');
     });
@@ -418,16 +399,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     document.querySelectorAll('.modal-close-btn').forEach(btn => btn.addEventListener('click', (e) => e.target.closest('.modal').classList.remove('active')));
-    
     document.getElementById('logout-btn').addEventListener('click', logout);
-
     document.getElementById('manual-reload-btn').addEventListener('click', () => loadDataAndRender(currentView));
     searchInput.addEventListener('input', () => {
         if (currentView === 'users' || currentView === 'resellers') renderUsers(dataCache.users, currentView === 'users' ? 'user' : 'reseller');
     });
 
-    // --- 9. Initial Load ---
+    // --- Initial Load ---
     setActiveCard(document.getElementById(`card-${currentView}`));
     loadDataAndRender(currentView);
 });
-

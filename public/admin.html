@@ -35,6 +35,55 @@
         /* Toggle Switch CSS */
         .toggle-checkbox:checked { right: 0; border-color: #a78bfa; }
         .toggle-checkbox:checked + .toggle-label { background-color: #a78bfa; }
+
+        /* --- NEW STYLES FOR CONNECTIONS UI --- */
+        .connection-card {
+            background: rgba(10, 8, 28, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        .connection-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .connection-title h3 {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .connection-title .type-badge {
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            color: #e0e0e0;
+        }
+        .type-badge.single-package { background-color: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+        .type-badge.multi-package { background-color: rgba(168, 85, 247, 0.2); color: #d8b4fe; }
+        .connection-body { padding: 1.5rem; display: grid; gap: 1.25rem; }
+        .details-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+        .detail-item { background: rgba(0, 0, 0, 0.2); padding: 0.75rem 1rem; border-radius: 8px; }
+        .detail-item .label { font-size: 0.75rem; color: #9ca3af; margin-bottom: 0.25rem; }
+        .detail-item .value { font-size: 0.9rem; font-weight: 600; color: #ffffff; word-break: break-all; }
+        .template-box { position: relative; }
+        .template-box textarea { width: 100%; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; padding: 0.5rem; font-family: monospace; font-size: 0.75rem; color: #a5b4fc; resize: none; height: 70px; }
+        .copy-template-btn { position: absolute; top: 0.5rem; right: 0.5rem; background-color: #4f46e5; color: white; border: none; border-radius: 5px; padding: 0.25rem 0.5rem; font-size: 0.7rem; cursor: pointer; transition: background-color 0.2s; }
+        .copy-template-btn:hover { background-color: #6366f1; }
+        .package-list { display: flex; flex-direction: column; gap: 0.75rem; }
+        .package-item { display: grid; grid-template-columns: 1fr 100px auto; gap: 1.5rem; align-items: center; padding: 0.75rem 1.25rem; background: rgba(0, 0, 0, 0.2); border-radius: 8px; transition: background-color 0.2s; }
+        .package-item:hover { background: rgba(0, 0, 0, 0.4); }
+        .package-item .name { font-weight: 600; color: #ffffff; }
+        .package-item .inbound { font-family: monospace; color: #a5b4fc; }
+        .package-item .actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
     </style>
 </head>
 <body class="p-4 sm:p-6 lg:p-8">
