@@ -167,7 +167,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // in public/js/admin.js
-// REPLACE the entire old 'renderConnections' function with this new, fixed one.
+// REPLACE the entire old 'renderConnections' function with this new version.
 
 function renderConnections() {
     currentView = 'connections';
@@ -183,12 +183,15 @@ function renderConnections() {
         return;
     }
 
-    contentContainer.innerHTML = connections.map(conn => {
+    contentContainer.innerHTML = connections.map((conn, index) => {
         const isMultiPackage = conn.requires_package_choice;
+        // Start collapsed by default, except for the first one.
+        const isCollapsed = index > 0; 
 
         const headerHtml = `
-            <div class="connection-header">
-                <div class="connection-title">
+            <div class="connection-header flex justify-between items-center ${isCollapsed ? 'collapsed' : ''}" data-collapsible-target="conn-body-${conn.id}">
+                <div class="connection-title flex items-center gap-4">
+                     <i class="fa-solid fa-chevron-right collapse-icon text-slate-400"></i>
                     <h3>
                         <i class="${conn.icon || 'fa-solid fa-server'} text-purple-400"></i>
                         <span>${conn.name}</span>
@@ -205,57 +208,53 @@ function renderConnections() {
             </div>`;
 
         let bodyHtml = '';
-
         if (isMultiPackage) {
             const packages = conn.packages || [];
-            // *** START FIX FOR ISSUE 1 & 2 ***
             const packageListHtml = packages.length > 0
                 ? packages.map(pkg => {
                     const templateValue = pkg.template || '';
                     return `
-                    <div class="package-item" style="grid-template-columns: 1.5fr 1fr 1fr auto;">
+                    <div class="package-item">
                         <div class="name">${pkg.name}</div>
                         <div class="inbound">Inbound: <strong>${pkg.inbound_id}</strong></div>
-                        <div class="template-box" style="width: 250px;">
-                            <textarea readonly>${templateValue}</textarea>
-                            <button class="copy-template-btn" onclick="navigator.clipboard.writeText('${templateValue.replace(/'/g, "\\'")}')" title="Copy Template">Copy</button>
+                        <div class="template-display">
+                            <p class="template-text" title="${templateValue}">${templateValue}</p>
                         </div>
                         <div class="actions">
+                            <button class="btn btn-view" onclick="navigator.clipboard.writeText('${templateValue.replace(/'/g, "\\'")}')" title="Copy VLESS Link"><i class="fa-solid fa-copy"></i></button>
                             <button class="btn btn-view edit-pkg-btn" data-id="${pkg.id}" data-conn-id="${conn.id}" title="Edit Package"><i class="fa-solid fa-pencil"></i></button>
                             <button class="btn btn-reject delete-pkg-btn" data-id="${pkg.id}" title="Delete Package"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     </div>`;
                 }).join('')
-                // *** END FIX ***
                 : '<div class="text-center p-4 text-slate-400 text-sm">No packages added for this connection yet.</div>';
-
+            
             bodyHtml = `<div class="package-list">${packageListHtml}</div>`;
-
         } else {
             const templateValue = conn.default_vless_template || '';
             bodyHtml = `
                 <div class="details-grid">
-                    <div class="detail-item">
-                        <div class="label">Default Package</div>
-                        <div class="value">${conn.default_package || 'N/A'}</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="label">Default Inbound ID</div>
-                        <div class="value">${conn.default_inbound_id || 'N/A'}</div>
-                    </div>
+                    <div class="detail-item"><div class="label">Default Package</div><div class="value">${conn.default_package || 'N/A'}</div></div>
+                    <div class="detail-item"><div class="label">Default Inbound ID</div><div class="value">${conn.default_inbound_id || 'N/A'}</div></div>
                 </div>
-                <div class="detail-item template-box">
+                <div class="detail-item">
                     <div class="label">Default Template</div>
-                    <textarea readonly>${templateValue}</textarea>
-                    <button class="copy-template-btn" onclick="navigator.clipboard.writeText('${templateValue.replace(/'/g, "\\'")}')">Copy</button>
+                    <div class="relative">
+                        <textarea readonly class="w-full bg-slate-800/50 p-2 rounded h-20 text-xs font-mono pr-10">${templateValue}</textarea>
+                        <button class="absolute top-2 right-2 btn btn-view !p-2" onclick="navigator.clipboard.writeText('${templateValue.replace(/'/g, "\\'")}')" title="Copy VLESS Link"><i class="fa-solid fa-copy"></i></button>
+                    </div>
                 </div>`;
         }
+        
+        return `<div class="connection-card">
+                    ${headerHtml}
+                    <div class="connection-body ${!isCollapsed ? 'expanded' : ''}" id="conn-body-${conn.id}">
+                        ${bodyHtml}
+                    </div>
+                </div>`;
 
-        return `<div class="connection-card">${headerHtml}<div class="connection-body">${bodyHtml}</div></div>`;
     }).join('');
-}   
-    // in public/js/admin.js
-// REPLACE the entire old 'renderPlans' function with this new one.
+}
 
 function renderPlans() {
     currentView = 'plans';
@@ -380,28 +379,58 @@ function renderPlans() {
         if (type === 'plan') showPlanForm();
     });
 
-    contentContainer.addEventListener('click', async e => {
-        const button = e.target.closest('button');
-        if (!button) return;
-        const id = button.dataset.id;
-        if (button.classList.contains('view-receipt-btn')) { modalImage.src = button.dataset.url; imageModal.classList.add('active'); }
-        else if (button.classList.contains('approve-btn')) await handleAction(`/orders/approve`, { orderId: id }, 'Approving...', 'Order Approved', 'POST', button);
-        else if (button.classList.contains('reject-btn')) await handleAction(`/orders/reject`, { orderId: id }, 'Rejecting...', 'Order Rejected', 'POST', button);
-        else if (button.classList.contains('edit-conn-btn')) showConnectionForm(dataCache.connections.find(c => c.id === id));
-        else if (button.classList.contains('delete-conn-btn')) if(confirm('SURE? This deletes connection & ALL its packages.')) await handleAction(`/connections/${id}`, null, 'Deleting...', 'Connection Deleted', 'DELETE', button);
-        else if (button.classList.contains('add-pkg-btn')) showPackageForm({}, id);
-        else if (button.classList.contains('edit-pkg-btn')) {
-            const conn = dataCache.connections.find(c => c.id === button.dataset.connId);
-            const pkg = conn.packages.find(p => p.id === id);
-            showPackageForm(pkg, button.dataset.connId);
+// in public/js/admin.js
+// REPLACE the entire old 'contentContainer.addEventListener' block with this new version.
+
+contentContainer.addEventListener('click', async e => {
+    // --- Collapsible Card Logic ---
+    const header = e.target.closest('[data-collapsible-target]');
+    if (header) {
+        // Prevent collapse/expand when a button inside the header is clicked
+        if (e.target.closest('button')) {
+            return;
         }
-        else if (button.classList.contains('delete-pkg-btn')) if(confirm('Delete this package?')) await handleAction(`/packages/${id}`, null, 'Deleting...', 'Package Deleted', 'DELETE', button);
-        else if (button.classList.contains('delete-plan-btn')) if(confirm('Delete this plan?')) await handleAction(`/plans/${id}`, null, 'Deleting...', 'Plan Deleted', 'DELETE', button);
-        else if (button.classList.contains('add-credit-btn')) {
-            const amount = prompt(`Add credit for ${button.dataset.username}:`);
-            if (amount && !isNaN(parseFloat(amount))) await handleAction(`/users/credit`, { userId: id, amount: parseFloat(amount) }, 'Adding Credit...', 'Credit Added', 'POST', button);
+        const targetId = header.dataset.collapsibleTarget;
+        const targetBody = document.getElementById(targetId);
+        if (targetBody) {
+            header.classList.toggle('collapsed');
+            targetBody.classList.toggle('expanded');
         }
-    });
+        return; // Stop further execution for this click
+    }
+
+    // --- Button Click Logic ---
+    const button = e.target.closest('button');
+    if (!button) return;
+    
+    // *** START FIX FOR EDIT BUTTON ***
+    // The dataset properties (id, connId) are strings. We must parse them to integers for correct comparison (===).
+    const id = button.dataset.id ? parseInt(button.dataset.id, 10) : null;
+    const connId = button.dataset.connId ? parseInt(button.dataset.connId, 10) : null;
+    // *** END FIX ***
+    
+    if (button.classList.contains('view-receipt-btn')) { modalImage.src = button.dataset.url; imageModal.classList.add('active'); }
+    else if (button.classList.contains('approve-btn')) await handleAction(`/orders/approve`, { orderId: id }, 'Approving...', 'Order Approved', 'POST', button);
+    else if (button.classList.contains('reject-btn')) await handleAction(`/orders/reject`, { orderId: id }, 'Rejecting...', 'Order Rejected', 'POST', button);
+    else if (button.classList.contains('edit-conn-btn')) showConnectionForm(dataCache.connections.find(c => c.id === id));
+    else if (button.classList.contains('delete-conn-btn')) if(confirm('SURE? This deletes connection & ALL its packages.')) await handleAction(`/connections/${id}`, null, 'Deleting...', 'Connection Deleted', 'DELETE', button);
+    else if (button.classList.contains('add-pkg-btn')) showPackageForm({}, id);
+    else if (button.classList.contains('edit-pkg-btn')) {
+        const conn = dataCache.connections.find(c => c.id === connId); // Use the parsed connId
+        if (conn) {
+            const pkg = conn.packages.find(p => p.id === id); // Use the parsed id
+            if (pkg) {
+                showPackageForm(pkg, connId);
+            }
+        }
+    }
+    else if (button.classList.contains('delete-pkg-btn')) if(confirm('Delete this package?')) await handleAction(`/packages/${id}`, null, 'Deleting...', 'Package Deleted', 'DELETE', button);
+    else if (button.classList.contains('delete-plan-btn')) if(confirm('Delete this plan?')) await handleAction(`/plans/${id}`, null, 'Deleting...', 'Plan Deleted', 'DELETE', button);
+    else if (button.classList.contains('add-credit-btn')) {
+        const amount = prompt(`Add credit for ${button.dataset.username}:`);
+        if (amount && !isNaN(parseFloat(amount))) await handleAction(`/users/credit`, { userId: id, amount: parseFloat(amount) }, 'Adding Credit...', 'Credit Added', 'POST', button);
+    }
+});
     
     formModalSaveBtn.addEventListener('click', (e) => {
         const form = e.target.closest('.modal').querySelector('#form-modal-content');

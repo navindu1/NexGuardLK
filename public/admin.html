@@ -22,6 +22,73 @@
         .btn-view { background-color: #1e3a8a; color: #bfdbfe; } .btn-view:hover:not(:disabled) { background-color: #1e40af; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .modal { display: none; } .modal.active { display: flex; }
+
+        /* Add these NEW styles inside the <style> tag in admin.html */
+
+/* Styles for Collapsible Cards */
+.connection-header {
+    cursor: pointer; /* Makes the header look clickable */
+}
+
+.connection-body {
+    max-height: 0;
+    overflow: hidden;
+    padding-top: 0;
+    padding-bottom: 0;
+    transition: max-height 0.5s cubic-bezier(0.25, 0.8, 0.25, 1), padding 0.5s ease-in-out;
+}
+
+.connection-body.expanded {
+    max-height: 1000px; /* A large value to ensure content fits */
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+}
+
+.collapse-icon {
+    transition: transform 0.4s ease;
+}
+
+.collapsed .collapse-icon {
+    transform: rotate(-90deg);
+}
+
+
+/* --- UI Fixes for Multi-Package List --- */
+.package-item {
+    /* Replaced grid with flexbox for better alignment */
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1.25rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+.package-item:hover {
+    background: rgba(0, 0, 0, 0.4);
+}
+.package-item .name { flex: 1.5; font-weight: 600; color: #ffffff; min-width: 150px; }
+.package-item .inbound { flex: 0.8; font-family: monospace; color: #a5b4fc; }
+.package-item .template-display { flex: 2; min-width: 200px; } /* Container for template */
+.package-item .actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+
+/* Styles for the new VLESS template display */
+.template-display .template-text {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    padding: 0.3rem 0.5rem;
+    font-family: monospace;
+    font-size: 0.7rem;
+    color: #a5b4fc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block; /* Ensures it takes up the full width of its container */
+}
+
+/* Remove small copy button and textarea */
+.package-item .template-box { display: none; }
         
         @media (max-width: 767px) {
             .responsive-table thead { display: none; }
