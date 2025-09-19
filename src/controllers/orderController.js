@@ -5,13 +5,9 @@ const transporter = require('../config/mailer');
 const { generateEmailTemplate, generateOrderPlacedEmailContent } = require('../services/emailService');
 const { v4: uuidv4 } = require('uuid');
 
-// src/controllers/orderController.js
-
 exports.createOrder = async (req, res) => {
-    // REMOVED inboundId and vlessTemplate from here. They will be fetched from the DB.
     const { planId, connId, pkg, whatsapp, username, isRenewal } = req.body;
     
-    // Check for core information
     if (!planId || !connId || !whatsapp || !username || !req.file) {
         return res.status(400).json({
             success: false,
@@ -20,31 +16,40 @@ exports.createOrder = async (req, res) => {
     }
 
     try {
-        // Securely fetch connection details from the database using connId
+        // Step 1: Fetch the main connection details from the database
         const { data: connection, error: connError } = await supabase
             .from('connections')
-            .select('*') // Select all details
-            .eq('name', connId) // Use the name as the identifier
+            .select('*')
+            .eq('name', connId)
             .single();
     
         if (connError || !connection) {
             return res.status(404).json({ success: false, message: "Invalid connection type selected. It might be inactive." });
         }
 
-        // Determine which inbound_id and vless_template to use based on package choice
         let inboundId, vlessTemplate;
 
+        // Step 2: Determine which inbound_id and vless_template to use
         if (connection.requires_package_choice) {
             if (!pkg) {
                  return res.status(400).json({ success: false, message: 'A package selection is required for this connection type.' });
             }
-            // Safely parse package options from the database record
-            const packageOptions = JSON.parse(connection.package_options || '[]');
-            const selectedPackage = packageOptions.find(p => p.name === pkg);
             
-            if (!selectedPackage) {
+            // --- START OF FIX ---
+            // Query the 'packages' table directly to validate and get package details
+            const { data: selectedPackage, error: pkgError } = await supabase
+                .from('packages')
+                .select('inbound_id, template')
+                .eq('connection_id', connection.id)
+                .eq('name', pkg)
+                .single();
+
+            // If the package is not found for the given connection, return an error
+            if (pkgError || !selectedPackage) {
                 return res.status(400).json({ success: false, message: 'Invalid package selected for this connection.' });
             }
+            // --- END OF FIX ---
+
             inboundId = selectedPackage.inbound_id;
             vlessTemplate = selectedPackage.template;
         } else {
@@ -57,9 +62,6 @@ exports.createOrder = async (req, res) => {
         if (!inboundId || !vlessTemplate) {
             return res.status(500).json({ success: false, message: 'The selected connection is not configured correctly. Please contact support.' });
         }
-
-
-        // --- The rest of the function remains mostly the same ---
 
         const file = req.file;
         const fileExt = file.originalname.split('.').pop();
@@ -89,13 +91,12 @@ exports.createOrder = async (req, res) => {
             username: username,
             website_username: req.user.username,
             plan_id: planId,
-            conn_id: connId, // Storing the name of the connection
+            conn_id: connId,
             pkg: pkg || null,
             whatsapp,
             receipt_path: publicUrl,
             status: "pending",
             is_renewal: isRenewal === "true",
-            // --- Use the SECURE, backend-fetched values ---
             inbound_id: parseInt(inboundId, 10),
             vless_template: vlessTemplate 
         };
