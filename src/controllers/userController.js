@@ -160,22 +160,42 @@ exports.linkV2rayAccount = async (req, res) => {
 
         let currentPlans = currentUser.active_plans || [];
         
-        // --- THIS SECTION IS REFACTORED TO USE THE DATABASE ---
+        // --- START: CORRECTED LOGIC ---
         const inboundId = clientData.inboundId;
-        const { data: connection, error: connError } = await supabase
-            .from('connections')
-            .select('name, vless_template')
-            .eq('inbound_id', inboundId)
-            .single();
+        let detectedConnId = null;
+        let vlessTemplate = null;
 
-        if (connError || !connection) {
-             return res.status(404).json({ success: false, message: "Could not identify the connection type for this user." });
+        // Step 1: Check single-package connections that use 'default_inbound_id'
+        const { data: singleConn } = await supabase
+            .from('connections')
+            .select('name, default_vless_template')
+            .eq('default_inbound_id', inboundId)
+            .eq('requires_package_choice', false)
+            .maybeSingle();
+
+        if (singleConn) {
+            detectedConnId = singleConn.name;
+            vlessTemplate = singleConn.default_vless_template;
+        } else {
+            // Step 2: If not found, check multi-package connections by looking in the 'packages' table
+            const { data: pkgData } = await supabase
+                .from('packages')
+                .select('template, connections(name)') // Fetch the package template and its parent connection's name
+                .eq('inbound_id', inboundId)
+                .maybeSingle();
+            
+            if (pkgData && pkgData.connections) {
+                detectedConnId = pkgData.connections.name;
+                vlessTemplate = pkgData.template;
+            }
         }
 
-        const detectedConnId = connection.name;
-        const vlessTemplate = connection.vless_template;
+        if (!detectedConnId || !vlessTemplate) {
+            return res.status(404).json({ success: false, message: "Could not identify the connection type for this V2Ray user. Please contact support." });
+        }
+
         const v2rayLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientData.client);
-        // --- END OF REFACTORED SECTION ---
+        // --- END OF CORRECTED LOGIC ---
 
         let detectedPlanId = "Unlimited";
         const totalBytes = clientData.client.total || 0;
