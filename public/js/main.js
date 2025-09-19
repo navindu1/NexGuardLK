@@ -822,47 +822,60 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>`);
     }
 
-        function renderConnectionsPage(renderFunc, params) {
-        const planId = params.get("planId");
-        if (!planId || !appData.plans[planId]) {
-            renderFunc('<div class="page text-center"><p class="text-red-400">Invalid plan selection.</p><a href="/plans" class="nav-link-internal underline mt-2">Go back to plans</a></div>');
-            return;
-        }
+    // public/js/main.js - නිවැරදි කරන ලද සම්පූර්ණ ශ්‍රිතය
 
-        let connectionsHtml = dynamicConnections.length > 0
-            ? dynamicConnections.map(conn => {
-                let linkUrl = '';
-                let packageInfoHtml = '';
-
-                if (conn.requires_package_choice) {
-                    linkUrl = `/package-choice?planId=${planId}&connId=${encodeURIComponent(conn.name)}`;
-                    const packageCount = conn.package_options ? conn.package_options.length : 0;
-                    packageInfoHtml = `<p class="text-xs text-purple-300 mt-2 font-semibold">${packageCount} Packages Available</p>`;
-                } else {
-                    linkUrl = `/checkout?planId=${planId}&connId=${encodeURIComponent(conn.name)}&inboundId=${conn.default_inbound_id}&vlessTemplate=${encodeURIComponent(conn.default_vless_template)}`;
-                    if (conn.default_package) {
-                        packageInfoHtml = `<p class="text-xs text-purple-300 mt-2 font-semibold">${conn.default_package}</p>`;
-                    }
-                }
-                
-                return `<a href="${linkUrl}" class="nav-link-internal card reveal selectable glass-panel p-5 rounded-xl text-center flex flex-col items-center justify-center">
-                            <i class="${conn.icon || 'fa-solid fa-wifi'} text-3xl gradient-text mb-3"></i>
-                            <h3 class="text-lg font-bold text-white mb-2">${conn.name}</h3>
-                            ${packageInfoHtml}
-                        </a>`;
-            }).join("")
-            : '<div class="text-amber-400 text-center col-span-full"><p>No connection types are currently available. Please check back later.</p></div>';
-
-        renderFunc(`
-            <div id="page-connections" class="page">
-                <header class="text-center mb-10 reveal">
-                    <h2 class="text-2xl font-bold text-white">Select Your Connection</h2>
-                    <p class="text-gray-400 mt-2">Step 2: Choose your ISP.</p>
-                </header>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">${connectionsHtml}</div>
-                <div class="text-center mt-8 reveal"><a href="/plans" class="nav-link-internal text-purple-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back to Plans</a></div>
-            </div>`);
+function renderConnectionsPage(renderFunc, params) {
+    const planId = params.get("planId");
+    if (!planId || !appData.plans[planId]) {
+        renderFunc('<div class="page text-center"><p class="text-red-400">Invalid plan selection.</p><a href="/plans" class="nav-link-internal underline mt-2">Go back to plans</a></div>');
+        return;
     }
+
+    // dynamicConnections is now an array of full connection objects from the backend
+    let connectionsHtml = dynamicConnections.length > 0
+        ? dynamicConnections.map(conn => {
+            let linkUrl = '';
+            let packageInfoHtml = '';
+
+            // This logic now works correctly because the backend sends all required fields
+            if (conn.requires_package_choice) {
+                linkUrl = `/package-choice?planId=${planId}&connId=${encodeURIComponent(conn.name)}`;
+                
+                // Safely parse package_options and show count
+                let packageCount = 0;
+                try {
+                    const options = JSON.parse(conn.package_options);
+                    if (Array.isArray(options)) packageCount = options.length;
+                } catch(e) { /* ignore parse error */ }
+
+                packageInfoHtml = `<p class="text-xs text-purple-300 mt-2 font-semibold">${packageCount} Packages Available</p>`;
+            } else {
+                // Construct checkout URL with all necessary details from the connection object
+                linkUrl = `/checkout?planId=${planId}&connId=${encodeURIComponent(conn.name)}&pkg=${encodeURIComponent(conn.default_package || '')}&inboundId=${conn.default_inbound_id}&vlessTemplate=${encodeURIComponent(conn.default_vless_template)}`;
+                if (conn.default_package) {
+                    packageInfoHtml = `<p class="text-xs text-purple-300 mt-2 font-semibold">${conn.default_package}</p>`;
+                }
+            }
+            
+            // Fix: Use the 'icon' field from the database. Fallback to a default wifi icon if not present.
+            return `<a href="${linkUrl}" class="nav-link-internal card reveal selectable glass-panel p-5 rounded-xl text-center flex flex-col items-center justify-center">
+                        <i class="${conn.icon || 'fa-solid fa-wifi'} text-3xl gradient-text mb-3"></i>
+                        <h3 class="text-lg font-bold text-white mb-2">${conn.name}</h3>
+                        ${packageInfoHtml}
+                    </a>`;
+        }).join("")
+        : '<div class="text-amber-400 text-center col-span-full"><p>No connection types are currently available. Please check back later.</p></div>';
+
+    renderFunc(`
+        <div id="page-connections" class="page">
+            <header class="text-center mb-10 reveal">
+                <h2 class="text-2xl font-bold text-white">Select Your Connection</h2>
+                <p class="text-gray-400 mt-2">Step 2: Choose your ISP.</p>
+            </header>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">${connectionsHtml}</div>
+            <div class="text-center mt-8 reveal"><a href="/plans" class="nav-link-internal text-purple-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back to Plans</a></div>
+        </div>`);
+}
 
     function renderPackageChoicePage(renderFunc, params) {
         const planId = params.get("planId");

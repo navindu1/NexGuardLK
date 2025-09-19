@@ -28,15 +28,22 @@ router.use("/admin", adminRoutes);
 router.use("/reseller", resellerRoutes);
 
 
+// src/routes/index.js - නිවැරදි කරන ලද කේතය
+
 router.get('/public/connections', async (req, res) => {
     try {
+        // Fix: Select all columns ('*') to get icon, package details, etc.
         const { data, error } = await supabase
             .from('connections')
-            .select('name')
-            .eq('is_active', true);
+            .select('*') // <-- නිවැරදි කිරීම: සියලුම දත්ත select කිරීම
+            .eq('is_active', true)
+            .order('created_at', { ascending: true }); // <-- අමතරව: පිලිවෙලකට පෙන්වීමට
+
         if (error) throw error;
-        res.json({ success: true, data });
+        // The data now includes name, icon, requires_package_choice, package_options, etc.
+        res.json({ success: true, data: data || [] });
     } catch (error) {
+        console.error('Error fetching public connections:', error);
         res.status(500).json({ success: false, message: 'Could not fetch connections.' });
     }
 });
