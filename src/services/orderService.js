@@ -10,8 +10,12 @@ const planConfig = {
     "100GB": { totalGB: 100 }, "200GB": { totalGB: 200 }, "Unlimited": { totalGB: 0 },
 };
 
+// src/services/orderService.js
+
 exports.approveOrder = async (orderId, isAutoApproved = false) => {
-    let finalUsername = ''; 
+    let finalUsername = '';
+    let createdV2rayClient = null; // To keep track of the created client for rollback
+
     try {
         const { data: order, error: orderError } = await supabase.from("orders").select("*").eq("id", orderId).single();
         if (orderError || !order) return { success: false, message: "Order not found." };
@@ -48,11 +52,14 @@ exports.approveOrder = async (orderId, isAutoApproved = false) => {
                 };
                 await v2rayService.updateClient(inboundId, clientInPanel.client.id, updatedClientSettings);
                 await v2rayService.resetClientTraffic(inboundId, clientInPanel.client.email);
+                createdV2rayClient = { ...clientInPanel, isRenewal: true }; // Mark for potential logging, no rollback needed for update
                 clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientInPanel.client);
                 finalUsername = clientInPanel.client.email;
             } else {
+                // If renewal target does not exist, create a new one.
                 const clientSettings = { id: uuidv4(), email: finalUsername, total: totalGBValue, expiryTime, enable: true };
                 await v2rayService.addClient(inboundId, clientSettings);
+                createdV2rayClient = { settings: clientSettings, inboundId: inboundId }; // Track for rollback
                 clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientSettings);
             }
         } else {
@@ -64,36 +71,57 @@ exports.approveOrder = async (orderId, isAutoApproved = false) => {
             }
             const clientSettings = { id: uuidv4(), email: finalUsername, total: totalGBValue, expiryTime, enable: true };
             await v2rayService.addClient(inboundId, clientSettings);
+            createdV2rayClient = { settings: clientSettings, inboundId: inboundId }; // Track for rollback
             clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientSettings);
         }
         
         let updatedActivePlans = websiteUser.active_plans || [];
         const planIndex = updatedActivePlans.findIndex(p => p.v2rayUsername.toLowerCase() === order.username.toLowerCase());
         
+        const newPlanDetails = {
+            v2rayUsername: finalUsername, v2rayLink: clientLink, planId: order.plan_id, connId: order.conn_id,
+            activatedAt: new Date().toISOString(), orderId: order.id,
+        };
+
         if (order.is_renewal && planIndex !== -1) {
-            updatedActivePlans[planIndex].activatedAt = new Date().toISOString();
-            updatedActivePlans[planIndex].v2rayLink = clientLink;
-            updatedActivePlans[planIndex].orderId = order.id;
+            // Update the existing plan entry
+            updatedActivePlans[planIndex] = { ...updatedActivePlans[planIndex], ...newPlanDetails };
         } else {
-            updatedActivePlans.push({
-                v2rayUsername: finalUsername, v2rayLink: clientLink, planId: order.plan_id, connId: order.conn_id,
-                activatedAt: new Date().toISOString(), orderId: order.id,
-            });
+            // Add a new plan entry
+            updatedActivePlans.push(newPlanDetails);
         }
         
+        // --- Database operations start here ---
         await supabase.from("users").update({ active_plans: updatedActivePlans }).eq("id", websiteUser.id);
+        
         await supabase.from("orders").update({
             status: "approved", final_username: finalUsername, approved_at: new Date().toISOString(), auto_approved: isAutoApproved
         }).eq("id", orderId);
 
+        // --- Send email after all operations are successful ---
         if (websiteUser.email) {
             const mailOptions = { from: `NexGuard Orders <${process.env.EMAIL_SENDER}>`, to: websiteUser.email, subject: `Your NexGuard Plan is ${order.is_renewal ? "Renewed" : "Activated"}!`, html: generateEmailTemplate( `Plan ${order.is_renewal ? "Renewed" : "Activated"}!`, `Your ${order.plan_id} plan is ready.`, generateApprovalEmailContent(websiteUser.username, order.plan_id, finalUsername))};
             transporter.sendMail(mailOptions).catch(error => console.error(`FAILED to send approval email:`, error));
         }
+        
         return { success: true, message: `Order for ${finalUsername} processed successfully.`, finalUsername };
+
     } catch (error) {
         console.error(`Error processing order ${orderId} for user ${finalUsername}:`, error.message, error.stack);
-        return { success: false, message: error.message || "An error occurred." };
+
+        // !! ROLLBACK LOGIC !!
+        // If a new V2Ray client was created (and it's not a renewal update) and an error occurred afterward
+        if (createdV2rayClient && !createdV2rayClient.isRenewal) {
+            console.log(`[ROLLBACK] An error occurred after creating V2Ray client ${createdV2rayClient.settings.email}. Attempting to delete client...`);
+            try {
+                await v2rayService.deleteClient(createdV2rayClient.inboundId, createdV2rayClient.settings.id);
+                console.log(`[ROLLBACK] Successfully deleted V2Ray client ${createdV2rayClient.settings.email}.`);
+            } catch (rollbackError) {
+                console.error(`[CRITICAL] FAILED TO ROLLBACK V2RAY CLIENT ${createdV2rayClient.settings.email}. PLEASE DELETE MANUALLY. Error: ${rollbackError.message}`);
+            }
+        }
+        
+        return { success: false, message: error.message || "An error occurred during order approval." };
     }
 };
 

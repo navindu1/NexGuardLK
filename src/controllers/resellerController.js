@@ -42,16 +42,29 @@ exports.getDashboardData = async (req, res) => {
     }
 };
 
+// src/controllers/resellerController.js
+
 exports.createUser = async (req, res) => {
     const resellerId = req.user.id;
-    const { username, planId, connId } = req.body;
+    const { username, planId, connId, pkg } = req.body; // Added pkg for multi-package connections
 
     if (!username || !planId || !connId) {
         return res.status(400).json({ success: false, message: 'Username, Plan, and Connection are required.' });
     }
 
     try {
-        // --- MODIFIED: Fetch plan price from the database ---
+        // Step 1: Fetch reseller's current credit balance first.
+        const { data: reseller, error: resellerError } = await supabase
+            .from('users')
+            .select('credit_balance')
+            .eq('id', resellerId)
+            .single();
+
+        if (resellerError || !reseller) {
+            return res.status(404).json({ success: false, message: 'Reseller account not found.' });
+        }
+
+        // Step 2: Fetch the plan price from the 'plans' table in the database.
         const { data: plan, error: planError } = await supabase
             .from('plans')
             .select('price')
@@ -63,66 +76,112 @@ exports.createUser = async (req, res) => {
         }
         const planPrice = parseFloat(plan.price);
 
+        // Step 3: Check if the reseller has enough credit BEFORE proceeding.
         if (reseller.credit_balance < planPrice) {
             return res.status(403).json({ success: false, message: 'Insufficient credit balance to create this user.' });
         }
+        
+        // Step 4: Fetch connection details from the database securely.
+        const { data: connection, error: connError } = await supabase
+            .from('connections')
+            .select('*') // Select all details
+            .eq('name', connId)
+            .single();
 
-        // 2. Create a temporary "order" to pass to the approval service
+        if (connError || !connection) {
+            return res.status(404).json({ success: false, message: 'Selected connection type not found.'});
+        }
+        
+        // Determine which inbound_id and vless_template to use
+        let inboundId, vlessTemplate;
+
+        if (connection.requires_package_choice) {
+            if (!pkg) {
+                return res.status(400).json({ success: false, message: 'A package selection is required for this connection type.' });
+            }
+            const packageOptions = JSON.parse(connection.package_options || '[]');
+            const selectedPackage = packageOptions.find(p => p.name === pkg);
+            if (!selectedPackage) {
+                return res.status(400).json({ success: false, message: 'Invalid package selected.' });
+            }
+            inboundId = selectedPackage.inbound_id;
+            vlessTemplate = selectedPackage.template;
+        } else {
+            inboundId = connection.default_inbound_id;
+            vlessTemplate = connection.default_vless_template;
+        }
+
+        if (!inboundId || !vlessTemplate) {
+            return res.status(500).json({ success: false, message: 'Connection configuration is incomplete.' });
+        }
+
+        // Step 5: Create a temporary "order" to pass to the approval service.
         const newOrderId = uuidv4();
         const tempOrder = {
             id: newOrderId,
             username: username,
-            website_username: username, // For simplicity, user is their own "website user"
+            website_username: username, // For reseller-created users, this is the same
             plan_id: planId,
             conn_id: connId,
-            whatsapp: 'N/A',
+            pkg: pkg || null,
+            whatsapp: 'N/A', // Not applicable for reseller
             receipt_path: 'created_by_reseller',
             status: "pending",
-            is_renewal: false
+            is_renewal: false,
+            inbound_id: inboundId,
+            vless_template: vlessTemplate
         };
         
-        // 3. Create the user record first
+        // Step 6: Create the user record first.
         const { data: newUser, error: userCreateError } = await supabase
             .from('users')
             .insert({
                 id: uuidv4(),
                 username: username,
-                email: `${username}@reseller.user`,
-                password: 'not_needed',
+                email: `${username.replace(/\s+/g, '_')}@reseller.user`,
+                password: 'not_needed_for_v2ray_only_users',
                 created_by: resellerId,
                 active_plans: []
             })
             .select()
             .single();
             
-        if (userCreateError) throw userCreateError;
+        if (userCreateError) {
+             if (userCreateError.code === '23505') { // Handle unique constraint violation
+                return res.status(409).json({ success: false, message: 'This username is already taken in the system.' });
+            }
+            throw userCreateError;
+        }
         
-        // Insert the temporary order
+        // Insert the temporary order record
         await supabase.from("orders").insert(tempOrder);
 
-        // 4. Call the approval service to create the V2Ray user and finalize the order
-        const approvalResult = await approveOrderService(newOrderId, false);
+        // Step 7: Call the approval service to create the V2Ray user and finalize the order.
+        const approvalResult = await approveOrderService(newOrderId, false); // isAutoApproved = false
 
         if (!approvalResult.success) {
-            // If approval fails, roll back user creation
+            // If approval fails, roll back the user creation
             await supabase.from('users').delete().eq('id', newUser.id);
+            // also remove the temporary order
+            await supabase.from('orders').delete().eq('id', newOrderId);
             throw new Error(approvalResult.message);
         }
 
-        // 5. Deduct credit from reseller
+        // Step 8: Deduct credit from reseller's balance.
         const newBalance = reseller.credit_balance - planPrice;
         const { error: creditError } = await supabase
             .from('users')
             .update({ credit_balance: newBalance })
             .eq('id', resellerId);
+
         if (creditError) {
-            // This is a critical state - log it for manual review
-            console.error(`CRITICAL: Failed to deduct credit for reseller ${resellerId} after user creation.`);
+            // This is a critical state - log it for manual review and alert the admin.
+            console.error(`CRITICAL: Failed to deduct credit for reseller ${resellerId} after user creation. Order ID: ${newOrderId}`);
         }
         
-        // 6. Fetch the final user data to get the v2rayLink
+        // Step 9: Fetch the final user data to get the generated v2rayLink.
         const { data: finalUserData } = await supabase.from('users').select('active_plans').eq('id', newUser.id).single();
-        const finalPlanDetails = finalUserData.active_plans[0];
+        const finalPlanDetails = finalUserData.active_plans.find(p => p.orderId === newOrderId);
 
         res.status(201).json({ 
             success: true, 
