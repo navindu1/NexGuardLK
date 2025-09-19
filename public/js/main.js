@@ -40,7 +40,7 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             const res = await fetch('/api/public/connections');
             const result = await res.json();
-            if(result.success) {
+            if (result.success) {
                 dynamicConnections = result.data;
             } else {
                 console.error("Failed to load dynamic connections.");
@@ -50,188 +50,228 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
-    document.addEventListener('DOMContentLoaded', () => {
+
+    // ===========================================================================================
+    // ====== START: නිවැරදි කරන ලද CONNECTION CARDS සහ ORDER MODAL කේත කොටස ======
+    // ===========================================================================================
+
+    // Check if the connections grid exists on the current page before running the code
     const connectionsGrid = document.getElementById('connections-grid');
-    const orderModal = new bootstrap.Modal(document.getElementById('orderModal'));
-    const orderForm = document.getElementById('order-form');
-    const connectionDetails = document.getElementById('connection-details');
-    let selectedConnection = null;
+    if (connectionsGrid) {
+        const orderModal = new bootstrap.Modal(document.getElementById('orderModal'));
+        const orderForm = document.getElementById('order-form');
+        const connectionDetails = document.getElementById('connection-details');
+        let selectedConnection = null;
 
-    const fetchConnections = async () => {
-        try {
-            const response = await fetch('/api/connections');
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            const connections = await response.json();
-            renderConnections(connections);
-        } catch (error) {
-            console.error('Failed to fetch connections:', error);
-            connectionsGrid.innerHTML = '<p class="text-danger">Failed to load connections. Please try again later.</p>';
-        }
-    };
-
-    const renderConnections = (connections) => {
-        connectionsGrid.innerHTML = '';
-        if (connections.length === 0) {
-            connectionsGrid.innerHTML = '<p>No available connections at the moment.</p>';
-            return;
-        }
-
-        connections.forEach(connection => {
-            const col = document.createElement('div');
-            col.className = 'col-md-4 mb-4';
-
-            let packageSelectorHtml = '';
-            if (connection.requires_package_choice && connection.package_options) {
-                 try {
-                    const options = JSON.parse(connection.package_options);
-                    if (Array.isArray(options) && options.length > 0) {
-                        packageSelectorHtml = `
-                            <select class="form-select form-select-sm mt-2 package-selector">
-                                <option value="" selected disabled>Select a package</option>
-                                ${options.map((pkg, index) => `<option value="${index}">${pkg.name}</option>`).join('')}
-                            </select>
-                        `;
-                    }
-                } catch (e) {
-                    console.error('Error parsing package_options for connection:', connection.name, e);
+        const fetchConnections = async () => {
+            try {
+                const response = await fetch('/api/connections');
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
                 }
+                const connections = await response.json();
+                renderConnections(connections);
+            } catch (error) {
+                console.error('Failed to fetch connections:', error);
+                connectionsGrid.innerHTML = '<p class="text-danger">Failed to load connections. Please try again later.</p>';
             }
+        };
 
-
-            const card = `
-                <div class="card h-100 text-center connection-card" 
-                    data-id="${connection.id}"
-                    data-name="${connection.name}"
-                    data-requires-package-choice="${connection.requires_package_choice}"
-                    data-packages='${connection.requires_package_choice ? connection.package_options : JSON.stringify([{name: connection.default_package, template: connection.default_vless_template, inbound_id: connection.default_inbound_id}]) }'>
-                    <div class="card-body">
-                        <i class="${connection.icon} fa-3x mb-3"></i>
-                        <h5 class="card-title">${connection.name}</h5>
-                        ${packageSelectorHtml}
-                    </div>
-                </div>
-            `;
-            col.innerHTML = card;
-            connectionsGrid.appendChild(col);
-        });
-
-        document.querySelectorAll('.connection-card').forEach(card => {
-            card.addEventListener('click', (event) => {
-                 // Stop the event from bubbling up to the card if a select element is clicked
-                if (event.target.tagName === 'SELECT') {
-                    return;
-                }
-                handleCardClick(card);
-            });
-        });
-    };
-
-    const handleCardClick = (card) => {
-        const requiresPackageChoice = card.dataset.requiresPackageChoice === 'true';
-        
-        let selectedPackage = null;
-        let packages = [];
-        try {
-            packages = JSON.parse(card.dataset.packages);
-        } catch(e) {
-            console.error("Failed to parse packages data", e);
-            alert("Could not process this connection's data.");
-            return;
-        }
-
-        if (requiresPackageChoice) {
-            const selector = card.querySelector('.package-selector');
-            if (!selector || selector.value === "") {
-                alert('Please select a package from the dropdown first.');
+        const renderConnections = (connections) => {
+            connectionsGrid.innerHTML = '';
+            if (connections.length === 0) {
+                connectionsGrid.innerHTML = '<p>No available connections at the moment.</p>';
                 return;
             }
-            selectedPackage = packages[parseInt(selector.value)];
-        } else {
-            selectedPackage = packages[0];
-        }
 
-        if (!selectedPackage) {
-            alert('Could not determine the selected package. Please try again.');
-            return;
-        }
-        
-        selectedConnection = {
-            id: card.dataset.id,
-            name: card.dataset.name,
-            packageName: selectedPackage.name,
-            inbound_id: selectedPackage.inbound_id,
-            vless_template: selectedPackage.template
-        };
+            connections.forEach(connection => {
+                const col = document.createElement('div');
+                col.className = 'col-lg-4 col-md-6 mb-4'; // Responsive column classes
 
-        connectionDetails.innerHTML = `
-            <p><strong>Connection:</strong> ${selectedConnection.name}</p>
-            <p><strong>Package:</strong> ${selectedConnection.packageName}</p>
-        `;
-        orderModal.show();
-    }
+                let packageSelectorHtml = '';
+                let packagesData = '[]';
 
+                // Check if multiple packages are required
+                if (connection.requires_package_choice && connection.package_options) {
+                    try {
+                        const options = JSON.parse(connection.package_options);
+                        if (Array.isArray(options) && options.length > 0) {
+                            packagesData = connection.package_options; // Keep it as a string for the data attribute
+                            packageSelectorHtml = `
+                                <select class="form-select form-select-sm mt-2 package-selector">
+                                    <option value="" selected disabled>Select a package</option>
+                                    ${options.map((pkg, index) => `<option value="${index}">${pkg.name}</option>`).join('')}
+                                </select>
+                            `;
+                        }
+                    } catch (e) {
+                        console.error('Error parsing package_options for connection:', connection.name, e);
+                    }
+                } else {
+                    // For single package connections, create a single-item array string
+                    const singlePackage = {
+                        name: connection.default_package,
+                        template: connection.default_vless_template,
+                        inbound_id: connection.default_inbound_id
+                    };
+                    packagesData = JSON.stringify([singlePackage]);
+                }
 
-    orderForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (!selectedConnection) {
-            alert('No connection selected.');
-            return;
-        }
-
-        const formData = new FormData(orderForm);
-        const orderData = {
-            connection_id: selectedConnection.id,
-            inbound_id: selectedConnection.inbound_id,
-            name: formData.get('name'),
-            email: formData.get('email'),
-            remark: formData.get('remark'),
-            vless_template: selectedConnection.vless_template
-        };
-
-        try {
-            const response = await fetch('/api/order', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(orderData),
+                const card = `
+                    <div class="card h-100 text-center connection-card" 
+                        data-id="${connection.id}"
+                        data-name="${connection.name}"
+                        data-requires-package-choice="${connection.requires_package_choice}"
+                        data-packages='${packagesData}'>
+                        <div class="card-body d-flex flex-column">
+                            <i class="${connection.icon} fa-3x mb-3"></i>
+                            <h5 class="card-title">${connection.name}</h5>
+                            <div class="mt-auto">
+                               ${packageSelectorHtml}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                col.innerHTML = card;
+                connectionsGrid.appendChild(col);
             });
 
-            const result = await response.json();
+            document.querySelectorAll('.connection-card').forEach(card => {
+                card.addEventListener('click', (event) => {
+                    // Stop the event from bubbling up to the card if a select element is clicked
+                    if (event.target.tagName === 'SELECT') {
+                        event.stopPropagation();
+                        return;
+                    }
+                    handleCardClick(card);
+                });
+            });
+        };
 
-            if (response.ok) {
-                document.getElementById('vless-link').value = result.vlessLink;
-                document.getElementById('order-result').classList.remove('d-none');
-                orderForm.classList.add('d-none');
-            } else {
-                throw new Error(result.message || 'Failed to create order');
+        const handleCardClick = (card) => {
+            const requiresPackageChoice = card.dataset.requiresPackageChoice === 'true';
+            
+            let selectedPackage = null;
+            let packages = [];
+            try {
+                packages = JSON.parse(card.dataset.packages);
+            } catch(e) {
+                console.error("Failed to parse packages data", e);
+                alert("Could not process this connection's data.");
+                return;
             }
-        } catch (error) {
-            console.error('Order submission error:', error);
-            alert(`Error: ${error.message}`);
+
+            if (requiresPackageChoice) {
+                const selector = card.querySelector('.package-selector');
+                if (!selector || selector.value === "") {
+                    alert('Please select a package from the dropdown first.');
+                    return;
+                }
+                selectedPackage = packages[parseInt(selector.value)];
+            } else {
+                // For single package, there will be only one item in the array
+                selectedPackage = packages[0];
+            }
+
+            if (!selectedPackage) {
+                alert('Could not determine the selected package. Please try again.');
+                return;
+            }
+            
+            selectedConnection = {
+                id: card.dataset.id,
+                name: card.dataset.name,
+                packageName: selectedPackage.name,
+                inbound_id: selectedPackage.inbound_id,
+                vless_template: selectedPackage.template
+            };
+
+            connectionDetails.innerHTML = `
+                <p><strong>Connection:</strong> ${selectedConnection.name}</p>
+                <p><strong>Package:</strong> ${selectedConnection.packageName}</p>
+            `;
+            orderModal.show();
         }
-    });
-    
-    document.getElementById('copy-link-btn').addEventListener('click', () => {
-        const vlessLink = document.getElementById('vless-link');
-        vlessLink.select();
-        document.execCommand('copy');
-        alert('VLESS link copied to clipboard!');
-    });
-
-    // Reset form when modal is hidden
-    document.getElementById('orderModal').addEventListener('hidden.bs.modal', () => {
-        orderForm.reset();
-        orderForm.classList.remove('d-none');
-        document.getElementById('order-result').classList.add('d-none');
-        document.getElementById('vless-link').value = '';
-    });
 
 
-    fetchConnections();
-});
+        orderForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!selectedConnection) {
+                alert('No connection selected.');
+                return;
+            }
+
+            const formData = new FormData(orderForm);
+            const orderData = {
+                connection_id: selectedConnection.id,
+                inbound_id: selectedConnection.inbound_id,
+                name: formData.get('name'),
+                email: formData.get('email'),
+                remark: formData.get('remark'),
+                vless_template: selectedConnection.vless_template
+            };
+            
+            const submitBtn = orderForm.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating...';
+
+            try {
+                const response = await fetch('/api/order', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(orderData),
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('vless-link').value = result.vlessLink;
+                    document.getElementById('order-result').classList.remove('d-none');
+                    orderForm.classList.add('d-none');
+                } else {
+                    throw new Error(result.message || 'Failed to create order');
+                }
+            } catch (error) {
+                console.error('Order submission error:', error);
+                alert(`Error: ${error.message}`);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Create VLESS Link';
+            }
+        });
+        
+        document.getElementById('copy-link-btn').addEventListener('click', () => {
+            const vlessLink = document.getElementById('vless-link');
+            vlessLink.select();
+            vlessLink.setSelectionRange(0, 99999); // For mobile devices
+            try {
+                document.execCommand('copy');
+                const copyBtn = document.getElementById('copy-link-btn');
+                copyBtn.innerText = 'Copied!';
+                setTimeout(() => {
+                    copyBtn.innerText = 'Copy Link';
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+                alert('Failed to copy the link.');
+            }
+        });
+
+        // Reset form when modal is hidden
+        document.getElementById('orderModal').addEventListener('hidden.bs.modal', () => {
+            orderForm.reset();
+            orderForm.classList.remove('d-none');
+            document.getElementById('order-result').classList.add('d-none');
+            document.getElementById('vless-link').value = '';
+        });
+
+        fetchConnections();
+    }
+    // ===========================================================================================
+    // ====== END: නිවැරදි කරන ලද CONNECTION CARDS සහ ORDER MODAL කේත කොටස ======
+    // ===========================================================================================
 
 
     const updateNavUI = (isLoggedIn) => {
@@ -327,7 +367,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
     };
-    
+
 
     const qrModal = document.getElementById("qr-modal");
     const qrModalContent = document.getElementById("modal-qr-code");
@@ -908,7 +948,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                 <div class="text-xs text-gray-400 mb-3 p-3 bg-black/20 rounded-lg border border-white/10 whitespace-pre-wrap">${appData.bankDetails}</div>
                                 <input type="file" name="receipt" required class="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100" accept="image/*">
                             </div>
-                            <button type="submit" class="w-full py-2.5 font-semibold text-white rounded-lg ai-button !mt-8">SUBMIT FOR APPROVAL</button>
+                            <button type="submit" class="ai-button w-full py-2.5 font-semibold text-white rounded-lg !mt-8">SUBMIT FOR APPROVAL</button>
                         </form>
                     </div>
                     <div id="success-view" class="hidden text-center">
@@ -1254,12 +1294,12 @@ const baseHtml = `<div id="page-profile" class="page space-y-8"><div class="flex
 // REPLACE THE ENTIRE HTML BLOCK FOR THE TABS with this NEW, WIDER LAYOUT
 
 planDetailsContainer.innerHTML = `
-                        <div id="profile-tabs" class="flex items-center gap-4 sm:gap-6 border-b border-white/10 mb-6 overflow-x-auto">
-                            <button data-tab="config" class="tab-btn">V2Ray Config</button>
-                            <button data-tab="usage" class="tab-btn">Usage Stats</button>
-                            <button data-tab="orders" class="tab-btn">My Orders</button>
-                            <button data-tab="settings" class="tab-btn">Account Settings</button>
-                        </div>
+                                <div id="profile-tabs" class="flex items-center gap-4 sm:gap-6 border-b border-white/10 mb-6 overflow-x-auto">
+                                    <button data-tab="config" class="tab-btn">V2Ray Config</button>
+                                    <button data-tab="usage" class="tab-btn">Usage Stats</button>
+                                    <button data-tab="orders" class="tab-btn">My Orders</button>
+                                    <button data-tab="settings" class="tab-btn">Account Settings</button>
+                                </div>
 
     <div id="tab-config" class="tab-panel">
         <div class="glass-panel p-6 sm:p-8 rounded-xl">
@@ -1291,7 +1331,7 @@ planDetailsContainer.innerHTML = `
         </div>
     
     <div id="tab-orders" class="tab-panel">
-         </div>
+           </div>
     
     <div id="tab-settings" class="tab-panel">
         <div class="glass-panel p-6 sm:p-8 rounded-xl">
@@ -1324,9 +1364,9 @@ planDetailsContainer.innerHTML = `
                         showToast({ title: 'Copied!', message: 'Config link copied to clipboard.', type: 'success' });
                     });
 
-                                            const tabs = document.getElementById('profile-tabs');
-                        const panels = planDetailsContainer.querySelectorAll('.tab-panel');
-                        // REPLACE the old loadUsageStats function with this one
+                                const tabs = document.getElementById('profile-tabs');
+                                const panels = planDetailsContainer.querySelectorAll('.tab-panel');
+                                // REPLACE the old loadUsageStats function with this one
 const loadUsageStats = () => {
     // FIX: Changed "tab-usage-stats" to the correct ID "tab-usage"
     const usageContainer = document.getElementById("tab-usage"); 
@@ -1346,36 +1386,36 @@ const loadUsageStats = () => {
     });
 };
 
-                        const updateRenewButton = async() => {
-                            const container = document.getElementById("renew-button-container");
-                            if (!container) return;
-                            
+                                const updateRenewButton = async() => {
+                                    const container = document.getElementById("renew-button-container");
+                                    if (!container) return;
+                                    
 container.innerHTML = `<button disabled class="ai-button secondary inline-block py-2 px-6 text-sm rounded-lg !bg-gray-700/50 !text-gray-400 cursor-not-allowed"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking status...</button>`;
-                            try {
-                                const res = await fetch(`/api/check-usage/${plan.v2rayUsername}`);
-                                if (!res.ok) throw new Error(`API responded with status ${res.status}`);
-                                const result = await res.json();
-                                if (result.success) {
-                                    if (result.data.expiryTime > 0) {
-                                        const expiryDate = new Date(result.data.expiryTime);
-                                        const isExpired = new Date() > expiryDate;
-                                        if (isExpired) {
-                                            container.innerHTML = `<a href="/checkout?planId=${plan.planId}&connId=${plan.connId}&renew=${encodeURIComponent(plan.v2rayUsername)}" class="nav-link-internal ai-button inline-block py-2 px-6 text-sm rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew Plan</a>`;
+                                    try {
+                                        const res = await fetch(`/api/check-usage/${plan.v2rayUsername}`);
+                                        if (!res.ok) throw new Error(`API responded with status ${res.status}`);
+                                        const result = await res.json();
+                                        if (result.success) {
+                                            if (result.data.expiryTime > 0) {
+                                                const expiryDate = new Date(result.data.expiryTime);
+                                                const isExpired = new Date() > expiryDate;
+                                                if (isExpired) {
+                                                    container.innerHTML = `<a href="/checkout?planId=${plan.planId}&connId=${plan.connId}&renew=${encodeURIComponent(plan.v2rayUsername)}" class="nav-link-internal ai-button inline-block py-2 px-6 text-sm rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew Plan</a>`;
+                                                } else {
+                                                    container.innerHTML = `<button disabled class="ai-button secondary inline-block py-2 px-6 text-sm rounded-lg !bg-gray-700/50 !text-gray-400 cursor-not-allowed">Renew Plan</button>`;
+                                                }
+                                            } else {
+                                                container.innerHTML = `<button disabled class="ai-button secondary inline-block py-2 px-6 text-sm rounded-lg !bg-gray-700/50 !text-gray-400 cursor-not-allowed">Does not expire</button>`;
+                                            }
                                         } else {
-                                            container.innerHTML = `<button disabled class="ai-button secondary inline-block py-2 px-6 text-sm rounded-lg !bg-gray-700/50 !text-gray-400 cursor-not-allowed">Renew Plan</button>`;
+                                            container.innerHTML = `<p class="text-xs text-amber-400">${result.message || 'Could not verify plan expiry status.'}</p>`;
                                         }
-                                    } else {
-                                        container.innerHTML = `<button disabled class="ai-button secondary inline-block py-2 px-6 text-sm rounded-lg !bg-gray-700/50 !text-gray-400 cursor-not-allowed">Does not expire</button>`;
+                                    } catch (error) {
+                                        console.error('Error fetching plan status for renewal:', error);
+                                        container.innerHTML = `<p class="text-xs text-red-400">Error checking status. Please refresh.</p>`;
                                     }
-                                } else {
-                                    container.innerHTML = `<p class="text-xs text-amber-400">${result.message || 'Could not verify plan expiry status.'}</p>`;
-                                }
-                            } catch (error) {
-                                console.error('Error fetching plan status for renewal:', error);
-                                container.innerHTML = `<p class="text-xs text-red-400">Error checking status. Please refresh.</p>`;
-                            }
-                        };
-                        // REPLACE the old loadMyOrders function with this one
+                                };
+                                // REPLACE the old loadMyOrders function with this one
 const loadMyOrders = async () => {
     // FIX: Changed "tab-my-orders" to the correct ID "tab-orders"
     const ordersContainer = document.getElementById("tab-orders"); 
@@ -1435,37 +1475,37 @@ const loadMyOrders = async () => {
         ordersContainer.innerHTML = `<div class="glass-panel p-4 rounded-xl text-center text-red-400"><p>Could not load your orders.</p></div>`;
     }
 };
-                        const switchTab = (tabId, updateUrl = false) => {
-                        tabs.querySelector('.active')?.classList.remove('active');
-                        panels.forEach(p => p.classList.remove('active'));
-                        
-                        const newTabButton = tabs.querySelector(`[data-tab="${tabId}"]`);
-                        const newTabPanel = document.getElementById(`tab-${tabId}`);
-                        
-                        if (newTabButton) newTabButton.classList.add('active');
-                        if (newTabPanel) newTabPanel.classList.add('active');
-                        
-                        if (tabId === 'usage') loadUsageStats();
-                        if (tabId === 'orders') loadMyOrders();
-                        if (tabId === 'config') updateRenewButton();
+                                const switchTab = (tabId, updateUrl = false) => {
+                                    tabs.querySelector('.active')?.classList.remove('active');
+                                    panels.forEach(p => p.classList.remove('active'));
+                                    
+                                    const newTabButton = tabs.querySelector(`[data-tab="${tabId}"]`);
+                                    const newTabPanel = document.getElementById(`tab-${tabId}`);
+                                    
+                                    if (newTabButton) newTabButton.classList.add('active');
+                                    if (newTabPanel) newTabPanel.classList.add('active');
+                                    
+                                    if (tabId === 'usage') loadUsageStats();
+                                    if (tabId === 'orders') loadMyOrders();
+                                    if (tabId === 'config') updateRenewButton();
 
-                        // This is the new URL logic
-                        if (updateUrl) {
-                            history.pushState(null, '', `/profile/${tabId}`);
-                        }
-                    };
+                                    // This is the new URL logic
+                                    if (updateUrl) {
+                                        history.pushState(null, '', `/profile/${tabId}`);
+                                    }
+                                };
 
-                    tabs.addEventListener('click', (e) => {
-                        if (e.target.tagName !== 'BUTTON') return;
-                        switchTab(e.target.dataset.tab, true);
-                    });
-                    
-                    // --- THIS LOGIC IS UPDATED ---
-                    const pathParts = window.location.pathname.split('/');
-                    const initialTab = pathParts[2] || 'config'; // Default to 'config'
-                    switchTab(initialTab, false);
-                    
-                    setupEventListeners();
+                                tabs.addEventListener('click', (e) => {
+                                    if (e.target.tagName !== 'BUTTON') return;
+                                    switchTab(e.target.dataset.tab, true);
+                                });
+                                
+                                // --- THIS LOGIC IS UPDATED ---
+                                const pathParts = window.location.pathname.split('/');
+                                const initialTab = pathParts[2] || 'config'; // Default to 'config'
+                                switchTab(initialTab, false);
+                                
+                                setupEventListeners();
                 };
                 planSelector.addEventListener("change", (e) => displayPlanDetails(e.target.value));
                 displayPlanDetails(planSelector.value);
