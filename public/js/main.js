@@ -970,7 +970,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         <i class="fas fa-check-circle text-5xl text-green-400 mb-4"></i>
                         <p class="text-lg text-green-400 font-semibold">Order Submitted!</p>
                         <p class="text-gray-300 mt-2 text-sm">Your order is pending approval. You can check the status on your profile.</p>
-                        <a href="/profile?tab=my-orders" class="nav-link-internal mt-6 inline-block w-full py-2 text-sm font-semibold text-white rounded-lg ai-button">View My Orders</a>
+                        <a href="/profile?tab=orders" class="nav-link-internal mt-6 inline-block w-full py-2 text-sm font-semibold text-white rounded-lg ai-button">View My Orders</a>
                     </div>
                 </div>
             </div>`);
@@ -1430,66 +1430,54 @@ container.innerHTML = `<button disabled class="ai-button secondary inline-block 
                                         container.innerHTML = `<p class="text-xs text-red-400">Error checking status. Please refresh.</p>`;
                                     }
                                 };
-                                // REPLACE the old loadMyOrders function with this one
-const loadMyOrders = async () => {
-    // FIX: Changed "tab-my-orders" to the correct ID "tab-orders"
-    const ordersContainer = document.getElementById("tab-orders"); 
-    if (!ordersContainer) return; // Failsafe check
+                                // *** FIX 1: Corrected logic for loading orders ***
+                                const loadMyOrders = async () => {
+                                    const ordersContainer = document.getElementById("tab-orders");
+                                    if (!ordersContainer) return;
 
-    ordersContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-purple-400"></i></div>`;
-    try {
-        const res = await fetch("/api/user/orders", {
-            headers: {
-                Authorization: "Bearer " + token
-            }
-        });
-        if (!res.ok) throw new Error("Failed to fetch orders");
-        const {
-            orders
-        } = await res.json();
-        
-        if (orders.length === 0) {
-            ordersContainer.innerHTML = `<div class="glass-panel p-8 rounded-xl text-center"><i class="fa-solid fa-box-open text-4xl text-gray-400 mb-4"></i><h3 class="font-bold text-white">No Orders Found</h3><p class="text-gray-400 text-sm mt-2">You have not placed any orders yet.</p></div>`;
-            return;
-        }
+                                    ordersContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-purple-400"></i></div>`;
+                                    try {
+                                        const res = await fetch("/api/user/orders", { headers: { Authorization: "Bearer " + token } });
+                                        if (!res.ok) throw new Error("Failed to fetch orders");
+                                        const { orders } = await res.json();
+                                        
+                                        if (orders.length === 0) {
+                                            ordersContainer.innerHTML = `<div class="glass-panel p-8 rounded-xl text-center"><i class="fa-solid fa-box-open text-4xl text-gray-400 mb-4"></i><h3 class="font-bold text-white">No Orders Found</h3><p class="text-gray-400 text-sm mt-2">You have not placed any orders yet.</p></div>`;
+                                            return;
+                                        }
 
-        const ordersHtml = orders.map(order => {
-            const planName = appData.plans[order.plan_id]?.name || order.plan_id;
-            const connName = appData.connections[order.conn_id]?.name || order.conn_id;
-            const statusColors = {
-                pending: "text-amber-400",
-                approved: "text-green-400",
-                rejected: "text-red-400"
-            };
-            const statusIcons = {
-                pending: "fa-solid fa-clock",
-                approved: "fa-solid fa-check-circle",
-                rejected: "fa-solid fa-times-circle"
-            };
-            
-            return `
-            <div class="glass-panel p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <p class="font-bold text-white">${planName} <span class="text-gray-400 font-normal">for</span> ${connName}</p>
-                    <p class="text-xs text-gray-400 mt-1">
-                        Ordered on: ${new Date(order.created_at).toLocaleDateString()}
-                        ${order.status === 'approved' && order.final_username ? `| V2Ray User: <strong class="text-purple-300">${order.final_username}</strong>` : ''}
-                    </p>
-                </div>
-                <div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'}">
-                    <i class="${statusIcons[order.status] || 'fa-solid fa-question-circle'}"></i>
-                    <span>${order.status}</span>
-                </div>
-            </div>`;
-        }).join('');
-        // IMPROVEMENT: Added a wrapping container for better spacing and consistency.
-        ordersContainer.innerHTML = `<div class="space-y-3">${ordersHtml}</div>`;
+                                        const ordersHtml = orders.map(order => {
+                                            const planName = appData.plans[order.plan_id]?.name || order.plan_id;
+                                            // *** THIS IS THE FIX: Search dynamicConnections array instead of appData.connections ***
+                                            const connection = dynamicConnections.find(c => c.name === order.conn_id);
+                                            const connName = connection ? connection.name : order.conn_id;
+                                            
+                                            const statusColors = { pending: "text-amber-400", approved: "text-green-400", rejected: "text-red-400" };
+                                            const statusIcons = { pending: "fa-solid fa-clock", approved: "fa-solid fa-check-circle", rejected: "fa-solid fa-times-circle" };
+                                            
+                                            return `
+                                            <div class="glass-panel p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                                <div>
+                                                    <p class="font-bold text-white">${planName} <span class="text-gray-400 font-normal">for</span> ${connName}</p>
+                                                    <p class="text-xs text-gray-400 mt-1">
+                                                        Ordered on: ${new Date(order.created_at).toLocaleDateString()}
+                                                        ${order.status === 'approved' && order.final_username ? `| V2Ray User: <strong class="text-purple-300">${order.final_username}</strong>` : ''}
+                                                    </p>
+                                                </div>
+                                                <div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'}">
+                                                    <i class="${statusIcons[order.status] || 'fa-solid fa-question-circle'}"></i>
+                                                    <span>${order.status}</span>
+                                                </div>
+                                            </div>`;
+                                        }).join('');
+                                        ordersContainer.innerHTML = `<div class="space-y-3">${ordersHtml}</div>`;
 
-    } catch (err) {
-        console.error("Failed to load orders:", err);
-        ordersContainer.innerHTML = `<div class="glass-panel p-4 rounded-xl text-center text-red-400"><p>Could not load your orders.</p></div>`;
-    }
-};
+                                    } catch (err) {
+                                        console.error("Failed to load orders:", err);
+                                        ordersContainer.innerHTML = `<div class="glass-panel p-4 rounded-xl text-center text-red-400"><p>Could not load your orders.</p></div>`;
+                                    }
+                                };
+
                                 const switchTab = (tabId, updateUrl = false) => {
                                     tabs.querySelector('.active')?.classList.remove('active');
                                     panels.forEach(p => p.classList.remove('active'));
@@ -1504,7 +1492,6 @@ const loadMyOrders = async () => {
                                     if (tabId === 'orders') loadMyOrders();
                                     if (tabId === 'config') updateRenewButton();
 
-                                    // This is the new URL logic
                                     if (updateUrl) {
                                         history.pushState(null, '', `/profile/${tabId}`);
                                     }
@@ -1515,9 +1502,11 @@ const loadMyOrders = async () => {
                                     switchTab(e.target.dataset.tab, true);
                                 });
                                 
-                                // --- THIS LOGIC IS UPDATED ---
+                                // *** FIX 2: Corrected logic to read URL parameter for tabs ***
+                                const urlParams = new URLSearchParams(window.location.search);
+                                const tabFromQuery = urlParams.get('tab');
                                 const pathParts = window.location.pathname.split('/');
-                                const initialTab = pathParts[2] || 'config'; // Default to 'config'
+                                const initialTab = tabFromQuery || pathParts[2] || 'config';
                                 switchTab(initialTab, false);
                                 
                                 setupEventListeners();
@@ -1532,7 +1521,6 @@ const loadMyOrders = async () => {
                 const linkAccountHtml = `<div class="glass-panel p-6 rounded-xl"><h3 class="text-xl font-bold text-white mb-2 font-['Orbitron']">Link Existing V2Ray Account</h3><p class="text-sm text-gray-400 mb-6">If you have an old account, link it here to manage renewals.</p><form id="link-account-form-profile" class="space-y-6"><div class="form-group"><input type="text" id="existing-v2ray-username-profile" class="form-input" required placeholder=" "><label for="existing-v2ray-username-profile" class="form-label">Your Old V2Ray Username</label><span class="focus-border"><i></i></span></div><button type="submit" class="ai-button secondary w-full py-2.5 rounded-lg">Link Account</button><div class="text-center text-sm mt-4"><span class="open-help-modal-link text-purple-400 cursor-pointer hover:underline">How to find your username?</span></div></form></div>`;
                 statusContainer.innerHTML = `<div class="glass-panel p-8 rounded-xl text-center"><i class="fa-solid fa-rocket text-4xl text-purple-400 mb-4"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Get Started</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">You do not have any active plans yet. Purchase a new plan or link an existing account below.</p><a href="/plans" class="nav-link-internal ai-button inline-block py-2 px-6 text-sm rounded-lg mt-6">Purchase a Plan</a></div><div class="grid md:grid-cols-2 gap-8 mt-8">${settingsHtml}${linkAccountHtml}</div>`;
                 
-                // HTML එක render වූ පසුව Event Listeners සකස් කරයි
                 setupEventListeners();
             }
         })
