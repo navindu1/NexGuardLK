@@ -22,73 +22,6 @@
         .btn-view { background-color: #1e3a8a; color: #bfdbfe; } .btn-view:hover:not(:disabled) { background-color: #1e40af; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .modal { display: none; } .modal.active { display: flex; }
-
-        /* Add these NEW styles inside the <style> tag in admin.html */
-
-/* Styles for Collapsible Cards */
-.connection-header {
-    cursor: pointer; /* Makes the header look clickable */
-}
-
-.connection-body {
-    max-height: 0;
-    overflow: hidden;
-    padding-top: 0;
-    padding-bottom: 0;
-    transition: max-height 0.5s cubic-bezier(0.25, 0.8, 0.25, 1), padding 0.5s ease-in-out;
-}
-
-.connection-body.expanded {
-    max-height: 1000px; /* A large value to ensure content fits */
-    padding-top: 1.5rem;
-    padding-bottom: 1.5rem;
-}
-
-.collapse-icon {
-    transition: transform 0.4s ease;
-}
-
-.collapsed .collapse-icon {
-    transform: rotate(-90deg);
-}
-
-
-/* --- UI Fixes for Multi-Package List --- */
-.package-item {
-    /* Replaced grid with flexbox for better alignment */
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 0.75rem 1.25rem;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 8px;
-    transition: background-color 0.2s;
-}
-.package-item:hover {
-    background: rgba(0, 0, 0, 0.4);
-}
-.package-item .name { flex: 1.5; font-weight: 600; color: #ffffff; min-width: 150px; }
-.package-item .inbound { flex: 0.8; font-family: monospace; color: #a5b4fc; }
-.package-item .template-display { flex: 2; min-width: 200px; } /* Container for template */
-.package-item .actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
-
-/* Styles for the new VLESS template display */
-.template-display .template-text {
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 6px;
-    padding: 0.3rem 0.5rem;
-    font-family: monospace;
-    font-size: 0.7rem;
-    color: #a5b4fc;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: block; /* Ensures it takes up the full width of its container */
-}
-
-/* Remove small copy button and textarea */
-.package-item .template-box { display: none; }
         
         @media (max-width: 767px) {
             .responsive-table thead { display: none; }
@@ -103,7 +36,7 @@
         .toggle-checkbox:checked { right: 0; border-color: #a78bfa; }
         .toggle-checkbox:checked + .toggle-label { background-color: #a78bfa; }
 
-        /* --- NEW STYLES FOR CONNECTIONS UI --- */
+        /* --- STYLES FOR CONNECTIONS UI --- */
         .connection-card {
             background: rgba(10, 8, 28, 0.6);
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -136,21 +69,64 @@
         }
         .type-badge.single-package { background-color: rgba(59, 130, 246, 0.2); color: #93c5fd; }
         .type-badge.multi-package { background-color: rgba(168, 85, 247, 0.2); color: #d8b4fe; }
-        .connection-body { padding: 1.5rem; display: grid; gap: 1.25rem; }
         .details-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
         .detail-item { background: rgba(0, 0, 0, 0.2); padding: 0.75rem 1rem; border-radius: 8px; }
         .detail-item .label { font-size: 0.75rem; color: #9ca3af; margin-bottom: 0.25rem; }
         .detail-item .value { font-size: 0.9rem; font-weight: 600; color: #ffffff; word-break: break-all; }
-        .template-box { position: relative; }
-        .template-box textarea { width: 100%; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; padding: 0.5rem; font-family: monospace; font-size: 0.75rem; color: #a5b4fc; resize: none; height: 70px; }
-        .copy-template-btn { position: absolute; top: 0.5rem; right: 0.5rem; background-color: #4f46e5; color: white; border: none; border-radius: 5px; padding: 0.25rem 0.5rem; font-size: 0.7rem; cursor: pointer; transition: background-color 0.2s; }
-        .copy-template-btn:hover { background-color: #6366f1; }
         .package-list { display: flex; flex-direction: column; gap: 0.75rem; }
-        .package-item { display: grid; grid-template-columns: 1fr 100px auto; gap: 1.5rem; align-items: center; padding: 0.75rem 1.25rem; background: rgba(0, 0, 0, 0.2); border-radius: 8px; transition: background-color 0.2s; }
-        .package-item:hover { background: rgba(0, 0, 0, 0.4); }
-        .package-item .name { font-weight: 600; color: #ffffff; }
-        .package-item .inbound { font-family: monospace; color: #a5b4fc; }
+
+        /* --- UPDATED & NEW STYLES FOR COLLAPSIBLE CARDS & UI FIXES --- */
+        .connection-header {
+            cursor: pointer;
+        }
+        .connection-body {
+            max-height: 0;
+            overflow: hidden;
+            padding-top: 0;
+            padding-bottom: 0;
+            transition: max-height 0.5s cubic-bezier(0.25, 0.8, 0.25, 1), padding 0.5s ease-in-out;
+        }
+        .connection-body.expanded {
+            max-height: 1000px;
+            padding-top: 1.5rem;
+            padding-bottom: 1.5rem;
+        }
+        .collapse-icon {
+            transition: transform 0.4s ease;
+        }
+        .collapsed .collapse-icon {
+            transform: rotate(-90deg);
+        }
+        .package-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem 1.25rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+        .package-item:hover {
+            background: rgba(0, 0, 0, 0.4);
+        }
+        .package-item .name { flex: 1.5; font-weight: 600; color: #ffffff; min-width: 150px; }
+        .package-item .inbound { flex: 0.8; font-family: monospace; color: #a5b4fc; }
+        .package-item .template-display { flex: 2; min-width: 200px; }
         .package-item .actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+        .template-display .template-text {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            padding: 0.3rem 0.5rem;
+            font-family: monospace;
+            font-size: 0.7rem;
+            color: #a5b4fc;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+        }
+
     </style>
 </head>
 <body class="p-4 sm:p-6 lg:p-8">
@@ -231,14 +207,13 @@
     </div>
 
     <div id="settings-modal" class="modal fixed inset-0 bg-black/80 justify-center items-center z-50 p-4">
-    <div class="glass-panel w-full max-w-2xl p-6 rounded-lg relative">
-         <button class="modal-close-btn absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
-         <h3 class="text-xl font-bold mb-6 font-['Orbitron']">Application Settings</h3>
-         <div id="settings-modal-content" class="space-y-4 max-h-[70vh] overflow-y-auto">
-            </div>
-         <button id="settings-modal-save-btn" class="btn btn-approve w-full justify-center mt-6">Save Settings</button>
+        <div class="glass-panel w-full max-w-2xl p-6 rounded-lg relative">
+             <button class="modal-close-btn absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
+             <h3 class="text-xl font-bold mb-6 font-['Orbitron']">Application Settings</h3>
+             <div id="settings-modal-content" class="space-y-4 max-h-[70vh] overflow-y-auto"></div>
+             <button id="settings-modal-save-btn" class="btn btn-approve w-full justify-center mt-6">Save Settings</button>
+        </div>
     </div>
-</div>
     
     <div id="form-modal" class="modal fixed inset-0 bg-black/80 justify-center items-center z-50 p-4">
         <div class="glass-panel w-full max-w-lg p-6 rounded-lg relative">

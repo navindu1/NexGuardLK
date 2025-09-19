@@ -1,12 +1,10 @@
 document.addEventListener("DOMContentLoaded", () => {
     
     // --- PART 1: LOGIN PAGE LOGIC ---
-    // This part only runs if it finds the login form on the page.
     const loginForm = document.getElementById('admin-login-form');
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            // --- FIX: Correctly get username and password from the form ---
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             const rememberMe = document.getElementById('remember-me').checked;
@@ -20,14 +18,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 const response = await fetch('/api/auth/admin/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    // --- FIX: Send username, password, and rememberMe ---
                     body: JSON.stringify({ username, password, rememberMe }),
                 });
-
                 const result = await response.json();
-
                 if (result.success) {
-                    // --- FIX: Save token under the correct key ---
                     localStorage.setItem('nexguard_admin_token', result.token);
                     window.location.href = '/admin'; 
                 } else {
@@ -70,7 +64,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // --- Helper Functions ---
     function logout() {
-        // --- FIX: Remove the correct token key ---
         localStorage.removeItem('nexguard_admin_token');
         window.location.href = '/admin/login';
     }
@@ -166,140 +159,138 @@ document.addEventListener("DOMContentLoaded", () => {
             </tbody></table></div>`;
     }
 
-    // in public/js/admin.js
-// REPLACE the entire old 'renderConnections' function with this new version.
+    // ++++++++++ START: UPDATED RENDER CONNECTIONS FUNCTION ++++++++++
+    function renderConnections() {
+        currentView = 'connections';
+        contentTitle.textContent = `Connections & Packages`;
+        searchBarContainer.classList.add('hidden');
+        addNewBtn.classList.remove('hidden');
+        addNewBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Add Connection';
+        addNewBtn.dataset.type = 'connection';
 
-function renderConnections() {
-    currentView = 'connections';
-    contentTitle.textContent = `Connections & Packages`;
-    searchBarContainer.classList.add('hidden');
-    addNewBtn.classList.remove('hidden');
-    addNewBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Add Connection';
-    addNewBtn.dataset.type = 'connection';
+        const connections = dataCache.connections || [];
+        if (connections.length === 0) {
+            contentContainer.innerHTML = `<div class="glass-panel p-6 text-center rounded-lg">No connections configured. Click 'Add Connection' to start.</div>`;
+            return;
+        }
 
-    const connections = dataCache.connections || [];
-    if (connections.length === 0) {
-        contentContainer.innerHTML = `<div class="glass-panel p-6 text-center rounded-lg">No connections configured. Click 'Add Connection' to start.</div>`;
-        return;
-    }
+        contentContainer.innerHTML = connections.map((conn, index) => {
+            const isMultiPackage = conn.requires_package_choice;
+            const isCollapsed = index > 0; // Collapse all except the first one
 
-    contentContainer.innerHTML = connections.map((conn, index) => {
-        const isMultiPackage = conn.requires_package_choice;
-        // Start collapsed by default, except for the first one.
-        const isCollapsed = index > 0; 
+            const headerHtml = `
+                <div class="connection-header ${isCollapsed ? 'collapsed' : ''}" data-collapsible-target="conn-body-${conn.id}">
+                    <div class="connection-title flex items-center gap-4">
+                         <i class="fa-solid fa-chevron-right collapse-icon text-slate-400"></i>
+                        <h3>
+                            <i class="${conn.icon || 'fa-solid fa-server'} text-purple-400"></i>
+                            <span>${conn.name}</span>
+                            <span class="type-badge ${isMultiPackage ? 'multi-package' : 'single-package'}">
+                                ${isMultiPackage ? 'Multi-Package' : 'Single-Package'}
+                            </span>
+                        </h3>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="btn btn-view edit-conn-btn" data-id="${conn.id}"><i class="fa-solid fa-pencil"></i> Edit</button>
+                        <button class="btn btn-reject delete-conn-btn" data-id="${conn.id}"><i class="fa-solid fa-trash"></i> Delete</button>
+                        ${isMultiPackage ? `<button class="btn btn-approve add-pkg-btn" data-id="${conn.id}"><i class="fa-solid fa-plus"></i> Add Package</button>` : ''}
+                    </div>
+                </div>`;
 
-        const headerHtml = `
-            <div class="connection-header flex justify-between items-center ${isCollapsed ? 'collapsed' : ''}" data-collapsible-target="conn-body-${conn.id}">
-                <div class="connection-title flex items-center gap-4">
-                     <i class="fa-solid fa-chevron-right collapse-icon text-slate-400"></i>
-                    <h3>
-                        <i class="${conn.icon || 'fa-solid fa-server'} text-purple-400"></i>
-                        <span>${conn.name}</span>
-                        <span class="type-badge ${isMultiPackage ? 'multi-package' : 'single-package'}">
-                            ${isMultiPackage ? 'Multi-Package' : 'Single-Package'}
-                        </span>
-                    </h3>
-                </div>
-                <div class="flex gap-2">
-                    <button class="btn btn-view edit-conn-btn" data-id="${conn.id}"><i class="fa-solid fa-pencil"></i> Edit</button>
-                    <button class="btn btn-reject delete-conn-btn" data-id="${conn.id}"><i class="fa-solid fa-trash"></i> Delete</button>
-                    ${isMultiPackage ? `<button class="btn btn-approve add-pkg-btn" data-id="${conn.id}"><i class="fa-solid fa-plus"></i> Add Package</button>` : ''}
-                </div>
-            </div>`;
-
-        let bodyHtml = '';
-        if (isMultiPackage) {
-            const packages = conn.packages || [];
-            const packageListHtml = packages.length > 0
-                ? packages.map(pkg => {
-                    const templateValue = pkg.template || '';
-                    return `
-                    <div class="package-item">
-                        <div class="name">${pkg.name}</div>
-                        <div class="inbound">Inbound: <strong>${pkg.inbound_id}</strong></div>
-                        <div class="template-display">
-                            <p class="template-text" title="${templateValue}">${templateValue}</p>
-                        </div>
-                        <div class="actions">
-                            <button class="btn btn-view" onclick="navigator.clipboard.writeText('${templateValue.replace(/'/g, "\\'")}')" title="Copy VLESS Link"><i class="fa-solid fa-copy"></i></button>
-                            <button class="btn btn-view edit-pkg-btn" data-id="${pkg.id}" data-conn-id="${conn.id}" title="Edit Package"><i class="fa-solid fa-pencil"></i></button>
-                            <button class="btn btn-reject delete-pkg-btn" data-id="${pkg.id}" title="Delete Package"><i class="fa-solid fa-trash"></i></button>
+            let bodyHtml = '';
+            if (isMultiPackage) {
+                const packages = conn.packages || [];
+                const packageListHtml = packages.length > 0
+                    ? packages.map(pkg => {
+                        const templateValue = pkg.template || '';
+                        return `
+                        <div class="package-item">
+                            <div class="name">${pkg.name}</div>
+                            <div class="inbound">Inbound: <strong>${pkg.inbound_id}</strong></div>
+                            <div class="template-display">
+                                <p class="template-text" title="${templateValue}">${templateValue}</p>
+                            </div>
+                            <div class="actions">
+                                <button class="btn btn-view !p-2" onclick="navigator.clipboard.writeText('${templateValue.replace(/'/g, "\\'")}')" title="Copy VLESS Link"><i class="fa-solid fa-copy"></i></button>
+                                <button class="btn btn-view edit-pkg-btn !p-2" data-id="${pkg.id}" data-conn-id="${conn.id}" title="Edit Package"><i class="fa-solid fa-pencil"></i></button>
+                                <button class="btn btn-reject delete-pkg-btn !p-2" data-id="${pkg.id}" title="Delete Package"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>`;
+                    }).join('')
+                    : '<div class="text-center p-4 text-slate-400 text-sm">No packages added for this connection yet.</div>';
+                
+                bodyHtml = `<div class="package-list">${packageListHtml}</div>`;
+            } else {
+                const templateValue = conn.default_vless_template || '';
+                bodyHtml = `
+                    <div class="details-grid">
+                        <div class="detail-item"><div class="label">Default Package</div><div class="value">${conn.default_package || 'N/A'}</div></div>
+                        <div class="detail-item"><div class="label">Default Inbound ID</div><div class="value">${conn.default_inbound_id || 'N/A'}</div></div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="label">Default Template</div>
+                        <div class="relative">
+                            <textarea readonly class="w-full bg-slate-800/50 p-2 rounded h-20 text-xs font-mono pr-10">${templateValue}</textarea>
+                            <button class="absolute top-2 right-2 btn btn-view !p-2" onclick="navigator.clipboard.writeText('${templateValue.replace(/'/g, "\\'")}')" title="Copy VLESS Link"><i class="fa-solid fa-copy"></i></button>
                         </div>
                     </div>`;
-                }).join('')
-                : '<div class="text-center p-4 text-slate-400 text-sm">No packages added for this connection yet.</div>';
+            }
             
-            bodyHtml = `<div class="package-list">${packageListHtml}</div>`;
-        } else {
-            const templateValue = conn.default_vless_template || '';
-            bodyHtml = `
-                <div class="details-grid">
-                    <div class="detail-item"><div class="label">Default Package</div><div class="value">${conn.default_package || 'N/A'}</div></div>
-                    <div class="detail-item"><div class="label">Default Inbound ID</div><div class="value">${conn.default_inbound_id || 'N/A'}</div></div>
-                </div>
-                <div class="detail-item">
-                    <div class="label">Default Template</div>
-                    <div class="relative">
-                        <textarea readonly class="w-full bg-slate-800/50 p-2 rounded h-20 text-xs font-mono pr-10">${templateValue}</textarea>
-                        <button class="absolute top-2 right-2 btn btn-view !p-2" onclick="navigator.clipboard.writeText('${templateValue.replace(/'/g, "\\'")}')" title="Copy VLESS Link"><i class="fa-solid fa-copy"></i></button>
-                    </div>
-                </div>`;
-        }
-        
-        return `<div class="connection-card">
-                    ${headerHtml}
-                    <div class="connection-body ${!isCollapsed ? 'expanded' : ''}" id="conn-body-${conn.id}">
-                        ${bodyHtml}
-                    </div>
-                </div>`;
+            return `<div class="connection-card">
+                        ${headerHtml}
+                        <div class="connection-body ${!isCollapsed ? 'expanded' : ''}" id="conn-body-${conn.id}">
+                            ${bodyHtml}
+                        </div>
+                    </div>`;
 
-    }).join('');
-}
-
-function renderPlans() {
-    currentView = 'plans';
-    contentTitle.textContent = `Plan Management`;
-    searchBarContainer.classList.add('hidden');
-    addNewBtn.classList.remove('hidden');
-    addNewBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Add Plan';
-    addNewBtn.dataset.type = 'plan';
-
-    const plans = dataCache.plans || [];
-    if (plans.length === 0) {
-        contentContainer.innerHTML = `<div class="glass-panel p-6 text-center rounded-lg">No plans configured.</div>`;
-        return;
+        }).join('');
     }
+    // ++++++++++ END: UPDATED RENDER CONNECTIONS FUNCTION ++++++++++
+    
+    function renderPlans() {
+        currentView = 'plans';
+        contentTitle.textContent = `Plan Management`;
+        searchBarContainer.classList.add('hidden');
+        addNewBtn.classList.remove('hidden');
+        addNewBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Add Plan';
+        addNewBtn.dataset.type = 'plan';
 
-    contentContainer.innerHTML = `
-    <div class="connection-card">
-        <div class="connection-body" style="padding: 0;">
-            <table class="min-w-full text-sm responsive-table">
-                <thead class="border-b border-slate-700 bg-slate-900/50">
-                    <tr>
-                        <th class="p-4 text-left font-semibold">Plan Name</th>
-                        <th class="p-4 text-left font-semibold">Price (LKR)</th>
-                        <th class="p-4 text-left font-semibold">Data (GB)</th>
-                        <th class="p-4 text-center font-semibold">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${plans.map(plan => `
-                        <tr class="border-b border-slate-800 last:border-b-0 hover:bg-slate-800/50">
-                            <td data-label="Plan Name" class="p-4 font-medium text-white">${plan.plan_name}</td>
-                            <td data-label="Price" class="p-4">LKR ${plan.price.toFixed(2)}</td>
-                            <td data-label="Data" class="p-4">${plan.total_gb === 0 ? 'Unlimited' : `${plan.total_gb} GB`}</td>
-                            <td data-label="Actions" class="actions-cell p-4">
-                                <div class="flex justify-center gap-2">
-                                    <button class="btn btn-reject delete-plan-btn" data-id="${plan.id}" title="Delete Plan"><i class="fa-solid fa-trash"></i></button>
-                                </div>
-                            </td>
+        const plans = dataCache.plans || [];
+        if (plans.length === 0) {
+            contentContainer.innerHTML = `<div class="glass-panel p-6 text-center rounded-lg">No plans configured.</div>`;
+            return;
+        }
+
+        contentContainer.innerHTML = `
+        <div class="connection-card">
+            <div class="connection-body expanded" style="padding: 0;">
+                <table class="min-w-full text-sm responsive-table">
+                    <thead class="border-b border-slate-700 bg-slate-900/50">
+                        <tr>
+                            <th class="p-4 text-left font-semibold">Plan Name</th>
+                            <th class="p-4 text-left font-semibold">Price (LKR)</th>
+                            <th class="p-4 text-left font-semibold">Data (GB)</th>
+                            <th class="p-4 text-center font-semibold">Actions</th>
                         </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        </div>
-    </div>`;
-}
+                    </thead>
+                    <tbody>
+                        ${plans.map(plan => `
+                            <tr class="border-b border-slate-800 last:border-b-0 hover:bg-slate-800/50">
+                                <td data-label="Plan Name" class="p-4 font-medium text-white">${plan.plan_name}</td>
+                                <td data-label="Price" class="p-4">LKR ${plan.price.toFixed(2)}</td>
+                                <td data-label="Data" class="p-4">${plan.total_gb === 0 ? 'Unlimited' : `${plan.total_gb} GB`}</td>
+                                <td data-label="Actions" class="actions-cell p-4">
+                                    <div class="flex justify-center gap-2">
+                                        <button class="btn btn-reject delete-plan-btn" data-id="${plan.id}" title="Delete Plan"><i class="fa-solid fa-trash"></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
+    }
 
     // --- FORM RENDERING ---
     function showConnectionForm(conn = {}) {
@@ -379,58 +370,51 @@ function renderPlans() {
         if (type === 'plan') showPlanForm();
     });
 
-// in public/js/admin.js
-// REPLACE the entire old 'contentContainer.addEventListener' block with this new version.
-
-contentContainer.addEventListener('click', async e => {
-    // --- Collapsible Card Logic ---
-    const header = e.target.closest('[data-collapsible-target]');
-    if (header) {
-        // Prevent collapse/expand when a button inside the header is clicked
-        if (e.target.closest('button')) {
-            return;
+    // ++++++++++ START: UPDATED EVENT LISTENER ++++++++++
+    contentContainer.addEventListener('click', async e => {
+        // --- Collapsible Card Logic ---
+        const header = e.target.closest('[data-collapsible-target]');
+        if (header) {
+            if (e.target.closest('button')) return; // Ignore clicks on buttons inside header
+            const targetId = header.dataset.collapsibleTarget;
+            const targetBody = document.getElementById(targetId);
+            if (targetBody) {
+                header.classList.toggle('collapsed');
+                targetBody.classList.toggle('expanded');
+            }
+            return; 
         }
-        const targetId = header.dataset.collapsibleTarget;
-        const targetBody = document.getElementById(targetId);
-        if (targetBody) {
-            header.classList.toggle('collapsed');
-            targetBody.classList.toggle('expanded');
-        }
-        return; // Stop further execution for this click
-    }
 
-    // --- Button Click Logic ---
-    const button = e.target.closest('button');
-    if (!button) return;
-    
-    // *** START FIX FOR EDIT BUTTON ***
-    // The dataset properties (id, connId) are strings. We must parse them to integers for correct comparison (===).
-    const id = button.dataset.id ? parseInt(button.dataset.id, 10) : null;
-    const connId = button.dataset.connId ? parseInt(button.dataset.connId, 10) : null;
-    // *** END FIX ***
-    
-    if (button.classList.contains('view-receipt-btn')) { modalImage.src = button.dataset.url; imageModal.classList.add('active'); }
-    else if (button.classList.contains('approve-btn')) await handleAction(`/orders/approve`, { orderId: id }, 'Approving...', 'Order Approved', 'POST', button);
-    else if (button.classList.contains('reject-btn')) await handleAction(`/orders/reject`, { orderId: id }, 'Rejecting...', 'Order Rejected', 'POST', button);
-    else if (button.classList.contains('edit-conn-btn')) showConnectionForm(dataCache.connections.find(c => c.id === id));
-    else if (button.classList.contains('delete-conn-btn')) if(confirm('SURE? This deletes connection & ALL its packages.')) await handleAction(`/connections/${id}`, null, 'Deleting...', 'Connection Deleted', 'DELETE', button);
-    else if (button.classList.contains('add-pkg-btn')) showPackageForm({}, id);
-    else if (button.classList.contains('edit-pkg-btn')) {
-        const conn = dataCache.connections.find(c => c.id === connId); // Use the parsed connId
-        if (conn) {
-            const pkg = conn.packages.find(p => p.id === id); // Use the parsed id
-            if (pkg) {
-                showPackageForm(pkg, connId);
+        // --- Button Click Logic ---
+        const button = e.target.closest('button');
+        if (!button) return;
+        
+        const id = button.dataset.id ? parseInt(button.dataset.id, 10) : null;
+        const connId = button.dataset.connId ? parseInt(button.dataset.connId, 10) : null;
+        
+        if (button.classList.contains('view-receipt-btn')) { modalImage.src = button.dataset.url; imageModal.classList.add('active'); }
+        else if (button.classList.contains('approve-btn')) await handleAction(`/orders/approve`, { orderId: id }, 'Approving...', 'Order Approved', 'POST', button);
+        else if (button.classList.contains('reject-btn')) await handleAction(`/orders/reject`, { orderId: id }, 'Rejecting...', 'Order Rejected', 'POST', button);
+        else if (button.classList.contains('edit-conn-btn')) showConnectionForm(dataCache.connections.find(c => c.id === id));
+        else if (button.classList.contains('delete-conn-btn')) if(confirm('SURE? This deletes connection & ALL its packages.')) await handleAction(`/connections/${id}`, null, 'Deleting...', 'Connection Deleted', 'DELETE', button);
+        else if (button.classList.contains('add-pkg-btn')) showPackageForm({}, id);
+        else if (button.classList.contains('edit-pkg-btn')) {
+            const conn = dataCache.connections.find(c => c.id === connId);
+            if (conn) {
+                const pkg = conn.packages.find(p => p.id === id);
+                if (pkg) {
+                    showPackageForm(pkg, connId);
+                }
             }
         }
-    }
-    else if (button.classList.contains('delete-pkg-btn')) if(confirm('Delete this package?')) await handleAction(`/packages/${id}`, null, 'Deleting...', 'Package Deleted', 'DELETE', button);
-    else if (button.classList.contains('delete-plan-btn')) if(confirm('Delete this plan?')) await handleAction(`/plans/${id}`, null, 'Deleting...', 'Plan Deleted', 'DELETE', button);
-    else if (button.classList.contains('add-credit-btn')) {
-        const amount = prompt(`Add credit for ${button.dataset.username}:`);
-        if (amount && !isNaN(parseFloat(amount))) await handleAction(`/users/credit`, { userId: id, amount: parseFloat(amount) }, 'Adding Credit...', 'Credit Added', 'POST', button);
-    }
-});
+        else if (button.classList.contains('delete-pkg-btn')) if(confirm('Delete this package?')) await handleAction(`/packages/${id}`, null, 'Deleting...', 'Package Deleted', 'DELETE', button);
+        else if (button.classList.contains('delete-plan-btn')) if(confirm('Delete this plan?')) await handleAction(`/plans/${id}`, null, 'Deleting...', 'Plan Deleted', 'DELETE', button);
+        else if (button.classList.contains('add-credit-btn')) {
+            const amount = prompt(`Add credit for ${button.dataset.username}:`);
+            if (amount && !isNaN(parseFloat(amount))) await handleAction(`/users/credit`, { userId: id, amount: parseFloat(amount) }, 'Adding Credit...', 'Credit Added', 'POST', button);
+        }
+    });
+    // ++++++++++ END: UPDATED EVENT LISTENER ++++++++++
     
     formModalSaveBtn.addEventListener('click', (e) => {
         const form = e.target.closest('.modal').querySelector('#form-modal-content');
@@ -446,68 +430,39 @@ contentContainer.addEventListener('click', async e => {
         formModal.classList.remove('active');
     });
 
-    // Add this entire block to the Event Listeners section in public/js/admin.js
-
-// --- Settings Modal Logic ---
-async function renderSettingsModal() {
-    const settingsContent = document.getElementById('settings-modal-content');
-    const settingsModalEl = document.getElementById('settings-modal');
-    settingsContent.innerHTML = '<div class="text-center p-4"><i class="fa-solid fa-spinner fa-spin text-xl"></i></div>';
-    settingsModalEl.classList.add('active');
-
-    try {
-        const [settingsResult, connectionsResult] = await Promise.all([
-            apiFetch('/settings'),
-            apiFetch('/connections')
-        ]);
-
-        const settings = settingsResult.data || {};
-        const connections = connectionsResult.data || [];
-
-        let settingsHtml = `
-            <div>
-                <h4 class="font-bold text-lg text-purple-300 mb-2">Auto-Approve Orders</h4>
-                <p class="text-xs text-slate-400 mb-4">Enable this to automatically approve orders for a specific connection type after 10 minutes of pending.</p>
-                <div class="space-y-3">
-        `;
-
-        connections.forEach(conn => {
-            const settingKey = `auto_approve_${conn.name}`;
-            const isChecked = settings[settingKey] === 'true' || settings[settingKey] === true;
-            settingsHtml += `
-                <div class="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg">
-                    <label for="${settingKey}" class="font-medium text-slate-200">${conn.name}</label>
-                    <div class="relative inline-block w-10 align-middle select-none">
-                        <input type="checkbox" id="${settingKey}" name="${settingKey}" class="toggle-checkbox setting-toggle absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" ${isChecked ? 'checked' : ''}/>
-                        <label for="${settingKey}" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
-                    </div>
-                </div>
-            `;
-        });
-
-        settingsHtml += '</div></div>';
-        settingsContent.innerHTML = settingsHtml;
-
-    } catch (error) {
-        showToast(error.message, true);
-        settingsContent.innerHTML = '<p class="text-red-400">Failed to load settings.</p>';
+    async function renderSettingsModal() {
+        const settingsContent = document.getElementById('settings-modal-content');
+        const settingsModalEl = document.getElementById('settings-modal');
+        settingsContent.innerHTML = '<div class="text-center p-4"><i class="fa-solid fa-spinner fa-spin text-xl"></i></div>';
+        settingsModalEl.classList.add('active');
+        try {
+            const [settingsResult, connectionsResult] = await Promise.all([apiFetch('/settings'), apiFetch('/connections')]);
+            const settings = settingsResult.data || {};
+            const connections = connectionsResult.data || [];
+            let settingsHtml = `<div><h4 class="font-bold text-lg text-purple-300 mb-2">Auto-Approve Orders</h4><p class="text-xs text-slate-400 mb-4">Enable this to automatically approve orders for a specific connection type after 10 minutes of pending.</p><div class="space-y-3">`;
+            connections.forEach(conn => {
+                const settingKey = `auto_approve_${conn.name}`;
+                const isChecked = settings[settingKey] === 'true' || settings[settingKey] === true;
+                settingsHtml += `<div class="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg"><label for="${settingKey}" class="font-medium text-slate-200">${conn.name}</label><div class="relative inline-block w-10 align-middle select-none"><input type="checkbox" id="${settingKey}" name="${settingKey}" class="toggle-checkbox setting-toggle absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" ${isChecked ? 'checked' : ''}/><label for="${settingKey}" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label></div></div>`;
+            });
+            settingsHtml += '</div></div>';
+            settingsContent.innerHTML = settingsHtml;
+        } catch (error) {
+            showToast(error.message, true);
+            settingsContent.innerHTML = '<p class="text-red-400">Failed to load settings.</p>';
+        }
     }
-}
 
-settingsBtn.addEventListener('click', renderSettingsModal);
+    settingsBtn.addEventListener('click', renderSettingsModal);
 
-document.getElementById('settings-modal-save-btn').addEventListener('click', async (e) => {
-    const button = e.target;
-    const toggles = document.querySelectorAll('.setting-toggle');
-    const settingsToSave = {};
-    toggles.forEach(toggle => {
-        settingsToSave[toggle.name] = toggle.checked;
+    document.getElementById('settings-modal-save-btn').addEventListener('click', async (e) => {
+        const button = e.target;
+        const toggles = document.querySelectorAll('.setting-toggle');
+        const settingsToSave = {};
+        toggles.forEach(toggle => { settingsToSave[toggle.name] = toggle.checked; });
+        await handleAction('/settings', settingsToSave, 'Saving...', 'Settings Saved!', 'POST', button);
+        document.getElementById('settings-modal').classList.remove('active');
     });
-
-    await handleAction('/settings', settingsToSave, 'Saving...', 'Settings Saved!', 'POST', button);
-    document.getElementById('settings-modal').classList.remove('active');
-});
-
 
     async function handleAction(endpoint, body, loadingText, successText, method = 'POST', button) {
         let originalHtml = '';
