@@ -941,7 +941,7 @@ function renderCheckoutPage(renderFunc, params) {
         let packageInfo = '';
         if (cleanPackageName) {
             packageInfo = `
-                    <div style="margin-top: 1rem; background-color: rgba(170, 128, 38, 0.1); border: 1px solid rgba(170, 128, 38, 0.3); border-radius: 0.5rem; padding: 0.75rem; text-align: center;">
+                    <div style="text-align: center;">
                         <p style="font-size: 0.875rem; line-height: 1.25rem; margin: 0;">
                             <span style="color: #d1d5db;">Selected Package:</span>
                             <br class="sm:hidden"> 
