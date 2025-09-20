@@ -1977,15 +1977,28 @@ forgotPasswordForm?.addEventListener("submit", async(e) => {
     };
     
     const navigateTo = (path) => { history.pushState(null, null, path); router(); };
+    // main.js ගොනුවේ ඇති, ඔබගේ දැනට පවතින සම්පූර්ණ router function එක වෙනුවට
+    // මෙම function එක paste කරන්න.
+
     const router = async () => { 
         const pathName = window.location.pathname; 
         const params = new URLSearchParams(window.location.search); 
         const pathParts = pathName.substring(1).split('/'); 
         let pageKey = pathParts[0] || 'home'; 
         if (pageKey === '') pageKey = 'home'; 
-        if (userSession && ["login", "signup", "reset-password"].includes(pageKey)) { navigateTo("/profile"); return; } 
-        if (["checkout", "profile", "connections", "package-choice"].includes(pageKey) && !userSession) { navigateTo("/login"); return; } 
+        
+        if (userSession && ["login", "signup", "reset-password"].includes(pageKey)) { 
+            navigateTo("/profile"); 
+            return; 
+        } 
+        
+        if (["checkout", "profile", "connections", "package-choice"].includes(pageKey) && !userSession) { 
+            navigateTo("/login"); 
+            return; 
+        } 
+        
         const renderFunction = allRoutes[pageKey] || allRoutes["home"]; 
+        
         if (renderFunction) { 
             mainContentArea.innerHTML = ""; 
             renderFunction((html) => { 
@@ -1993,15 +2006,33 @@ forgotPasswordForm?.addEventListener("submit", async(e) => {
                 initAnimations(); 
             }, params, pageKey); 
         } 
+        
         document.querySelectorAll("#main-nav a, #mobile-nav a").forEach((link) => { 
             const linkPath = link.getAttribute("href")?.split("?")[0].replace('/', ''); 
             const currentPath = pageKey.split('/')[0]; 
             const isActive = linkPath === currentPath || (linkPath === 'home' && currentPath === ''); 
             link.classList.toggle("active", isActive); 
         }); 
-        window.scrollTo(0, 0); 
+        
+        // --- START: MODIFIED SCROLL LOGIC ---
+        // URL එකේ 'scroll' parameter එකක් ඇත්දැයි පරීක්ෂා කිරීම
+        const scrollTargetId = params.get('scroll');
+        
+        if (scrollTargetId) {
+            // DOM එක සම්පූර්ණයෙන්ම render වීමට කුඩා ඉඩක් ලබා දීම
+            setTimeout(() => {
+                const targetElement = document.getElementById(scrollTargetId);
+                if (targetElement) {
+                    // අදාළ කොටසට smooth scroll වීම
+                    targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 100); // 100ms ප්‍රමාදයක්
+        } else {
+            // 'scroll' parameter එක නොමැති නම්, පිටුවේ ඉහළටම යාම
+            window.scrollTo(0, 0); 
+        }
+        // --- END: MODIFIED SCROLL LOGIC ---
     };
-    
     window.addEventListener("popstate", router);
     document.addEventListener("click", (e) => { 
         const link = e.target.closest("a.nav-link-internal"); 

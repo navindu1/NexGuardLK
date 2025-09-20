@@ -7,24 +7,52 @@ const transporter = require('../config/mailer');
 const { generateEmailTemplate, generateRejectionEmailContent } = require('../services/emailService');
 
 // --- 1. DASHBOARD & STATS ---
+// --- 1. DASHBOARD & STATS ---
+
+// පැරණි getDashboardStats function එක ඉවත් කර, මෙම අලුත් function එක ඇතුළත් කරන්න
 const getDashboardStats = async (req, res) => {
     try {
-        const { data: orders, error: ordersError } = await supabase.from('orders').select('status');
-        const { data: users, error: usersError } = await supabase.from('users').select('role');
-        if (ordersError || usersError) throw ordersError || usersError;
+        // එක් එක් status එකට අදාළව ගණනය කිරීම් සමාන්තරව (parallel) සිදු කරයි
+        const [
+            pendingResult,
+            unconfirmedResult,
+            approvedResult,
+            rejectedResult,
+            usersResult,
+            resellersResult
+        ] = await Promise.all([
+            supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+            supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'unconfirmed'),
+            supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'approved'),
+            supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'rejected'),
+            supabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'user'),
+            supabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'reseller')
+        ]);
+
+        // Error handling
+        const errors = [pendingResult.error, unconfirmedResult.error, approvedResult.error, rejectedResult.error, usersResult.error, resellersResult.error].filter(Boolean);
+        if (errors.length > 0) {
+            throw new Error(errors.map(e => e.message).join(', '));
+        }
+
+        // Stats object එක නිර්මාණය කිරීම
         const stats = {
-            pending: orders.filter(o => o.status === 'pending').length,
-            unconfirmed: orders.filter(o => o.status === 'unconfirmed').length,
-            approved: orders.filter(o => o.status === 'approved').length,
-            rejected: orders.filter(o => o.status === 'rejected').length,
-            users: users.filter(u => u.role === 'user').length,
-            resellers: users.filter(u => u.role === 'reseller').length,
+            pending: pendingResult.count || 0,
+            unconfirmed: unconfirmedResult.count || 0,
+            approved: approvedResult.count || 0,
+            rejected: rejectedResult.count || 0,
+            users: usersResult.count || 0,
+            resellers: resellersResult.count || 0,
         };
+        
         res.json({ success: true, data: stats });
     } catch (error) {
+        console.error("Error in getDashboardStats:", error.message);
         res.status(500).json({ success: false, message: 'Failed to fetch dashboard stats.' });
     }
 };
+
+// ... (ගොනුවේ ඉතිරි කොටස වෙනස් නොකරන්න) ...
 
 // --- 2. ORDER MANAGEMENT ---
 const getOrders = async (req, res) => {
