@@ -301,12 +301,22 @@ const getResellers = (req, res) => {
     res.json({ success: true, data: [] });
 };
 
-// **** START: UPDATED REPORTING FUNCTIONS ****
+// File Path: src/controllers/adminController.js
+
+// **** START: REVISED REPORTING FUNCTION ****
 const getReportSummary = async (req, res) => {
     try {
-        // --- Corrected date calculation ---
-        const now = new Date();
+        // Step 1: Fetch all plans and their prices to create a lookup map
+        const { data: plans, error: plansError } = await supabase
+            .from('plans')
+            .select('plan_name, price');
+        if (plansError) throw plansError;
+        
+        // Create a Map for easy price lookup -> priceMap['100GB'] = 300
+        const priceMap = new Map(plans.map(p => [p.plan_name, p.price]));
 
+        // Step 2: Fetch orders without relying on a 'price' column
+        const now = new Date();
         const startOfToday = new Date(now);
         startOfToday.setHours(0, 0, 0, 0);
 
@@ -316,15 +326,18 @@ const getReportSummary = async (req, res) => {
 
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-        const { data: daily, error: dailyError } = await supabase.from('orders').select('id, plan_id, price').eq('status', 'approved').gte('approved_at', startOfToday.toISOString());
-        const { data: weekly, error: weeklyError } = await supabase.from('orders').select('id, plan_id, price').eq('status', 'approved').gte('approved_at', startOfWeek.toISOString());
-        const { data: monthly, error: monthlyError } = await supabase.from('orders').select('id, plan_id, price').eq('status', 'approved').gte('approved_at', startOfMonth.toISOString());
+        // --- Modified Queries: Removed 'price' from select ---
+        const { data: daily, error: dailyError } = await supabase.from('orders').select('id, plan_id').eq('status', 'approved').gte('approved_at', startOfToday.toISOString());
+        const { data: weekly, error: weeklyError } = await supabase.from('orders').select('id, plan_id').eq('status', 'approved').gte('approved_at', startOfWeek.toISOString());
+        const { data: monthly, error: monthlyError } = await supabase.from('orders').select('id, plan_id').eq('status', 'approved').gte('approved_at', startOfMonth.toISOString());
 
         if (dailyError || weeklyError || monthlyError) throw dailyError || weeklyError || monthlyError;
 
+        // Step 3: Calculate summary dynamically using the priceMap
         const calculateSummary = (orders) => ({
             count: orders.length,
-            revenue: orders.reduce((sum, order) => sum + (order.price || 0), 0)
+            // Use the priceMap to get the price for each order's plan_id
+            revenue: orders.reduce((sum, order) => sum + (priceMap.get(order.plan_id) || 0), 0)
         });
 
         res.json({
@@ -340,7 +353,7 @@ const getReportSummary = async (req, res) => {
         res.status(500).json({ success: false, message: 'Failed to generate report summary.' });
     }
 };
-
+// **** END: REVISED REPORTING FUNCTION ****
 
 const getChartData = async (req, res) => {
     try {
