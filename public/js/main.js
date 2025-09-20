@@ -1999,7 +1999,21 @@ forgotPasswordForm?.addEventListener("submit", async(e) => {
             const isActive = linkPath === currentPath || (linkPath === 'home' && currentPath === ''); 
             link.classList.toggle("active", isActive); 
         }); 
-        window.scrollTo(0, 0); 
+        const scrollTargetId = params.get('scroll');
+        if (scrollTargetId) {
+            // DOM එක සම්පූර්ණයෙන්ම render වීමට කුඩා ඉඩක් ලබා දීම
+            setTimeout(() => {
+                const targetElement = document.getElementById(scrollTargetId);
+                if (targetElement) {
+                    // අදාළ කොටසට smooth scroll වීම
+                    targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 100); // 100ms ප්‍රමාදයක්
+        } else {
+            // 'scroll' parameter එක නොමැති නම්, පිටුවේ ඉහළටම යාම
+            window.scrollTo(0, 0); 
+        }
+         
     };
     
     window.addEventListener("popstate", router);
