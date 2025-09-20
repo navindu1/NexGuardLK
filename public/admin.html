@@ -1,425 +1,529 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin Dashboard - NexGuard</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome for icons -->
+    <link href="/css/output.css" rel="stylesheet" />
     <link
-        rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
     />
-    <!-- Google Fonts -->
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@700&display=swap"
-        rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@700&display=swap"
+      rel="stylesheet"
     />
-    <!-- Chart.js for graphs -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* Custom styles for the dashboard with a dark theme */
-        :root {
-            --bg-color: #0f172a; /* Slate 900 */
-            --panel-bg-color: #1e293b; /* Slate 800 */
-            --text-primary: #f1f5f9; /* Slate 100 */
-            --text-secondary: #94a3b8; /* Slate 400 */
-            --border-color: #334155; /* Slate 700 */
-            --brand-color: #4f46e5; /* Indigo 600 */
-            --brand-color-light: #312e81; /* Indigo 900 */
-        }
-
-        body {
-            font-family: "Inter", sans-serif;
-            color: var(--text-primary);
-            background-color: var(--bg-color);
-        }
-
-        .font-orbitron {
-            font-family: 'Orbitron', sans-serif;
-        }
-
-        .glass-panel {
-            background-color: var(--panel-bg-color);
-            border: 1px solid var(--border-color);
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1),
-                0 2px 4px -2px rgb(0 0 0 / 0.1);
-            transition: all 0.3s ease;
-        }
-        .glass-panel:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05);
-        }
-
-        .btn {
-            padding: 8px 14px;
-            border-radius: 6px;
-            font-weight: 600;
-            transition: all 0.2s;
-            font-size: 13px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            border: 1px solid transparent;
-            cursor: pointer;
-        }
-
-        .btn-approve {
-            background-color: #16a34a;
-            color: #ffffff;
-        }
-        .btn-approve:hover:not(:disabled) {
-            background-color: #15803d;
-        }
-
-        .btn-reject {
-            background-color: #dc2626;
-            color: #ffffff;
-        }
-        .btn-reject:hover:not(:disabled) {
-            background-color: #b91c1c;
-        }
-
-        .btn-ban {
-            background-color: #ea580c;
-            color: #ffffff;
-        }
-        .btn-ban:hover:not(:disabled) {
-            background-color: #c2410c;
-        }
-
-        .btn-view {
-            background-color: transparent;
-            color: var(--brand-color);
-            border-color: var(--brand-color);
-        }
-        .btn-view:hover:not(:disabled) {
-            background-color: var(--brand-color-light);
-            color: var(--text-primary);
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .modal {
-            display: none;
-            opacity: 0;
-            transition: opacity 0.3s ease-in-out;
-        }
-
-        .modal.active {
-            display: flex;
-            opacity: 1;
-        }
-
-        .connection-card {
-            background: #0f172a;
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            margin-bottom: 1.5rem;
-            overflow: hidden;
-        }
-        .connection-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem 1.5rem;
-            background: var(--panel-bg-color);
-            border-bottom: 1px solid var(--border-color);
-            cursor: pointer;
-        }
-        .connection-title h3 {
-            font-size: 1.125rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        .connection-body {
-            max-height: 0;
-            overflow: hidden;
-            padding: 0 1.5rem;
-            transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
-        }
-        .connection-body.expanded {
-            max-height: 1000px; /* A large value to allow content to expand */
-            padding: 1.5rem;
-        }
-        .collapse-icon {
-            transition: transform 0.4s ease;
-        }
-        .connection-header.expanded .collapse-icon {
-            transform: rotate(90deg);
-        }
-
-        /* Toast Notification Styles */
-        #toast-container {
-            position: fixed;
-            top: 1.25rem;
-            right: 1.25rem;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-            width: 100%;
-            max-width: 350px;
-        }
-        .toast {
-            display: flex;
-            align-items: flex-start;
-            padding: 1rem;
-            border-radius: 8px;
-            background: var(--panel-bg-color);
-            border: 1px solid var(--border-color);
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1),
-                0 4px 6px -4px rgb(0 0 0 / 0.1);
-            color: var(--text-secondary);
-            position: relative;
-            overflow: hidden;
-            transform: translateX(120%);
-            opacity: 0;
-            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
-                opacity 0.4s ease-out;
-        }
-        .toast.show {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        .toast::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            width: 4px;
-            border-radius: 8px 0 0 8px;
-        }
-        .toast--success::before { background-color: #22c55e; }
-        .toast--error::before { background-color: #ef4444; }
-        .toast--info::before { background-color: #3b82f6; }
-        .toast-icon {
-            flex-shrink: 0;
-            margin-right: 0.75rem;
-            font-size: 1.125rem;
-            width: 22px;
-            text-align: center;
-            margin-top: 1px;
-        }
-        .toast--success .toast-icon { color: #22c55e; }
-        .toast--error .toast-icon { color: #ef4444; }
-        .toast--info .toast-icon { color: #3b82f6; }
-        .toast-content { flex-grow: 1; }
-        .toast-title {
-            font-weight: 600;
-            font-size: 0.9rem;
-            margin: 0 0 0.2rem 0;
-            color: var(--text-primary);
-        }
-        .toast-message { font-size: 0.85rem; line-height: 1.4; margin: 0; }
-        .toast-close-btn {
-            flex-shrink: 0;
-            margin-left: 0.75rem;
-            background: transparent;
-            border: none;
-            color: #9ca3af;
-            font-size: 1.25rem;
-            line-height: 1;
-            cursor: pointer;
-            transition: color 0.2s ease;
-        }
-        .toast-close-btn:hover { color: var(--text-primary); }
-
-        /* Custom toggle switch style */
-        #auto-reload-checkbox {
-            -webkit-appearance: none;
-            appearance: none;
-            background-color: var(--border-color);
-            border-radius: 9999px;
-            cursor: pointer;
-            height: 1.5rem;
-            position: relative;
-            transition: background-color 0.2s ease-in-out;
-            width: 2.75rem;
-        }
-        #auto-reload-checkbox::before {
-            background-color: white;
-            border-radius: 9999px;
-            content: "";
-            height: 1.25rem;
-            left: 2px;
-            position: absolute;
-            top: 2px;
-            transition: transform 0.2s ease-in-out;
-            width: 1.25rem;
-        }
-        #auto-reload-checkbox:checked {
-            background-color: var(--brand-color);
-        }
-        #auto-reload-checkbox:checked::before {
-            transform: translateX(1.25rem);
-        }
+      :root {
+        --bg-color: #f8fafc; /* Light gray background */
+        --panel-bg-color: #ffffff;
+        --text-primary: #1e293b; /* Dark Slate */
+        --text-secondary: #64748b; /* Medium Slate */
+        --border-color: #e2e8f0; /* Light Slate Border */
+        --brand-color: #4f46e5; /* Indigo */
+        --brand-color-light: #e0e7ff;
+      }
+      body {
+        font-family: "Inter", sans-serif;
+        color: var(--text-primary);
+        background-color: var(--bg-color);
+      }
+      .glass-panel {
+        background-color: var(--panel-bg-color);
+        border: 1px solid var(--border-color);
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05),
+          0 2px 4px -2px rgb(0 0 0 / 0.05);
+      }
+      .btn {
+        padding: 8px 14px;
+        border-radius: 6px;
+        font-weight: 600;
+        transition: all 0.2s;
+        font-size: 13px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid transparent;
+      }
+      .btn-approve {
+        background-color: #16a34a;
+        color: #ffffff;
+      }
+      .btn-approve:hover:not(:disabled) {
+        background-color: #15803d;
+      }
+      .btn-reject {
+        background-color: #dc2626;
+        color: #ffffff;
+      }
+      .btn-reject:hover:not(:disabled) {
+        background-color: #b91c1c;
+      }
+      .btn-ban {
+        background-color: #ea580c;
+        color: #ffffff;
+      }
+      .btn-ban:hover:not(:disabled) {
+        background-color: #c2410c;
+      }
+      .btn-view {
+        background-color: transparent;
+        color: var(--brand-color);
+        border-color: var(--brand-color);
+      }
+      .btn-view:hover:not(:disabled) {
+        background-color: var(--brand-color-light);
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .modal {
+        display: none;
+      }
+      .modal.active {
+        display: flex;
+      }
+      .connection-card {
+        background: #f8fafc;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+      }
+      .connection-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        background: #ffffff;
+        border-bottom: 1px solid var(--border-color);
+        cursor: pointer;
+      }
+      .connection-title h3 {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      .connection-body {
+        max-height: 0;
+        overflow: hidden;
+        padding: 0 1.5rem;
+        transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
+      }
+      .connection-body.expanded {
+        max-height: 1000px;
+        padding: 1.5rem;
+      }
+      .collapse-icon {
+        transition: transform 0.4s ease;
+      }
+      .connection-header:not(.collapsed) .collapse-icon {
+        transform: rotate(90deg);
+      }
+      #toast-container {
+        position: fixed;
+        top: 1.25rem;
+        right: 1.25rem;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        width: 100%;
+        max-width: 350px;
+      }
+      .toast {
+        display: flex;
+        align-items: flex-start;
+        padding: 1rem;
+        border-radius: 8px;
+        background: var(--panel-bg-color);
+        border: 1px solid var(--border-color);
+        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1),
+          0 4px 6px -4px rgb(0 0 0 / 0.1);
+        color: var(--text-secondary);
+        position: relative;
+        overflow: hidden;
+        transform: translateX(120%);
+        opacity: 0;
+        transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+          opacity 0.4s ease-out;
+      }
+      .toast.show {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      .toast::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 4px;
+        border-radius: 8px 0 0 8px;
+      }
+      .toast--success::before {
+        background-color: #22c55e;
+      }
+      .toast--error::before {
+        background-color: #ef4444;
+      }
+      .toast--info::before {
+        background-color: #3b82f6;
+      }
+      .toast-icon {
+        flex-shrink: 0;
+        margin-right: 0.75rem;
+        font-size: 1.125rem;
+        width: 22px;
+        text-align: center;
+        margin-top: 1px;
+      }
+      .toast--success .toast-icon {
+        color: #22c55e;
+      }
+      .toast--error .toast-icon {
+        color: #ef4444;
+      }
+      .toast--info .toast-icon {
+        color: #3b82f6;
+      }
+      .toast-content {
+        flex-grow: 1;
+      }
+      .toast-title {
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin: 0 0 0.2rem 0;
+        color: var(--text-primary);
+      }
+      .toast-message {
+        font-size: 0.85rem;
+        line-height: 1.4;
+        margin: 0;
+      }
+      .toast-close-btn {
+        flex-shrink: 0;
+        margin-left: 0.75rem;
+        background: transparent;
+        border: none;
+        color: #9ca3af;
+        font-size: 1.25rem;
+        line-height: 1;
+        cursor: pointer;
+        transition: color 0.2s ease;
+      }
+      .toast-close-btn:hover {
+        color: var(--text-primary);
+      }
     </style>
-</head>
-<body class="p-4 sm:p-6 lg:p-8">
+  </head>
+  <body class="p-4 sm:p-6 lg:p-8">
     <div id="app-container" class="max-w-7xl mx-auto">
-        <header class="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-4">
-            <h1 class="text-3xl font-bold font-orbitron text-slate-100">
-                Admin Dashboard
-            </h1>
-            <div class="flex items-center gap-4 self-end sm:self-center">
-                <button id="settings-btn" class="text-sm font-semibold text-slate-400 hover:text-white transition-colors">
-                    <i class="fa-solid fa-cog"></i><span class="hidden sm:inline ml-2">Settings</span>
-                </button>
-                <button id="logout-btn" class="text-sm font-semibold text-slate-400 hover:text-white transition-colors">
-                    <span class="hidden sm:inline">Logout</span><i class="fa-solid fa-right-from-bracket ml-2"></i>
-                </button>
-            </div>
-        </header>
-
-        <section id="stats-section" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-9 gap-4 sm:gap-6 mb-8">
-            <!-- Stat Cards -->
-            <div id="card-pending" class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer border-2 border-transparent hover:border-amber-400">
-                <div class="bg-amber-500/10 text-amber-400 p-3 rounded-lg hidden sm:block">
-                    <i class="fa-solid fa-clock fa-lg"></i>
-                </div>
-                <div>
-                    <p class="text-xs sm:text-sm text-slate-400">Pending</p>
-                    <h3 id="pending-orders-stat" class="text-xl sm:text-2xl font-bold text-slate-100">12</h3>
-                </div>
-            </div>
-             <div id="card-unconfirmed" class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer border-2 border-transparent hover:border-orange-400">
-                <div class="bg-orange-500/10 text-orange-400 p-3 rounded-lg hidden sm:block">
-                    <i class="fa-solid fa-robot fa-lg"></i>
-                </div>
-                <div>
-                    <p class="text-xs sm:text-sm text-slate-400">Unconfirmed</p>
-                    <h3 id="unconfirmed-orders-stat" class="text-xl sm:text-2xl font-bold text-slate-100">3</h3>
-                </div>
-            </div>
-            <div id="card-approved" class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer border-2 border-transparent hover:border-green-400">
-                <div class="bg-green-500/10 text-green-400 p-3 rounded-lg hidden sm:block">
-                    <i class="fa-solid fa-check-circle fa-lg"></i>
-                </div>
-                <div>
-                    <p class="text-xs sm:text-sm text-slate-400">Approved</p>
-                    <h3 id="approved-orders-stat" class="text-xl sm:text-2xl font-bold text-slate-100">157</h3>
-                </div>
-            </div>
-            <div id="card-rejected" class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer border-2 border-transparent hover:border-red-400">
-                <div class="bg-red-500/10 text-red-400 p-3 rounded-lg hidden sm:block">
-                    <i class="fa-solid fa-times-circle fa-lg"></i>
-                </div>
-                <div>
-                    <p class="text-xs sm:text-sm text-slate-400">Rejected</p>
-                    <h3 id="rejected-orders-stat" class="text-xl sm:text-2xl font-bold text-slate-100">8</h3>
-                </div>
-            </div>
-            <div id="card-users" class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer border-2 border-transparent hover:border-sky-400">
-                <div class="bg-sky-500/10 text-sky-400 p-3 rounded-lg hidden sm:block">
-                    <i class="fa-solid fa-users fa-lg"></i>
-                </div>
-                <div>
-                    <p class="text-xs sm:text-sm text-slate-400">Users</p>
-                    <h3 id="total-users-stat" class="text-xl sm:text-2xl font-bold text-slate-100">450</h3>
-                </div>
-            </div>
-            <div id="card-resellers" class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer border-2 border-transparent hover:border-purple-400">
-                <div class="bg-purple-500/10 text-purple-400 p-3 rounded-lg hidden sm:block">
-                    <i class="fa-solid fa-user-tag fa-lg"></i>
-                </div>
-                <div>
-                    <p class="text-xs sm:text-sm text-slate-400">Resellers</p>
-                    <h3 id="total-resellers-stat" class="text-xl sm:text-2xl font-bold text-slate-100">25</h3>
-                </div>
-            </div>
-            <div id="card-connections" class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer border-2 border-transparent hover:border-teal-400">
-                <div class="bg-teal-500/10 text-teal-400 p-3 rounded-lg hidden sm:block">
-                    <i class="fa-solid fa-server fa-lg"></i>
-                </div>
-                <div>
-                    <p class="text-xs sm:text-sm text-slate-400">Connections</p>
-                    <h3 class="text-lg sm:text-xl font-bold text-slate-100">Manage</h3>
-                </div>
-            </div>
-            <div id="card-plans" class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer border-2 border-transparent hover:border-indigo-400">
-                <div class="bg-indigo-500/10 text-indigo-400 p-3 rounded-lg hidden sm:block">
-                    <i class="fa-solid fa-list-alt fa-lg"></i>
-                </div>
-                <div>
-                    <p class="text-xs sm:text-sm text-slate-400">Plans</p>
-                    <h3 class="text-lg sm:text-xl font-bold text-slate-100">Manage</h3>
-                </div>
-            </div>
-            <div id="card-reports" class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer border-2 border-transparent hover:border-pink-400">
-                <div class="bg-pink-500/10 text-pink-400 p-3 rounded-lg hidden sm:block">
-                    <i class="fa-solid fa-chart-line fa-lg"></i>
-                </div>
-                <div>
-                    <p class="text-xs sm:text-sm text-slate-400">Reports</p>
-                    <h3 class="text-lg sm:text-xl font-bold text-slate-100">Generate</h3>
-                </div>
-            </div>
-        </section>
-
-        <main id="main-content-area" class="glass-panel rounded-xl p-6">
-            <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4">
-                <h2 id="content-title" class="text-xl font-bold text-slate-100"></h2>
-                <div class="flex items-center gap-2 sm:gap-4">
-                    <div id="auto-reload-container" class="flex items-center gap-2">
-                        <label for="auto-reload-checkbox" class="text-xs text-gray-400 cursor-pointer">Auto-reload</label>
-                        <input type="checkbox" id="auto-reload-checkbox" />
-                    </div>
-                    <button id="manual-reload-btn" class="text-slate-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-slate-700">
-                        <i class="fa-solid fa-sync"></i>
-                    </button>
-                    <div id="search-bar-container" class="relative hidden">
-                        <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                        <input type="text" id="search-input" class="bg-slate-900/50 border border-slate-600 rounded-lg pl-10 pr-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 w-full sm:w-64" placeholder="Search..." />
-                    </div>
-                    <button id="add-new-btn" class="btn bg-indigo-600 hover:bg-indigo-700 hidden text-white">
-                        <i class="fa-solid fa-plus"></i> Add New
-                    </button>
-                </div>
-            </div>
-            <div id="content-container" class="space-y-4">
-                <!-- Content will be dynamically loaded here -->
-            </div>
-        </main>
-    </div>
-
-    <!-- Modals -->
-    <div id="image-modal" class="modal fixed inset-0 bg-black/80 justify-center items-center z-50 p-4">
-        <div class="p-2 bg-white rounded-lg max-w-4xl max-h-[90vh] relative shadow-2xl">
-            <button class="modal-close-btn absolute -top-4 -right-4 w-10 h-10 bg-red-600 hover:bg-red-700 rounded-full text-white text-xl z-10">&times;</button>
-            <img id="modal-image" src="" alt="Payment Proof" class="max-w-full max-h-[85vh] object-contain rounded" />
+      <header
+        class="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-4"
+      >
+        <h1 class="text-3xl font-bold font-['Orbitron'] text-slate-800">
+          Admin Dashboard
+        </h1>
+        <div class="flex items-center gap-4 self-end sm:self-center">
+          <button
+            id="settings-btn"
+            class="text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors"
+          >
+            <i class="fa-solid fa-cog"></i
+            ><span class="hidden sm:inline ml-2">Settings</span>
+          </button>
+          <button
+            id="logout-btn"
+            class="text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors"
+          >
+            <span class="hidden sm:inline">Logout</span
+            ><i class="fa-solid fa-right-from-bracket ml-2"></i>
+          </button>
         </div>
+      </header>
+
+      <section
+        id="stats-section"
+        class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-4 sm:gap-6 mb-8"
+      >
+        <div
+          id="card-pending"
+          class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-amber-400"
+        >
+          <div
+            class="bg-amber-100 text-amber-500 p-3 rounded-lg hidden sm:block"
+          >
+            <i class="fa-solid fa-clock fa-lg"></i>
+          </div>
+          <div>
+            <p class="text-xs sm:text-sm text-slate-500">Pending</p>
+            <h3
+              id="pending-orders-stat"
+              class="text-xl sm:text-2xl font-bold text-slate-800"
+            >
+              0
+            </h3>
+          </div>
+        </div>
+        <div
+          id="card-unconfirmed"
+          class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-orange-400"
+        >
+          <div
+            class="bg-orange-100 text-orange-500 p-3 rounded-lg hidden sm:block"
+          >
+            <i class="fa-solid fa-robot fa-lg"></i>
+          </div>
+          <div>
+            <p class="text-xs sm:text-sm text-slate-500">Unconfirmed</p>
+            <h3
+              id="unconfirmed-orders-stat"
+              class="text-xl sm:text-2xl font-bold text-slate-800"
+            >
+              0
+            </h3>
+          </div>
+        </div>
+        <div
+          id="card-approved"
+          class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-green-400"
+        >
+          <div
+            class="bg-green-100 text-green-500 p-3 rounded-lg hidden sm:block"
+          >
+            <i class="fa-solid fa-check-circle fa-lg"></i>
+          </div>
+          <div>
+            <p class="text-xs sm:text-sm text-slate-500">Approved</p>
+            <h3
+              id="approved-orders-stat"
+              class="text-xl sm:text-2xl font-bold text-slate-800"
+            >
+              0
+            </h3>
+          </div>
+        </div>
+        <div
+          id="card-rejected"
+          class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-red-400"
+        >
+          <div class="bg-red-100 text-red-500 p-3 rounded-lg hidden sm:block">
+            <i class="fa-solid fa-times-circle fa-lg"></i>
+          </div>
+          <div>
+            <p class="text-xs sm:text-sm text-slate-500">Rejected</p>
+            <h3
+              id="rejected-orders-stat"
+              class="text-xl sm:text-2xl font-bold text-slate-800"
+            >
+              0
+            </h3>
+          </div>
+        </div>
+        <div
+          id="card-users"
+          class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-sky-400"
+        >
+          <div class="bg-sky-100 text-sky-500 p-3 rounded-lg hidden sm:block">
+            <i class="fa-solid fa-users fa-lg"></i>
+          </div>
+          <div>
+            <p class="text-xs sm:text-sm text-slate-500">Users</p>
+            <h3
+              id="total-users-stat"
+              class="text-xl sm:text-2xl font-bold text-slate-800"
+            >
+              0
+            </h3>
+          </div>
+        </div>
+        <div
+          id="card-resellers"
+          class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-purple-400"
+        >
+          <div
+            class="bg-purple-100 text-purple-500 p-3 rounded-lg hidden sm:block"
+          >
+            <i class="fa-solid fa-user-tag fa-lg"></i>
+          </div>
+          <div>
+            <p class="text-xs sm:text-sm text-slate-500">Resellers</p>
+            <h3
+              id="total-resellers-stat"
+              class="text-xl sm:text-2xl font-bold text-slate-800"
+            >
+              0
+            </h3>
+          </div>
+        </div>
+        <div
+          id="card-connections"
+          class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-teal-400"
+        >
+          <div class="bg-teal-100 text-teal-500 p-3 rounded-lg hidden sm:block">
+            <i class="fa-solid fa-server fa-lg"></i>
+          </div>
+          <div>
+            <p class="text-xs sm:text-sm text-slate-500">Connections</p>
+            <h3 class="text-lg sm:text-xl font-bold text-slate-800">Manage</h3>
+          </div>
+        </div>
+        <div
+          id="card-plans"
+          class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-indigo-400"
+        >
+          <div
+            class="bg-indigo-100 text-indigo-500 p-3 rounded-lg hidden sm:block"
+          >
+            <i class="fa-solid fa-list-alt fa-lg"></i>
+          </div>
+          <div>
+            <p class="text-xs sm:text-sm text-slate-500">Plans</p>
+            <h3 class="text-lg sm:text-xl font-bold text-slate-800">Manage</h3>
+          </div>
+        </div>
+        <div
+          id="card-reports"
+          class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-pink-400"
+        >
+          <div class="bg-pink-100 text-pink-500 p-3 rounded-lg hidden sm:block">
+            <i class="fa-solid fa-chart-line fa-lg"></i>
+          </div>
+          <div>
+            <p class="text-xs sm:text-sm text-slate-500">Reports</p>
+            <h3 class="text-lg sm:text-xl font-bold text-slate-800">
+              Generate
+            </h3>
+          </div>
+        </div>
+      </section>
+
+      <main id="main-content-area" class="glass-panel rounded-xl p-6">
+        <div
+          class="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-4"
+        >
+          <h2 id="content-title" class="text-xl font-bold text-slate-800"></h2>
+          <div class="flex items-center gap-4">
+            <div id="auto-reload-container" class="flex items-center gap-2">
+              <label
+                for="auto-reload-checkbox"
+                class="text-xs text-gray-500 cursor-pointer"
+                >Auto-reload</label
+              >
+              <div class="relative inline-block w-10 align-middle select-none">
+                <input
+                  type="checkbox"
+                  id="auto-reload-checkbox"
+                  class="absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-200 ease-in-out checked:bg-indigo-600 checked:right-0"
+                />
+              </div>
+            </div>
+            <button
+              id="manual-reload-btn"
+              class="text-slate-500 hover:text-slate-900 transition-colors p-2 rounded-lg hover:bg-slate-100"
+            >
+              <i class="fa-solid fa-sync"></i>
+            </button>
+            <div id="search-bar-container" class="relative hidden">
+              <i
+                class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              ></i
+              ><input
+                type="text"
+                id="search-input"
+                class="bg-slate-50 border border-slate-300 rounded-lg pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 w-full sm:w-64"
+                placeholder="Search..."
+              />
+            </div>
+            <button
+              id="add-new-btn"
+              class="btn btn-approve bg-indigo-600 hover:bg-indigo-700 hidden text-white"
+            >
+              <i class="fa-solid fa-plus"></i> Add New
+            </button>
+          </div>
+        </div>
+        <div id="content-container" class="space-y-4"></div>
+      </main>
     </div>
 
-    <div id="settings-modal" class="modal fixed inset-0 bg-black/80 justify-center items-center z-50 p-4">
-        <div class="glass-panel w-full max-w-2xl p-6 rounded-lg relative">
-            <button class="modal-close-btn absolute top-4 right-4 text-gray-400 hover:text-gray-100 text-2xl">&times;</button>
-            <h3 class="text-xl font-bold mb-6 font-orbitron">Application Settings</h3>
-            <div id="settings-modal-content" class="space-y-4 max-h-[70vh] overflow-y-auto"></div>
-            <button id="settings-modal-save-btn" class="btn bg-indigo-600 hover:bg-indigo-700 text-white w-full justify-center mt-6">Save Settings</button>
-        </div>
+    <div
+      id="image-modal"
+      class="modal fixed inset-0 bg-black/70 justify-center items-center z-50 p-4"
+    >
+      <div
+        class="p-2 bg-white rounded-lg max-w-4xl max-h-[90vh] relative shadow-2xl"
+      >
+        <button
+          class="modal-close-btn absolute -top-4 -right-4 w-10 h-10 bg-red-600 rounded-full text-white text-xl z-10"
+        >
+          &times;</button
+        ><img
+          id="modal-image"
+          src=""
+          alt="Payment Proof"
+          class="max-w-full max-h-[85vh] object-contain rounded"
+        />
+      </div>
     </div>
-    
-    <div id="form-modal" class="modal fixed inset-0 bg-black/80 justify-center items-center z-50 p-4">
-        <div class="glass-panel w-full max-w-lg p-6 rounded-lg relative">
-            <button class="modal-close-btn absolute top-4 right-4 text-gray-400 hover:text-gray-100 text-2xl">&times;</button>
-            <h3 id="form-modal-title" class="text-xl font-bold mb-6 font-orbitron"></h3>
-            <form id="form-modal-content" class="space-y-4 max-h-[70vh] overflow-y-auto"></form>
-            <button id="form-modal-save-btn" class="btn bg-indigo-600 hover:bg-indigo-700 text-white w-full justify-center mt-6">Save Changes</button>
-        </div>
+    <div
+      id="settings-modal"
+      class="modal fixed inset-0 bg-black/70 justify-center items-center z-50 p-4"
+    >
+      <div class="glass-panel w-full max-w-2xl p-6 rounded-lg relative">
+        <button
+          class="modal-close-btn absolute top-4 right-4 text-gray-400 hover:text-gray-800 text-2xl"
+        >
+          &times;
+        </button>
+        <h3 class="text-xl font-bold mb-6 font-['Orbitron']">
+          Application Settings
+        </h3>
+        <div
+          id="settings-modal-content"
+          class="space-y-4 max-h-[70vh] overflow-y-auto"
+        ></div>
+        <button
+          id="settings-modal-save-btn"
+          class="btn bg-indigo-600 hover:bg-indigo-700 text-white w-full justify-center mt-6"
+        >
+          Save Settings
+        </button>
+      </div>
     </div>
-    
-    <!-- Toast Container -->
-    <div id="toast-container"></div>
-     <script src="/js/admin.js"></script>
-</body>
+    <div
+      id="form-modal"
+      class="modal fixed inset-0 bg-black/70 justify-center items-center z-50 p-4"
+    >
+      <div class="glass-panel w-full max-w-lg p-6 rounded-lg relative">
+        <button
+          class="modal-close-btn absolute top-4 right-4 text-gray-400 hover:text-gray-800 text-2xl"
+        >
+          &times;
+        </button>
+        <h3
+          id="form-modal-title"
+          class="text-xl font-bold mb-6 font-['Orbitron']"
+        ></h3>
+        <form
+          id="form-modal-content"
+          class="space-y-4 max-h-[70vh] overflow-y-auto"
+        ></form>
+        <button
+          id="form-modal-save-btn"
+          class="btn bg-indigo-600 hover:bg-indigo-700 text-white w-full justify-center mt-6"
+        >
+          Save Changes
+        </button>
+      </div>
+    </div>
+
+    <script src="/js/admin.js"></script>
+  </body>
 </html>
