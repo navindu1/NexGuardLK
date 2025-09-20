@@ -25,7 +25,7 @@ exports.getUserStatus = async (req, res) => {
         if (userError || !user) {
             return res.status(404).json({ success: false, message: "User not found." });
         }
-
+        
         const { data: pendingOrders, error: orderError } = await supabase
             .from("orders")
             .select("id")
@@ -41,25 +41,33 @@ exports.getUserStatus = async (req, res) => {
         if (!user.active_plans || user.active_plans.length === 0) {
             return res.json({ success: true, status: "no_plan" });
         }
+
+         if (!user.active_plans || user.active_plans.length === 0) {
+            return res.json({ success: true, status: "no_plan" });
+        }
         
-        // This logic can be slow if user has many plans. Consider running it as a background job if performance becomes an issue.
+        // --- MODIFIED LOGIC START ---
         const verifiedActivePlans = [];
         for (const plan of user.active_plans) {
             const clientExists = await v2rayService.findV2rayClient(plan.v2rayUsername);
             if (clientExists) {
+                // If client exists in the panel, keep the plan
                 verifiedActivePlans.push(plan);
             } else {
+                // If client DOES NOT exist, log it and DO NOT add it to the verified list
                 console.log(`[Verification] Plan '${plan.v2rayUsername}' for user ${user.username} not found in panel. Removing.`);
             }
         }
 
+        // If the number of plans has changed, update the user's record in the database
         if (verifiedActivePlans.length !== user.active_plans.length) {
             await supabase
                 .from("users")
                 .update({ active_plans: verifiedActivePlans })
                 .eq("id", user.id);
         }
-
+        
+        // If, after verification, there are no active plans left
         if (verifiedActivePlans.length === 0) {
             return res.json({ success: true, status: "no_plan" });
         }
@@ -69,6 +77,7 @@ exports.getUserStatus = async (req, res) => {
             status: "approved",
             activePlans: verifiedActivePlans,
         });
+        // --- MODIFIED LOGIC END ---
 
     } catch (error) {
         console.error(`[Status Check Error] User: ${req.user.username}, Error: ${error.message}`);

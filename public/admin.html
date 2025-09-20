@@ -315,25 +315,15 @@
             </h3>
           </div>
         </div>
-        <div
-          id="card-unconfirmed"
-          class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-orange-400"
-        >
-          <div
-            class="bg-orange-500/10 text-orange-400 p-3 rounded-lg hidden sm:block"
-          >
-            <i class="fa-solid fa-robot fa-lg"></i>
-          </div>
-          <div>
-            <p class="text-xs sm:text-sm text-slate-400">Unconfirmed</p>
-            <h3
-              id="unconfirmed-orders-stat"
-              class="text-xl sm:text-2xl font-bold text-white"
-            >
-              0
-            </h3>
-          </div>
-        </div>
+        <div id="card-unconfirmed" class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-orange-400">
+    <div class="bg-orange-500/10 text-orange-400 p-3 rounded-lg hidden sm:block">
+        <i class="fa-solid fa-robot fa-lg"></i>
+    </div>
+    <div>
+        <p class="text-xs sm:text-sm text-slate-400">Unconfirmed</p>
+        <h3 id="unconfirmed-orders-stat" class="text-xl sm:text-2xl font-bold text-white">0</h3>
+    </div>
+</div>
         <div
           id="card-approved"
           class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-green-400"
@@ -437,6 +427,13 @@
             <p class="text-xs sm:text-sm text-slate-400">Plans</p>
             <h3 class="text-lg sm:text-xl font-bold text-white">Manage</h3>
           </div>
+          <div class="flex items-center gap-4 self-end sm:self-center">
+    <button id="report-btn" class="text-sm font-semibold text-slate-400 hover:text-white transition-colors">
+        <i class="fa-solid fa-chart-line"></i>
+        <span class="hidden sm:inline ml-2">Reports</span>
+    </button>
+    <button id="settings-btn" ... >
+    </div>
         </div>
       </section>
 

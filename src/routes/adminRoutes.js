@@ -32,6 +32,7 @@ router.delete('/connections/:id', adminController.deleteConnection);
 router.post('/packages', adminController.createPackage);
 router.put('/packages/:id', adminController.updatePackage);
 router.delete('/packages/:id', adminController.deletePackage);
+router.get('/reports/summary', adminController.getReportSummary);
 
 // --- END: NEW AND UPDATED ROUTES ---
 

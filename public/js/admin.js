@@ -47,6 +47,39 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
+    const autoReloadCheckbox = document.getElementById('auto-reload-checkbox');
+    let autoReloadInterval;
+
+    // --- NEW: Function to handle reload state ---
+    const setupAutoReload = () => {
+        const isEnabled = localStorage.getItem('autoReloadEnabled') === 'true';
+        autoReloadCheckbox.checked = isEnabled;
+
+        if (isEnabled) {
+            autoReloadInterval = setInterval(() => {
+                // Only reload if viewing an order list
+                if (['pending', 'unconfirmed', 'approved', 'rejected'].includes(currentView)) {
+                    showToast('Auto-reloading data...', false);
+                    loadDataAndRender(currentView);
+                }
+            }, 30000); // Reload every 30 seconds
+        } else {
+            clearInterval(autoReloadInterval);
+        }
+    };
+
+    // --- NEW: Event listener for the checkbox ---
+    autoReloadCheckbox.addEventListener('change', () => {
+        localStorage.setItem('autoReloadEnabled', autoReloadCheckbox.checked);
+        clearInterval(autoReloadInterval); // Clear any existing interval before setting up a new one
+        setupAutoReload();
+        if (autoReloadCheckbox.checked) {
+            showToast('Auto-reload enabled.', false);
+        } else {
+            showToast('Auto-reload disabled.', true);
+        }
+    });
+
     // --- Element Selectors ---
     const contentTitle = document.getElementById('content-title');
     const contentContainer = document.getElementById('content-container');
@@ -108,20 +141,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // --- RENDER FUNCTIONS ---
     function renderOrders(status) {
-        currentView = status;
-        contentTitle.textContent = `${status.charAt(0).toUpperCase() + status.slice(1)} Orders`;
+         currentView = status;
+    contentTitle.textContent = `${status.charAt(0).toUpperCase() + status.slice(1)} Orders`;
         searchBarContainer.classList.add('hidden');
         addNewBtn.classList.add('hidden');
-        const orders = (dataCache.orders || []).filter(o => o.status === status);
+         const orders = (dataCache.orders || []).filter(o => o.status === status);
         if (orders.length === 0) {
             contentContainer.innerHTML = `<div class="glass-panel p-6 text-center rounded-lg">No ${status} orders found.</div>`;
             return;
         }
-        contentContainer.innerHTML = orders.map(order => `
+        contentContainer.innerHTML = orders.map(order => {
+        // --- NEW: Add a variable for the final username ---
+        const finalUsernameHtml = order.final_username 
+            ? `<div><span class="font-bold text-slate-400 text-xs">V2Ray User</span><p class="text-purple-300">${order.final_username}</p></div>`
+            : '';
+
+        return `
             <div class="glass-panel p-4 rounded-lg grid grid-cols-2 md:grid-cols-6 gap-4 items-center">
                 <div><span class="font-bold text-slate-400 text-xs">User</span><p>${order.website_username}</p></div>
                 <div><span class="font-bold text-slate-400 text-xs">Plan</span><p>${order.plan_id}</p></div>
-                <div><span class="font-bold text-slate-400 text-xs">Type</span><p>${order.is_renewal ? 'Renewal' : 'New'}</p></div>
+                ${status === 'approved' ? finalUsernameHtml : `<div><span class="font-bold text-slate-400 text-xs">Type</span><p>${order.is_renewal ? 'Renewal' : 'New'}</p></div>`}
                 <div><span class="font-bold text-slate-400 text-xs">Submitted</span><p>${new Date(order.created_at).toLocaleString()}</p></div>
                 <div class="flex gap-2"><button class="btn btn-view view-receipt-btn" data-url="${order.receipt_path}"><i class="fa-solid fa-receipt"></i></button></div>
                 <div class="flex gap-2 items-center justify-end">
@@ -130,8 +169,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     <button class="btn btn-reject reject-btn" data-id="${order.id}">Reject</button>` 
                     : `<span class="text-xs text-gray-500">Action Taken</span>`}
                 </div>
-            </div>`).join('');
-    }
+            </div>`;
+    }).join('');
+}
 
     function renderUsers(users, role = 'user') {
         currentView = role === 'user' ? 'users' : 'resellers';
@@ -535,5 +575,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     setActiveCard(document.getElementById(`card-${currentView}`));
     loadDataAndRender(currentView);
+    setupAutoReload();
 });
 

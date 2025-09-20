@@ -50,9 +50,10 @@ const rejectOrder = async (req, res) => {
     try {
         const { orderId } = req.body;
 
+        // Fetch order details including status and final_username
         const { data: orderToReject, error: fetchError } = await supabase
             .from('orders')
-            .select('receipt_path, website_username, plan_id, id')
+            .select('receipt_path, website_username, plan_id, id, status, final_username') // Add status and final_username
             .eq('id', orderId)
             .single();
 
@@ -60,8 +61,26 @@ const rejectOrder = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Order not found.' });
         }
 
+        // --- NEW LOGIC START ---
+        // If the order was 'unconfirmed' (auto-approved) and has a V2Ray user, delete the user
+        if ((orderToReject.status === 'unconfirmed' || orderToReject.status === 'approved') && orderToReject.final_username) {
+            try {
+                const clientData = await v2rayService.findV2rayClient(orderToReject.final_username);
+                if (clientData) {
+                    await v2rayService.deleteClient(clientData.inboundId, clientData.client.id);
+                    console.log(`Successfully deleted V2Ray client: ${orderToReject.final_username} for rejected order ${orderId}`);
+                }
+            } catch (v2rayError) {
+                console.error(`Failed to delete V2Ray client ${orderToReject.final_username}. Please check manually. Error: ${v2rayError.message}`);
+                // Continue with rejection even if V2Ray deletion fails, but log the error.
+            }
+        }
+        // --- NEW LOGIC END ---
+
+        // Update order status to 'rejected'
         await supabase.from('orders').update({ status: 'rejected' }).eq('id', orderId);
 
+        // Delete the receipt from storage
         if (orderToReject.receipt_path && orderToReject.receipt_path !== 'created_by_reseller') {
             try {
                 const urlParts = orderToReject.receipt_path.split('/');
@@ -99,7 +118,7 @@ const rejectOrder = async (req, res) => {
         console.error("Error rejecting order:", error);
         res.status(500).json({ success: false, message: 'Failed to reject order.' });
     }
-};
+};  
 
 // --- 3. USER & RESELLER MANAGEMENT ---
 const getUsers = async (req, res) => {
@@ -282,6 +301,37 @@ const getResellers = (req, res) => {
     res.json({ success: true, data: [] });
 };
 
+const getReportSummary = async (req, res) => {
+    try {
+        const today = new Date();
+        const startOfToday = new Date(today.setHours(0, 0, 0, 0)).toISOString();
+        const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay())).toISOString();
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
+
+        const { data: daily, error: dailyError } = await supabase.from('orders').select('id, plan_id, price').eq('status', 'approved').gte('approved_at', startOfToday);
+        const { data: weekly, error: weeklyError } = await supabase.from('orders').select('id, plan_id, price').eq('status', 'approved').gte('approved_at', startOfWeek);
+        const { data: monthly, error: monthlyError } = await supabase.from('orders').select('id, plan_id, price').eq('status', 'approved').gte('approved_at', startOfMonth);
+
+        if (dailyError || weeklyError || monthlyError) throw dailyError || weeklyError || monthlyError;
+
+        const calculateSummary = (orders) => ({
+            count: orders.length,
+            revenue: orders.reduce((sum, order) => sum + (order.price || 0), 0)
+        });
+
+        res.json({
+            success: true,
+            data: {
+                daily: calculateSummary(daily),
+                weekly: calculateSummary(weekly),
+                monthly: calculateSummary(monthly),
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to generate report summary.' });
+    }
+};
+
 module.exports = {
     getDashboardStats,
     getOrders,
@@ -302,6 +352,7 @@ module.exports = {
     deletePlan,
     getV2rayInbounds,
     getSettings,
-    updateSettings
+    updateSettings,
+    getReportSummary
 };
 
