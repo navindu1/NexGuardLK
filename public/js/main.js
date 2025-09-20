@@ -941,14 +941,14 @@ function renderCheckoutPage(renderFunc, params) {
         let packageInfo = '';
         if (cleanPackageName) {
             packageInfo = `
-                <div class="mt-4 bg-[#aa8026]/10 text-center">
-                    <p class="text-sm">
-                        <span class="text-gray-300">Selected Package:</span>
-                        <br class="sm:hidden"> 
-                        <span class="font-semibold text-yellow-400">${cleanPackageName} - LKR ${planPrice}</span>
-                    </p>
-                </div>
-            `;
+                    <div style="margin-top: 1rem; background-color: rgba(170, 128, 38, 0.1); border: 1px solid rgba(170, 128, 38, 0.3); border-radius: 0.5rem; padding: 0.75rem; text-align: center;">
+                        <p style="font-size: 0.875rem; line-height: 1.25rem; margin: 0;">
+                            <span style="color: #d1d5db;">Selected Package:</span>
+                            <br class="sm:hidden"> 
+                            <span style="font-weight: 600; color: #dda428ff;">${cleanPackageName} - LKR ${planPrice}</span>
+                        </p>
+                    </div>
+                `;
         }
 
         let renewalInfo = '';
