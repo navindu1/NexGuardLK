@@ -64,7 +64,7 @@ document.addEventListener("DOMContentLoaded", () => {
             // පරිශීලකයාට තේරුම්ගත හැකි පණිවිඩයක් පෙන්වමු
             showToast({
                 title: "Session Expired",
-                message: "ඔබගේ ලොගින් වීමේ කාලය අවසන්. කරුණාකර නැවත ලොග් වන්න.",
+                message: "Login Expired. Please Login Again.",
                 type: "warning"
             });
             
