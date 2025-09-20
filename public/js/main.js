@@ -39,6 +39,48 @@ document.addEventListener("DOMContentLoaded", () => {
         profile: 'My Profile - NexGuardLK STORE'
     };
 
+    const apiFetch = async (url, options = {}) => {
+        const token = localStorage.getItem("nexguard_token");
+
+        // options object එකට headers නොමැති නම්, හිස් object එකක් සාදමු
+        if (!options.headers) {
+            options.headers = {};
+        }
+
+        // FormData භාවිතා කරන විට Content-Type එක browser එක මඟින් සකසන නිසා එය මකමු
+        if (options.body instanceof FormData) {
+            delete options.headers['Content-Type'];
+        }
+
+        // ටෝකන් එකක් ඇත්නම්, එය Authorization header එකට එකතු කරමු
+        if (token) {
+            options.headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch(url, options);
+
+        // ටෝකන් එක කල් ඉකුත් වී ඇත්දැයි (401/403 error) පරීක්ෂා කරමු
+        if (response.status === 401 || response.status === 403) {
+            // පරිශීලකයාට තේරුම්ගත හැකි පණිවිඩයක් පෙන්වමු
+            showToast({
+                title: "Session Expired",
+                message: "ඔබගේ ලොගින් වීමේ කාලය අවසන්. කරුණාකර නැවත ලොග් වන්න.",
+                type: "warning"
+            });
+            
+            // තත්පර 2කට පසු, session එක clear කර login පිටුවට යොමු කරමු
+            setTimeout(() => {
+                clearSession(); 
+                navigateTo('/login'); 
+            }, 2000);
+
+            // දෝෂයක් ලෙස සලකා මෙතනින් නවත්වමු
+            return Promise.reject(new Error("Token expired or invalid"));
+        }
+        
+        return response; // කිසිදු දෝෂයක් නොමැති නම්, response එක return කරමු
+    };
+
     // Static data for the application
     const appData = {
         plans: {
@@ -53,7 +95,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const loadConnections = async () => {
         try {
-            const res = await fetch('/api/public/connections');
+            const res = await apiFetch('/api/public/connections');
             const result = await res.json();
             if (result.success) {
                 dynamicConnections = result.data;
@@ -80,7 +122,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const fetchConnections = async () => {
             try {
-                const response = await fetch('/api/connections');
+                const response = await apiFetch('/api/connections');
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
                 }
@@ -231,7 +273,7 @@ document.addEventListener("DOMContentLoaded", () => {
             submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating...';
 
             try {
-                const response = await fetch('/api/order', {
+                const response = await apiFetch('/api/order', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -710,7 +752,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     howToFindLinkContainer.classList.remove('hidden'); 
                     
                     try {
-                        const res = await fetch(`/api/check-usage/${username}`);
+                        const res = await apiFetch(`/api/check-usage/${username}`);
                         
                         if (!res.ok) {
                             howToFindLinkContainer.classList.remove('hidden');
@@ -1025,7 +1067,7 @@ function renderCheckoutPage(renderFunc, params) {
         document.querySelector('#checkout-view button[type="submit"]').disabled = true;
         document.querySelector('#checkout-view button[type="submit"]').textContent = "SUBMITTING...";
 
-        const res = await fetch("/api/create-order", {
+        const res = await apiFetch("/api/create-order", {
             method: "POST",
             headers: { Authorization: "Bearer " + localStorage.getItem("nexguard_token"), },
             body: formData,
@@ -1187,7 +1229,7 @@ const baseHtml = `<div id="page-profile" class="page space-y-8"><div class="flex
         const formData = new FormData();
         formData.append("avatar", file);
         showToast({ title: "Uploading...", message: "Please wait.", type: "info" });
-        const res = await fetch("/api/user/profile-picture", {
+        const res = await apiFetch("/api/user/profile-picture", {
             method: "POST",
             headers: { Authorization: "Bearer " + token },
             body: formData,
@@ -1207,7 +1249,7 @@ const baseHtml = `<div id="page-profile" class="page space-y-8"><div class="flex
         }
     });
 
-    fetch("/api/user/status", {
+    apiFetch("/api/user/status", {
             headers: { Authorization: "Bearer " + token }
         })
         .then((res) => res.ok ? res.json() : Promise.reject(new Error("Authentication failed")))
@@ -1258,7 +1300,7 @@ const baseHtml = `<div id="page-profile" class="page space-y-8"><div class="flex
                     btn.disabled = true;
                     showToast({ title: "Updating...", message: "Please wait.", type: "info" });
                     try {
-                        const res = await fetch('/api/user/update-password', {
+                        const res = await apiFetch('/api/user/update-password', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
                             body: JSON.stringify({ newPassword })
@@ -1290,7 +1332,7 @@ const baseHtml = `<div id="page-profile" class="page space-y-8"><div class="flex
                     }
                     btn.disabled = true;
                     showToast({ title: "Linking...", message: "Please wait...", type: "info" });
-                    const res = await fetch("/api/user/link-v2ray", {
+                    const res = await apiFetch("/api/user/link-v2ray", {
                         method: "POST",
                         headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
                         body: JSON.stringify({ v2rayUsername }),
@@ -1424,7 +1466,7 @@ const loadUsageStats = () => {
     if (!usageContainer) return; // Failsafe check
     
     usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-purple-400"></i></div>`;
-    fetch(`/api/check-usage/${plan.v2rayUsername}`).then(res => res.json()).then(result => {
+    apiFetch(`/api/check-usage/${plan.v2rayUsername}`).then(res => res.json()).then(result => {
         if (result.success) {
             // The displayUserData function already creates the glass-panel, so no extra panel is needed here.
             displayUserData(result.data, plan.v2rayUsername, usageContainer);
@@ -1443,7 +1485,7 @@ const loadUsageStats = () => {
                                     
 container.innerHTML = `<button disabled class="ai-button secondary inline-block py-2 px-6 text-sm rounded-lg !bg-gray-700/50 !text-gray-400 cursor-not-allowed"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking status...</button>`;
                                     try {
-                                        const res = await fetch(`/api/check-usage/${plan.v2rayUsername}`);
+                                        const res = await apiFetch(`/api/check-usage/${plan.v2rayUsername}`);
                                         if (!res.ok) throw new Error(`API responded with status ${res.status}`);
                                         const result = await res.json();
                                         if (result.success) {
@@ -1473,7 +1515,7 @@ container.innerHTML = `<button disabled class="ai-button secondary inline-block 
 
                                     ordersContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-purple-400"></i></div>`;
                                     try {
-                                        const res = await fetch("/api/user/orders", { headers: { Authorization: "Bearer " + token } });
+                                        const res = await apiFetch("/api/user/orders", { headers: { Authorization: "Bearer " + token } });
                                         if (!res.ok) throw new Error("Failed to fetch orders");
                                         const { orders } = await res.json();
                                         
@@ -1729,7 +1771,7 @@ container.innerHTML = `<button disabled class="ai-button secondary inline-block 
                 username: e.target.elements["signin-username"].value,
                 password: e.target.elements["signin-password"].value,
             };
-            const res = await fetch("/api/auth/login", {
+            const res = await apiFetch("/api/auth/login", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -1770,7 +1812,7 @@ container.innerHTML = `<button disabled class="ai-button secondary inline-block 
                 whatsapp: e.target.elements["signup-whatsapp"].value,
                 password: e.target.elements["signup-password"].value,
             };
-            const res = await fetch("/api/auth/register", {
+            const res = await apiFetch("/api/auth/register", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -1815,7 +1857,7 @@ container.innerHTML = `<button disabled class="ai-button secondary inline-block 
                 email: document.getElementById("otp-email").value,
                 otp: e.target.elements["otp-code"].value,
             };
-            const res = await fetch("/api/auth/verify-otp", {
+            const res = await apiFetch("/api/auth/verify-otp", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -1855,7 +1897,7 @@ forgotPasswordForm?.addEventListener("submit", async(e) => {
     const payload = {
         email: e.target.elements["forgot-email"].value
     };
-    const res = await fetch("/api/auth/forgot-password", {
+    const res = await apiFetch("/api/auth/forgot-password", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -1894,7 +1936,7 @@ forgotPasswordForm?.addEventListener("submit", async(e) => {
                 token: e.target.elements["reset-token"].value,
                 newPassword: e.target.elements["new-password"].value,
             };
-            const res = await fetch("/api/auth/reset-password", {
+            const res = await apiFetch("/api/auth/reset-password", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -1931,7 +1973,7 @@ forgotPasswordForm?.addEventListener("submit", async(e) => {
             const payload = {
                 v2rayUsername: document.getElementById("existing-v2ray-username").value,
             };
-            const res = await fetch("/api/user/link-v2ray", {
+            const res = await apiFetch("/api/user/link-v2ray", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
