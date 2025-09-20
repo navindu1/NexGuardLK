@@ -912,128 +912,120 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 // File Path: public/js/main.js
+    // File Path: public/js/main.js
 
-    function renderCheckoutPage(renderFunc, params) {
-        const user = JSON.parse(localStorage.getItem("nexguard_user"));
-        if (!user) {
-            navigateTo("/login");
-            return;
-        }
-
-        const planId = params.get("planId");
-        const connId = decodeURIComponent(params.get("connId"));
-        const pkg = decodeURIComponent(params.get("pkg") || "");
-        const plan = appData.plans[planId];
-        const conn = dynamicConnections.find(c => c.name === connId);
-
-        const userToRenew = params.get("renew");
-        const isRenewal = !!userToRenew;
-
-        // --- START: FINAL CORRECTED SUMMARY LOGIC ---
-        let summaryHtml;
-        if (plan && conn) {
-            const finalPackageNameWithPrice = pkg || conn.default_package || '';
-            const planPrice = plan.price;
-
-            // FIX: Clean the package name to remove any price string attached to it
-            const cleanPackageName = finalPackageNameWithPrice.split(' - LKR')[0];
-
-            // Main purchase information
-            const purchaseInfo = `<p>You are purchasing the <strong class="text-purple-400">${plan.name}</strong> for <strong class="text-purple-400">${conn.name}</strong>.</p>`;
-            
-            // Highlighted package information
-            let packageInfo = '';
-            if (cleanPackageName) {
-                // --- START: FINAL CLEANED CODE ---
-                packageInfo = `
-                    <div class="mt-4 bg-amber-500/10 text-center">
-                        <p class="text-sm">
-                            <span class="text-gray-300">Selected Package:</span>
-                            <br class="sm:hidden"> 
-                            <span class="font-semibold text-[#aa8026]">${cleanPackageName} - LKR ${planPrice}</span>
-                        </p>
-                    </div>
-                `;
-                // --- END: FINAL CLEANED CODE ---
-            }
-
-            // Renewal information
-            let renewalInfo = '';
-            if (isRenewal) {
-                renewalInfo = `<p class="mt-2 text-center">You are renewing for V2Ray user: <strong class="text-purple-400">${userToRenew}</strong>.</p>`;
-            }
-            
-            summaryHtml = purchaseInfo + packageInfo + renewalInfo;
-
-        } else {
-            summaryHtml = `<p class="text-red-400 text-center">Invalid selection. Please <a href="/plans" class="nav-link-internal underline">start over</a>.</p>`;
-        }
-        // --- END: FINAL CORRECTED SUMMARY LOGIC ---
-
-        renderFunc(`
-            <div id="page-checkout" class="page">
-                <div class="w-full max-w-sm mx-auto glass-panel rounded-xl p-6 reveal">
-                    <div id="checkout-view">
-                        <h2 class="text-xl font-bold text-center text-white mb-2">${isRenewal ? "Renew Your Plan" : "Final Step: Checkout"}</h2>
-                        <div id="checkout-summary" class="text-center mb-6 text-gray-300 text-sm">${summaryHtml}</div>
-                        <form id="checkout-form" class="space-y-4">
-                            ${isRenewal ? `<input type="hidden" name="isRenewal" value="true">` : ""}
-                            <div class="form-group ${isRenewal ? 'pb-2' : ''}">
-                                <input type="text" id="checkout-username" name="username" class="form-input ${isRenewal ? 'disabled:bg-slate-800/50 disabled:text-slate-400 disabled:cursor-not-allowed' : ''}" required placeholder=" " value="${isRenewal ? userToRenew : user.username}" ${isRenewal ? 'disabled' : ''}>
-                                <label class="form-label">V2Ray Username</label><span class="focus-border"><i></i></span>
-                                ${isRenewal ? '<p class="text-xs text-amber-400 mt-2 px-1">Username cannot be changed during renewal.</p>' : ''}
-                            </div>
-                            <div class="form-group">
-                                <input type="text" name="whatsapp" id="checkout-whatsapp" class="form-input" required placeholder=" " value="${user.whatsapp}">
-                                <label class="form-label">WhatsApp Number</label><span class="focus-border"><i></i></span>
-                            </div>
-                            <div>
-                                <p class="text-gray-300 text-sm mb-2">Upload receipt:</p>
-                                <div class="text-xs text-gray-400 mb-3 p-3 bg-black/20 rounded-lg border border-white/10 whitespace-pre-wrap">${appData.bankDetails}</div>
-                                <input type="file" name="receipt" required class="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100" accept="image/*">
-                            </div>
-                            <button type="submit" class="ai-button w-full py-2.5 font-semibold text-white rounded-lg !mt-8">SUBMIT FOR APPROVAL</button>
-                        </form>
-                    </div>
-                    <div id="success-view" class="hidden text-center">
-                        <i class="fas fa-check-circle text-5xl text-green-400 mb-4"></i>
-                        <p class="text-lg text-green-400 font-semibold">Order Submitted!</p>
-                        <p class="text-gray-300 mt-2 text-sm">Your order is pending approval. You can check the status on your profile.</p>
-                        <a href="/profile?tab=orders" class="nav-link-internal mt-6 inline-block w-full py-2 text-sm font-semibold text-white rounded-lg ai-button">View My Orders</a>
-                    </div>
-                </div>
-            </div>`);
-
-        document.getElementById("checkout-form").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            formData.append("planId", params.get("planId"));
-            formData.append("connId", params.get("connId"));
-            formData.append("inboundId", params.get("inboundId"));
-            formData.append("vlessTemplate", params.get("vlessTemplate"));
-            if (params.get("pkg")) {
-                formData.append("pkg", params.get("pkg"));
-            }
-
-            document.querySelector('#checkout-view button[type="submit"]').disabled = true;
-            document.querySelector('#checkout-view button[type="submit"]').textContent = "SUBMITTING...";
-
-            const res = await fetch("/api/create-order", {
-                method: "POST",
-                headers: { Authorization: "Bearer " + localStorage.getItem("nexguard_token"), },
-                body: formData,
-            });
-            if (res.ok) {
-                document.getElementById("checkout-view").style.display = "none";
-                document.getElementById("success-view").classList.remove("hidden");
-            } else {
-                const result = await res.json();
-                alert(`Error: ${result.message}`);
-                document.querySelector('#checkout-view button[type="submit"]').disabled = false;
-                document.querySelector('#checkout-view button[type="submit"]').textContent = "SUBMIT FOR APPROVAL";
-            }
-        });
+function renderCheckoutPage(renderFunc, params) {
+    const user = JSON.parse(localStorage.getItem("nexguard_user"));
+    if (!user) {
+        navigateTo("/login");
+        return;
     }
+
+    const planId = params.get("planId");
+    const connId = decodeURIComponent(params.get("connId"));
+    const pkg = decodeURIComponent(params.get("pkg") || "");
+    const plan = appData.plans[planId];
+    const conn = dynamicConnections.find(c => c.name === connId);
+
+    const userToRenew = params.get("renew");
+    const isRenewal = !!userToRenew;
+
+    let summaryHtml;
+    if (plan && conn) {
+        const finalPackageNameWithPrice = pkg || conn.default_package || '';
+        const planPrice = plan.price;
+        const cleanPackageName = finalPackageNameWithPrice.split(' - LKR')[0];
+
+        const purchaseInfo = `<p>You are purchasing the <strong class="text-purple-400">${plan.name}</strong> for <strong class="text-purple-400">${conn.name}</strong>.</p>`;
+        
+        let packageInfo = '';
+        if (cleanPackageName) {
+            packageInfo = `
+                <div class="mt-4 bg-[#aa8026]/10 text-center">
+                    <p class="text-sm">
+                        <span class="text-gray-300">Selected Package:</span>
+                        <br class="sm:hidden"> 
+                        <span class="font-semibold text-[#aa8026]">${cleanPackageName} - LKR ${planPrice}</span>
+                    </p>
+                </div>
+            `;
+        }
+
+        let renewalInfo = '';
+        if (isRenewal) {
+            renewalInfo = `<p class="mt-2 text-center">You are renewing for V2Ray user: <strong class="text-purple-400">${userToRenew}</strong>.</p>`;
+        }
+        
+        summaryHtml = purchaseInfo + packageInfo + renewalInfo;
+
+    } else {
+        summaryHtml = `<p class="text-red-400 text-center">Invalid selection. Please <a href="/plans" class="nav-link-internal underline">start over</a>.</p>`;
+    }
+
+    renderFunc(`
+        <div id="page-checkout" class="page">
+            <div class="w-full max-w-sm mx-auto glass-panel rounded-xl p-6 reveal">
+                <div id="checkout-view">
+                    <h2 class="text-xl font-bold text-center text-white mb-2">${isRenewal ? "Renew Your Plan" : "Final Step: Checkout"}</h2>
+                    <div id="checkout-summary" class="text-center mb-6 text-gray-300 text-sm">${summaryHtml}</div>
+                    <form id="checkout-form" class="space-y-4">
+                        ${isRenewal ? `<input type="hidden" name="isRenewal" value="true">` : ""}
+                        <div class="form-group ${isRenewal ? 'pb-2' : ''}">
+                            <input type="text" id="checkout-username" name="username" class="form-input ${isRenewal ? 'disabled:bg-slate-800/50 disabled:text-slate-400 disabled:cursor-not-allowed' : ''}" required placeholder=" " value="${isRenewal ? userToRenew : user.username}" ${isRenewal ? 'disabled' : ''}>
+                            <label class="form-label">V2Ray Username</label><span class="focus-border"><i></i></span>
+                            ${isRenewal ? '<p class="text-xs text-amber-400 mt-2 px-1">Username cannot be changed during renewal.</p>' : ''}
+                        </div>
+                        <div class="form-group">
+                            <input type="text" name="whatsapp" id="checkout-whatsapp" class="form-input" required placeholder=" " value="${user.whatsapp}">
+                            <label class="form-label">WhatsApp Number</label><span class="focus-border"><i></i></span>
+                        </div>
+                        <div>
+                            <p class="text-gray-300 text-sm mb-2">Upload receipt:</p>
+                            <div class="text-xs text-gray-400 mb-3 p-3 bg-black/20 rounded-lg border border-white/10 whitespace-pre-wrap">${appData.bankDetails}</div>
+                            <input type="file" name="receipt" required class="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100" accept="image/*">
+                        </div>
+                        <button type="submit" class="ai-button w-full py-2.5 font-semibold text-white rounded-lg !mt-8">SUBMIT FOR APPROVAL</button>
+                    </form>
+                </div>
+                <div id="success-view" class="hidden text-center">
+                    <i class="fas fa-check-circle text-5xl text-green-400 mb-4"></i>
+                    <p class="text-lg text-green-400 font-semibold">Order Submitted!</p>
+                    <p class="text-gray-300 mt-2 text-sm">Your order is pending approval. You can check the status on your profile.</p>
+                    <a href="/profile?tab=orders" class="nav-link-internal mt-6 inline-block w-full py-2 text-sm font-semibold text-white rounded-lg ai-button">View My Orders</a>
+                </div>
+            </div>
+        </div>`);
+
+    document.getElementById("checkout-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        formData.append("planId", params.get("planId"));
+        formData.append("connId", params.get("connId"));
+        formData.append("inboundId", params.get("inboundId"));
+        formData.append("vlessTemplate", params.get("vlessTemplate"));
+        if (params.get("pkg")) {
+            formData.append("pkg", params.get("pkg"));
+        }
+
+        document.querySelector('#checkout-view button[type="submit"]').disabled = true;
+        document.querySelector('#checkout-view button[type="submit"]').textContent = "SUBMITTING...";
+
+        const res = await fetch("/api/create-order", {
+            method: "POST",
+            headers: { Authorization: "Bearer " + localStorage.getItem("nexguard_token"), },
+            body: formData,
+        });
+        if (res.ok) {
+            document.getElementById("checkout-view").style.display = "none";
+            document.getElementById("success-view").classList.remove("hidden");
+        } else {
+            const result = await res.json();
+            alert(`Error: ${result.message}`);
+            document.querySelector('#checkout-view button[type="submit"]').disabled = false;
+            document.querySelector('#checkout-view button[type="submit"]').textContent = "SUBMIT FOR APPROVAL";
+        }
+    });
+}
 
 
     function renderAboutPage(renderFunc) {
