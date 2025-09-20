@@ -944,22 +944,17 @@ document.addEventListener("DOMContentLoaded", () => {
             // Highlighted package information
             let packageInfo = '';
             if (cleanPackageName) {
-                // --- START: FINAL STYLE CORRECTION ---
+                // --- START: FINAL CLEANED CODE ---
                 packageInfo = `
                     <div class="mt-4 bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-center">
                         <p class="text-sm">
-                            {/* Label with default color */}
                             <span class="text-gray-300">Selected Package:</span>
-                            
-                            {/* Line break on mobile for readability */}
                             <br class="sm:hidden"> 
-                            
-                            {/* Value with yellow, bold highlight */}
                             <span class="font-semibold text-amber-300">${cleanPackageName} - LKR ${planPrice}</span>
                         </p>
                     </div>
                 `;
-                // --- END: FINAL STYLE CORRECTION ---
+                // --- END: FINAL CLEANED CODE ---
             }
 
             // Renewal information
