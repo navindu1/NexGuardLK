@@ -419,22 +419,23 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // --- Event Listeners ---
-    document.getElementById('stats-section').addEventListener('click', e => {
+    // නිවැරදි කරන ලද කේතය
+document.getElementById('stats-section').addEventListener('click', e => {
     const card = e.target.closest('.glass-panel[id^="card-"]');
     if (!card) return;
 
     const view = card.id.replace('card-', '');
 
-    // --- අලුතින් එක් කළ வேண்டிய කොටස ---
-    if (view === 'reports') {
-        renderReportModal();
-        return; // 여기서 함수를 종료합니다.
-    }
-    // --- අලුත් කොටස අවසන් ---
-
+    // පළමුව card එක active කරන්න
     setActiveCard(card);
-    loadDataAndRender(view);
+
+    if (view === 'reports') {
+        // ඉන්පසු modal එක විවෘත කරන්න
+        renderReportModal();
+    } else {
+        // අනෙක් card සඳහා දත්ත load කරන්න
+        loadDataAndRender(view);
+    }
 });
     
     addNewBtn.addEventListener('click', () => {
