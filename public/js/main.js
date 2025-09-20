@@ -950,7 +950,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         <p class="text-sm">
                             <span class="text-gray-300">Selected Package:</span>
                             <br class="sm:hidden"> 
-                            <span class="font-semibold text-[#aa8026] text-amber-300">${cleanPackageName} - LKR ${planPrice}</span>
+                            <span class="font-semibold text-[#aa8026]">${cleanPackageName} - LKR ${planPrice}</span>
                         </p>
                     </div>
                 `;
