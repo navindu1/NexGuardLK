@@ -1,3 +1,5 @@
+// File Path: src/controllers/adminController.js
+
 const supabase = require('../config/supabaseClient');
 const { approveOrder: approveOrderService } = require('../services/orderService');
 const v2rayService = require('../services/v2rayService');
@@ -171,8 +173,37 @@ const updateConnection = async (req, res) => {
     try {
         const { id } = req.params;
         const { name, icon, requires_package_choice, default_package, default_inbound_id, default_vless_template } = req.body;
-        const { data, error } = await supabase.from('connections').update({ name, icon, requires_package_choice, default_package, default_inbound_id, default_vless_template }).eq('id', id).select().single();
+
+        // Create an object with the fields that are always updated.
+        const updateData = {
+            name,
+            icon,
+            requires_package_choice
+        };
+
+        // Conditionally add fields to the update object.
+        if (requires_package_choice) {
+            // If it's a multi-package connection, set default fields to null
+            // to avoid database errors with empty strings.
+            updateData.default_package = null;
+            updateData.default_inbound_id = null;
+            updateData.default_vless_template = null;
+        } else {
+            // If it's a single-package connection, use the values from the form.
+            updateData.default_package = default_package;
+            updateData.default_inbound_id = default_inbound_id;
+            updateData.default_vless_template = default_vless_template;
+        }
+
+        const { data, error } = await supabase
+            .from('connections')
+            .update(updateData) // Use the conditionally built updateData object
+            .eq('id', id)
+            .select()
+            .single();
+            
         if (error) throw error;
+        
         res.json({ success: true, message: 'Connection updated successfully.', data });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Failed to update connection.' });
@@ -300,8 +331,6 @@ const getResellers = (req, res) => {
     // This is a placeholder. You need to implement the logic to get resellers.
     res.json({ success: true, data: [] });
 };
-
-// File Path: src/controllers/adminController.js
 
 // **** START: REVISED REPORTING FUNCTION ****
 const getReportSummary = async (req, res) => {
