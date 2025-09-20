@@ -560,14 +560,32 @@
           Save Changes
         </button>
       </div>
-    </div> <div id="report-modal" class="modal fixed inset-0 bg-black/80 justify-center items-center z-50 p-4">
-        <div class="glass-panel w-full max-w-2xl p-6 rounded-lg relative">
-            <button class="modal-close-btn absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
-            <h3 class="text-xl font-bold mb-6 font-['Orbitron']">Sales Report Summary</h3>
-            <div id="report-modal-content" class="space-y-4">
+    </div>
+    <div id="report-modal" class="modal fixed inset-0 bg-black/80 justify-center items-center z-50 p-4">
+    <div class="glass-panel w-full max-w-4xl p-6 rounded-lg relative"> <button class="modal-close-btn absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
+        
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+            <h3 class="text-xl font-bold font-['Orbitron']">Reports & Analytics</h3>
+            <button id="download-csv-btn" class="btn btn-view mt-4 sm:mt-0">
+                <i class="fa-solid fa-download"></i> Download Full Report (CSV)
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+                <h4 class="font-bold text-lg text-purple-300 mb-3">Order History (Last 7 Days)</h4>
+                <div class="bg-slate-800/50 p-4 rounded-lg">
+                    <canvas id="orders-chart"></canvas>
+                </div>
+            </div>
+            <div>
+                <h4 class="font-bold text-lg text-purple-300 mb-3">Lifetime Summary</h4>
+                <div id="report-modal-content" class="space-y-4">
+                    </div>
             </div>
         </div>
     </div>
+</div>
 
     <script src="/js/admin.js"></script>
     <script>

@@ -40,6 +40,17 @@ document.addEventListener("DOMContentLoaded", () => {
         return; 
     }
 
+    const downloadCsvBtn = document.getElementById('download-csv-btn');
+    if (downloadCsvBtn) {
+        downloadCsvBtn.addEventListener('click', () => {
+            const downloadUrl = '/api/admin/reports/download';
+            // Use the token to construct a secure download link if needed, but for simplicity, direct navigation works if the browser has the auth context (cookies/headers might not pass, direct GET is easier if auth middleware handles it)
+            // A better way is to fetch and create a blob, but for this use-case, direct navigation is simplest.
+            showToast('Generating your report...', false);
+            window.location.href = downloadUrl;
+        });
+    }
+
     // --- PART 2: ADMIN DASHBOARD LOGIC (Runs only on admin.html) ---
     const token = localStorage.getItem('nexguard_admin_token');
     if (!token) {
@@ -67,6 +78,8 @@ document.addEventListener("DOMContentLoaded", () => {
             clearInterval(autoReloadInterval);
         }
     };
+
+    let ordersChartInstance = null;
 
     // --- NEW: Event listener for the checkbox ---
     autoReloadCheckbox.addEventListener('change', () => {
@@ -534,10 +547,23 @@ document.getElementById('stats-section').addEventListener('click', e => {
 
     async function renderReportModal() {
     reportModalContent.innerHTML = '<div class="text-center p-4"><i class="fa-solid fa-spinner fa-spin text-xl"></i></div>';
+    
+    // Clear previous chart instance if it exists
+    if (ordersChartInstance) {
+        ordersChartInstance.destroy();
+    }
+    
     reportModal.classList.add('active');
+    
     try {
-        const result = await apiFetch('/reports/summary');
-        const summary = result.data;
+        // Fetch both summary and chart data in parallel
+        const [summaryResult, chartResult] = await Promise.all([
+            apiFetch('/reports/summary'),
+            apiFetch('/reports/chart-data')
+        ]);
+        
+        const summary = summaryResult.data;
+        const chartData = chartResult.data;
         
         const formatSummary = (period, data) => `
             <div class="bg-slate-800/50 p-4 rounded-lg">
@@ -561,11 +587,26 @@ document.getElementById('stats-section').addEventListener('click', e => {
             ${formatSummary('monthly', summary.monthly)}
         `;
 
+     const ctx = document.getElementById('orders-chart').getContext('2d');
+        ordersChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: chartData,
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true, ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
+                    x: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }
+                },
+                plugins: { legend: { labels: { color: '#e0e0e0' } } }
+            }
+        });
+
     } catch (error) {
         showToast(error.message, true);
         reportModalContent.innerHTML = '<p class="text-red-400">Failed to load report summary.</p>';
     }
 }
+
 
 
     async function renderSettingsModal() {

@@ -332,6 +332,88 @@ const getReportSummary = async (req, res) => {
     }
 };
 
+const getChartData = async (req, res) => {
+    try {
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        
+        const { data, error } = await supabase
+            .from('orders')
+            .select('created_at')
+            .eq('status', 'approved')
+            .gte('created_at', sevenDaysAgo)
+            .order('created_at', { ascending: true });
+
+        if (error) throw error;
+
+        // Process data to get daily counts
+        const counts = {};
+        for (let i = 0; i < 7; i++) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const key = d.toISOString().split('T')[0]; // YYYY-MM-DD
+            counts[key] = 0;
+        }
+
+        data.forEach(order => {
+            const key = new Date(order.created_at).toISOString().split('T')[0];
+            if (counts[key] !== undefined) {
+                counts[key]++;
+            }
+        });
+        
+        const labels = Object.keys(counts).sort();
+        const chartData = labels.map(label => counts[label]);
+
+        res.json({ success: true, data: { labels, datasets: [{
+            label: 'Approved Orders',
+            data: chartData,
+            borderColor: '#a78bfa',
+            backgroundColor: 'rgba(167, 139, 250, 0.2)',
+            fill: true,
+            tension: 0.3
+        }]} });
+
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to fetch chart data.' });
+    }
+};
+
+const downloadOrdersReport = async (req, res) => {
+    try {
+        const { data: orders, error } = await supabase
+            .from('orders')
+            .select('final_username, plan_id, conn_id, pkg, status, created_at, approved_at, price')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Create CSV header
+        let csv = 'V2Ray_Username,Plan,Connection,Package,Status,Created_At,Approved_At,Price\n';
+        
+        // Add rows
+        orders.forEach(order => {
+            const row = [
+                order.final_username || 'N/A',
+                order.plan_id,
+                order.conn_id,
+                order.pkg || 'N/A',
+                order.status,
+                new Date(order.created_at).toLocaleString(),
+                order.approved_at ? new Date(order.approved_at).toLocaleString() : 'N/A',
+                order.price || '0.00'
+            ].join(',');
+            csv += row + '\n';
+        });
+
+        res.header('Content-Type', 'text/csv');
+        res.attachment('nexguard-orders-report.csv');
+        res.send(csv);
+
+    } catch (error) {
+        res.status(500).send('Failed to generate report.');
+    }
+};
+
 module.exports = {
     getDashboardStats,
     getOrders,
@@ -353,6 +435,8 @@ module.exports = {
     getV2rayInbounds,
     getSettings,
     updateSettings,
-    getReportSummary
+    getReportSummary,
+    getChartData,     
+    downloadOrdersReport
 };
 
