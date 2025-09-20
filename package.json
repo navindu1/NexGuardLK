@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "description": "Full featured V2Ray web portal for NexGuardLK",
   "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
+ "scripts": {
+  "start": "node server.js",
+  "test": "echo \"No test specified\" && exit 0"
+},
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
     "axios": "^1.11.0",
