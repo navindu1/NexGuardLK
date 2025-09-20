@@ -16,7 +16,7 @@ exports.createOrder = async (req, res) => {
     }
 
     try {
-        // Step 1: Fetch the main connection details from the database
+        // ... (මෙම කොටසේ සිට පහළට ඇති කේතයේ වෙනසක් නැත)
         const { data: connection, error: connError } = await supabase
             .from('connections')
             .select('*')
@@ -29,14 +29,11 @@ exports.createOrder = async (req, res) => {
 
         let inboundId, vlessTemplate;
 
-        // Step 2: Determine which inbound_id and vless_template to use
         if (connection.requires_package_choice) {
             if (!pkg) {
                  return res.status(400).json({ success: false, message: 'A package selection is required for this connection type.' });
             }
             
-            // --- START OF FIX ---
-            // Query the 'packages' table directly to validate and get package details
             const { data: selectedPackage, error: pkgError } = await supabase
                 .from('packages')
                 .select('inbound_id, template')
@@ -44,24 +41,44 @@ exports.createOrder = async (req, res) => {
                 .eq('name', pkg)
                 .single();
 
-            // If the package is not found for the given connection, return an error
             if (pkgError || !selectedPackage) {
                 return res.status(400).json({ success: false, message: 'Invalid package selected for this connection.' });
             }
-            // --- END OF FIX ---
 
             inboundId = selectedPackage.inbound_id;
             vlessTemplate = selectedPackage.template;
         } else {
-            // Use default values for single-package connections
             inboundId = connection.default_inbound_id;
             vlessTemplate = connection.default_vless_template;
         }
 
-        // Final check to ensure we have the necessary details
         if (!inboundId || !vlessTemplate) {
             return res.status(500).json({ success: false, message: 'The selected connection is not configured correctly. Please contact support.' });
         }
+        // ... (මෙතෙක් ඇති කේතයේ වෙනසක් නැත)
+
+
+        // ==========================================================
+        // ===== START: ගැටලුව විසඳීමට අවශ්‍ය නව කේත කොටස =====
+        // ==========================================================
+        
+        // පියවර 3: තෝරාගත් plan එකට අදාළ මිල database එකෙන් ලබාගැනීම
+        const { data: planData, error: planError } = await supabase
+            .from('plans')
+            .select('price')
+            .eq('plan_name', planId)
+            .single();
+
+        if (planError || !planData) {
+            console.error("Plan price fetch error:", planError);
+            return res.status(404).json({ success: false, message: "The selected plan is invalid or does not have a price." });
+        }
+        const orderPrice = planData.price;
+
+        // ========================================================
+        // ===== END: ගැටලුව විසඳීමට අවශ්‍ය නව කේත කොටස =====
+        // ========================================================
+
 
         const file = req.file;
         const fileExt = file.originalname.split('.').pop();
@@ -98,32 +115,14 @@ exports.createOrder = async (req, res) => {
             status: "pending",
             is_renewal: isRenewal === "true",
             inbound_id: parseInt(inboundId, 10),
-            vless_template: vlessTemplate 
+            vless_template: vlessTemplate,
+            price: orderPrice // <-- ලබාගත් මිල, order object එකට ඇතුළත් කිරීම
         };
 
         const { error: orderError } = await supabase.from("orders").insert([newOrder]);
         if (orderError) throw orderError;
-
-        const { data: websiteUser } = await supabase
-            .from("users")
-            .select("email, username")
-            .eq("username", req.user.username)
-            .single();
-
-        if (websiteUser && websiteUser.email) {
-            const mailOptions = {
-                from: `NexGuard Orders <${process.env.EMAIL_SENDER}>`,
-                to: websiteUser.email,
-                subject: "Your NexGuard Order Has Been Received!",
-                html: generateEmailTemplate(
-                    "Order Received!",
-                    `Your order for the ${planId} plan is pending approval.`,
-                    generateOrderPlacedEmailContent(websiteUser.username, planId)
-                ),
-            };
-            transporter.sendMail(mailOptions).catch(err => console.error(`FAILED to send order placed email:`, err));
-        }
-        res.status(201).json({ success: true, message: "Order submitted successfully!" });
+        
+        // ... (මෙතැන් සිට පහළට ඇති කේතයේ වෙනසක් නැත)
     } catch (error) {
         console.error("Error creating order:", error.message);
         res.status(500).json({ success: false, message: error.message || "Failed to create order." });

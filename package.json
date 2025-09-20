@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "description": "Full featured V2Ray web portal for NexGuardLK",
   "main": "server.js",
- "scripts": {
+  "scripts": {
   "start": "node server.js",
-  "test": "echo \"No test specified\" && exit 0"
+  "test": "echo \"No test specified\" && exit 0",
+  "build:css": "npx tailwindcss -i ./src/input.css -o ./public/css/output.css"
 },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
@@ -23,8 +24,8 @@
     "uuid": "^10.0.0"
   },
   "devDependencies": {
-    "autoprefixer": "^10.4.21",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.13"
-  }
+  "autoprefixer": "^10.4.21",
+  "postcss": "^8.5.6",
+  "tailwindcss": "^3.4.3"
+}
 }
