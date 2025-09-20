@@ -93,6 +93,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const formModalContent = document.getElementById('form-modal-content');
     const formModalSaveBtn = document.getElementById('form-modal-save-btn');
     const settingsBtn = document.getElementById('settings-btn');
+    // **** පහත පේළි දෙක මෙතනට එක් කරන්න ****
+    const reportModal = document.getElementById('report-modal');
+    const reportModalContent = document.getElementById('report-modal-content');
 
     
     // --- State Management ---
