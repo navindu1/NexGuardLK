@@ -24,6 +24,21 @@ document.addEventListener("DOMContentLoaded", () => {
     const overlay = document.getElementById("sidebar-overlay");
     let userSession = null;
 
+    const pageTitles = {
+        home: 'Home - NexGuardLK STORE',
+        usage: 'Check Usage - NexGuardLK STORE',
+        plans: 'Our Plans - NexGuardLK STORE',
+        connections: 'Select Connection - NexGuardLK STORE',
+        'package-choice': 'Select Package - NexGuardLK STORE',
+        about: 'About Us - NexGuardLK STORE',
+        privacy: 'Privacy Policy - NexGuardLK STORE',
+        login: 'Login / Signup - NexGuardLK STORE',
+        signup: 'Login / Signup - NexGuardLK STORE',
+        'reset-password': 'Reset Password - NexGuardLK STORE',
+        checkout: 'Checkout - NexGuardLK STORE',
+        profile: 'My Profile - NexGuardLK STORE'
+    };
+
     // Static data for the application
     const appData = {
         plans: {
@@ -1983,6 +1998,7 @@ forgotPasswordForm?.addEventListener("submit", async(e) => {
         const pathParts = pathName.substring(1).split('/'); 
         let pageKey = pathParts[0] || 'home'; 
         if (pageKey === '') pageKey = 'home'; 
+         document.title = pageTitles[pageKey] || 'NexGuardLK STORE';
         if (userSession && ["login", "signup", "reset-password"].includes(pageKey)) { navigateTo("/profile"); return; } 
         if (["checkout", "profile", "connections", "package-choice"].includes(pageKey) && !userSession) { navigateTo("/login"); return; } 
         const renderFunction = allRoutes[pageKey] || allRoutes["home"]; 
