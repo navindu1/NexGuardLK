@@ -93,9 +93,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const formModalContent = document.getElementById('form-modal-content');
     const formModalSaveBtn = document.getElementById('form-modal-save-btn');
     const settingsBtn = document.getElementById('settings-btn');
-    const reportBtn = document.getElementById('report-btn');
-const reportModal = document.getElementById('report-modal');
-const reportModalContent = document.getElementById('report-modal-content');
 
     
     // --- State Management ---
@@ -424,12 +421,21 @@ const reportModalContent = document.getElementById('report-modal-content');
 
     // --- Event Listeners ---
     document.getElementById('stats-section').addEventListener('click', e => {
-        const card = e.target.closest('.glass-panel[id^="card-"]');
-        if (!card) return;
-        const view = card.id.replace('card-', '');
-        setActiveCard(card);
-        loadDataAndRender(view);
-    });
+    const card = e.target.closest('.glass-panel[id^="card-"]');
+    if (!card) return;
+
+    const view = card.id.replace('card-', '');
+
+    // --- අලුතින් එක් කළ வேண்டிய කොටස ---
+    if (view === 'reports') {
+        renderReportModal();
+        return; // 여기서 함수를 종료합니다.
+    }
+    // --- අලුත් කොටස අවසන් ---
+
+    setActiveCard(card);
+    loadDataAndRender(view);
+});
     
     addNewBtn.addEventListener('click', () => {
         const type = addNewBtn.dataset.type;
@@ -557,8 +563,6 @@ const reportModalContent = document.getElementById('report-modal-content');
     }
 }
 
-// --- Add this event listener ---
-reportBtn.addEventListener('click', renderReportModal);
 
     async function renderSettingsModal() {
         const settingsContent = document.getElementById('settings-modal-content');
