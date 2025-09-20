@@ -93,6 +93,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const formModalContent = document.getElementById('form-modal-content');
     const formModalSaveBtn = document.getElementById('form-modal-save-btn');
     const settingsBtn = document.getElementById('settings-btn');
+    const reportBtn = document.getElementById('report-btn');
+const reportModal = document.getElementById('report-modal');
+const reportModalContent = document.getElementById('report-modal-content');
+
     
     // --- State Management ---
     let currentView = 'pending';
@@ -517,6 +521,44 @@ document.addEventListener("DOMContentLoaded", () => {
         handleAction(endpoint, data, 'Saving...', 'Saved successfully', method, formModalSaveBtn);
         formModal.classList.remove('active');
     });
+
+    async function renderReportModal() {
+    reportModalContent.innerHTML = '<div class="text-center p-4"><i class="fa-solid fa-spinner fa-spin text-xl"></i></div>';
+    reportModal.classList.add('active');
+    try {
+        const result = await apiFetch('/reports/summary');
+        const summary = result.data;
+        
+        const formatSummary = (period, data) => `
+            <div class="bg-slate-800/50 p-4 rounded-lg">
+                <h4 class="text-lg font-bold text-purple-300 capitalize">${period}</h4>
+                <div class="mt-2 grid grid-cols-2 gap-4 text-center">
+                    <div>
+                        <p class="text-xs text-slate-400">Approved Orders</p>
+                        <p class="text-2xl font-bold text-white">${data.count}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-400">Total Revenue</p>
+                        <p class="text-2xl font-bold text-white">LKR ${data.revenue.toFixed(2)}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        reportModalContent.innerHTML = `
+            ${formatSummary('daily', summary.daily)}
+            ${formatSummary('weekly', summary.weekly)}
+            ${formatSummary('monthly', summary.monthly)}
+        `;
+
+    } catch (error) {
+        showToast(error.message, true);
+        reportModalContent.innerHTML = '<p class="text-red-400">Failed to load report summary.</p>';
+    }
+}
+
+// --- Add this event listener ---
+reportBtn.addEventListener('click', renderReportModal);
 
     async function renderSettingsModal() {
         const settingsContent = document.getElementById('settings-modal-content');
