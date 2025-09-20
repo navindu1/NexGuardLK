@@ -911,6 +911,8 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>`);
     }
 
+// File Path: public/js/main.js
+
     function renderCheckoutPage(renderFunc, params) {
         const user = JSON.parse(localStorage.getItem("nexguard_user"));
         if (!user) {
@@ -927,43 +929,51 @@ document.addEventListener("DOMContentLoaded", () => {
         const userToRenew = params.get("renew");
         const isRenewal = !!userToRenew;
 
-        // File Path: public/js/main.js -> inside renderCheckoutPage function
-
-        // --- START: FULLY CORRECTED SUMMARY LOGIC (FOR NEW & RENEWAL) ---
+        // --- START: FINAL CORRECTED SUMMARY LOGIC ---
         let summaryHtml;
         if (plan && conn) {
-            const finalPackageName = pkg || conn.default_package || '';
+            const finalPackageNameWithPrice = pkg || conn.default_package || '';
             const planPrice = plan.price;
 
-            // Main purchase information (already centered by parent)
+            // FIX: Clean the package name to remove any price string attached to it
+            const cleanPackageName = finalPackageNameWithPrice.split(' - LKR')[0];
+
+            // Main purchase information
             const purchaseInfo = `<p>You are purchasing the <strong class="text-purple-400">${plan.name}</strong> for <strong class="text-purple-400">${conn.name}</strong>.</p>`;
             
             // Highlighted package information
             let packageInfo = '';
-            if (finalPackageName) {
+            if (cleanPackageName) {
+                // --- START: FINAL STYLE CORRECTION ---
                 packageInfo = `
-                    <div class="mt-4 bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
-                        {/* FIX: Added 'text-center' to this <p> tag */}
-                        <p class="font-semibold text-amber-300 text-center">
-                           Selected Package: ${finalPackageName} - LKR ${planPrice}
+                    <div class="mt-4 bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-center">
+                        <p class="text-sm">
+                            {/* Label with default color */}
+                            <span class="text-gray-300">Selected Package:</span>
+                            
+                            {/* Line break on mobile for readability */}
+                            <br class="sm:hidden"> 
+                            
+                            {/* Value with yellow, bold highlight */}
+                            <span class="font-semibold text-amber-300">${cleanPackageName} - LKR ${planPrice}</span>
                         </p>
                     </div>
                 `;
+                // --- END: FINAL STYLE CORRECTION ---
             }
 
-            // Renewal information, if applicable
+            // Renewal information
             let renewalInfo = '';
             if (isRenewal) {
-                // FIX: Added 'text-center' and more margin to this <p> tag
                 renewalInfo = `<p class="mt-2 text-center">You are renewing for V2Ray user: <strong class="text-purple-400">${userToRenew}</strong>.</p>`;
             }
             
-            // The order of elements is now: Purchase Info -> Package Info -> Renewal Info
             summaryHtml = purchaseInfo + packageInfo + renewalInfo;
 
         } else {
             summaryHtml = `<p class="text-red-400 text-center">Invalid selection. Please <a href="/plans" class="nav-link-internal underline">start over</a>.</p>`;
         }
+        // --- END: FINAL CORRECTED SUMMARY LOGIC ---
 
         renderFunc(`
             <div id="page-checkout" class="page">
