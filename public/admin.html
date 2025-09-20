@@ -342,153 +342,154 @@
       </header>
 
       <section
-        id="stats-section"
-        class="grid grid-cols-2 lg:grid-cols-7 gap-4 sm:gap-6 mb-8"
+  id="stats-section"
+  class="grid grid-cols-2 lg:grid-cols-7 gap-4 sm:gap-6 mb-8"
+>
+  <div
+    id="card-pending"
+    class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-amber-400"
+  >
+    <div
+      class="bg-amber-500/10 text-amber-400 p-3 rounded-lg hidden sm:block"
+    >
+      <i class="fa-solid fa-clock fa-lg"></i>
+    </div>
+    <div>
+      <p class="text-xs sm:text-sm text-slate-400">Pending</p>
+      <h3
+        id="pending-orders-stat"
+        class="text-xl sm:text-2xl font-bold text-white"
       >
-        <div
-          id="card-pending"
-          class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-amber-400"
-        >
-          <div
-            class="bg-amber-500/10 text-amber-400 p-3 rounded-lg hidden sm:block"
-          >
-            <i class="fa-solid fa-clock fa-lg"></i>
-          </div>
-          <div>
-            <p class="text-xs sm:text-sm text-slate-400">Pending</p>
-            <h3
-              id="pending-orders-stat"
-              class="text-xl sm:text-2xl font-bold text-white"
-            >
-              0
-            </h3>
-          </div>
-        </div>
-        <div id="card-unconfirmed" class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-orange-400">
-          <div class="bg-orange-500/10 text-orange-400 p-3 rounded-lg hidden sm:block">
-            <i class="fa-solid fa-robot fa-lg"></i>
-          </div>
-          <div>
-            <p class="text-xs sm:text-sm text-slate-400">Unconfirmed</p>
-            <h3 id="unconfirmed-orders-stat" class="text-xl sm:text-2xl font-bold text-white">0</h3>
-          </div>
-        </div>
-        <div
-          id="card-approved"
-          class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-green-400"
-        >
-          <div
-            class="bg-green-500/10 text-green-400 p-3 rounded-lg hidden sm:block"
-          >
-            <i class="fa-solid fa-check-circle fa-lg"></i>
-          </div>
-          <div>
-            <p class="text-xs sm:text-sm text-slate-400">Approved</p>
-            <h3
-              id="approved-orders-stat"
-              class="text-xl sm:text-2xl font-bold text-white"
-            >
-              0
-            </h3>
-          </div>
-        </div>
-        <div
-          id="card-rejected"
-          class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-red-400"
-        >
-          <div
-            class="bg-red-500/10 text-red-400 p-3 rounded-lg hidden sm:block"
-          >
-            <i class="fa-solid fa-times-circle fa-lg"></i>
-          </div>
-          <div>
-            <p class="text-xs sm:text-sm text-slate-400">Rejected</p>
-            <h3
-              id="rejected-orders-stat"
-              class="text-xl sm:text-2xl font-bold text-white"
-            >
-              0
-            </h3>
-          </div>
-        </div>
-        <div
-          id="card-users"
-          class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-sky-400"
-        >
-          <div
-            class="bg-sky-500/10 text-sky-400 p-3 rounded-lg hidden sm:block"
-          >
-            <i class="fa-solid fa-users fa-lg"></i>
-          </div>
-          <div>
-            <p class="text-xs sm:text-sm text-slate-400">Users</p>
-            <h3
-              id="total-users-stat"
-              class="text-xl sm:text-2xl font-bold text-white"
-            >
-              0
-            </h3>
-          </div>
-        </div>
-        <div
-          id="card-resellers"
-          class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-purple-400"
-        >
-          <div
-            class="bg-purple-500/10 text-purple-400 p-3 rounded-lg hidden sm:block"
-          >
-            <i class="fa-solid fa-user-tag fa-lg"></i>
-          </div>
-          <div>
-            <p class="text-xs sm:text-sm text-slate-400">Resellers</p>
-            <h3
-              id="total-resellers-stat"
-              class="text-xl sm:text-2xl font-bold text-white"
-            >
-              0
-            </h3>
-          </div>
-        </div>
-        <div
-          id="card-connections"
-          class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-teal-400"
-        >
-          <div
-            class="bg-teal-500/10 text-teal-400 p-3 rounded-lg hidden sm:block"
-          >
-            <i class="fa-solid fa-server fa-lg"></i>
-          </div>
-          <div>
-            <p class="text-xs sm:text-sm text-slate-400">Connections</p>
-            <h3 class="text-lg sm:text-xl font-bold text-white">Manage</h3>
-          </div>
-        </div>
-        <div
-          id="card-plans"
-          class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-indigo-400"
-        >
-          <div class="bg-indigo-500/10 text-indigo-400 p-3 rounded-lg hidden sm:block">
-            <i class="fa-solid fa-list-alt fa-lg"></i>
-          </div>
-          <div>
-            <p class="text-xs sm:text-sm text-slate-400">Plans</p>
-            <h3 class="text-lg sm:text-xl font-bold text-white">Manage</h3>
-          </div>
-        </div>
-        <div
-          id="card-reports"
-          class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-pink-400"
-        >
-          <div class="bg-pink-500/10 text-pink-400 p-3 rounded-lg hidden sm:block">
-            <i class="fa-solid fa-chart-line fa-lg"></i>
-          </div>
-          <div>
-            <p class="text-xs sm:text-sm text-slate-400">Reports</p>
-            <h3 class="text-lg sm:text-xl font-bold text-white">Generate</h3>
-          </div>
-        </div>
-      </section>
+        0
+      </h3>
+    </div>
+  </div>
+  <div id="card-unconfirmed" class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-orange-400">
+    <div class="bg-orange-500/10 text-orange-400 p-3 rounded-lg hidden sm:block">
+      <i class="fa-solid fa-robot fa-lg"></i>
+    </div>
+    <div>
+      <p class="text-xs sm:text-sm text-slate-400">Unconfirmed</p>
+      <h3 id="unconfirmed-orders-stat" class="text-xl sm:text-2xl font-bold text-white">0</h3>
+    </div>
+  </div>
+  <div
+    id="card-approved"
+    class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-green-400"
+  >
+    <div
+      class="bg-green-500/10 text-green-400 p-3 rounded-lg hidden sm:block"
+    >
+      <i class="fa-solid fa-check-circle fa-lg"></i>
+    </div>
+    <div>
+      <p class="text-xs sm:text-sm text-slate-400">Approved</p>
+      <h3
+        id="approved-orders-stat"
+        class="text-xl sm:text-2xl font-bold text-white"
+      >
+        0
+      </h3>
+    </div>
+  </div>
+  <div
+    id="card-rejected"
+    class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-red-400"
+  >
+    <div
+      class="bg-red-500/10 text-red-400 p-3 rounded-lg hidden sm:block"
+    >
+      <i class="fa-solid fa-times-circle fa-lg"></i>
+    </div>
+    <div>
+      <p class="text-xs sm:text-sm text-slate-400">Rejected</p>
+      <h3
+        id="rejected-orders-stat"
+        class="text-xl sm:text-2xl font-bold text-white"
+      >
+        0
+      </h3>
+    </div>
+  </div>
+  <div
+    id="card-users"
+    class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-sky-400"
+  >
+    <div
+      class="bg-sky-500/10 text-sky-400 p-3 rounded-lg hidden sm:block"
+    >
+      <i class="fa-solid fa-users fa-lg"></i>
+    </div>
+    <div>
+      <p class="text-xs sm:text-sm text-slate-400">Users</p>
+      <h3
+        id="total-users-stat"
+        class="text-xl sm:text-2xl font-bold text-white"
+      >
+        0
+      </h3>
+    </div>
+  </div>
+  <div
+    id="card-resellers"
+    class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-purple-400"
+  >
+    <div
+      class="bg-purple-500/10 text-purple-400 p-3 rounded-lg hidden sm:block"
+    >
+      <i class="fa-solid fa-user-tag fa-lg"></i>
+    </div>
+    <div>
+      <p class="text-xs sm:text-sm text-slate-400">Resellers</p>
+      <h3
+        id="total-resellers-stat"
+        class="text-xl sm:text-2xl font-bold text-white"
+      >
+        0
+      </h3>
+    </div>
+  </div>
 
+  <div
+    id="card-connections"
+    class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-teal-400"
+  >
+    <div
+      class="bg-teal-500/10 text-teal-400 p-3 rounded-lg hidden sm:block"
+    >
+      <i class="fa-solid fa-server fa-lg"></i>
+    </div>
+    <div>
+      <p class="text-xs sm:text-sm text-slate-400">Connections</p>
+      <h3 class="text-lg sm:text-xl font-bold text-white whitespace-nowrap">Manage</h3>
+    </div>
+  </div>
+  <div
+    id="card-plans"
+    class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-indigo-400"
+  >
+    <div class="bg-indigo-500/10 text-indigo-400 p-3 rounded-lg hidden sm:block">
+      <i class="fa-solid fa-list-alt fa-lg"></i>
+    </div>
+    <div>
+      <p class="text-xs sm:text-sm text-slate-400">Plans</p>
+      <h3 class="text-lg sm:text-xl font-bold text-white whitespace-nowrap">Manage</h3>
+    </div>
+  </div>
+  <div
+    id="card-reports"
+    class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-pink-400"
+  >
+    <div class="bg-pink-500/10 text-pink-400 p-3 rounded-lg hidden sm:block">
+      <i class="fa-solid fa-chart-line fa-lg"></i>
+    </div>
+    <div>
+      <p class="text-xs sm:text-sm text-slate-400">Reports</p>
+      <h3 class="text-lg sm:text-xl font-bold text-white whitespace-nowrap">Generate</h3>
+    </div>
+  </div>
+  </section>
+  
       <main id="main-content-area">
         <div
           class="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-4"
