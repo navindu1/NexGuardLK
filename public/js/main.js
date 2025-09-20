@@ -1991,46 +1991,77 @@ forgotPasswordForm?.addEventListener("submit", async(e) => {
         profile: renderProfilePage,
     };
     
-    const navigateTo = (path) => { history.pushState(null, null, path); router(); };
-    const router = async () => { 
-        const pathName = window.location.pathname; 
-        const params = new URLSearchParams(window.location.search); 
-        const pathParts = pathName.substring(1).split('/'); 
-        let pageKey = pathParts[0] || 'home'; 
-        if (pageKey === '') pageKey = 'home'; 
-         document.title = pageTitles[pageKey] || 'NexGuardLK STORE';
-        if (userSession && ["login", "signup", "reset-password"].includes(pageKey)) { navigateTo("/profile"); return; } 
-        if (["checkout", "profile", "connections", "package-choice"].includes(pageKey) && !userSession) { navigateTo("/login"); return; } 
-        const renderFunction = allRoutes[pageKey] || allRoutes["home"]; 
-        if (renderFunction) { 
-            mainContentArea.innerHTML = ""; 
-            renderFunction((html) => { 
-                mainContentArea.innerHTML = html; 
-                initAnimations(); 
-            }, params, pageKey); 
-        } 
-        document.querySelectorAll("#main-nav a, #mobile-nav a").forEach((link) => { 
-            const linkPath = link.getAttribute("href")?.split("?")[0].replace('/', ''); 
-            const currentPath = pageKey.split('/')[0]; 
-            const isActive = linkPath === currentPath || (linkPath === 'home' && currentPath === ''); 
-            link.classList.toggle("active", isActive); 
-        }); 
-        const scrollTargetId = params.get('scroll');
-        if (scrollTargetId) {
-            // DOM එක සම්පූර්ණයෙන්ම render වීමට කුඩා ඉඩක් ලබා දීම
-            setTimeout(() => {
-                const targetElement = document.getElementById(scrollTargetId);
-                if (targetElement) {
-                    // අදාළ කොටසට smooth scroll වීම
-                    targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            }, 100); // 100ms ප්‍රමාදයක්
-        } else {
-            // 'scroll' parameter එක නොමැති නම්, පිටුවේ ඉහළටම යාම
-            window.scrollTo(0, 0); 
-        }
-         
+    const navigateTo = (path) => {const pathName = path.split('?')[0];
+        const pathParts = pathName.substring(1).split('/');
+        let pageKey = pathParts[0] || 'home';
+        if (pageKey === '') pageKey = 'home';
+
+        // 1. මුලින්ම title එක set කිරීම
+        document.title = pageTitles[pageKey] || 'NexGuardLK STORE';
+        // --- END: ADDED LOGIC ---
+
+        // 2. ඉන්පසුව URL එක වෙනස් කිරීම
+        history.pushState(null, null, path);
+        router(); 
     };
+    // This is the main router function that renders pages based on the URL.
+const router = async () => { 
+    const pathName = window.location.pathname; 
+    const params = new URLSearchParams(window.location.search); 
+    const pathParts = pathName.substring(1).split('/'); 
+    let pageKey = pathParts[0] || 'home'; 
+    if (pageKey === '') pageKey = 'home'; 
+    
+    // Set title here as well to handle initial page loads and back/forward navigation
+    document.title = pageTitles[pageKey] || 'NexGuardLK STORE';
+    
+    // --- User Session Logic ---
+    // Redirect logged-in users from auth pages to profile
+    if (userSession && ["login", "signup", "reset-password"].includes(pageKey)) { 
+        navigateTo("/profile"); 
+        return; 
+    } 
+    
+    // Redirect logged-out users from protected pages to login
+    if (["checkout", "profile", "connections", "package-choice"].includes(pageKey) && !userSession) { 
+        navigateTo("/login"); 
+        return; 
+    } 
+    
+    // --- Page Rendering ---
+    const renderFunction = allRoutes[pageKey] || allRoutes["home"]; 
+    if (renderFunction) { 
+        mainContentArea.innerHTML = ""; 
+        renderFunction((html) => { 
+            mainContentArea.innerHTML = html; 
+            initAnimations(); // Initialize animations after content is rendered
+        }, params, pageKey); 
+    } 
+    
+    // --- Navigation Link Styling ---
+    // Update the active state for navigation links
+    document.querySelectorAll("#main-nav a, #mobile-nav a").forEach((link) => { 
+        const linkPath = link.getAttribute("href")?.split("?")[0].replace('/', ''); 
+        const currentPath = pageKey.split('/')[0]; 
+        const isActive = linkPath === currentPath || (linkPath === 'home' && currentPath === ''); 
+        link.classList.toggle("active", isActive); 
+    }); 
+    
+    // --- Scrolling Logic ---
+    const scrollTargetId = params.get('scroll');
+    if (scrollTargetId) {
+        // If a 'scroll' parameter exists, smooth-scroll to the target element
+        setTimeout(() => {
+            const targetElement = document.getElementById(scrollTargetId);
+            if (targetElement) {
+                targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 100); 
+    } else {
+        // Otherwise, scroll to the top of the new page
+        window.scrollTo(0, 0); 
+    }
+};
     
     window.addEventListener("popstate", router);
     document.addEventListener("click", (e) => { 
