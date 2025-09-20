@@ -946,11 +946,11 @@ document.addEventListener("DOMContentLoaded", () => {
             if (cleanPackageName) {
                 // --- START: FINAL CLEANED CODE ---
                 packageInfo = `
-                    <div class="mt-4 bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-center">
+                    <div class="mt-4 bg-amber-500/10 text-center">
                         <p class="text-sm">
                             <span class="text-gray-300">Selected Package:</span>
                             <br class="sm:hidden"> 
-                            <span class="font-semibold text-amber-300">${cleanPackageName} - LKR ${planPrice}</span>
+                            <span class="font-semibold text-[#aa8026] text-amber-300">${cleanPackageName} - LKR ${planPrice}</span>
                         </p>
                     </div>
                 `;
