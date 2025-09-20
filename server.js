@@ -16,17 +16,22 @@ app.use(express.urlencoded({ extended: true }));
 const { processAutoConfirmableOrders } = require('./src/services/orderService');
 const { cleanupOldReceipts } = require('./src/services/cronService');
 
+// අලුත් කේතය:
 app.post('/api/cron', (req, res) => {
-    const cronSecret = req.headers['authorization']?.split(' ')[1];
-    if (cronSecret !== process.env.CRON_SECRET) {
+    // Check for the secret in the Authorization header
+    const providedSecret = req.headers['authorization']?.split(' ')[1];
+
+    // Compare with the secret stored in Vercel Environment Variables
+    if (providedSecret !== process.env.CRON_SECRET) {
+        console.warn('Unauthorized cron job attempt.');
         return res.status(401).send('Unauthorized');
     }
     
-    console.log('Vercel Cron Job triggered: Running scheduled tasks...');
+    console.log('External Cron Job triggered: Running scheduled tasks...');
     processAutoConfirmableOrders();
     cleanupOldReceipts();
 
-    res.status(200).send('Cron job executed.');
+    res.status(200).send('Cron job executed successfully.');
 });
 
 // API Routes
