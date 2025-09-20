@@ -16,7 +16,6 @@ exports.createOrder = async (req, res) => {
     }
 
     try {
-        // ... (මෙම කොටසේ සිට පහළට ඇති කේතයේ වෙනසක් නැත)
         const { data: connection, error: connError } = await supabase
             .from('connections')
             .select('*')
@@ -55,14 +54,7 @@ exports.createOrder = async (req, res) => {
         if (!inboundId || !vlessTemplate) {
             return res.status(500).json({ success: false, message: 'The selected connection is not configured correctly. Please contact support.' });
         }
-        // ... (මෙතෙක් ඇති කේතයේ වෙනසක් නැත)
-
-
-        // ==========================================================
-        // ===== START: ගැටලුව විසඳීමට අවශ්‍ය නව කේත කොටස =====
-        // ==========================================================
         
-        // පියවර 3: තෝරාගත් plan එකට අදාළ මිල database එකෙන් ලබාගැනීම
         const { data: planData, error: planError } = await supabase
             .from('plans')
             .select('price')
@@ -74,11 +66,6 @@ exports.createOrder = async (req, res) => {
             return res.status(404).json({ success: false, message: "The selected plan is invalid or does not have a price." });
         }
         const orderPrice = planData.price;
-
-        // ========================================================
-        // ===== END: ගැටලුව විසඳීමට අවශ්‍ය නව කේත කොටස =====
-        // ========================================================
-
 
         const file = req.file;
         const fileExt = file.originalname.split('.').pop();
@@ -116,15 +103,48 @@ exports.createOrder = async (req, res) => {
             is_renewal: isRenewal === "true",
             inbound_id: parseInt(inboundId, 10),
             vless_template: vlessTemplate,
-            price: orderPrice // <-- ලබාගත් මිල, order object එකට ඇතුළත් කිරීම
+            price: orderPrice
         };
 
         const { error: orderError } = await supabase.from("orders").insert([newOrder]);
         if (orderError) throw orderError;
         
-        // ... (මෙතැන් සිට පහළට ඇති කේතයේ වෙනසක් නැත)
+        // --- START: ADDED CODE ---
+        // Fetch user's email for notification
+        const { data: websiteUser } = await supabase
+            .from("users")
+            .select("email, username")
+            .eq("username", req.user.username)
+            .single();
+            
+        // Send email if the user has one
+        if (websiteUser && websiteUser.email) {
+            const mailOptions = {
+                from: `NexGuard Orders <${process.env.EMAIL_SENDER}>`,
+                to: websiteUser.email,
+                subject: "Your NexGuard Order has been placed!",
+                html: generateEmailTemplate(
+                    "Order Received!",
+                    `Your order for the ${planId} plan is now pending approval.`,
+                    generateOrderPlacedEmailContent(websiteUser.username, planId)
+                ),
+            };
+            transporter.sendMail(mailOptions).catch(err => console.error(`FAILED to send order placed email:`, err));
+        }
+
+        // Send a success response back to the browser
+        res.status(201).json({ success: true, message: "Order placed successfully! It is now pending approval." });
+        // --- END: ADDED CODE ---
+        
     } catch (error) {
         console.error("Error creating order:", error.message);
+        // Delete the uploaded file if order creation fails after upload
+        if (req.file && error.message !== "Failed to upload the receipt file.") {
+            const fileName = `receipt-${req.file.filename.split('-')[1]}`; // Reconstruct filename if needed
+            supabase.storage.from('receipts').remove([fileName]).catch(removeError => {
+                console.error("Failed to rollback receipt upload:", removeError.message);
+            });
+        }
         res.status(500).json({ success: false, message: error.message || "Failed to create order." });
     }
 };
