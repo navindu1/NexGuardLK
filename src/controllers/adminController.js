@@ -118,7 +118,7 @@ const rejectOrder = async (req, res) => {
         console.error("Error rejecting order:", error);
         res.status(500).json({ success: false, message: 'Failed to reject order.' });
     }
-};  
+};
 
 // --- 3. USER & RESELLER MANAGEMENT ---
 const getUsers = async (req, res) => {
@@ -168,7 +168,7 @@ const createConnection = async (req, res) => {
 };
 
 const updateConnection = async (req, res) => {
-     try {
+    try {
         const { id } = req.params;
         const { name, icon, requires_package_choice, default_package, default_inbound_id, default_vless_template } = req.body;
         const { data, error } = await supabase.from('connections').update({ name, icon, requires_package_choice, default_package, default_inbound_id, default_vless_template }).eq('id', id).select().single();
@@ -236,7 +236,7 @@ const getPlans = async (req, res) => {
 };
 
 const createPlan = async (req, res) => {
-     try {
+    try {
         const { plan_name, price, total_gb } = req.body;
         const { data, error } = await supabase.from('plans').insert([{ plan_name, price: parseFloat(price), total_gb: parseInt(total_gb, 10) }]).select().single();
         if (error) throw error;
@@ -277,7 +277,7 @@ const getSettings = async (req, res) => {
             return acc;
         }, {});
         res.json({ success: true, data: settingsObj });
-    } catch(error) {
+    } catch (error) {
         res.status(500).json({ success: false, message: 'Failed to fetch settings.' });
     }
 };
@@ -285,13 +285,13 @@ const getSettings = async (req, res) => {
 const updateSettings = async (req, res) => {
     try {
         const settings = req.body;
-        const upsertPromises = Object.entries(settings).map(([key, value]) => 
+        const upsertPromises = Object.entries(settings).map(([key, value]) =>
             supabase.from('settings').upsert({ key, value }, { onConflict: 'key' })
         );
         const results = await Promise.all(upsertPromises);
         results.forEach(result => { if (result.error) throw result.error; });
         res.json({ success: true, message: 'Settings updated successfully.' });
-    } catch(error) {
+    } catch (error) {
         res.status(500).json({ success: false, message: 'Failed to update settings.' });
     }
 };
@@ -301,16 +301,24 @@ const getResellers = (req, res) => {
     res.json({ success: true, data: [] });
 };
 
+// **** START: UPDATED REPORTING FUNCTIONS ****
 const getReportSummary = async (req, res) => {
     try {
-        const today = new Date();
-        const startOfToday = new Date(today.setHours(0, 0, 0, 0)).toISOString();
-        const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay())).toISOString();
-        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
+        // --- Corrected date calculation ---
+        const now = new Date();
 
-        const { data: daily, error: dailyError } = await supabase.from('orders').select('id, plan_id, price').eq('status', 'approved').gte('approved_at', startOfToday);
-        const { data: weekly, error: weeklyError } = await supabase.from('orders').select('id, plan_id, price').eq('status', 'approved').gte('approved_at', startOfWeek);
-        const { data: monthly, error: monthlyError } = await supabase.from('orders').select('id, plan_id, price').eq('status', 'approved').gte('approved_at', startOfMonth);
+        const startOfToday = new Date(now);
+        startOfToday.setHours(0, 0, 0, 0);
+
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay());
+        startOfWeek.setHours(0, 0, 0, 0);
+
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        const { data: daily, error: dailyError } = await supabase.from('orders').select('id, plan_id, price').eq('status', 'approved').gte('approved_at', startOfToday.toISOString());
+        const { data: weekly, error: weeklyError } = await supabase.from('orders').select('id, plan_id, price').eq('status', 'approved').gte('approved_at', startOfWeek.toISOString());
+        const { data: monthly, error: monthlyError } = await supabase.from('orders').select('id, plan_id, price').eq('status', 'approved').gte('approved_at', startOfMonth.toISOString());
 
         if (dailyError || weeklyError || monthlyError) throw dailyError || weeklyError || monthlyError;
 
@@ -322,20 +330,22 @@ const getReportSummary = async (req, res) => {
         res.json({
             success: true,
             data: {
-                daily: calculateSummary(daily),
-                weekly: calculateSummary(weekly),
-                monthly: calculateSummary(monthly),
+                daily: calculateSummary(daily || []),
+                weekly: calculateSummary(weekly || []),
+                monthly: calculateSummary(monthly || []),
             }
         });
     } catch (error) {
+        console.error("Error in getReportSummary:", error.message);
         res.status(500).json({ success: false, message: 'Failed to generate report summary.' });
     }
 };
 
+
 const getChartData = async (req, res) => {
     try {
         const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-        
+
         const { data, error } = await supabase
             .from('orders')
             .select('created_at')
@@ -345,9 +355,8 @@ const getChartData = async (req, res) => {
 
         if (error) throw error;
 
-        // Process data to get daily counts
         const counts = {};
-        for (let i = 0; i < 7; i++) {
+        for (let i = 6; i >= 0; i--) { // Iterate backwards to get chronological order
             const d = new Date();
             d.setDate(d.getDate() - i);
             const key = d.toISOString().split('T')[0]; // YYYY-MM-DD
@@ -360,18 +369,22 @@ const getChartData = async (req, res) => {
                 counts[key]++;
             }
         });
-        
-        const labels = Object.keys(counts).sort();
+
+        const labels = Object.keys(counts);
         const chartData = labels.map(label => counts[label]);
 
-        res.json({ success: true, data: { labels, datasets: [{
-            label: 'Approved Orders',
-            data: chartData,
-            borderColor: '#a78bfa',
-            backgroundColor: 'rgba(167, 139, 250, 0.2)',
-            fill: true,
-            tension: 0.3
-        }]} });
+        res.json({
+            success: true, data: {
+                labels, datasets: [{
+                    label: 'Approved Orders',
+                    data: chartData,
+                    borderColor: '#a78bfa',
+                    backgroundColor: 'rgba(167, 139, 250, 0.2)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            }
+        });
 
     } catch (error) {
         res.status(500).json({ success: false, message: 'Failed to fetch chart data.' });
@@ -387,20 +400,18 @@ const downloadOrdersReport = async (req, res) => {
 
         if (error) throw error;
 
-        // Create CSV header
         let csv = 'V2Ray_Username,Plan,Connection,Package,Status,Created_At,Approved_At,Price\n';
-        
-        // Add rows
+
         orders.forEach(order => {
             const row = [
-                order.final_username || 'N/A',
-                order.plan_id,
-                order.conn_id,
-                order.pkg || 'N/A',
-                order.status,
-                new Date(order.created_at).toLocaleString(),
-                order.approved_at ? new Date(order.approved_at).toLocaleString() : 'N/A',
-                order.price || '0.00'
+                `"${order.final_username || 'N/A'}"`,
+                `"${order.plan_id}"`,
+                `"${order.conn_id}"`,
+                `"${order.pkg || 'N/A'}"`,
+                `"${order.status}"`,
+                `"${new Date(order.created_at).toLocaleString()}"`,
+                `"${order.approved_at ? new Date(order.approved_at).toLocaleString() : 'N/A'}"`,
+                `"${order.price || '0.00'}"`
             ].join(',');
             csv += row + '\n';
         });
@@ -413,6 +424,7 @@ const downloadOrdersReport = async (req, res) => {
         res.status(500).send('Failed to generate report.');
     }
 };
+// **** END: UPDATED REPORTING FUNCTIONS ****
 
 module.exports = {
     getDashboardStats,
@@ -436,7 +448,6 @@ module.exports = {
     getSettings,
     updateSettings,
     getReportSummary,
-    getChartData,     
+    getChartData,
     downloadOrdersReport
 };
-
