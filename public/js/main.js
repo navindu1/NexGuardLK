@@ -927,18 +927,42 @@ document.addEventListener("DOMContentLoaded", () => {
         const userToRenew = params.get("renew");
         const isRenewal = !!userToRenew;
 
+        // File Path: public/js/main.js -> inside renderCheckoutPage function
+
+        // --- START: FULLY CORRECTED SUMMARY LOGIC (FOR NEW & RENEWAL) ---
         let summaryHtml;
         if (plan && conn) {
-            const finalPackage = pkg || conn.default_package || '';
-            summaryHtml = `You are purchasing the <strong class="text-purple-400">${plan.name}</strong> for <strong class="text-purple-400">${conn.name}</strong>.`;
-            if(finalPackage) {
-                 summaryHtml += `<br>Selected Package: <strong class="text-purple-400">${finalPackage}</strong>`;
+            const finalPackageName = pkg || conn.default_package || '';
+            const planPrice = plan.price;
+
+            // Main purchase information (already centered by parent)
+            const purchaseInfo = `<p>You are purchasing the <strong class="text-purple-400">${plan.name}</strong> for <strong class="text-purple-400">${conn.name}</strong>.</p>`;
+            
+            // Highlighted package information
+            let packageInfo = '';
+            if (finalPackageName) {
+                packageInfo = `
+                    <div class="mt-4 bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
+                        {/* FIX: Added 'text-center' to this <p> tag */}
+                        <p class="font-semibold text-amber-300 text-center">
+                           Selected Package: ${finalPackageName} - LKR ${planPrice}
+                        </p>
+                    </div>
+                `;
             }
+
+            // Renewal information, if applicable
+            let renewalInfo = '';
             if (isRenewal) {
-                summaryHtml += `<br>You are renewing for V2Ray user: <strong class="text-purple-400">${userToRenew}</strong>.`;
+                // FIX: Added 'text-center' and more margin to this <p> tag
+                renewalInfo = `<p class="mt-2 text-center">You are renewing for V2Ray user: <strong class="text-purple-400">${userToRenew}</strong>.</p>`;
             }
+            
+            // The order of elements is now: Purchase Info -> Package Info -> Renewal Info
+            summaryHtml = purchaseInfo + packageInfo + renewalInfo;
+
         } else {
-            summaryHtml = `<p class="text-red-400">Invalid selection. Please <a href="/plans" class="nav-link-internal underline">start over</a>.</p>`;
+            summaryHtml = `<p class="text-red-400 text-center">Invalid selection. Please <a href="/plans" class="nav-link-internal underline">start over</a>.</p>`;
         }
 
         renderFunc(`
