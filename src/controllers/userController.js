@@ -206,7 +206,7 @@ exports.linkV2rayAccount = async (req, res) => {
                     .from('connections')
                     .select('name')
                     .eq('id', pkgData.connection_id)
-                    .single(); // Use single() because connection_id should be unique
+                    .maybeSingle(); // Use maybeSingle() for safety
 
                 if (connError) {
                     console.error('Error finding parent connection:', connError);
