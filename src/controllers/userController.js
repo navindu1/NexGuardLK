@@ -169,12 +169,12 @@ exports.linkV2rayAccount = async (req, res) => {
 
         let currentPlans = currentUser.active_plans || [];
         
-        // --- START: CORRECTED LOGIC ---
+        // --- START: NEW ROBUST LOGIC ---
         const inboundId = clientData.inboundId;
         let detectedConnId = null;
         let vlessTemplate = null;
 
-        // Step 1: Check single-package connections that use 'default_inbound_id'
+        // Step 1: Check single-package connections first
         const { data: singleConn } = await supabase
             .from('connections')
             .select('name, default_vless_template')
@@ -186,25 +186,45 @@ exports.linkV2rayAccount = async (req, res) => {
             detectedConnId = singleConn.name;
             vlessTemplate = singleConn.default_vless_template;
         } else {
-            // Step 2: If not found, check multi-package connections by looking in the 'packages' table
-            const { data: pkgData } = await supabase
+            // Step 2: If not a single-package connection, search in the 'packages' table
+            const { data: pkgData, error: pkgError } = await supabase
                 .from('packages')
-                .select('template, connections(name)') // Fetch the package template and its parent connection's name
+                .select('template, connection_id') // Get template and the foreign key
                 .eq('inbound_id', inboundId)
                 .maybeSingle();
-            
-            if (pkgData && pkgData.connections) {
-                detectedConnId = pkgData.connections.name;
+
+            if (pkgError) {
+                console.error('Error finding package by inbound ID:', pkgError);
+                return res.status(500).json({ success: false, message: "A database error occurred while searching for the package." });
+            }
+
+            if (pkgData && pkgData.connection_id) {
                 vlessTemplate = pkgData.template;
+                
+                // Step 3: Use the connection_id to find the connection's name
+                const { data: connData, error: connError } = await supabase
+                    .from('connections')
+                    .select('name')
+                    .eq('id', pkgData.connection_id)
+                    .single(); // Use single() because connection_id should be unique
+
+                if (connError) {
+                    console.error('Error finding parent connection:', connError);
+                    return res.status(500).json({ success: false, message: "A database error occurred while finding the parent connection." });
+                }
+
+                if (connData) {
+                    detectedConnId = connData.name;
+                }
             }
         }
-
+        
         if (!detectedConnId || !vlessTemplate) {
             return res.status(404).json({ success: false, message: "Could not identify the connection type for this V2Ray user. Please contact support." });
         }
 
         const v2rayLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientData.client);
-        // --- END OF CORRECTED LOGIC ---
+        // --- END OF NEW ROBUST LOGIC ---
 
         let detectedPlanId = "Unlimited";
         const totalBytes = clientData.client.total || 0;
