@@ -91,8 +91,6 @@ const rejectOrder = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Order not found.' });
         }
 
-        // --- NEW LOGIC START ---
-        // If the order was 'unconfirmed' (auto-approved) and has a V2Ray user, delete the user
         if ((orderToReject.status === 'unconfirmed' || orderToReject.status === 'approved') && orderToReject.final_username) {
             try {
                 const clientData = await v2rayService.findV2rayClient(orderToReject.final_username);
@@ -102,11 +100,9 @@ const rejectOrder = async (req, res) => {
                 }
             } catch (v2rayError) {
                 console.error(`Failed to delete V2Ray client ${orderToReject.final_username}. Please check manually. Error: ${v2rayError.message}`);
-                // Continue with rejection even if V2Ray deletion fails, but log the error.
             }
         }
-        // --- NEW LOGIC END ---
-
+        
         // Update order status to 'rejected'
         await supabase.from('orders').update({ status: 'rejected' }).eq('id', orderId);
 

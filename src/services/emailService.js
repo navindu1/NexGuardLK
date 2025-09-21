@@ -105,7 +105,6 @@ exports.generatePasswordResetEmailContent = (username, resetLink) => `
 </div>
 <p style="font-size: 14px; line-height: 20px; margin: 24px 0 0; color: #9ca3af;">This password reset link is valid for 1 hour.</p>`;
 
-// **** ADD THIS NEW FUNCTION AT THE END OF THE FILE ****
 exports.generateRejectionEmailContent = (username, planId, orderId) => `
 <p style="font-size: 16px; line-height: 24px; margin: 0 0 16px; color: #c7d2fe;">Hello, <strong>${username}</strong>,</p>
 <p style="font-size: 16px; line-height: 24px; margin: 0 0 24px; color: #c7d2fe;">We regret to inform you that your order for the <strong>${planId}</strong> plan has been rejected.</p>
@@ -115,3 +114,4 @@ exports.generateRejectionEmailContent = (username, planId, orderId) => `
 </div>
 <p style="font-size: 16px; line-height: 24px; margin: 24px 0 0; color: #c7d2fe;">We apologize for any inconvenience this may cause.</p>
 `;
+

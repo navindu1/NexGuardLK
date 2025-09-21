@@ -122,7 +122,6 @@ exports.approveOrder = async (orderId, isAutoApproved = false) => {
     }
 };
 
-// --- START: MODIFIED AUTO-APPROVAL LOGIC ---
 exports.processAutoConfirmableOrders = async () => {
     try {
         const { data: settings, error: settingsError } = await supabase.from('settings').select('*');
@@ -133,49 +132,33 @@ exports.processAutoConfirmableOrders = async () => {
             .map(s => s.key.replace('auto_approve_', ''));
 
         if (enabledSettings.length === 0) {
-            return; // No connections are enabled for auto-approval, so exit.
+            return;
         }
 
         const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
         
-        // Find orders that are 'pending' and meet the criteria
-        const { data: ordersToApprove, error: ordersError } = await supabase
+        const { data: ordersToProcess, error: ordersError } = await supabase
             .from('orders')
-            .select('id') // We only need the ID to process them
+            .select('id')
             .eq('status', 'pending')
             .in('conn_id', enabledSettings)
             .lte('created_at', tenMinutesAgo);
 
         if (ordersError) throw ordersError;
 
-        if (ordersToApprove && ordersToApprove.length > 0) {
-            console.log(`[Auto-Approve] Found ${ordersToApprove.length} order(s) to auto-approve and move to Unconfirmed.`);
+        if (ordersToProcess && ordersToProcess.length > 0) {
+            console.log(`[Auto-Confirm] Found ${ordersToProcess.length} order(s) to process.`);
 
-            // Process each order one by one
-            for (const order of ordersToApprove) {
-                console.log(`[Auto-Approve] Processing order ID: ${order.id}`);
+            for (const order of ordersToProcess) {
+                console.log(`[Auto-Confirm] Processing order ID: ${order.id}`);
                 
-                // Step 1: Approve the order. This creates the V2Ray user and sets status to 'approved'.
-                // We call the approveOrder function from this same file.
+                // Call the modified approveOrder function with isAutoApproved = true
                 const approvalResult = await exports.approveOrder(order.id, true);
 
                 if (approvalResult.success) {
-                    console.log(`[Auto-Approve] Successfully approved order ${order.id}. Final username: ${approvalResult.finalUsername}`);
-                    
-                    // Step 2: Now, change the status from 'approved' to 'unconfirmed' for admin review.
-                    const { error: updateError } = await supabase
-                        .from('orders')
-                        .update({ status: 'unconfirmed' })
-                        .eq('id', order.id);
-
-                    if (updateError) {
-                        console.error(`[Auto-Approve] CRITICAL: Failed to move approved order ${order.id} to unconfirmed status. Please check manually. Error: ${updateError.message}`);
-                    } else {
-                        console.log(`[Auto-Approve] Order ${order.id} moved to 'unconfirmed' for admin review.`);
-                    }
+                    console.log(`[Auto-Confirm] Order ${order.id} successfully moved to 'unconfirmed'. Final username: ${approvalResult.finalUsername}`);
                 } else {
-                    // If the approval process itself failed
-                    console.error(`[Auto-Approve] FAILED to auto-approve order ${order.id}. Reason: ${approvalResult.message}`);
+                    console.error(`[Auto-Confirm] FAILED to process order ${order.id}. Reason: ${approvalResult.message}`);
                 }
             }
         }
@@ -183,4 +166,4 @@ exports.processAutoConfirmableOrders = async () => {
         console.error('Error during auto-approval cron job:', error.message);
     }
 };
-// --- END: MODIFIED AUTO-APPROVAL LOGIC ---
+
