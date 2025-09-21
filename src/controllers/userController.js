@@ -46,16 +46,20 @@ exports.getUserStatus = async (req, res) => {
             return res.json({ success: true, status: "no_plan" });
         }
         
+        // --- MODIFIED LOGIC START ---
         const verifiedActivePlans = [];
         for (const plan of user.active_plans) {
             const clientExists = await v2rayService.findV2rayClient(plan.v2rayUsername);
             if (clientExists) {
+                // If client exists in the panel, keep the plan
                 verifiedActivePlans.push(plan);
             } else {
+                // If client DOES NOT exist, log it and DO NOT add it to the verified list
                 console.log(`[Verification] Plan '${plan.v2rayUsername}' for user ${user.username} not found in panel. Removing.`);
             }
         }
 
+        // If the number of plans has changed, update the user's record in the database
         if (verifiedActivePlans.length !== user.active_plans.length) {
             await supabase
                 .from("users")
@@ -63,6 +67,7 @@ exports.getUserStatus = async (req, res) => {
                 .eq("id", user.id);
         }
         
+        // If, after verification, there are no active plans left
         if (verifiedActivePlans.length === 0) {
             return res.json({ success: true, status: "no_plan" });
         }
@@ -72,6 +77,7 @@ exports.getUserStatus = async (req, res) => {
             status: "approved",
             activePlans: verifiedActivePlans,
         });
+        // --- MODIFIED LOGIC END ---
 
     } catch (error) {
         console.error(`[Status Check Error] User: ${req.user.username}, Error: ${error.message}`);
@@ -163,10 +169,12 @@ exports.linkV2rayAccount = async (req, res) => {
 
         let currentPlans = currentUser.active_plans || [];
         
-        const inboundId = parseInt(clientData.inboundId, 10);
+        // --- START: CORRECTED LOGIC ---
+        const inboundId = clientData.inboundId;
         let detectedConnId = null;
         let vlessTemplate = null;
 
+        // Step 1: Check single-package connections that use 'default_inbound_id'
         const { data: singleConn } = await supabase
             .from('connections')
             .select('name, default_vless_template')
@@ -178,44 +186,25 @@ exports.linkV2rayAccount = async (req, res) => {
             detectedConnId = singleConn.name;
             vlessTemplate = singleConn.default_vless_template;
         } else {
-            const { data: pkgData, error: pkgError } = await supabase
+            // Step 2: If not found, check multi-package connections by looking in the 'packages' table
+            const { data: pkgData } = await supabase
                 .from('packages')
-                .select('template, connection_id')
+                .select('template, connections(name)') // Fetch the package template and its parent connection's name
                 .eq('inbound_id', inboundId)
-                .maybeSingle(); // Use maybeSingle to prevent crash
-
-            if (pkgError) {
-                console.error('Database Error during package search:', pkgError);
-                return res.status(500).json({ success: false, message: "A database error occurred while searching for the package." });
-            }
-
-            if (!pkgData) {
-                console.error('Logic Error: No package found in DB for inbound_id:', inboundId);
-                return res.status(404).json({ success: false, message: "Could not find a matching package for this V2Ray user in the database." });
-            }
+                .maybeSingle();
             
-            vlessTemplate = pkgData.template;
-            const connectionId = pkgData.connection_id;
-
-            const { data: connData, error: connError } = await supabase
-                .from('connections')
-                .select('name')
-                .eq('id', connectionId)
-                .single();
-
-            if (connError || !connData) {
-                console.error('Database Error: Could not find the parent connection for id:', connectionId, connError);
-                return res.status(500).json({ success: false, message: "A database error occurred while finding the connection." });
+            if (pkgData && pkgData.connections) {
+                detectedConnId = pkgData.connections.name;
+                vlessTemplate = pkgData.template;
             }
-            
-            detectedConnId = connData.name;
         }
-        
+
         if (!detectedConnId || !vlessTemplate) {
             return res.status(404).json({ success: false, message: "Could not identify the connection type for this V2Ray user. Please contact support." });
         }
 
         const v2rayLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientData.client);
+        // --- END OF CORRECTED LOGIC ---
 
         let detectedPlanId = "Unlimited";
         const totalBytes = clientData.client.total || 0;
@@ -243,7 +232,7 @@ exports.linkV2rayAccount = async (req, res) => {
 
         res.json({ success: true, message: "Your V2Ray account has been successfully linked!" });
     } catch (error) {
-        console.error("Critical Error in linkV2rayAccount:", error);
+        console.error("Error linking V2Ray account:", error);
         res.status(500).json({ success: false, message: "An internal server error occurred." });
     }
 };
