@@ -140,7 +140,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <div><span class="font-bold text-slate-400 text-xs">Submitted</span><p>${new Date(order.created_at).toLocaleString()}</p></div>
                     <div class="flex gap-2"><button class="btn btn-view view-receipt-btn" data-url="${order.receipt_path}"><i class="fa-solid fa-receipt"></i> View</button></div>
                     <div class="flex gap-2 items-center justify-end">
-                        {/* --- UPDATED to show buttons for 'unconfirmed' as well --- */}
+    
                         ${status === 'pending' || status === 'unconfirmed' ? `
                         <button class="btn btn-approve approve-btn" data-id="${order.id}">Approve</button>
                         <button class="btn btn-reject reject-btn" data-id="${order.id}">Reject</button>` 
