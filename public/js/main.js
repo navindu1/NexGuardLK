@@ -2061,21 +2061,12 @@ forgotPasswordForm?.addEventListener("submit", async(e) => {
         checkout: renderCheckoutPage,
         profile: renderProfilePage,
     };
-    
-    const navigateTo = (path) => {const pathName = path.split('?')[0];
-        const pathParts = pathName.substring(1).split('/');
-        let pageKey = pathParts[0] || 'home';
-        if (pageKey === '') pageKey = 'home';
 
-        // 1. මුලින්ම title එක set කිරීම
-        document.title = pageTitles[pageKey] || 'NexGuardLK STORE';
-        // --- END: ADDED LOGIC ---
-
-        // 2. ඉන්පසුව URL එක වෙනස් කිරීම
+    const navigateTo = (path) => {
         history.pushState(null, null, path);
-        router(); 
+        router();
     };
-    // This is the main router function that renders pages based on the URL.
+    
 const router = async () => { 
     const pathName = window.location.pathname; 
     const params = new URLSearchParams(window.location.search); 

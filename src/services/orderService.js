@@ -18,7 +18,7 @@ exports.approveOrder = async (orderId, isAutoApproved = false) => {
     let createdV2rayClient = null;
 
     try {
-        const { data: order, error: orderError } = await supabase.from("orders").select("*").eq("id", orderId).single();
+        const { data: order, error: orderError } = await supabase.from("orders").select("*").eq("id", orderId).single(); //
         if (orderError || !order) return { success: false, message: "Order not found." };
         if (order.status === 'approved' || order.status === 'unconfirmed') return { success: false, message: "Order is already processed." };
 
