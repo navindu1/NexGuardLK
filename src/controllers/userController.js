@@ -199,7 +199,7 @@ exports.linkV2rayAccount = async (req, res) => {
             
             const { data: pkgData, error: pkgError } = await supabase
                 .from('packages')
-                .select('template, connection_name')  // ✅ Direct field instead of join
+                .select('template, connection_id')
                 .eq('inbound_id', inboundId)
                 .maybeSingle();
             
@@ -208,10 +208,26 @@ exports.linkV2rayAccount = async (req, res) => {
                 throw pkgError;
             }
             
-            if (pkgData && pkgData.connection_name) {
-                console.log(`[Link V2Ray] Found package connection: ${pkgData.connection_name}`);
-                detectedConnId = pkgData.connection_name;
-                vlessTemplate = pkgData.template;
+            if (pkgData && pkgData.connection_id) {
+                console.log(`[Link V2Ray] Found package with connection_id: ${pkgData.connection_id}`);
+                
+                // Get the connection name using the connection_id
+                const { data: connectionData, error: connectionError } = await supabase
+                    .from('connections')
+                    .select('name')
+                    .eq('id', pkgData.connection_id)
+                    .maybeSingle();
+                
+                if (connectionError) {
+                    console.error(`[Database Error - Connection Lookup] ${connectionError.message}`);
+                    throw connectionError;
+                }
+                
+                if (connectionData) {
+                    console.log(`[Link V2Ray] Found connection name: ${connectionData.name}`);
+                    detectedConnId = connectionData.name;
+                    vlessTemplate = pkgData.template;
+                }
             }
         }
 
