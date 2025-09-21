@@ -169,8 +169,7 @@ exports.linkV2rayAccount = async (req, res) => {
 
         let currentPlans = currentUser.active_plans || [];
         
-        // --- START: NEW ROBUST LOGIC ---
-        const inboundId = clientData.inboundId;
+        const inboundId = parseInt(clientData.inboundId, 10); // Convert to integer
         let detectedConnId = null;
         let vlessTemplate = null;
 
@@ -189,8 +188,8 @@ exports.linkV2rayAccount = async (req, res) => {
             // Step 2: If not a single-package connection, search in the 'packages' table
             const { data: pkgData, error: pkgError } = await supabase
                 .from('packages')
-                .select('template, connection_id') // Get template and the foreign key
-                .eq('inbound_id', inboundId)
+                .select('template, connection_id')
+                .eq('inbound_id', inboundId) // Now correctly compares number to number
                 .maybeSingle();
 
             if (pkgError) {
@@ -206,7 +205,7 @@ exports.linkV2rayAccount = async (req, res) => {
                     .from('connections')
                     .select('name')
                     .eq('id', pkgData.connection_id)
-                    .single(); // Use single() because connection_id should be unique
+                    .single();
 
                 if (connError) {
                     console.error('Error finding parent connection:', connError);
@@ -224,7 +223,6 @@ exports.linkV2rayAccount = async (req, res) => {
         }
 
         const v2rayLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientData.client);
-        // --- END OF NEW ROBUST LOGIC ---
 
         let detectedPlanId = "Unlimited";
         const totalBytes = clientData.client.total || 0;
