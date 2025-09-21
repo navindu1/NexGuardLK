@@ -169,42 +169,64 @@ exports.linkV2rayAccount = async (req, res) => {
 
         let currentPlans = currentUser.active_plans || [];
         
-        // --- START: CORRECTED LOGIC ---
+        // --- FIXED LOGIC START ---
         const inboundId = clientData.inboundId;
         let detectedConnId = null;
         let vlessTemplate = null;
 
+        console.log(`[Link V2Ray] Searching for inboundId: ${inboundId}`);
+
         // Step 1: Check single-package connections that use 'default_inbound_id'
-        const { data: singleConn } = await supabase
+        const { data: singleConn, error: singleConnError } = await supabase
             .from('connections')
             .select('name, default_vless_template')
             .eq('default_inbound_id', inboundId)
             .eq('requires_package_choice', false)
             .maybeSingle();
 
+        if (singleConnError) {
+            console.error(`[Database Error - Single Connection] ${singleConnError.message}`);
+            throw singleConnError;
+        }
+
         if (singleConn) {
+            console.log(`[Link V2Ray] Found single-package connection: ${singleConn.name}`);
             detectedConnId = singleConn.name;
             vlessTemplate = singleConn.default_vless_template;
         } else {
             // Step 2: If not found, check multi-package connections by looking in the 'packages' table
-            const { data: pkgData } = await supabase
+            console.log(`[Link V2Ray] No single connection found, checking packages...`);
+            
+            const { data: pkgData, error: pkgError } = await supabase
                 .from('packages')
-                .select('template, connections(name)') // Fetch the package template and its parent connection's name
+                .select('template, connection_name')  // ✅ Direct field instead of join
                 .eq('inbound_id', inboundId)
                 .maybeSingle();
             
-            if (pkgData && pkgData.connections) {
-                detectedConnId = pkgData.connections.name;
+            if (pkgError) {
+                console.error(`[Database Error - Package Search] ${pkgError.message}`);
+                throw pkgError;
+            }
+            
+            if (pkgData && pkgData.connection_name) {
+                console.log(`[Link V2Ray] Found package connection: ${pkgData.connection_name}`);
+                detectedConnId = pkgData.connection_name;
                 vlessTemplate = pkgData.template;
             }
         }
 
         if (!detectedConnId || !vlessTemplate) {
-            return res.status(404).json({ success: false, message: "Could not identify the connection type for this V2Ray user. Please contact support." });
+            console.error(`[Link V2Ray] Connection detection failed - ConnId: ${detectedConnId}, Template: ${vlessTemplate}`);
+            return res.status(404).json({ 
+                success: false, 
+                message: "Could not identify the connection type for this V2Ray user. Please contact support." 
+            });
         }
 
+        console.log(`[Link V2Ray] Successfully detected connection: ${detectedConnId}`);
+
         const v2rayLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientData.client);
-        // --- END OF CORRECTED LOGIC ---
+        // --- FIXED LOGIC END ---
 
         let detectedPlanId = "Unlimited";
         const totalBytes = clientData.client.total || 0;
@@ -230,9 +252,11 @@ exports.linkV2rayAccount = async (req, res) => {
             .update({ active_plans: currentPlans })
             .eq("id", req.user.id);
 
+        console.log(`[Link V2Ray] Successfully linked account: ${v2rayUsername} to user: ${req.user.username}`);
         res.json({ success: true, message: "Your V2Ray account has been successfully linked!" });
+        
     } catch (error) {
-        console.error("Error linking V2Ray account:", error);
+        console.error(`[Link V2Ray Error] User: ${req.user.username}, V2Ray: ${v2rayUsername}, Error: ${error.message}`);
         res.status(500).json({ success: false, message: "An internal server error occurred." });
     }
 };
