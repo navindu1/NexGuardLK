@@ -143,137 +143,249 @@ exports.updateProfilePicture = async (req, res) => {
 
 exports.linkV2rayAccount = async (req, res) => {
     const { v2rayUsername } = req.body;
-    if (!v2rayUsername) {
-        return res.status(400).json({ success: false, message: "V2Ray username is required." });
+    
+    // Basic validation
+    if (!v2rayUsername || typeof v2rayUsername !== 'string' || v2rayUsername.trim() === '') {
+        return res.status(400).json({ 
+            success: false, 
+            message: "Valid V2Ray username is required." 
+        });
     }
+
+    const trimmedUsername = v2rayUsername.trim();
+    
     try {
-        const clientData = await v2rayService.findV2rayClient(v2rayUsername);
-        if (!clientData || !clientData.client) {
-            return res.status(404).json({ success: false, message: "This V2Ray username was not found in our panel." });
-        }
+        console.log(`[Link V2Ray] Starting process for: ${trimmedUsername}`);
 
-        const { data: existingLink } = await supabase
-            .from("users")
-            .select("id")
-            .contains("active_plans", [{ v2rayUsername: v2rayUsername }]);
-
-        if (existingLink && existingLink.length > 0) {
-            return res.status(409).json({ success: false, message: "This V2Ray account is already linked to another website account." });
-        }
-
-        const { data: currentUser } = await supabase
-            .from("users")
-            .select("active_plans")
-            .eq("id", req.user.id)
-            .single();
-
-        let currentPlans = currentUser.active_plans || [];
-        
-        // --- FIXED LOGIC START ---
-        const inboundId = clientData.inboundId;
-        let detectedConnId = null;
-        let vlessTemplate = null;
-
-        console.log(`[Link V2Ray] Searching for inboundId: ${inboundId}`);
-
-        // Step 1: Check single-package connections that use 'default_inbound_id'
-        const { data: singleConn, error: singleConnError } = await supabase
-            .from('connections')
-            .select('name, default_vless_template')
-            .eq('default_inbound_id', inboundId)
-            .eq('requires_package_choice', false)
-            .maybeSingle();
-
-        if (singleConnError) {
-            console.error(`[Database Error - Single Connection] ${singleConnError.message}`);
-            throw singleConnError;
-        }
-
-        if (singleConn) {
-            console.log(`[Link V2Ray] Found single-package connection: ${singleConn.name}`);
-            detectedConnId = singleConn.name;
-            vlessTemplate = singleConn.default_vless_template;
-        } else {
-            // Step 2: If not found, check multi-package connections by looking in the 'packages' table
-            console.log(`[Link V2Ray] No single connection found, checking packages...`);
-            
-            const { data: pkgData, error: pkgError } = await supabase
-                .from('packages')
-                .select('template, connection_id')
-                .eq('inbound_id', inboundId)
-                .maybeSingle();
-            
-            if (pkgError) {
-                console.error(`[Database Error - Package Search] ${pkgError.message}`);
-                throw pkgError;
-            }
-            
-            if (pkgData && pkgData.connection_id) {
-                console.log(`[Link V2Ray] Found package with connection_id: ${pkgData.connection_id}`);
-                
-                // Get the connection name using the connection_id
-                const { data: connectionData, error: connectionError } = await supabase
-                    .from('connections')
-                    .select('name')
-                    .eq('id', pkgData.connection_id)
-                    .maybeSingle();
-                
-                if (connectionError) {
-                    console.error(`[Database Error - Connection Lookup] ${connectionError.message}`);
-                    throw connectionError;
-                }
-                
-                if (connectionData) {
-                    console.log(`[Link V2Ray] Found connection name: ${connectionData.name}`);
-                    detectedConnId = connectionData.name;
-                    vlessTemplate = pkgData.template;
-                }
-            }
-        }
-
-        if (!detectedConnId || !vlessTemplate) {
-            console.error(`[Link V2Ray] Connection detection failed - ConnId: ${detectedConnId}, Template: ${vlessTemplate}`);
-            return res.status(404).json({ 
+        // Step 1: Find client in V2Ray panel with error handling
+        let clientData;
+        try {
+            clientData = await v2rayService.findV2rayClient(trimmedUsername);
+            console.log(`[Link V2Ray] V2Ray service response:`, clientData ? 'Found' : 'Not found');
+        } catch (v2rayError) {
+            console.error(`[Link V2Ray] V2Ray service error: ${v2rayError.message}`);
+            return res.status(500).json({ 
                 success: false, 
-                message: "Could not identify the connection type for this V2Ray user. Please contact support." 
+                message: "Unable to connect to V2Ray panel. Please try again later." 
             });
         }
 
-        console.log(`[Link V2Ray] Successfully detected connection: ${detectedConnId}`);
+        if (!clientData || !clientData.client || !clientData.inboundId) {
+            console.log(`[Link V2Ray] Client not found or missing data: ${trimmedUsername}`);
+            return res.status(404).json({ 
+                success: false, 
+                message: "This V2Ray username was not found in our panel." 
+            });
+        }
 
-        const v2rayLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientData.client);
-        // --- FIXED LOGIC END ---
+        console.log(`[Link V2Ray] Client found - InboundId: ${clientData.inboundId}`);
 
+        // Step 2: Check existing links with safer query
+        let existingLink;
+        try {
+            const { data, error } = await supabase
+                .from("users")
+                .select("id, username")
+                .not('active_plans', 'is', null);
+            
+            if (error) throw error;
+
+            // Manual check for existing v2ray username (safer than contains)
+            existingLink = data?.find(user => {
+                return user.active_plans?.some(plan => 
+                    plan.v2rayUsername === trimmedUsername
+                );
+            });
+            
+        } catch (existingError) {
+            console.error(`[Link V2Ray] Existing link check error: ${existingError.message}`);
+            // Continue without blocking - this is not critical
+        }
+
+        if (existingLink) {
+            console.log(`[Link V2Ray] Already linked to user: ${existingLink.username}`);
+            return res.status(409).json({ 
+                success: false, 
+                message: "This V2Ray account is already linked to another website account." 
+            });
+        }
+
+        // Step 3: Get current user
+        let currentUser;
+        try {
+            const { data, error } = await supabase
+                .from("users")
+                .select("active_plans")
+                .eq("id", req.user.id)
+                .single();
+
+            if (error) throw error;
+            currentUser = data;
+            
+        } catch (userError) {
+            console.error(`[Link V2Ray] User fetch error: ${userError.message}`);
+            return res.status(500).json({ 
+                success: false, 
+                message: "Unable to access your account. Please try again." 
+            });
+        }
+
+        const currentPlans = Array.isArray(currentUser.active_plans) ? currentUser.active_plans : [];
+        const inboundId = parseInt(clientData.inboundId);
+
+        console.log(`[Link V2Ray] Searching connections for inboundId: ${inboundId}`);
+
+        // Step 4: Find connection configuration
+        let detectedConnId = null;
+        let vlessTemplate = null;
+
+        try {
+            // Try single-package connections first
+            const { data: singleConnections, error: singleError } = await supabase
+                .from('connections')
+                .select('name, default_vless_template, default_inbound_id, requires_package_choice')
+                .eq('default_inbound_id', inboundId)
+                .eq('requires_package_choice', false)
+                .limit(1);
+
+            if (singleError) {
+                console.error(`[Link V2Ray] Single connection query error: ${singleError.message}`);
+            } else if (singleConnections && singleConnections.length > 0) {
+                const conn = singleConnections[0];
+                console.log(`[Link V2Ray] Found single connection: ${conn.name}`);
+                detectedConnId = conn.name;
+                vlessTemplate = conn.default_vless_template;
+            }
+
+            // If not found, try multi-package connections
+            if (!detectedConnId) {
+                console.log(`[Link V2Ray] Checking packages for inboundId: ${inboundId}`);
+                
+                const { data: packages, error: packageError } = await supabase
+                    .from('packages')
+                    .select('template, connection_id, name')
+                    .eq('inbound_id', inboundId)
+                    .eq('is_active', true)
+                    .limit(1);
+
+                if (packageError) {
+                    console.error(`[Link V2Ray] Package query error: ${packageError.message}`);
+                } else if (packages && packages.length > 0) {
+                    const pkg = packages[0];
+                    console.log(`[Link V2Ray] Found package: ${pkg.name}`);
+                    
+                    // Get connection details
+                    const { data: connection, error: connError } = await supabase
+                        .from('connections')
+                        .select('name')
+                        .eq('id', pkg.connection_id)
+                        .single();
+
+                    if (connError) {
+                        console.error(`[Link V2Ray] Connection lookup error: ${connError.message}`);
+                    } else if (connection) {
+                        console.log(`[Link V2Ray] Found connection: ${connection.name}`);
+                        detectedConnId = connection.name;
+                        vlessTemplate = pkg.template;
+                    }
+                }
+            }
+
+        } catch (dbError) {
+            console.error(`[Link V2Ray] Database error: ${dbError.message}`);
+            return res.status(500).json({ 
+                success: false, 
+                message: "Database error occurred. Please contact support." 
+            });
+        }
+
+        // Validate connection found
+        if (!detectedConnId || !vlessTemplate) {
+            console.error(`[Link V2Ray] No connection found for inboundId: ${inboundId}`);
+            return res.status(404).json({ 
+                success: false, 
+                message: `No matching connection configuration found for this V2Ray account (Inbound: ${inboundId}). Please contact support.` 
+            });
+        }
+
+        // Step 5: Generate config link
+        let v2rayLink;
+        try {
+            v2rayLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientData.client);
+            if (!v2rayLink) throw new Error('Generated link is empty');
+            console.log(`[Link V2Ray] Config link generated successfully`);
+        } catch (linkError) {
+            console.error(`[Link V2Ray] Link generation error: ${linkError.message}`);
+            return res.status(500).json({ 
+                success: false, 
+                message: "Unable to generate configuration link. Please contact support." 
+            });
+        }
+
+        // Step 6: Detect plan
         let detectedPlanId = "Unlimited";
         const totalBytes = clientData.client.total || 0;
+        
         if (totalBytes > 0) {
             const totalGB = Math.round(totalBytes / (1024 * 1024 * 1024));
             if (planConfig[`${totalGB}GB`]) {
                 detectedPlanId = `${totalGB}GB`;
             }
+            console.log(`[Link V2Ray] Detected plan: ${detectedPlanId} (${totalGB}GB)`);
         }
 
+        // Step 7: Create and save new plan
         const newPlan = {
-            v2rayUsername: clientData.client.email,
+            v2rayUsername: clientData.client.email || trimmedUsername,
             v2rayLink: v2rayLink,
             planId: detectedPlanId,
             connId: detectedConnId,
             activatedAt: new Date().toISOString(),
             orderId: "linked-" + uuidv4(),
         };
-        currentPlans.push(newPlan);
 
-        await supabase
-            .from("users")
-            .update({ active_plans: currentPlans })
-            .eq("id", req.user.id);
+        const updatedPlans = [...currentPlans, newPlan];
 
-        console.log(`[Link V2Ray] Successfully linked account: ${v2rayUsername} to user: ${req.user.username}`);
-        res.json({ success: true, message: "Your V2Ray account has been successfully linked!" });
+        try {
+            const { error: updateError } = await supabase
+                .from("users")
+                .update({ active_plans: updatedPlans })
+                .eq("id", req.user.id);
+
+            if (updateError) throw updateError;
+
+        } catch (updateError) {
+            console.error(`[Link V2Ray] User update error: ${updateError.message}`);
+            return res.status(500).json({ 
+                success: false, 
+                message: "Unable to save the linked account. Please try again." 
+            });
+        }
+
+        console.log(`[Link V2Ray] SUCCESS - User: ${req.user.username}, V2Ray: ${trimmedUsername}, Connection: ${detectedConnId}`);
+        
+        return res.json({ 
+            success: true, 
+            message: "Your V2Ray account has been successfully linked!",
+            planInfo: {
+                username: newPlan.v2rayUsername,
+                plan: detectedPlanId,
+                connection: detectedConnId
+            }
+        });
         
     } catch (error) {
-        console.error(`[Link V2Ray Error] User: ${req.user.username}, V2Ray: ${v2rayUsername}, Error: ${error.message}`);
-        res.status(500).json({ success: false, message: "An internal server error occurred." });
+        console.error(`[Link V2Ray] CRITICAL ERROR:`, {
+            user: req.user?.username || 'Unknown',
+            v2rayUsername: trimmedUsername,
+            error: error.message,
+            stack: error.stack
+        });
+        
+        return res.status(500).json({ 
+            success: false, 
+            message: "An unexpected error occurred. Please try again later or contact support." 
+        });
     }
 };
 
