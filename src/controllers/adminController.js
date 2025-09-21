@@ -7,12 +7,9 @@ const transporter = require('../config/mailer');
 const { generateEmailTemplate, generateRejectionEmailContent } = require('../services/emailService');
 
 // --- 1. DASHBOARD & STATS ---
-// --- 1. DASHBOARD & STATS ---
-
-// පැරණි getDashboardStats function එක ඉවත් කර, මෙම අලුත් function එක ඇතුළත් කරන්න
 const getDashboardStats = async (req, res) => {
     try {
-        // එක් එක් status එකට අදාළව ගණනය කිරීම් සමාන්තරව (parallel) සිදු කරයි
+        // Fetch counts for each status in parallel
         const [
             pendingResult,
             unconfirmedResult,
@@ -35,7 +32,7 @@ const getDashboardStats = async (req, res) => {
             throw new Error(errors.map(e => e.message).join(', '));
         }
 
-        // Stats object එක නිර්මාණය කිරීම
+        // Construct stats object
         const stats = {
             pending: pendingResult.count || 0,
             unconfirmed: unconfirmedResult.count || 0,
@@ -52,7 +49,6 @@ const getDashboardStats = async (req, res) => {
     }
 };
 
-// ... (ගොනුවේ ඉතිරි කොටස වෙනස් නොකරන්න) ...
 
 // --- 2. ORDER MANAGEMENT ---
 const getOrders = async (req, res) => {
@@ -68,7 +64,8 @@ const getOrders = async (req, res) => {
 const approveOrder = async (req, res) => {
     try {
         const { orderId } = req.body;
-        const result = await approveOrderService(orderId);
+        // --- CHANGED --- Call service with 'isAutoConfirm' as false for manual admin approval
+        const result = await approveOrderService(orderId, false); 
         if (!result.success) return res.status(400).json(result);
         res.json(result);
     } catch (error) {
@@ -80,10 +77,11 @@ const rejectOrder = async (req, res) => {
     try {
         const { orderId } = req.body;
 
+        // --- NEW: Enhanced Rejection Logic ---
         // Fetch order details including status and final_username
         const { data: orderToReject, error: fetchError } = await supabase
             .from('orders')
-            .select('receipt_path, website_username, plan_id, id, status, final_username') // Add status and final_username
+            .select('receipt_path, website_username, plan_id, id, status, final_username')
             .eq('id', orderId)
             .single();
 
@@ -91,6 +89,7 @@ const rejectOrder = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Order not found.' });
         }
 
+        // If the order was already processed (unconfirmed/approved) and has a v2ray user, delete it from the panel.
         if ((orderToReject.status === 'unconfirmed' || orderToReject.status === 'approved') && orderToReject.final_username) {
             try {
                 const clientData = await v2rayService.findV2rayClient(orderToReject.final_username);
@@ -99,11 +98,12 @@ const rejectOrder = async (req, res) => {
                     console.log(`Successfully deleted V2Ray client: ${orderToReject.final_username} for rejected order ${orderId}`);
                 }
             } catch (v2rayError) {
+                // Log the error but continue, so the order is still marked as rejected in our DB.
                 console.error(`Failed to delete V2Ray client ${orderToReject.final_username}. Please check manually. Error: ${v2rayError.message}`);
             }
         }
         
-        // Update order status to 'rejected'
+        // Update order status to 'rejected' in our database
         await supabase.from('orders').update({ status: 'rejected' }).eq('id', orderId);
 
         // Delete the receipt from storage
@@ -119,6 +119,7 @@ const rejectOrder = async (req, res) => {
             }
         }
 
+        // Send rejection email to the user
         const { data: websiteUser } = await supabase
             .from("users")
             .select("email, username")
@@ -139,7 +140,7 @@ const rejectOrder = async (req, res) => {
             transporter.sendMail(mailOptions).catch(err => console.error(`FAILED to send rejection email:`, err));
         }
 
-        res.json({ success: true, message: 'Order rejected and receipt deleted.' });
+        res.json({ success: true, message: 'Order rejected and associated V2Ray user/receipt deleted.' });
     } catch (error) {
         console.error("Error rejecting order:", error);
         res.status(500).json({ success: false, message: 'Failed to reject order.' });
@@ -198,22 +199,17 @@ const updateConnection = async (req, res) => {
         const { id } = req.params;
         const { name, icon, requires_package_choice, default_package, default_inbound_id, default_vless_template } = req.body;
 
-        // Create an object with the fields that are always updated.
         const updateData = {
             name,
             icon,
             requires_package_choice
         };
 
-        // Conditionally add fields to the update object.
         if (requires_package_choice) {
-            // If it's a multi-package connection, set default fields to null
-            // to avoid database errors with empty strings.
             updateData.default_package = null;
             updateData.default_inbound_id = null;
             updateData.default_vless_template = null;
         } else {
-            // If it's a single-package connection, use the values from the form.
             updateData.default_package = default_package;
             updateData.default_inbound_id = default_inbound_id;
             updateData.default_vless_template = default_vless_template;
@@ -221,7 +217,7 @@ const updateConnection = async (req, res) => {
 
         const { data, error } = await supabase
             .from('connections')
-            .update(updateData) // Use the conditionally built updateData object
+            .update(updateData)
             .eq('id', id)
             .select()
             .single();
@@ -356,19 +352,15 @@ const getResellers = (req, res) => {
     res.json({ success: true, data: [] });
 };
 
-// **** START: REVISED REPORTING FUNCTION ****
 const getReportSummary = async (req, res) => {
     try {
-        // Step 1: Fetch all plans and their prices to create a lookup map
         const { data: plans, error: plansError } = await supabase
             .from('plans')
             .select('plan_name, price');
         if (plansError) throw plansError;
         
-        // Create a Map for easy price lookup -> priceMap['100GB'] = 300
         const priceMap = new Map(plans.map(p => [p.plan_name, p.price]));
 
-        // Step 2: Fetch orders without relying on a 'price' column
         const now = new Date();
         const startOfToday = new Date(now);
         startOfToday.setHours(0, 0, 0, 0);
@@ -379,17 +371,14 @@ const getReportSummary = async (req, res) => {
 
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-        // --- Modified Queries: Removed 'price' from select ---
         const { data: daily, error: dailyError } = await supabase.from('orders').select('id, plan_id').eq('status', 'approved').gte('approved_at', startOfToday.toISOString());
         const { data: weekly, error: weeklyError } = await supabase.from('orders').select('id, plan_id').eq('status', 'approved').gte('approved_at', startOfWeek.toISOString());
         const { data: monthly, error: monthlyError } = await supabase.from('orders').select('id, plan_id').eq('status', 'approved').gte('approved_at', startOfMonth.toISOString());
 
         if (dailyError || weeklyError || monthlyError) throw dailyError || weeklyError || monthlyError;
 
-        // Step 3: Calculate summary dynamically using the priceMap
         const calculateSummary = (orders) => ({
             count: orders.length,
-            // Use the priceMap to get the price for each order's plan_id
             revenue: orders.reduce((sum, order) => sum + (priceMap.get(order.plan_id) || 0), 0)
         });
 
@@ -406,7 +395,6 @@ const getReportSummary = async (req, res) => {
         res.status(500).json({ success: false, message: 'Failed to generate report summary.' });
     }
 };
-// **** END: REVISED REPORTING FUNCTION ****
 
 const getChartData = async (req, res) => {
     try {
@@ -422,10 +410,10 @@ const getChartData = async (req, res) => {
         if (error) throw error;
 
         const counts = {};
-        for (let i = 6; i >= 0; i--) { // Iterate backwards to get chronological order
+        for (let i = 6; i >= 0; i--) {
             const d = new Date();
             d.setDate(d.getDate() - i);
-            const key = d.toISOString().split('T')[0]; // YYYY-MM-DD
+            const key = d.toISOString().split('T')[0];
             counts[key] = 0;
         }
 
@@ -490,7 +478,6 @@ const downloadOrdersReport = async (req, res) => {
         res.status(500).send('Failed to generate report.');
     }
 };
-// **** END: UPDATED REPORTING FUNCTIONS ****
 
 module.exports = {
     getDashboardStats,

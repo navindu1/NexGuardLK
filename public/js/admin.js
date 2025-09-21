@@ -1,44 +1,12 @@
 document.addEventListener("DOMContentLoaded", () => {
     
-    // This logic runs on both admin.html and admin-login.html
     const loginForm = document.getElementById('admin-login-form');
     if (loginForm) {
-        // --- PART 1: LOGIN PAGE LOGIC ---
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            const rememberMe = document.getElementById('remember-me').checked;
-            const messageDiv = document.getElementById('error-message');
-            const loginButton = loginForm.querySelector('button[type="submit"]');
-
-            loginButton.disabled = true;
-            loginButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Logging in...';
-
-            try {
-                const response = await fetch('/api/auth/admin/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password, rememberMe }),
-                });
-                const result = await response.json();
-                if (result.success) {
-                    localStorage.setItem('nexguard_admin_token', result.token);
-                    window.location.href = '/admin'; 
-                } else {
-                    messageDiv.textContent = result.message;
-                }
-            } catch (error) {
-                messageDiv.textContent = 'An error occurred. Please try again.';
-            } finally {
-                loginButton.disabled = false;
-                loginButton.innerHTML = 'Login';
-            }
-        });
+        // This is the login page.
         return; 
     }
 
-    // --- PART 2: ADMIN DASHBOARD LOGIC ---
+    // --- ADMIN DASHBOARD LOGIC ---
     const token = localStorage.getItem('nexguard_admin_token');
     if (!token) {
         window.location.href = '/admin/login';
@@ -141,9 +109,10 @@ document.addEventListener("DOMContentLoaded", () => {
         clearInterval(autoReloadInterval);
         if (isEnabled) {
             autoReloadInterval = setInterval(() => {
+                // --- UPDATED to include 'unconfirmed' ---
                 if (['pending', 'unconfirmed', 'approved', 'rejected'].includes(currentView)) {
                     showToast({ title: "Auto-Refresh", message: "Reloading data...", type: "info", duration: 2000 });
-                    loadDataAndRender(currentView, false); // Do not show loading spinner on auto-refresh
+                    loadDataAndRender(currentView, false); 
                 }
             }, 30000);
         }
@@ -171,6 +140,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <div><span class="font-bold text-slate-400 text-xs">Submitted</span><p>${new Date(order.created_at).toLocaleString()}</p></div>
                     <div class="flex gap-2"><button class="btn btn-view view-receipt-btn" data-url="${order.receipt_path}"><i class="fa-solid fa-receipt"></i> View</button></div>
                     <div class="flex gap-2 items-center justify-end">
+                        {/* --- UPDATED to show buttons for 'unconfirmed' as well --- */}
                         ${status === 'pending' || status === 'unconfirmed' ? `
                         <button class="btn btn-approve approve-btn" data-id="${order.id}">Approve</button>
                         <button class="btn btn-reject reject-btn" data-id="${order.id}">Reject</button>` 
@@ -450,7 +420,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function showPlanForm(plan = {}) {
-        formModalTitle.textContent = 'Create New Plan'; // Only creation is supported
+        formModalTitle.textContent = 'Create New Plan';
         formModalContent.innerHTML = `
             <input type="text" name="plan_name" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" placeholder="Plan Name (e.g., 100GB)" required>
             <input type="number" step="0.01" name="price" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" placeholder="Price (LKR)" required>
@@ -466,6 +436,7 @@ document.addEventListener("DOMContentLoaded", () => {
             renderLoading();
         }
         try {
+            // --- UPDATED to check for 'unconfirmed' ---
             if (['pending', 'unconfirmed', 'approved', 'rejected', 'users', 'resellers', 'connections', 'plans'].includes(view)) {
                  const statsResult = await apiFetch('/stats');
                  if (!statsResult) return;
@@ -476,6 +447,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
             }
 
+            // --- UPDATED to handle 'unconfirmed' view ---
             if (['pending', 'unconfirmed', 'approved', 'rejected'].includes(view)) {
                 const ordersResult = await apiFetch('/orders');
                 dataCache.orders = ordersResult.data;
@@ -509,7 +481,7 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             await apiFetch(endpoint, { method, body: body ? JSON.stringify(body) : null });
             showToast({ title: "Success", message: successMessage, type: "success" });
-            await loadDataAndRender(currentView);
+            await loadDataAndRender(currentView, false); // Reload without showing spinner for smoother UI
         } catch (error) {
             if (error.message !== "Unauthorized") {
                 showToast({ title: "Action Failed", message: error.message, type: "error" });
@@ -548,7 +520,9 @@ document.addEventListener("DOMContentLoaded", () => {
             } else if (button.classList.contains('approve-btn')) {
                 await handleAction(`/orders/approve`, { orderId: id }, 'Order Approved', 'POST', button);
             } else if (button.classList.contains('reject-btn')) {
-                await handleAction(`/orders/reject`, { orderId: id }, 'Order Rejected', 'POST', button);
+                if(confirm('Are you sure you want to reject this order? This will delete the V2Ray user if one was created.')) {
+                    await handleAction(`/orders/reject`, { orderId: id }, 'Order Rejected', 'POST', button);
+                }
             } else if (button.classList.contains('edit-conn-btn')) {
                 const connToEdit = dataCache.connections.find(c => c.id == id);
                 if (connToEdit) showConnectionForm(connToEdit);
@@ -621,7 +595,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const [settingsResult, connectionsResult] = await Promise.all([apiFetch('/settings'), apiFetch('/connections')]);
             const settings = settingsResult.data || {};
             const connections = connectionsResult.data || [];
-            let settingsHtml = `<div><h4 class="font-bold text-lg text-purple-300 mb-2">Auto-Confirm Orders</h4><p class="text-xs text-slate-400 mb-4">Enable this to automatically move pending orders to 'Unconfirmed' for review after 10 minutes.</p><div class="space-y-3">`;
+            let settingsHtml = `<div><h4 class="font-bold text-lg text-purple-300 mb-2">Auto-Confirm Orders</h4><p class="text-xs text-slate-400 mb-4">Enable this to automatically create V2Ray user and move pending orders to 'Unconfirmed' tab after 10 minutes.</p><div class="space-y-3">`;
             connections.forEach(conn => {
                 const settingKey = `auto_approve_${conn.name}`;
                 const isChecked = settings[settingKey] === 'true' || settings[settingKey] === true;
@@ -668,4 +642,3 @@ document.addEventListener("DOMContentLoaded", () => {
     loadDataAndRender(currentView);
     setupAutoReload();
 });
-
