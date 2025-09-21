@@ -340,7 +340,7 @@
           </button>
         </div>
       </header>
-      <section
+     <section
   id="stats-section"
   class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8"
 >
@@ -407,8 +407,59 @@
       <h3 id="total-users-stat" class="text-2xl font-bold text-white">0</h3>
     </div>
   </div>
-  
-  </section>
+
+  <div
+    id="card-resellers"
+    class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-purple-400"
+  >
+    <div class="bg-purple-500/10 text-purple-400 p-3 rounded-lg">
+      <i class="fa-solid fa-user-tag fa-lg"></i>
+    </div>
+    <div>
+      <p class="text-sm text-slate-400">Resellers</p>
+      <h3 id="total-resellers-stat" class="text-2xl font-bold text-white">0</h3>
+    </div>
+  </div>
+
+  <div
+    id="card-connections"
+    class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-teal-400"
+  >
+    <div class="bg-teal-500/10 text-teal-400 p-3 rounded-lg">
+      <i class="fa-solid fa-server fa-lg"></i>
+    </div>
+    <div>
+      <p class="text-sm text-slate-400">Connections</p>
+      <h3 class="text-xl font-bold text-white whitespace-nowrap">Manage</h3>
+    </div>
+  </div>
+
+  <div
+    id="card-plans"
+    class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-indigo-400"
+  >
+    <div class="bg-indigo-500/10 text-indigo-400 p-3 rounded-lg">
+      <i class="fa-solid fa-list-alt fa-lg"></i>
+    </div>
+    <div>
+      <p class="text-sm text-slate-400">Plans</p>
+      <h3 class="text-xl font-bold text-white whitespace-nowrap">Manage</h3>
+    </div>
+  </div>
+
+  <div
+    id="card-reports"
+    class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-pink-400"
+  >
+    <div class="bg-pink-500/10 text-pink-400 p-3 rounded-lg">
+      <i class="fa-solid fa-chart-line fa-lg"></i>
+    </div>
+    <div>
+      <p class="text-sm text-slate-400">Reports</p>
+      <h3 class="text-xl font-bold text-white whitespace-nowrap">Generate</h3>
+    </div>
+  </div>
+</section>
       <main id="main-content-area">
         <div
           class="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-4"
