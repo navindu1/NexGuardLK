@@ -995,7 +995,7 @@ function renderCheckoutPage(renderFunc, params) {
     const plan = appData.plans[planId];
     const conn = dynamicConnections.find(c => c.name === connId);
 
-    const userToRenew = checkoutData.renew;
+    const userToRenew = params.get("renew");
     const isRenewal = !!userToRenew;
 
     let summaryHtml;
@@ -1495,16 +1495,7 @@ const loadUsageStats = () => {
                                     const container = document.getElementById("renew-button-container");
                                     if (!container) return;
                                     
-                                    // --- START: MODIFIED LOGIC ---
-                                    // Check if the current plan object has a connId.
-                                    // 'plan' is available from the parent displayPlanDetails scope.
-                                    if (!plan.connId) {
-                                        container.innerHTML = `<p class="text-xs text-amber-400 text-center max-w-xs mx-auto">This is a legacy plan. Please contact our WhatsApp support to renew this account.</p>`;
-                                        return; // Stop further execution
-                                    }
-                                    // --- END: MODIFIED LOGIC ---
-
-                                    container.innerHTML = `<button disabled class="ai-button secondary inline-block py-2 px-6 text-sm rounded-lg !bg-gray-700/50 !text-gray-400 cursor-not-allowed"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking status...</button>`;
+container.innerHTML = `<button disabled class="ai-button secondary inline-block py-2 px-6 text-sm rounded-lg !bg-gray-700/50 !text-gray-400 cursor-not-allowed"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking status...</button>`;
                                     try {
                                         const res = await apiFetch(`/api/check-usage/${plan.v2rayUsername}`);
                                         if (!res.ok) throw new Error(`API responded with status ${res.status}`);
@@ -1514,8 +1505,7 @@ const loadUsageStats = () => {
                                                 const expiryDate = new Date(result.data.expiryTime);
                                                 const isExpired = new Date() > expiryDate;
                                                 if (isExpired) {
-                                                    // This is the renewal link creation. It will only run if plan.connId exists.
-                                                    container.innerHTML = `<a href="/checkout?planId=${plan.planId}&connId=${plan.connId}&renew=${encodeURIComponent(plan.v2rayUsername)}" class="nav-link-internal nav-link-checkout ai-button inline-block py-2 px-6 text-sm rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew Plan</a>`;
+                                                    container.innerHTML = `<a href="/checkout?planId=${plan.planId}&connId=${plan.connId}&renew=${encodeURIComponent(plan.v2rayUsername)}" class="nav-link-internal ai-button inline-block py-2 px-6 text-sm rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew Plan</a>`;
                                                 } else {
                                                     container.innerHTML = `<button disabled class="ai-button secondary inline-block py-2 px-6 text-sm rounded-lg !bg-gray-700/50 !text-gray-400 cursor-not-allowed">Renew Plan</button>`;
                                                 }
