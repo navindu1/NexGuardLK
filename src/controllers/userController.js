@@ -169,11 +169,10 @@ exports.linkV2rayAccount = async (req, res) => {
 
         let currentPlans = currentUser.active_plans || [];
         
-        const inboundId = parseInt(clientData.inboundId, 10); // Convert to integer
+        const inboundId = parseInt(clientData.inboundId, 10);
         let detectedConnId = null;
         let vlessTemplate = null;
 
-        // Step 1: Check single-package connections first
         const { data: singleConn } = await supabase
             .from('connections')
             .select('name, default_vless_template')
@@ -185,37 +184,32 @@ exports.linkV2rayAccount = async (req, res) => {
             detectedConnId = singleConn.name;
             vlessTemplate = singleConn.default_vless_template;
         } else {
-            // Step 2: If not a single-package connection, search in the 'packages' table
             const { data: pkgData, error: pkgError } = await supabase
                 .from('packages')
                 .select('template, connection_id')
-                .eq('inbound_id', inboundId) // Now correctly compares number to number
-                .maybeSingle();
+                .eq('inbound_id', inboundId)
+                .single();
 
-            if (pkgError) {
-                console.error('Error finding package by inbound ID:', pkgError);
+            if (pkgError || !pkgData) {
+                console.error('Database Error: Could not find a package with inbound_id:', inboundId, pkgError);
                 return res.status(500).json({ success: false, message: "A database error occurred while searching for the package." });
             }
+            
+            vlessTemplate = pkgData.template;
+            const connectionId = pkgData.connection_id;
 
-            if (pkgData && pkgData.connection_id) {
-                vlessTemplate = pkgData.template;
-                
-                // Step 3: Use the connection_id to find the connection's name
-                const { data: connData, error: connError } = await supabase
-                    .from('connections')
-                    .select('name')
-                    .eq('id', pkgData.connection_id)
-                    .single();
+            const { data: connData, error: connError } = await supabase
+                .from('connections')
+                .select('name')
+                .eq('id', connectionId)
+                .single();
 
-                if (connError) {
-                    console.error('Error finding parent connection:', connError);
-                    return res.status(500).json({ success: false, message: "A database error occurred while finding the parent connection." });
-                }
-
-                if (connData) {
-                    detectedConnId = connData.name;
-                }
+            if (connError || !connData) {
+                console.error('Database Error: Could not find the parent connection for id:', connectionId, connError);
+                return res.status(500).json({ success: false, message: "A database error occurred while finding the connection." });
             }
+            
+            detectedConnId = connData.name;
         }
         
         if (!detectedConnId || !vlessTemplate) {
@@ -250,7 +244,7 @@ exports.linkV2rayAccount = async (req, res) => {
 
         res.json({ success: true, message: "Your V2Ray account has been successfully linked!" });
     } catch (error) {
-        console.error("Error linking V2Ray account:", error);
+        console.error("Critical Error in linkV2rayAccount:", error);
         res.status(500).json({ success: false, message: "An internal server error occurred." });
     }
 };
