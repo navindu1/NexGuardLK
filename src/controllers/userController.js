@@ -46,20 +46,16 @@ exports.getUserStatus = async (req, res) => {
             return res.json({ success: true, status: "no_plan" });
         }
         
-        // --- MODIFIED LOGIC START ---
         const verifiedActivePlans = [];
         for (const plan of user.active_plans) {
             const clientExists = await v2rayService.findV2rayClient(plan.v2rayUsername);
             if (clientExists) {
-                // If client exists in the panel, keep the plan
                 verifiedActivePlans.push(plan);
             } else {
-                // If client DOES NOT exist, log it and DO NOT add it to the verified list
                 console.log(`[Verification] Plan '${plan.v2rayUsername}' for user ${user.username} not found in panel. Removing.`);
             }
         }
 
-        // If the number of plans has changed, update the user's record in the database
         if (verifiedActivePlans.length !== user.active_plans.length) {
             await supabase
                 .from("users")
@@ -67,7 +63,6 @@ exports.getUserStatus = async (req, res) => {
                 .eq("id", user.id);
         }
         
-        // If, after verification, there are no active plans left
         if (verifiedActivePlans.length === 0) {
             return res.json({ success: true, status: "no_plan" });
         }
@@ -77,7 +72,6 @@ exports.getUserStatus = async (req, res) => {
             status: "approved",
             activePlans: verifiedActivePlans,
         });
-        // --- MODIFIED LOGIC END ---
 
     } catch (error) {
         console.error(`[Status Check Error] User: ${req.user.username}, Error: ${error.message}`);
@@ -188,11 +182,16 @@ exports.linkV2rayAccount = async (req, res) => {
                 .from('packages')
                 .select('template, connection_id')
                 .eq('inbound_id', inboundId)
-                .single();
+                .maybeSingle(); // Use maybeSingle to prevent crash
 
-            if (pkgError || !pkgData) {
-                console.error('Database Error: Could not find a package with inbound_id:', inboundId, pkgError);
+            if (pkgError) {
+                console.error('Database Error during package search:', pkgError);
                 return res.status(500).json({ success: false, message: "A database error occurred while searching for the package." });
+            }
+
+            if (!pkgData) {
+                console.error('Logic Error: No package found in DB for inbound_id:', inboundId);
+                return res.status(404).json({ success: false, message: "Could not find a matching package for this V2Ray user in the database." });
             }
             
             vlessTemplate = pkgData.template;
