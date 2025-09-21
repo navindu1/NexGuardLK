@@ -977,10 +977,21 @@ function renderCheckoutPage(renderFunc, params) {
         navigateTo("/login");
         return;
     }
+    
+    // Get data from sessionStorage instead of URL params
+    const checkoutDataString = sessionStorage.getItem('nexguard_checkout_data');
+    if (!checkoutDataString) {
+        showToast({ title: "Error", message: "Checkout details not found. Please select a plan again.", type: "error" });
+        navigateTo('/plans');
+        return;
+    }
+    
+    const checkoutData = JSON.parse(checkoutDataString);
 
-    const planId = params.get("planId");
-    const connId = decodeURIComponent(params.get("connId"));
-    const pkg = decodeURIComponent(params.get("pkg") || "");
+    const planId = checkoutData.planId;
+    const connId = decodeURIComponent(checkoutData.connId || "");
+    const pkg = decodeURIComponent(checkoutData.pkg || "");
+    //...
     const plan = appData.plans[planId];
     const conn = dynamicConnections.find(c => c.name === connId);
 
@@ -1028,7 +1039,7 @@ function renderCheckoutPage(renderFunc, params) {
                     <form id="checkout-form" class="space-y-4">
                         ${isRenewal ? `<input type="hidden" name="isRenewal" value="true">` : ""}
                         <div class="form-group ${isRenewal ? 'pb-2' : ''}">
-                            <input type="text" id="checkout-username" name="username" class="form-input ${isRenewal ? 'disabled:bg-slate-800/50 disabled:text-slate-400 disabled:cursor-not-allowed' : ''}" required placeholder=" " value="${isRenewal ? userToRenew : user.username}" ${isRenewal ? 'disabled' : ''}>
+                            <input type="text" id="checkout-username" name="username" class="form-input ${isRenewal ? 'disabled:bg-slate-800/50 disabled:text-slate-400 disabled:cursor-not-allowed' : ''}" required placeholder=" " value="${isRenewal ? userToRenew : user.username}" ${isRenewal ? 'readonly' : ''}>
                             <label class="form-label">V2Ray Username</label><span class="focus-border"><i></i></span>
                             ${isRenewal ? '<p class="text-xs text-amber-400 mt-2 px-1">Username cannot be changed during renewal.</p>' : ''}
                         </div>
@@ -1072,7 +1083,8 @@ function renderCheckoutPage(renderFunc, params) {
             headers: { Authorization: "Bearer " + localStorage.getItem("nexguard_token"), },
             body: formData,
         });
-        if (res.ok) {
+          if (res.ok) {
+            sessionStorage.removeItem('nexguard_checkout_data'); // <-- ADD THIS LINE
             document.getElementById("checkout-view").style.display = "none";
             document.getElementById("success-view").classList.remove("hidden");
         } else {
@@ -2032,20 +2044,37 @@ forgotPasswordForm?.addEventListener("submit", async(e) => {
         checkout: renderCheckoutPage,
         profile: renderProfilePage,
     };
-    
-    const navigateTo = (path) => {const pathName = path.split('?')[0];
-        const pathParts = pathName.substring(1).split('/');
-        let pageKey = pathParts[0] || 'home';
-        if (pageKey === '') pageKey = 'home';
 
-        // 1. මුලින්ම title එක set කිරීම
-        document.title = pageTitles[pageKey] || 'NexGuardLK STORE';
-        // --- END: ADDED LOGIC ---
+    const navigateToCheckout = (href) => {
+        try {
+            // Create a URL object to easily access search parameters
+            const url = new URL(href, window.location.origin);
+            const params = url.searchParams;
 
-        // 2. ඉන්පසුව URL එක වෙනස් කිරීම
-        history.pushState(null, null, path);
-        router(); 
+            // Create an object to store in sessionStorage
+            const checkoutData = {};
+            for (const [key, value] of params.entries()) {
+                checkoutData[key] = value;
+            }
+
+            // Store the data as a JSON string
+            sessionStorage.setItem('nexguard_checkout_data', JSON.stringify(checkoutData));
+
+            // Navigate to the clean /checkout path
+            navigateTo('/checkout');
+        } catch (error) {
+            console.error('Failed to process checkout navigation:', error);
+            // Fallback to old method if something goes wrong
+            navigateTo(href);
+        }
     };
+    
+    const navigateTo = (path) => {
+    // Title එක set කරන කේතය මෙතනින් ඉවත් කර ඇත.
+    // දැන් මෙහි කාර්යය URL එක වෙනස් කර router එක ක්‍රියාත්මක කිරීම පමණයි.
+    history.pushState(null, null, path);
+    router(); 
+};
     // This is the main router function that renders pages based on the URL.
 const router = async () => { 
     const pathName = window.location.pathname; 
@@ -2106,15 +2135,21 @@ const router = async () => {
 };
     
     window.addEventListener("popstate", router);
-    document.addEventListener("click", (e) => { 
-        const link = e.target.closest("a.nav-link-internal"); 
-        if (link) { 
-            const href = link.getAttribute("href"); 
-            if (href) { 
-                e.preventDefault(); 
-                navigateTo(href); 
-            } 
-        } 
+    document.addEventListener("click", (e) => {
+        const link = e.target.closest("a.nav-link-internal");
+        if (link) {
+            e.preventDefault();
+            const href = link.getAttribute("href");
+            if (!href) return;
+
+            // Check if it's a link for checkout
+            if (link.classList.contains('nav-link-checkout')) {
+                navigateToCheckout(href);
+            } else {
+                // Handle all other internal links as before
+                navigateTo(href);
+            }
+        }
     });
     window.addEventListener('load', function() {
   const loader = document.getElementById('page-loader');
