@@ -340,14 +340,14 @@ html.logged-in #mobile-user-profile { display: flex !important; }
         transition: all 0.25s linear;
         pointer-events: none;
       }
-      .form-input:focus:not([readonly]) ~ .form-label,
+      .form-input:focus ~ .form-label,
       .form-input:not(:placeholder-shown) ~ .form-label {
         top: 6px;
         font-size: 11px;
         color: var(--brand-purple);
       }
-      .form-input:focus:not([readonly]) ~ .focus-border:before,
-      .form-input:focus:not([readonly]) ~ .focus-border:after {
+      .form-input ~ .focus-border:before,
+      .form-input ~ .focus-border:after {
         content: "";
         position: absolute;
         top: 0;
@@ -362,8 +362,8 @@ html.logged-in #mobile-user-profile { display: flex !important; }
         top: auto;
         bottom: 0;
       }
-      .form-input:focus:not([readonly]) ~ .focus-border i:before,
-      .form-input:focus:not([readonly]) ~ .focus-border i:after {
+      .form-input ~ .focus-border i:before,
+      .form-input ~ .focus-border i:after {
         content: "";
         position: absolute;
         top: 50%;
