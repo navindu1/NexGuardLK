@@ -189,7 +189,7 @@ exports.linkV2rayAccount = async (req, res) => {
             // Step 2: If not a single-package connection, search in the 'packages' table
             const { data: pkgData, error: pkgError } = await supabase
                 .from('packages')
-                .select('template, connection_id') // Get template and the foreign key
+                .select('template, connections(name)') 
                 .eq('inbound_id', inboundId)
                 .maybeSingle();
 
@@ -198,24 +198,9 @@ exports.linkV2rayAccount = async (req, res) => {
                 return res.status(500).json({ success: false, message: "A database error occurred while searching for the package." });
             }
 
-            if (pkgData && pkgData.connection_id) {
+            if (pkgData && pkgData.connections) {
+                detectedConnId = pkgData.connections.name;
                 vlessTemplate = pkgData.template;
-                
-                // Step 3: Use the connection_id to find the connection's name
-                const { data: connData, error: connError } = await supabase
-                    .from('connections')
-                    .select('name')
-                    .eq('id', pkgData.connection_id)
-                    .maybeSingle(); // Use maybeSingle() for safety
-
-                if (connError) {
-                    console.error('Error finding parent connection:', connError);
-                    return res.status(500).json({ success: false, message: "A database error occurred while finding the parent connection." });
-                }
-
-                if (connData) {
-                    detectedConnId = connData.name;
-                }
             }
         }
         
