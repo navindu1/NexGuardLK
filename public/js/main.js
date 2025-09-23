@@ -42,46 +42,38 @@ document.addEventListener("DOMContentLoaded", () => {
     const apiFetch = async (url, options = {}) => {
         const token = localStorage.getItem("nexguard_token");
 
-        // options object එකට headers නොමැති නම්, හිස් object එකක් සාදමු
         if (!options.headers) {
             options.headers = {};
         }
 
-        // FormData භාවිතා කරන විට Content-Type එක browser එක මඟින් සකසන නිසා එය මකමු
         if (options.body instanceof FormData) {
             delete options.headers['Content-Type'];
         }
 
-        // ටෝකන් එකක් ඇත්නම්, එය Authorization header එකට එකතු කරමු
         if (token) {
             options.headers['Authorization'] = `Bearer ${token}`;
         }
 
         const response = await fetch(url, options);
 
-        // ටෝකන් එක කල් ඉකුත් වී ඇත්දැයි (401/403 error) පරීක්ෂා කරමු
         if (response.status === 401 || response.status === 403) {
-            // පරිශීලකයාට තේරුම්ගත හැකි පණිවිඩයක් පෙන්වමු
             showToast({
                 title: "Session Expired",
                 message: "Login Expired. Please Login Again.",
                 type: "warning"
             });
             
-            // තත්පර 2කට පසු, session එක clear කර login පිටුවට යොමු කරමු
             setTimeout(() => {
                 clearSession(); 
                 navigateTo('/login'); 
             }, 2000);
 
-            // දෝෂයක් ලෙස සලකා මෙතනින් නවත්වමු
             return Promise.reject(new Error("Token expired or invalid"));
         }
         
-        return response; // කිසිදු දෝෂයක් නොමැති නම්, response එක return කරමු
+        return response;
     };
 
-    // Static data for the application
     const appData = {
         plans: {
             "100GB": { name: "100GB Plan", price: "300", features: ["High-Speed Connection", "Optimal for Streaming", "30-Day Validity"] },
@@ -107,12 +99,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
-
-    // ===========================================================================================
-    // ====== START: නිවැරදි කරන ලද CONNECTION CARDS සහ ORDER MODAL කේත කොටස ======
-    // ===========================================================================================
-
-    // Check if the connections grid exists on the current page before running the code
     const connectionsGrid = document.getElementById('connections-grid');
     if (connectionsGrid) {
         const orderModal = new bootstrap.Modal(document.getElementById('orderModal'));
@@ -143,17 +129,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
             connections.forEach(connection => {
                 const col = document.createElement('div');
-                col.className = 'col-lg-4 col-md-6 mb-4'; // Responsive column classes
+                col.className = 'col-lg-4 col-md-6 mb-4'; 
 
                 let packageSelectorHtml = '';
                 let packagesData = '[]';
 
-                // Check if multiple packages are required
                 if (connection.requires_package_choice && connection.package_options) {
                     try {
                         const options = JSON.parse(connection.package_options);
                         if (Array.isArray(options) && options.length > 0) {
-                            packagesData = connection.package_options; // Keep it as a string for the data attribute
+                            packagesData = connection.package_options; 
                             packageSelectorHtml = `
                                 <select class="form-select form-select-sm mt-2 package-selector">
                                     <option value="" selected disabled>Select a package</option>
@@ -165,7 +150,6 @@ document.addEventListener("DOMContentLoaded", () => {
                         console.error('Error parsing package_options for connection:', connection.name, e);
                     }
                 } else {
-                    // For single package connections, create a single-item array string
                     const singlePackage = {
                         name: connection.default_package,
                         template: connection.default_vless_template,
@@ -195,7 +179,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
             document.querySelectorAll('.connection-card').forEach(card => {
                 card.addEventListener('click', (event) => {
-                    // Stop the event from bubbling up to the card if a select element is clicked
                     if (event.target.tagName === 'SELECT') {
                         event.stopPropagation();
                         return;
@@ -226,7 +209,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
                 selectedPackage = packages[parseInt(selector.value)];
             } else {
-                // For single package, there will be only one item in the array
                 selectedPackage = packages[0];
             }
 
@@ -302,7 +284,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('copy-link-btn').addEventListener('click', () => {
             const vlessLink = document.getElementById('vless-link');
             vlessLink.select();
-            vlessLink.setSelectionRange(0, 99999); // For mobile devices
+            vlessLink.setSelectionRange(0, 99999); 
             try {
                 document.execCommand('copy');
                 const copyBtn = document.getElementById('copy-link-btn');
@@ -316,7 +298,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
 
-        // Reset form when modal is hidden
         document.getElementById('orderModal').addEventListener('hidden.bs.modal', () => {
             orderForm.reset();
             orderForm.classList.remove('d-none');
@@ -326,11 +307,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         fetchConnections();
     }
-    // ===========================================================================================
-    // ====== END: නිවැරදි කරන ලද CONNECTION CARDS සහ ORDER MODAL කේත කොටස ======
-    // ===========================================================================================
-
-
+    
     const updateNavUI = (isLoggedIn) => {
         const htmlElement = document.documentElement;
         if (isLoggedIn && userSession) {
@@ -466,7 +443,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
-    //----------------functions here----------------------//
     function showToast({ title, message, type = "info", duration = 5000 }) {
         let container = document.getElementById("toast-container");
         if (!container) {
@@ -641,7 +617,6 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>`;
         container.innerHTML = html;
         
-        // --- UPDATED Animation Logic to target both layouts ---
         const animateCounter = (el, start, end, duration) => {
             if (!el) return;
             let startTimestamp = null;
@@ -733,9 +708,7 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
         `);
 
-        // Setup event listeners after DOM is ready
         setTimeout(() => {
-            // --- Usage Form Submit ---
             const usageForm = document.getElementById('usage-form');
             if (usageForm) {
                 usageForm.addEventListener('submit', async e => {
@@ -790,7 +763,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
             }
 
-            // --- Help Modal Logic ---
             const openHelpModalLink = document.getElementById('open-help-modal-link');
             const helpModal = document.getElementById('help-modal');
             const helpModalCloseBtn = document.getElementById('help-modal-close');
@@ -807,33 +779,28 @@ document.addEventListener("DOMContentLoaded", () => {
                     document.body.classList.remove('modal-open');
                 };
 
-                // Open modal
                 openHelpModalLink.addEventListener('click', (e) => {
                     e.preventDefault();
                     openModal();
                 });
                 
-                // Close modal
                 helpModalCloseBtn.addEventListener('click', (e) => {
                     e.preventDefault();
                     closeModal();
                 });
                 
-                // Click outside to close
                 helpModal.addEventListener('click', (event) => {
                     if (event.target === helpModal) {
                         closeModal();
                     }
                 });
 
-                // ESC key to close
                 document.addEventListener('keydown', (event) => {
                     if (event.key === 'Escape' && helpModal.classList.contains('visible')) {
                         closeModal();
                     }
                 });
 
-                // Language toggle
                 if (langToggleBtn) {
                     langToggleBtn.addEventListener('click', () => {
                         const langEn = document.querySelector('.lang-content.lang-en');
@@ -889,16 +856,12 @@ document.addEventListener("DOMContentLoaded", () => {
     let connectionsHtml = dynamicConnections.length > 0
         ? dynamicConnections.map(conn => {
             let linkUrl = '';
-            let packageInfoHtml = ''; // Starts as empty string
+            let packageInfoHtml = ''; 
 
             if (conn.requires_package_choice) {
-                // --- පැකේජ කිහිපයක් සඳහා වන නිවැරදි කළ තර්කනය ---
                 linkUrl = `/package-choice?planId=${planId}&connId=${encodeURIComponent(conn.name)}`;
                 
                 let packageCount = 0;
-                // නිවැරදි කිරීම: Backend එකෙන් දැන් ලැබෙන්නේ string එකක් නොව, array (ලැයිස්තුවක්) එකකි.
-                // එම නිසා JSON.parse කිරීම අනවශ්‍යයි.
-                // conn.package_options යනු array එකක්දැයි කෙලින්ම පරීක්ෂා කර එහි දිග (length) ලබාගනී.
                 if (conn.package_options && Array.isArray(conn.package_options)) {
                     packageCount = conn.package_options.length;
                 }
@@ -906,7 +869,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 packageInfoHtml = `<p class="text-xs text-purple-300 mt-2 font-semibold">${packageCount} Packages Available</p>`;
 
             } else {
-                // --- තනි පැකේජයක් සඳහා වන තර්කනය (මෙය පෙර පරිදිම නිවැරදිය) ---
                 linkUrl = `/checkout?planId=${planId}&connId=${encodeURIComponent(conn.name)}&pkg=${encodeURIComponent(conn.default_package || '')}&inboundId=${conn.default_inbound_id}&vlessTemplate=${encodeURIComponent(conn.default_vless_template)}`;
                 
                 if (conn.default_package) {
@@ -916,7 +878,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             }
             
-            // HTML ප්‍රතිදානය (මෙය නිවැරදිය)
             return `<a href="${linkUrl}" class="nav-link-internal card reveal selectable glass-panel p-5 rounded-xl text-center flex flex-col items-center justify-center">
                         <i class="${conn.icon || 'fa-solid fa-wifi'} text-3xl gradient-text mb-3"></i>
                         <h3 class="text-lg font-bold text-white mb-2">${conn.name}</h3>
@@ -968,9 +929,6 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>`);
     }
 
-// File Path: public/js/main.js
-    // File Path: public/js/main.js
-
 function renderCheckoutPage(renderFunc, params) {
     const user = JSON.parse(localStorage.getItem("nexguard_user"));
     if (!user) {
@@ -1020,7 +978,7 @@ function renderCheckoutPage(renderFunc, params) {
     }
 
     renderFunc(
-    pageStyles + // <-- ADD THIS LINE
+    pageStyles +
     `
     <div id="page-checkout" class="page">
         <div class="w-full max-w-sm mx-auto glass-panel rounded-xl p-6 reveal">
@@ -1088,16 +1046,13 @@ function renderCheckoutPage(renderFunc, params) {
     });
 }
 
-// In public/js/main.js -> renderCheckoutPage function
-
 const pageStyles = `
     <style>
       .renewal-username-field[readonly] {
-        background-color: rgba(30, 41, 59, 0.5); /* This is slate-800/50 */
-        color: #9ca3af; /* This is slate-400 */
+        background-color: rgba(30, 41, 59, 0.5); 
+        color: #9ca3af;
         cursor: not-allowed;
       }
-      /* Override the focus border animation for ONLY the renewal field */
       .renewal-username-field[readonly]:focus ~ .focus-border:before,
       .renewal-username-field[readonly]:focus ~ .focus-border:after {
         width: 0;
@@ -1106,9 +1061,8 @@ const pageStyles = `
       .renewal-username-field[readonly]:focus ~ .focus-border i:after {
         height: 0;
       }
-      /* Override the label color change for ONLY the renewal field */
       .renewal-username-field[readonly]:focus ~ .form-label {
-        color: #9ca3af; /* Keep the non-focused color */
+        color: #9ca3af; 
       }
     </style>
 `;
@@ -1203,7 +1157,6 @@ const pageStyles = `
         return;
     }
 
-    // Modal එකේ HTML එක මෙතන නිර්මාණය වෙනවා
     const modalHtml = `
         <div id="help-modal" class="help-modal-overlay">
             <div class="help-modal-content glass-panel rounded-lg p-6 space-y-4 w-full max-w-md">
@@ -1232,18 +1185,13 @@ const pageStyles = `
             </div>
         </div>`;
     
-    // Page එකට අවශ්‍ය Styles
     const pageStyles = `<style>#page-profile .form-input { height: 56px; padding: 20px 12px 8px 12px; background-color: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.2); } #page-profile .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; } #page-profile .form-input:focus ~ .form-label, #page-profile .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: var(--brand-purple); } #page-profile .form-input[readonly] { background-color: rgba(0,0,0,0.2); cursor: not-allowed; } .tab-btn { border-bottom: 3px solid transparent; transition: all .3s ease; color: #9ca3af; padding: 0.75rem 0.25rem; font-weight: 600; white-space: nowrap; } .tab-btn.active { border-bottom-color: var(--brand-purple); color: #fff; } .tab-panel { display: none; } .tab-panel.active { display: block; animation: pageFadeIn 0.5s; } .plan-selector-wrapper { display: inline-block; width: auto; } #plan-selector { -webkit-appearance: none; -moz-appearance: none; appearance: none; background-color: rgba(49, 23, 82, 0.7); border: 1px solid rgba(168, 85, 247, 0.5); border-radius: 8px; padding: 0.5rem 2.5rem 0.5rem 1rem; color: #ffffff; font-weight: 500; font-size: 0.9rem; cursor: pointer; transition: all 0.2s ease; width: 100%; } #plan-selector:hover { border-color: #a855f7; background-color: rgba(69, 33, 112, 0.7); } #plan-selector:focus { outline: none; border-color: #a855f7; box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.3); } .plan-selector-wrapper i { transition: color 0.2s ease; }</style>`;
 
-    // In renderProfilePage function, BEFORE the baseHtml variable is created:
-
-// ADD these lines to create a correct, absolute URL
 let profilePictureUrl = (user.profilePicture || "/assets/profilePhoto.jpg").replace("public/", "");
 if (profilePictureUrl && !profilePictureUrl.startsWith('/')) {
     profilePictureUrl = '/' + profilePictureUrl;
 }
 
-// THEN, UPDATE the baseHtml variable to use this new URL
 const baseHtml = `<div id="page-profile" class="page space-y-8"><div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left reveal"><div class="relative flex-shrink-0"><img id="profile-pic-img" src="${profilePictureUrl}" alt="Profile Picture" class="w-24 h-24 rounded-full border-4 border-purple-500/50 object-cover shadow-lg"><label for="avatar-upload" class="absolute bottom-0 right-0 w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-purple-500 transition shadow-md"><i class="fa-solid fa-camera text-white"></i><input type="file" id="avatar-upload" class="hidden" accept="image/*"></label></div><div class="flex-grow"><h2 class="text-3xl font-bold font-['Orbitron'] text-white">${user.username}</h2><p class="text-gray-400">${user.email}</p><div id="plan-info-container" class="text-xs sm:text-sm mt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2"></div></div></div><div id="user-status-content" class="reveal"><div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-3xl text-purple-400"></i></div></div></div> ${modalHtml}`;
 
 
@@ -1285,10 +1233,6 @@ const baseHtml = `<div id="page-profile" class="page space-y-8"><div class="flex
         .then((data) => {
             const setupEventListeners = () => {
                 
-                // =========================================================================
-                // **** නිවැරදි කිරීම: Modal එකේ Logic එක මෙතනට ගෙන එන ලදී ****
-                // timing ප්‍රශ්නය විසඳීම සඳහා, HTML එක render වූ පසුව මෙම කොටස ක්‍රියාත්මක වේ
-                // =========================================================================
                 const openHelpModalLink = document.querySelector('.open-help-modal-link');
                 const helpModal = document.getElementById('help-modal');
                 const helpModalCloseBtn = document.getElementById('help-modal-close');
@@ -1298,7 +1242,7 @@ const baseHtml = `<div id="page-profile" class="page space-y-8"><div class="flex
                     const openModal = () => { helpModal.classList.add('visible'); document.body.classList.add('modal-open'); };
                     const closeModal = () => { helpModal.classList.remove('visible'); document.body.classList.remove('modal-open'); };
 
-                    if (openHelpModalLink) { // Link එක ඇත්තටම page එකේ තියෙනවදැයි බලයි
+                    if (openHelpModalLink) { 
                         openHelpModalLink.addEventListener('click', (e) => { e.preventDefault(); openModal(); });
                     }
                     
@@ -1313,7 +1257,6 @@ const baseHtml = `<div id="page-profile" class="page space-y-8"><div class="flex
                     }
                 }
 
-                // Password Update Form Submission
                 document.getElementById("profile-update-form")?.addEventListener("submit", async(e) => {
                     e.preventDefault();
                     const newPassword = document.getElementById("new-password").value;
@@ -1345,12 +1288,10 @@ const baseHtml = `<div id="page-profile" class="page space-y-8"><div class="flex
                     }
                 });
 
-                // Password Visibility Toggle
                 document.getElementById('profile-password-toggle')?.addEventListener('click', () => {
                     togglePassword('new-password', 'profile-password-toggle');
                 });
                 
-                // Link Account Form Submission (if it exists)
                 document.getElementById("link-account-form-profile")?.addEventListener("submit", async(e) => {
                     e.preventDefault();
                     const btn = e.target.querySelector("button");
@@ -1379,7 +1320,7 @@ const baseHtml = `<div id="page-profile" class="page space-y-8"><div class="flex
 
             if (data.status === "approved" && data.activePlans?.length > 0) {
                 const planSelectorOptions = data.activePlans.map((plan, index) => `<option value="${index}">${plan.v2rayUsername}</option>`).join("");
-                const planSelectorHtml = `<div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">...</div>`; // This part is unchanged
+                const planSelectorHtml = `<div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">...</div>`;
                 statusContainer.innerHTML = `${planSelectorHtml.replace('...', `<label for="plan-selector" class="font-semibold text-gray-200 flex-shrink-0">Viewing Plan:</label><div class="relative plan-selector-wrapper"><select id="plan-selector">${planSelectorOptions}</select><i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i></div>`)}<div id="plan-details-container"></div>`;
                 
                 const planDetailsContainer = document.getElementById("plan-details-container");
@@ -1394,34 +1335,13 @@ const baseHtml = `<div id="page-profile" class="page space-y-8"><div class="flex
                     const planName = appData.plans[plan.planId]?.name || plan.planId;
                     document.getElementById("plan-info-container").innerHTML = `<span class="bg-purple-500/10 text-purple-300 px-2 py-1 rounded-full"><i class="fa-solid fa-rocket fa-fw mr-2"></i>${planName}</span><span class="bg-indigo-500/10 text-indigo-300 px-2 py-1 rounded-full"><i class="fa-solid fa-wifi fa-fw mr-2"></i>${connectionName}</span>`;
                     
-                    const settingsHtml = `
-<div class="glass-panel p-6 rounded-xl">
-    <h3 class="text-xl font-bold text-white mb-4 font-['Orbitron']">Account Settings</h3>
-    <form id="profile-update-form" class="space-y-6">
-        <div class="form-group">
-            <input type="text" class="form-input" readonly value="${user.username}" title="Website username cannot be changed.">
-            <label class="form-label">Website Username</label>
-        </div>
-        <div class="form-group relative">
-            <input type="password" id="new-password" class="form-input pr-10" placeholder=" ">
-            <label for="new-password" class="form-label">New Password (leave blank to keep)</label>
-            <span class="focus-border"><i></i></span>
-            <i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i>
-        </div>
-        <button type="submit" class="ai-button w-full py-2.5 rounded-lg !mt-8">Save Changes</button>
-    </form>
-</div>
-`;
-
-// REPLACE THE ENTIRE HTML BLOCK FOR THE TABS with this NEW, WIDER LAYOUT
-
 planDetailsContainer.innerHTML = `
-                                <div id="profile-tabs" class="flex items-center gap-4 sm:gap-6 border-b border-white/10 mb-6 overflow-x-auto">
-                                    <button data-tab="config" class="tab-btn">V2Ray Config</button>
-                                    <button data-tab="usage" class="tab-btn">Usage Stats</button>
-                                    <button data-tab="orders" class="tab-btn">My Orders</button>
-                                    <button data-tab="settings" class="tab-btn">Account Settings</button>
-                                </div>
+    <div id="profile-tabs" class="flex items-center gap-4 sm:gap-6 border-b border-white/10 mb-6 overflow-x-auto">
+        <button data-tab="config" class="tab-btn">V2Ray Config</button>
+        <button data-tab="usage" class="tab-btn">Usage Stats</button>
+        <button data-tab="orders" class="tab-btn">My Orders</button>
+        <button data-tab="settings" class="tab-btn">Account Settings</button>
+    </div>
 
     <div id="tab-config" class="tab-panel">
         <div class="glass-panel p-6 sm:p-8 rounded-xl">
@@ -1450,10 +1370,10 @@ planDetailsContainer.innerHTML = `
     </div>
 
     <div id="tab-usage" class="tab-panel">
-        </div>
+    </div>
     
     <div id="tab-orders" class="tab-panel">
-           </div>
+    </div>
     
     <div id="tab-settings" class="tab-panel">
         <div class="glass-panel p-6 sm:p-8 rounded-xl">
@@ -1476,166 +1396,160 @@ planDetailsContainer.innerHTML = `
         </div>
     </div>
 `;
-
-const qrContainer = document.getElementById("qrcode-container");
+                    const qrContainer = document.getElementById("qrcode-container");
                     qrContainer.innerHTML = "";
-                    // Create a shorter version of the link for the QR code if the original is too long
-let qrLink = plan.v2rayLink;
-if (qrLink.length > 1024) { // 1024 is a safe length limit for QR codes
-    try {
-        const url = new URL(qrLink);
-        // Shorten the remark ('ps' parameter) to a max of 20 chars for the QR code
-        url.searchParams.set('ps', (plan.v2rayUsername || '').substring(0, 20));
-        qrLink = url.toString();
-    } catch (e) {
-        console.error("Could not shorten V2Ray link for QR Code, using original.", e);
-    }
-}
-new QRCode(qrContainer, { text: qrLink, width: 140, height: 140 });
+                    let qrLink = plan.v2rayLink;
+                    try {
+                        const url = new URL(qrLink);
+                        url.hash = ''; 
+                        qrLink = url.toString();
+                    } catch (e) {
+                        console.error("Could not parse V2Ray link to shorten for QR Code, using original.", e);
+                        qrLink = plan.v2rayLink;
+                    }
+                    new QRCode(qrContainer, { text: qrLink, width: 140, height: 140 });
+
                     qrContainer.addEventListener('click', () => showQrModal(qrContainer.querySelector('img').src, plan.v2rayUsername));
+                    
                     document.getElementById('copy-config-btn').addEventListener('click', () => {
                         navigator.clipboard.writeText(plan.v2rayLink);
                         showToast({ title: 'Copied!', message: 'Config link copied to clipboard.', type: 'success' });
                     });
 
-                                const tabs = document.getElementById('profile-tabs');
-                                const panels = planDetailsContainer.querySelectorAll('.tab-panel');
-                                // REPLACE the old loadUsageStats function with this one
-const loadUsageStats = () => {
-    // FIX: Changed "tab-usage-stats" to the correct ID "tab-usage"
-    const usageContainer = document.getElementById("tab-usage");  
-    if (!usageContainer) return; // Failsafe check
-    
-    usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-purple-400"></i></div>`;
-    apiFetch(`/api/check-usage/${plan.v2rayUsername}`).then(res => res.json()).then(result => {
-        if (result.success) {
-            // The displayUserData function already creates the glass-panel, so no extra panel is needed here.
-            displayUserData(result.data, plan.v2rayUsername, usageContainer);
-        } else {
-            usageContainer.innerHTML = `<div class="glass-panel p-4 rounded-xl text-center text-amber-400"><p>${result.message}</p></div>`;
-        }
-    }).catch(err => {
-        console.error("Failed to load usage stats:", err);
-        usageContainer.innerHTML = `<div class="glass-panel p-4 rounded-xl text-center text-red-400"><p>Could not load usage statistics.</p></div>`;
-    });
-};
+                    const tabs = document.getElementById('profile-tabs');
+                    const panels = planDetailsContainer.querySelectorAll('.tab-panel');
 
-                                const updateRenewButton = async() => {
-                                    const container = document.getElementById("renew-button-container");
-                                    if (!container) return;
-                                    
-container.innerHTML = `<button disabled class="ai-button secondary inline-block py-2 px-6 text-sm rounded-lg !bg-gray-700/50 !text-gray-400 cursor-not-allowed"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking status...</button>`;
-                                    try {
-                                        const res = await apiFetch(`/api/check-usage/${plan.v2rayUsername}`);
-                                        if (!res.ok) throw new Error(`API responded with status ${res.status}`);
-                                        const result = await res.json();
-                                        if (result.success) {
-                                            if (result.data.expiryTime > 0) {
-                                                const expiryDate = new Date(result.data.expiryTime);
-                                                const isExpired = new Date() > expiryDate;
-                                                if (isExpired) {
-                                                    container.innerHTML = `<a href="/checkout?planId=${plan.planId}&connId=${plan.connId}&renew=${encodeURIComponent(plan.v2rayUsername)}" class="nav-link-internal ai-button inline-block py-2 px-6 text-sm rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew Plan</a>`;
-                                                } else {
-                                                    container.innerHTML = `<button disabled class="ai-button secondary inline-block py-2 px-6 text-sm rounded-lg !bg-gray-700/50 !text-gray-400 cursor-not-allowed">Renew Plan</button>`;
-                                                }
-                                            } else {
-                                                container.innerHTML = `<button disabled class="ai-button secondary inline-block py-2 px-6 text-sm rounded-lg !bg-gray-700/50 !text-gray-400 cursor-not-allowed">Does not expire</button>`;
-                                            }
-                                        } else {
-                                            container.innerHTML = `<p class="text-xs text-amber-400">${result.message || 'Could not verify plan expiry status.'}</p>`;
-                                        }
-                                    } catch (error) {
-                                        console.error('Error fetching plan status for renewal:', error);
-                                        container.innerHTML = `<p class="text-xs text-red-400">Error checking status. Please refresh.</p>`;
+                    const loadUsageStats = () => {
+                        const usageContainer = document.getElementById("tab-usage");  
+                        if (!usageContainer) return;
+                        
+                        usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-purple-400"></i></div>`;
+                        apiFetch(`/api/check-usage/${plan.v2rayUsername}`).then(res => res.json()).then(result => {
+                            if (result.success) {
+                                displayUserData(result.data, plan.v2rayUsername, usageContainer);
+                            } else {
+                                usageContainer.innerHTML = `<div class="glass-panel p-4 rounded-xl text-center text-amber-400"><p>${result.message}</p></div>`;
+                            }
+                        }).catch(err => {
+                            console.error("Failed to load usage stats:", err);
+                            usageContainer.innerHTML = `<div class="glass-panel p-4 rounded-xl text-center text-red-400"><p>Could not load usage statistics.</p></div>`;
+                        });
+                    };
+
+                    const updateRenewButton = async() => {
+                        const container = document.getElementById("renew-button-container");
+                        if (!container) return;
+                        
+                        container.innerHTML = `<button disabled class="ai-button secondary inline-block py-2 px-6 text-sm rounded-lg !bg-gray-700/50 !text-gray-400 cursor-not-allowed"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking status...</button>`;
+                        try {
+                            const res = await apiFetch(`/api/check-usage/${plan.v2rayUsername}`);
+                            if (!res.ok) throw new Error(`API responded with status ${res.status}`);
+                            const result = await res.json();
+                            if (result.success) {
+                                if (result.data.expiryTime > 0) {
+                                    const expiryDate = new Date(result.data.expiryTime);
+                                    const isExpired = new Date() > expiryDate;
+                                    if (isExpired) {
+                                        container.innerHTML = `<a href="/checkout?planId=${plan.planId}&connId=${plan.connId}&renew=${encodeURIComponent(plan.v2rayUsername)}" class="nav-link-internal ai-button inline-block py-2 px-6 text-sm rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew Plan</a>`;
+                                    } else {
+                                        container.innerHTML = `<button disabled class="ai-button secondary inline-block py-2 px-6 text-sm rounded-lg !bg-gray-700/50 !text-gray-400 cursor-not-allowed">Renew Plan</button>`;
                                     }
-                                };
-                                // *** FIX 1: Corrected logic for loading orders ***
-                                const loadMyOrders = async () => {
-                                    const ordersContainer = document.getElementById("tab-orders");
-                                    if (!ordersContainer) return;
+                                } else {
+                                    container.innerHTML = `<button disabled class="ai-button secondary inline-block py-2 px-6 text-sm rounded-lg !bg-gray-700/50 !text-gray-400 cursor-not-allowed">Does not expire</button>`;
+                                }
+                            } else {
+                                container.innerHTML = `<p class="text-xs text-amber-400">${result.message || 'Could not verify plan expiry status.'}</p>`;
+                            }
+                        } catch (error) {
+                            console.error('Error fetching plan status for renewal:', error);
+                            container.innerHTML = `<p class="text-xs text-red-400">Error checking status. Please refresh.</p>`;
+                        }
+                    };
 
-                                    ordersContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-purple-400"></i></div>`;
-                                    try {
-                                        const res = await apiFetch("/api/user/orders", { headers: { Authorization: "Bearer " + token } });
-                                        if (!res.ok) throw new Error("Failed to fetch orders");
-                                        const { orders } = await res.json();
-                                        
-                                        if (orders.length === 0) {
-                                            ordersContainer.innerHTML = `<div class="glass-panel p-8 rounded-xl text-center"><i class="fa-solid fa-box-open text-4xl text-gray-400 mb-4"></i><h3 class="font-bold text-white">No Orders Found</h3><p class="text-gray-400 text-sm mt-2">You have not placed any orders yet.</p></div>`;
-                                            return;
-                                        }
+                    const loadMyOrders = async () => {
+                        const ordersContainer = document.getElementById("tab-orders");
+                        if (!ordersContainer) return;
 
-                                        const ordersHtml = orders.map(order => {
-                                            const planName = appData.plans[order.plan_id]?.name || order.plan_id;
-                                            // *** THIS IS THE FIX: Search dynamicConnections array instead of appData.connections ***
-                                            const connection = dynamicConnections.find(c => c.name === order.conn_id);
-                                            const connName = connection ? connection.name : order.conn_id;
-                                            
-                                            const statusColors = { pending: "text-amber-400", approved: "text-green-400", rejected: "text-red-400" };
-                                            const statusIcons = { pending: "fa-solid fa-clock", approved: "fa-solid fa-check-circle", rejected: "fa-solid fa-times-circle" };
-                                            
-                                            return `
-                                            <div class="glass-panel p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                                                <div>
-                                                    <p class="font-bold text-white">${planName} <span class="text-gray-400 font-normal">for</span> ${connName}</p>
-                                                    <p class="text-xs text-gray-400 mt-1">
-                                                        Ordered on: ${new Date(order.created_at).toLocaleDateString()}
-                                                        ${order.status === 'approved' && order.final_username ? `| V2Ray User: <strong class="text-purple-300">${order.final_username}</strong>` : ''}
-                                                    </p>
-                                                </div>
-                                                <div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'}">
-                                                    <i class="${statusIcons[order.status] || 'fa-solid fa-question-circle'}"></i>
-                                                    <span>${order.status}</span>
-                                                </div>
-                                            </div>`;
-                                        }).join('');
-                                        ordersContainer.innerHTML = `<div class="space-y-3">${ordersHtml}</div>`;
+                        ordersContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-purple-400"></i></div>`;
+                        try {
+                            const res = await apiFetch("/api/user/orders", { headers: { Authorization: "Bearer " + token } });
+                            if (!res.ok) throw new Error("Failed to fetch orders");
+                            const { orders } = await res.json();
+                            
+                            if (orders.length === 0) {
+                                ordersContainer.innerHTML = `<div class="glass-panel p-8 rounded-xl text-center"><i class="fa-solid fa-box-open text-4xl text-gray-400 mb-4"></i><h3 class="font-bold text-white">No Orders Found</h3><p class="text-gray-400 text-sm mt-2">You have not placed any orders yet.</p></div>`;
+                                return;
+                            }
 
-                                    } catch (err) {
-                                        console.error("Failed to load orders:", err);
-                                        ordersContainer.innerHTML = `<div class="glass-panel p-4 rounded-xl text-center text-red-400"><p>Could not load your orders.</p></div>`;
-                                    }
-                                };
-
-                                const switchTab = (tabId, updateUrl = false) => {
-                                    tabs.querySelector('.active')?.classList.remove('active');
-                                    panels.forEach(p => p.classList.remove('active'));
-                                    
-                                    const newTabButton = tabs.querySelector(`[data-tab="${tabId}"]`);
-                                    const newTabPanel = document.getElementById(`tab-${tabId}`);
-                                    
-                                    if (newTabButton) newTabButton.classList.add('active');
-                                    if (newTabPanel) newTabPanel.classList.add('active');
-                                    
-                                    if (tabId === 'usage') loadUsageStats();
-                                    if (tabId === 'orders') loadMyOrders();
-                                    if (tabId === 'config') updateRenewButton();
-
-                                    if (updateUrl) {
-                                        history.pushState(null, '', `/profile/${tabId}`);
-                                    }
-                                };
-
-                                tabs.addEventListener('click', (e) => {
-                                    if (e.target.tagName !== 'BUTTON') return;
-                                    switchTab(e.target.dataset.tab, true);
-                                });
+                            const ordersHtml = orders.map(order => {
+                                const planName = appData.plans[order.plan_id]?.name || order.plan_id;
+                                const connection = dynamicConnections.find(c => c.name === order.conn_id);
+                                const connName = connection ? connection.name : order.conn_id;
                                 
-                                // *** FIX 2: Corrected logic to read URL parameter for tabs ***
-                                const urlParams = new URLSearchParams(window.location.search);
-                                const tabFromQuery = urlParams.get('tab');
-                                const pathParts = window.location.pathname.split('/');
-                                const initialTab = tabFromQuery || pathParts[2] || 'config';
-                                switchTab(initialTab, false);
+                                const statusColors = { pending: "text-amber-400", approved: "text-green-400", rejected: "text-red-400" };
+                                const statusIcons = { pending: "fa-solid fa-clock", approved: "fa-solid fa-check-circle", rejected: "fa-solid fa-times-circle" };
                                 
-                                setupEventListeners();
+                                return `
+                                <div class="glass-panel p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                    <div>
+                                        <p class="font-bold text-white">${planName} <span class="text-gray-400 font-normal">for</span> ${connName}</p>
+                                        <p class="text-xs text-gray-400 mt-1">
+                                            Ordered on: ${new Date(order.created_at).toLocaleDateString()}
+                                            ${order.status === 'approved' && order.final_username ? `| V2Ray User: <strong class="text-purple-300">${order.final_username}</strong>` : ''}
+                                        </p>
+                                    </div>
+                                    <div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'}">
+                                        <i class="${statusIcons[order.status] || 'fa-solid fa-question-circle'}"></i>
+                                        <span>${order.status}</span>
+                                    </div>
+                                </div>`;
+                            }).join('');
+                            ordersContainer.innerHTML = `<div class="space-y-3">${ordersHtml}</div>`;
+
+                        } catch (err) {
+                            console.error("Failed to load orders:", err);
+                            ordersContainer.innerHTML = `<div class="glass-panel p-4 rounded-xl text-center text-red-400"><p>Could not load your orders.</p></div>`;
+                        }
+                    };
+
+                    const switchTab = (tabId, updateUrl = false) => {
+                        tabs.querySelector('.active')?.classList.remove('active');
+                        panels.forEach(p => p.classList.remove('active'));
+                        
+                        const newTabButton = tabs.querySelector(`[data-tab="${tabId}"]`);
+                        const newTabPanel = document.getElementById(`tab-${tabId}`);
+                        
+                        if (newTabButton) newTabButton.classList.add('active');
+                        if (newTabPanel) newTabPanel.classList.add('active');
+                        
+                        if (tabId === 'usage') loadUsageStats();
+                        if (tabId === 'orders') loadMyOrders();
+                        if (tabId === 'config') updateRenewButton();
+
+                        if (updateUrl) {
+                            history.pushState(null, '', `/profile/${tabId}`);
+                        }
+                    };
+
+                    tabs.addEventListener('click', (e) => {
+                        if (e.target.tagName !== 'BUTTON') return;
+                        switchTab(e.target.dataset.tab, true);
+                    });
+                    
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const tabFromQuery = urlParams.get('tab');
+                    const pathParts = window.location.pathname.split('/');
+                    const initialTab = tabFromQuery || pathParts[2] || 'config';
+                    switchTab(initialTab, false);
+                    
+                    setupEventListeners();
                 };
                 planSelector.addEventListener("change", (e) => displayPlanDetails(e.target.value));
                 displayPlanDetails(planSelector.value);
 
             } else if (data.status === "pending") {
                 statusContainer.innerHTML = `<div class="glass-panel p-8 rounded-xl text-center"><i class="fa-solid fa-clock text-4xl text-amber-400 mb-4 animate-pulse"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Order Pending Approval</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">Your order is currently being reviewed. Your profile will update here once approved.</p></div>`;
-            } else { // 'no_plan' status
+            } else { 
                 const settingsHtml = `<div class="glass-panel p-6 rounded-xl"><h3 class="text-xl font-bold text-white mb-4 font-['Orbitron']">Account Settings</h3><form id="profile-update-form" class="space-y-6"><div class="form-group"><input type="text" class="form-input" readonly value="${user.username}" title="Website username cannot be changed."><label class="form-label">Website Username</label></div><div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" placeholder=" "><label for="new-password" class="form-label">New Password (leave blank to keep)</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i></div><button type="submit" class="ai-button w-full py-2.5 rounded-lg !mt-8">Save Changes</button></form></div>`;
                 const linkAccountHtml = `<div class="glass-panel p-6 rounded-xl"><h3 class="text-xl font-bold text-white mb-2 font-['Orbitron']">Link Existing V2Ray Account</h3><p class="text-sm text-gray-400 mb-6">If you have an old account, link it here to manage renewals.</p><form id="link-account-form-profile" class="space-y-6"><div class="form-group"><input type="text" id="existing-v2ray-username-profile" class="form-input" required placeholder=" "><label for="existing-v2ray-username-profile" class="form-label">Your Old V2Ray Username</label><span class="focus-border"><i></i></span></div><button type="submit" class="ai-button secondary w-full py-2.5 rounded-lg">Link Account</button><div class="text-center text-sm mt-4"><span class="open-help-modal-link text-purple-400 cursor-pointer hover:underline">How to find your username?</span></div></form></div>`;
                 statusContainer.innerHTML = `<div class="glass-panel p-8 rounded-xl text-center"><i class="fa-solid fa-rocket text-4xl text-purple-400 mb-4"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Get Started</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">You do not have any active plans yet. Purchase a new plan or link an existing account below.</p><a href="/plans" class="nav-link-internal ai-button inline-block py-2 px-6 text-sm rounded-lg mt-6">Purchase a Plan</a></div><div class="grid md:grid-cols-2 gap-8 mt-8">${settingsHtml}${linkAccountHtml}</div>`;
@@ -1741,9 +1655,8 @@ container.innerHTML = `<button disabled class="ai-button secondary inline-block 
                 </div>
             </div>
         </div>
-        ${modalHtml}`); // Modal HTML එක මෙතනට එකතු කරන ලදී
+        ${modalHtml}`);
 
-    // --- Modal එකේ JavaScript Logic එක මෙතනට එකතු කරන ලදී ---
     setTimeout(() => {
         const openHelpModalLink = document.querySelector('.open-help-modal-link');
         const helpModal = document.getElementById('help-modal');
@@ -1788,7 +1701,6 @@ container.innerHTML = `<button disabled class="ai-button secondary inline-block 
             viewToShow?.classList.add("active");
         };
 
-        // Switch links
         document.getElementById("show-signup") ?.addEventListener("click", () => switchAuthView(signupForm));
         document.getElementById("show-signin-from-signup") ?.addEventListener("click", () => switchAuthView(signinForm));
         document.getElementById("show-forgot-password") ?.addEventListener("click", () => switchAuthView(forgotPasswordForm));
@@ -1924,8 +1836,6 @@ container.innerHTML = `<button disabled class="ai-button secondary inline-block 
             }
         });
 
-        // REPLACE the entire forgotPasswordForm event listener with this new version
-
 forgotPasswordForm?.addEventListener("submit", async(e) => {
     e.preventDefault();
     const btn = e.target.querySelector("button");
@@ -1948,7 +1858,6 @@ forgotPasswordForm?.addEventListener("submit", async(e) => {
     const result = await res.json();
     btn.disabled = false;
 
-    // FIX: Check if the response was successful or an error
     if (res.ok) {
         showToast({
             title: "Check Your Email",
@@ -1958,7 +1867,7 @@ forgotPasswordForm?.addEventListener("submit", async(e) => {
     } else {
         showToast({
             title: "Error",
-            message: result.message, // Show the error message from the server
+            message: result.message, 
             type: "error",
         });
     }
@@ -2086,34 +1995,27 @@ const router = async () => {
     let pageKey = pathParts[0] || 'home'; 
     if (pageKey === '') pageKey = 'home'; 
     
-    // Set title here as well to handle initial page loads and back/forward navigation
     document.title = pageTitles[pageKey] || 'NexGuardLK STORE';
     
-    // --- User Session Logic ---
-    // Redirect logged-in users from auth pages to profile
     if (userSession && ["login", "signup", "reset-password"].includes(pageKey)) { 
         navigateTo("/profile"); 
         return; 
     } 
     
-    // Redirect logged-out users from protected pages to login
     if (["checkout", "profile", "connections", "package-choice"].includes(pageKey) && !userSession) { 
         navigateTo("/login"); 
         return; 
     } 
     
-    // --- Page Rendering ---
     const renderFunction = allRoutes[pageKey] || allRoutes["home"]; 
     if (renderFunction) { 
         mainContentArea.innerHTML = ""; 
         renderFunction((html) => { 
             mainContentArea.innerHTML = html; 
-            initAnimations(); // Initialize animations after content is rendered
+            initAnimations(); 
         }, params, pageKey); 
     } 
     
-    // --- Navigation Link Styling ---
-    // Update the active state for navigation links
     document.querySelectorAll("#main-nav a, #mobile-nav a").forEach((link) => { 
         const linkPath = link.getAttribute("href")?.split("?")[0].replace('/', ''); 
         const currentPath = pageKey.split('/')[0]; 
@@ -2121,10 +2023,8 @@ const router = async () => {
         link.classList.toggle("active", isActive); 
     }); 
     
-    // --- Scrolling Logic ---
     const scrollTargetId = params.get('scroll');
     if (scrollTargetId) {
-        // If a 'scroll' parameter exists, smooth-scroll to the target element
         setTimeout(() => {
             const targetElement = document.getElementById(scrollTargetId);
             if (targetElement) {
@@ -2132,7 +2032,6 @@ const router = async () => {
             }
         }, 100); 
     } else {
-        // Otherwise, scroll to the top of the new page
         window.scrollTo(0, 0); 
     }
 };
@@ -2157,7 +2056,6 @@ const router = async () => {
 });
 
     
-    // --- Initial Application Load ---
     const init = async () => {
         loadSession();
         await loadConnections();
