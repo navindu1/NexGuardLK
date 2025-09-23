@@ -846,7 +846,7 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>`);
     }
 
-    function renderConnectionsPage(renderFunc, params) {
+function renderConnectionsPage(renderFunc, params) {
     const planId = params.get("planId");
     if (!planId || !appData.plans[planId]) {
         renderFunc('<div class="page text-center"><p class="text-red-400">Invalid plan selection.</p><a href="/plans" class="nav-link-internal underline mt-2">Go back to plans</a></div>');
@@ -856,7 +856,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let connectionsHtml = dynamicConnections.length > 0
         ? dynamicConnections.map(conn => {
             let linkUrl = '';
-            let packageInfoHtml = ''; 
+            let packageInfoHtml = '';
 
             if (conn.requires_package_choice) {
                 linkUrl = `/package-choice?planId=${planId}&connId=${encodeURIComponent(conn.name)}`;
@@ -878,7 +878,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             }
             
-            return `<a href="${linkUrl}" class="nav-link-internal card reveal selectable glass-panel p-5 rounded-xl text-center flex flex-col items-center justify-center">
+            // The <a> tag now has a defined width to maintain the card size
+            return `<a href="${linkUrl}" class="nav-link-internal card reveal selectable glass-panel p-5 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-64">
                         <i class="${conn.icon || 'fa-solid fa-wifi'} text-3xl gradient-text mb-3"></i>
                         <h3 class="text-lg font-bold text-white mb-2">${conn.name}</h3>
                         ${packageInfoHtml}
@@ -892,7 +893,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <h2 class="text-2xl font-bold text-white">Select Your Connection</h2>
                 <p class="text-gray-400 mt-2">Step 2: Choose your ISP.</p>
             </header>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">${connectionsHtml}</div>
+            <div class="flex flex-wrap items-center justify-center gap-6">${connectionsHtml}</div>
             <div class="text-center mt-8 reveal"><a href="/plans" class="nav-link-internal text-purple-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back to Plans</a></div>
         </div>`);
 }
