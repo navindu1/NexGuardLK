@@ -1477,7 +1477,7 @@ planDetailsContainer.innerHTML = `
     </div>
 `;
 
-                    const qrContainer = document.getElementById("qrcode-container");
+const qrContainer = document.getElementById("qrcode-container");
                     qrContainer.innerHTML = "";
                     // Create a shorter version of the link for the QR code if the original is too long
 let qrLink = plan.v2rayLink;
