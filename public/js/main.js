@@ -1479,7 +1479,19 @@ planDetailsContainer.innerHTML = `
 
                     const qrContainer = document.getElementById("qrcode-container");
                     qrContainer.innerHTML = "";
-                    new QRCode(qrContainer, { text: plan.v2rayLink, width: 140, height: 140 });
+                    // Create a shorter version of the link for the QR code if the original is too long
+let qrLink = plan.v2rayLink;
+if (qrLink.length > 1024) { // 1024 is a safe length limit for QR codes
+    try {
+        const url = new URL(qrLink);
+        // Shorten the remark ('ps' parameter) to a max of 20 chars for the QR code
+        url.searchParams.set('ps', (plan.v2rayUsername || '').substring(0, 20));
+        qrLink = url.toString();
+    } catch (e) {
+        console.error("Could not shorten V2Ray link for QR Code, using original.", e);
+    }
+}
+new QRCode(qrContainer, { text: qrLink, width: 140, height: 140 });
                     qrContainer.addEventListener('click', () => showQrModal(qrContainer.querySelector('img').src, plan.v2rayUsername));
                     document.getElementById('copy-config-btn').addEventListener('click', () => {
                         navigator.clipboard.writeText(plan.v2rayLink);
