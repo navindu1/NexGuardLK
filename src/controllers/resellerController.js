@@ -82,7 +82,7 @@ exports.createUser = async (req, res) => {
         // Step 4: Fetch connection details from the database securely.
         const { data: connection, error: connError } = await supabase
             .from('connections')
-            .select('*') // Select all details
+            .select('*, packages(*)')// Select all details
             .eq('name', connId)
             .single();
 
@@ -97,8 +97,8 @@ exports.createUser = async (req, res) => {
             if (!pkg) {
                 return res.status(400).json({ success: false, message: 'A package selection is required for this connection type.' });
             }
-            const packageOptions = JSON.parse(connection.package_options || '[]');
-            const selectedPackage = packageOptions.find(p => p.name === pkg);
+            const packageOptions = connection.packages || []; // Use the directly fetched packages array
+const selectedPackage = packageOptions.find(p => p.name === pkg);
             if (!selectedPackage) {
                 return res.status(400).json({ success: false, message: 'Invalid package selected.' });
             }

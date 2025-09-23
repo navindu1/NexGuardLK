@@ -1491,7 +1491,7 @@ planDetailsContainer.innerHTML = `
                                 // REPLACE the old loadUsageStats function with this one
 const loadUsageStats = () => {
     // FIX: Changed "tab-usage-stats" to the correct ID "tab-usage"
-    const usageContainer = document.getElementById("tab-usage"); 
+    const usageContainer = document.getElementById("tab-usage");  
     if (!usageContainer) return; // Failsafe check
     
     usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-purple-400"></i></div>`;
