@@ -511,13 +511,26 @@ document.addEventListener("DOMContentLoaded", () => {
         const header = e.target.closest('.connection-header');
     
         if (button) {
-            const id = button.dataset.id;
-            const connId = button.dataset.connId;
-    
-            if (button.classList.contains('view-receipt-btn')) {
-                modalImage.src = button.dataset.url;
+    const id = button.dataset.id;
+    const connId = button.dataset.connId;
+
+    // --- මෙතැන් සිට වෙනස සිදුකර ඇත ---
+    if (button.classList.contains('view-receipt-btn')) {
+        const receiptUrl = button.dataset.url;
+
+        // URL එකක් තිබේදැයි සහ එය වලංගු දැයි පරීක්ෂා කිරීම
+        if (receiptUrl) {
+            // URL එක .pdf වලින් (case-insensitive) අවසන් වේදැයි පරීක්ෂා කිරීම
+            if (receiptUrl.toLowerCase().endsWith('.pdf')) {
+                // PDF ගොනුවක් නම්, එය නව tab එකක විවෘත කිරීම
+                window.open(receiptUrl, '_blank');
+            } else {
+                // පින්තූරයක් නම්, පවතින modal එකේ පෙන්වීම
+                modalImage.src = receiptUrl;
                 imageModal.classList.add('active');
-            } else if (button.classList.contains('approve-btn')) {
+            }
+        }
+    } else if (button.classList.contains('approve-btn')) {
                 await handleAction(`/orders/approve`, { orderId: id }, 'Order Approved', 'POST', button);
             } else if (button.classList.contains('reject-btn')) {
                 if(confirm('Are you sure you want to reject this order? This will delete the V2Ray user if one was created.')) {
