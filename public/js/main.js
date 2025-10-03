@@ -495,6 +495,38 @@ document.addEventListener("DOMContentLoaded", () => {
             .addEventListener("click", removeToast);
     }
 
+    function showChoiceModal({ title, message, option1Text, option2Text }) {
+        return new Promise((resolve) => {
+            const modalId = `choice-modal-${Date.now()}`;
+            const modalHtml = `
+                <div id="${modalId}" class="fixed inset-0 bg-black/80 justify-center items-center z-[101] flex p-4" style="display: flex;">
+                    <div class="glass-panel p-6 rounded-lg max-w-sm w-full text-center reveal is-visible">
+                        <h3 class="text-xl font-bold text-white font-['Orbitron'] mb-3">${title}</h3>
+                        <p class="text-gray-300 text-sm mb-6">${message}</p>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <button id="${modalId}-opt1" class="ai-button w-full py-2.5 rounded-lg text-sm">${option1Text}</button>
+                            <button id="${modalId}-opt2" class="ai-button secondary w-full py-2.5 rounded-lg text-sm">${option2Text}</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            const modalElement = document.getElementById(modalId);
+            const opt1Button = document.getElementById(`${modalId}-opt1`);
+            const opt2Button = document.getElementById(`${modalId}-opt2`);
+
+            const closeModal = (choice) => {
+                modalElement.remove();
+                resolve(choice);
+            };
+
+            opt1Button.addEventListener('click', () => closeModal('option1'));
+            opt2Button.addEventListener('click', () => closeModal('option2'));
+        });
+    }
+
     function renderHomePage(renderFunc) {
         renderFunc(`
             <div class="page" id="page-home">
@@ -1011,7 +1043,15 @@ function renderCheckoutPage(renderFunc, params) {
                 <i class="fas fa-check-circle text-5xl text-green-400 mb-4"></i>
                 <p class="text-lg text-green-400 font-semibold">Order Submitted!</p>
                 <p class="text-gray-300 mt-2 text-sm">Your order is pending approval. You can check the status on your profile.</p>
-                <a href="/profile?tab=orders" class="nav-link-internal mt-6 inline-block w-full py-2 text-sm font-semibold text-white rounded-lg ai-button">View My Orders</a>
+
+                <p class="text-gray-300 mt-6 text-sm">
+                    අලුත්ම updates, සහය සහ විශේෂ දීමනා සඳහා අපගේ WhatsApp සමූහයට දැන්ම එකතු වන්න!
+                </p>
+                <a href="/profile?tab=orders" class="nav-link-internal mt-4 inline-block w-full py-2 text-sm font-semibold text-white rounded-lg ai-button">View My Orders</a>
+                
+                <a href="https://chat.whatsapp.com/Jaw6FQbQINCE1eMGboSovH" target="_blank" class="nav-link-internal mt-3 inline-block w-full py-2 text-sm font-semibold text-white rounded-lg ai-button secondary">
+                    <i class="fa-brands fa-whatsapp mr-2"></i>Join Premium Group
+                </a>
             </div>
         </div>
     </div>`);
@@ -1989,53 +2029,81 @@ forgotPasswordForm?.addEventListener("submit", async(e) => {
         router();
     };
     
-const router = async () => { 
-    const pathName = window.location.pathname; 
-    const params = new URLSearchParams(window.location.search); 
-    const pathParts = pathName.substring(1).split('/'); 
-    let pageKey = pathParts[0] || 'home'; 
-    if (pageKey === '') pageKey = 'home'; 
-    
-    document.title = pageTitles[pageKey] || 'NexGuardLK STORE';
-    
-    if (userSession && ["login", "signup", "reset-password"].includes(pageKey)) { 
-        navigateTo("/profile"); 
-        return; 
-    } 
-    
-    if (["checkout", "profile", "connections", "package-choice"].includes(pageKey) && !userSession) { 
-        navigateTo("/login"); 
-        return; 
-    } 
-    
-    const renderFunction = allRoutes[pageKey] || allRoutes["home"]; 
-    if (renderFunction) { 
-        mainContentArea.innerHTML = ""; 
-        renderFunction((html) => { 
-            mainContentArea.innerHTML = html; 
-            initAnimations(); 
-        }, params, pageKey); 
-    } 
-    
-    document.querySelectorAll("#main-nav a, #mobile-nav a").forEach((link) => { 
-        const linkPath = link.getAttribute("href")?.split("?")[0].replace('/', ''); 
-        const currentPath = pageKey.split('/')[0]; 
-        const isActive = linkPath === currentPath || (linkPath === 'home' && currentPath === ''); 
-        link.classList.toggle("active", isActive); 
-    }); 
-    
-    const scrollTargetId = params.get('scroll');
-    if (scrollTargetId) {
-        setTimeout(() => {
-            const targetElement = document.getElementById(scrollTargetId);
-            if (targetElement) {
-                targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+const router = async () => {
+        const pathName = window.location.pathname;
+        const params = new URLSearchParams(window.location.search);
+        const pathParts = pathName.substring(1).split('/');
+        let pageKey = pathParts[0] || 'home';
+        if (pageKey === '') pageKey = 'home';
+
+        document.title = pageTitles[pageKey] || 'NexGuardLK STORE';
+
+        if (userSession && ["login", "signup", "reset-password"].includes(pageKey)) {
+            navigateTo("/profile");
+            return;
+        }
+
+        if (["checkout", "profile", "connections", "package-choice"].includes(pageKey) && !userSession) {
+            navigateTo("/login");
+            return;
+        }
+
+        // START: NEW LOGIC FOR RENEWAL
+        if (pageKey === 'plans' && userSession) {
+            try {
+                const res = await apiFetch("/api/user/status");
+                const data = await res.json();
+
+                if (data.status === "approved" && data.activePlans?.length > 0) {
+                    const choice = await showChoiceModal({
+                        title: "Renew or Buy New?",
+                        message: "You already have an active plan. Would you like to renew it or purchase a completely new plan?",
+                        option1Text: "Renew / Change Plan",
+                        option2Text: "Buy a New Plan"
+                    });
+
+                    if (choice === 'option1') {
+                        // For now, redirect to profile to handle renewal. We will improve this in the next step.
+                        navigateTo('/profile'); 
+                        return; // Stop further execution
+                    }
+                    // If 'option2' (Buy New), continue to render plans page below
+                }
+            } catch (error) {
+                console.error("Could not check user status for renewal flow:", error);
+                // If there's an error, just show the plans page as normal
             }
-        }, 100); 
-    } else {
-        window.scrollTo(0, 0); 
-    }
-};
+        }
+        // END: NEW LOGIC FOR RENEWAL
+
+        const renderFunction = allRoutes[pageKey] || allRoutes["home"];
+        if (renderFunction) {
+            mainContentArea.innerHTML = "";
+            renderFunction((html) => {
+                mainContentArea.innerHTML = html;
+                initAnimations();
+            }, params, pageKey);
+        }
+
+        document.querySelectorAll("#main-nav a, #mobile-nav a").forEach((link) => {
+            const linkPath = link.getAttribute("href")?.split("?")[0].replace('/', '');
+            const currentPath = pageKey.split('/')[0];
+            const isActive = linkPath === currentPath || (linkPath === 'home' && currentPath === '');
+            link.classList.toggle("active", isActive);
+        });
+
+        const scrollTargetId = params.get('scroll');
+        if (scrollTargetId) {
+            setTimeout(() => {
+                const targetElement = document.getElementById(scrollTargetId);
+                if (targetElement) {
+                    targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 100);
+        } else {
+            window.scrollTo(0, 0);
+        }
+    };
     
     window.addEventListener("popstate", router);
     document.addEventListener("click", (e) => { 
