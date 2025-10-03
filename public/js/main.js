@@ -885,15 +885,15 @@ document.addEventListener("DOMContentLoaded", () => {
                     <p class="text-gray-400 mt-2">You have an active plan. What would you like to do next?</p>
                 </header>
                 <div id="choice-container" class="flex flex-col sm:flex-row items-center justify-center gap-6">
-                    <div id="renew-choice-card" class="card reveal selectable glass-panel p-8 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-80 cursor-pointer">
-                        <i class="fa-solid fa-arrows-rotate text-4xl gradient-text mb-4"></i>
-                        <h3 class="text-xl font-bold text-white">Renew / Change Plan</h3>
-                        <p class="text-gray-400 mt-2 text-sm">Renew your existing plan or upgrade to a new one.</p>
+                    <div id="renew-choice-card" class="card reveal selectable glass-panel p-6 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-72 cursor-pointer">
+                        <i class="fa-solid fa-arrows-rotate text-3xl gradient-text mb-3"></i>
+                        <h3 class="text-lg font-bold text-white">Renew / Change Plan</h3>
+                        <p class="text-gray-400 mt-1 text-xs">Renew your existing plan or upgrade to a new one.</p>
                     </div>
-                    <div id="buy-new-choice-card" class="card reveal selectable glass-panel p-8 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-80 cursor-pointer">
-                        <i class="fa-solid fa-plus text-4xl gradient-text mb-4"></i>
-                        <h3 class="text-xl font-bold text-white">Buy a New Plan</h3>
-                        <p class="text-gray-400 mt-2 text-sm">Purchase a completely separate, additional plan.</p>
+                    <div id="buy-new-choice-card" class="card reveal selectable glass-panel p-6 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-72 cursor-pointer">
+                        <i class="fa-solid fa-plus text-3xl gradient-text mb-3"></i>
+                        <h3 class="text-lg font-bold text-white">Buy a New Plan</h3>
+                        <p class="text-gray-400 mt-1 text-xs">Purchase a completely separate, additional plan.</p>
                     </div>
                 </div>
             </div>
@@ -2091,6 +2091,17 @@ const router = async () => {
 
         document.title = pageTitles[pageKey] || 'NexGuardLK STORE';
 
+        // Immediately update active nav link
+        document.querySelectorAll("#main-nav a, #mobile-nav a").forEach((link) => {
+            const linkPath = link.getAttribute("href")?.split("?")[0].replace('/', '');
+            const currentPath = pageKey.split('/')[0];
+            const isActive = linkPath === currentPath || (linkPath === 'home' && currentPath === '');
+            link.classList.toggle("active", isActive);
+        });
+        
+        // Scroll to top by default
+        window.scrollTo(0, 0);
+
         if (userSession && ["login", "signup", "reset-password"].includes(pageKey)) {
             navigateTo("/profile");
             return;
@@ -2101,28 +2112,41 @@ const router = async () => {
             return;
         }
         
-        // START: MODIFIED LOGIC FOR RENEWAL
-        // Check if the user is on the plans page and doesn't have the 'new=true' param
+        // START: MODIFIED LOGIC FOR INSTANT LOADING
         if (pageKey === 'plans' && userSession && params.get('new') !== 'true') {
+            // Step 1: Immediately render a loading spinner
+            mainContentArea.innerHTML = `<div class="text-center p-10"><i class="fa-solid fa-spinner fa-spin text-3xl text-purple-400"></i></div>`;
+
             try {
+                // Step 2: Fetch data in the background
                 const res = await apiFetch("/api/user/status");
                 if (!res.ok) throw new Error('Failed to fetch user status');
                 const data = await res.json();
 
+                // Step 3: Render the correct content based on data
                 if (data.status === "approved" && data.activePlans?.length > 0) {
-                    // User has plans, so show the choice page instead of the plan list
                     renderPlanChoicePage((html) => {
                         mainContentArea.innerHTML = html;
                         initAnimations();
                     }, data.activePlans);
-                    return; // Stop further execution to prevent rendering the plan list
+                } else {
+                    // If no active plans, render the normal plan list
+                    renderPlansPage((html) => {
+                        mainContentArea.innerHTML = html;
+                        initAnimations();
+                    });
                 }
             } catch (error) {
                 console.error("Could not check user status for renewal flow:", error);
-                // If there's an error, just continue to show the plans page as normal
+                // If there's an error, just show the plans page as normal
+                renderPlansPage((html) => {
+                    mainContentArea.innerHTML = html;
+                    initAnimations();
+                });
             }
+            return; // Stop further execution
         }
-        // END: MODIFIED LOGIC FOR RENEWAL
+        // END: MODIFIED LOGIC FOR INSTANT LOADING
 
         const renderFunction = allRoutes[pageKey] || allRoutes["home"];
         if (renderFunction) {
@@ -2133,13 +2157,6 @@ const router = async () => {
             }, params, pageKey);
         }
 
-        document.querySelectorAll("#main-nav a, #mobile-nav a").forEach((link) => {
-            const linkPath = link.getAttribute("href")?.split("?")[0].replace('/', '');
-            const currentPath = pageKey.split('/')[0];
-            const isActive = linkPath === currentPath || (linkPath === 'home' && currentPath === '');
-            link.classList.toggle("active", isActive);
-        });
-
         const scrollTargetId = params.get('scroll');
         if (scrollTargetId) {
             setTimeout(() => {
@@ -2148,8 +2165,6 @@ const router = async () => {
                     targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
             }, 100);
-        } else {
-            window.scrollTo(0, 0);
         }
     };
     
