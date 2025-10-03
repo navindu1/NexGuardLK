@@ -503,9 +503,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     <div class="glass-panel p-6 rounded-lg max-w-sm w-full text-center reveal is-visible">
                         <h3 class="text-xl font-bold text-white font-['Orbitron'] mb-3">${title}</h3>
                         <p class="text-gray-300 text-sm mb-6">${message}</p>
-                        <div class="flex flex-col sm:flex-row gap-3">
-                            <button id="${modalId}-opt1" class="ai-button w-full py-2.5 rounded-lg text-sm">${option1Text}</button>
-                            <button id="${modalId}-opt2" class="ai-button secondary w-full py-2.5 rounded-lg text-sm">${option2Text}</button>
+                        <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+                            <button id="${modalId}-opt1" class="ai-button py-2 px-6 rounded-lg text-sm">${option1Text}</button>
+                            <button id="${modalId}-opt2" class="ai-button secondary py-2 px-6 rounded-lg text-sm">${option2Text}</button>
                         </div>
                     </div>
                 </div>
@@ -864,7 +864,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                 `<li><i class="fa-solid fa-check text-green-400 mr-2"></i>${f}</li>`
                         )
                         .join("")}</ul>
-                    <a href="/connections?planId=${key}" class="nav-link-internal mt-6 inline-block w-full py-2 text-sm font-semibold text-white rounded-lg ai-button">Select Plan</a>
+                    <a href="/connections?planId=${key}" class="nav-link-internal mt-6 inline-block px-8 py-2 text-sm font-semibold text-white rounded-lg ai-button">Select Plan</a>
                 </div>`
             )
             .join("");
