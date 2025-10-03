@@ -526,6 +526,48 @@ document.addEventListener("DOMContentLoaded", () => {
             opt2Button.addEventListener('click', () => closeModal('option2'));
         });
     }
+    // NEW FUNCTION FOR SELECTING A PLAN FROM A MODAL
+    function showPlanSelectorModal(activePlans) {
+        return new Promise((resolve) => {
+            const modalId = `plan-selector-modal-${Date.now()}`;
+            const options = activePlans.map((p, index) => `<option value="${index}">${p.v2rayUsername}</option>`).join('');
+
+            const modalHtml = `
+                <div id="${modalId}" class="fixed inset-0 bg-black/80 justify-center items-center z-[101] flex p-4" style="display: flex;">
+                    <div class="glass-panel p-6 rounded-lg max-w-sm w-full text-center reveal is-visible">
+                        <h3 class="text-xl font-bold text-white font-['Orbitron'] mb-3">Select a Plan to Renew</h3>
+                        <div class="my-6">
+                            <select id="multi-plan-selector" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">${options}</select>
+                        </div>
+                        <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+                            <button id="${modalId}-opt1" class="ai-button py-2 px-6 rounded-lg text-sm">Continue</button>
+                            <button id="${modalId}-opt2" class="ai-button secondary py-2 px-6 rounded-lg text-sm">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            const modalElement = document.getElementById(modalId);
+            const opt1Button = document.getElementById(`${modalId}-opt1`);
+            const opt2Button = document.getElementById(`${modalId}-opt2`);
+            const selector = document.getElementById('multi-plan-selector');
+
+            const closeModal = (choice) => {
+                let selectedPlan = null;
+                if (choice === 'option1') {
+                    const selectedIndex = selector.value;
+                    selectedPlan = activePlans[selectedIndex];
+                }
+                modalElement.remove();
+                resolve(selectedPlan); // Resolve with the selected plan object or null
+            };
+
+            opt1Button.addEventListener('click', () => closeModal('option1'));
+            opt2Button.addEventListener('click', () => closeModal('option2'));
+        });
+    }
 
     function renderHomePage(renderFunc) {
         renderFunc(`
@@ -910,39 +952,38 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function handleRenewalChoice(activePlans, specificPlan = null) {
-        const planToRenew = specificPlan || activePlans[0];
+        let planToRenew = specificPlan;
 
-        // If user has multiple plans and hasn't chosen one from profile page yet
+        // If a specific plan isn't provided and the user has multiple plans, show the new selector modal
         if (!specificPlan && activePlans.length > 1) {
-            const options = activePlans.map((p, index) => `<option value="${index}">${p.v2rayUsername}</option>`).join('');
-            
-            const choiceModal = await showChoiceModal({
-                title: 'Select a Plan to Renew',
-                message: `<select id="multi-plan-selector" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm">${options}</select>`,
-                option1Text: 'Continue',
-                option2Text: 'Cancel'
-            });
-
-            if(choiceModal === 'option1') {
-                const selectedIndex = document.getElementById('multi-plan-selector').value;
-                handleRenewalChoice(activePlans, activePlans[selectedIndex]);
+            const chosenPlan = await showPlanSelectorModal(activePlans);
+            if (chosenPlan) {
+                planToRenew = chosenPlan; // User selected a plan, so we can proceed
+            } else {
+                return; // User cancelled, so do nothing
             }
-            return;
         }
         
-        // Now we have a specific plan to work with (planToRenew)
-        const choice = await showChoiceModal({
-            title: `Renew: ${planToRenew.v2rayUsername}`,
-            message: `Do you want to renew your current '${planToRenew.planId}' plan or change to a different one?`,
-            option1Text: 'Renew Current Plan',
-            option2Text: 'Change Plan'
-        });
+        // If there's only one plan, it's assigned to planToRenew automatically
+        if (!planToRenew && activePlans.length === 1) {
+             planToRenew = activePlans[0];
+        }
 
-        if (choice === 'option1') { // Renew Current Plan
-            const checkoutUrl = `/checkout?planId=${planToRenew.planId}&connId=${encodeURIComponent(planToRenew.connId)}&renew=${encodeURIComponent(planToRenew.v2rayUsername)}`;
-            navigateTo(checkoutUrl);
-        } else if (choice === 'option2') { // Change Plan
-            navigateTo('/plans?new=true');
+        // If after all checks we have a plan, ask the next question
+        if (planToRenew) {
+            const choice = await showChoiceModal({
+                title: `Renew: ${planToRenew.v2rayUsername}`,
+                message: `Do you want to renew your current '${planToRenew.planId}' plan or change to a different one?`,
+                option1Text: 'Renew Current Plan',
+                option2Text: 'Change Plan'
+            });
+
+            if (choice === 'option1') { // Renew Current Plan
+                const checkoutUrl = `/checkout?planId=${planToRenew.planId}&connId=${encodeURIComponent(planToRenew.connId)}&renew=${encodeURIComponent(planToRenew.v2rayUsername)}`;
+                navigateTo(checkoutUrl);
+            } else if (choice === 'option2') { // Change Plan
+                navigateTo('/plans?new=true');
+            }
         }
     }
 
