@@ -1045,14 +1045,15 @@ function renderCheckoutPage(renderFunc, params) {
                 <p class="text-gray-300 mt-2 text-sm">Your order is pending approval. You can check the status on your profile.</p>
 
                 <p class="text-gray-300 mt-6 text-sm">
-                    අලුත්ම updates, සහය සහ විශේෂ දීමනා සඳහා අපගේ WhatsApp සමූහයට දැන්ම එකතු වන්න!
+                    Join our WhatsApp group for the latest updates, support, and special offers!
                 </p>
-                <a href="/profile?tab=orders" class="nav-link-internal mt-4 inline-block w-full py-2 text-sm font-semibold text-white rounded-lg ai-button">View My Orders</a>
-                
-                <a href="https://chat.whatsapp.com/Jaw6FQbQINCE1eMGboSovH" target="_blank" class="nav-link-internal mt-3 inline-block w-full py-2 text-sm font-semibold text-white rounded-lg ai-button secondary">
-                    <i class="fa-brands fa-whatsapp mr-2"></i>Join Premium Group
-                </a>
-            </div>
+                <div class="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <a href="/profile?tab=orders" class="nav-link-internal px-7 py-2 text-sm font-semibold text-white rounded-lg ai-button">View My Orders</a>
+                    <a href="https://chat.whatsapp.com/Jaw6FQbQINCE1eMGboSovH" target="_blank" class="px-7 py-2 text-sm font-semibold text-white rounded-lg ai-button secondary">
+                        <i class="fa-brands fa-whatsapp mr-2"></i>Join Premium Group
+                    </a>
+                </div>
+                </div>
         </div>
     </div>`);
 
