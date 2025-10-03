@@ -877,6 +877,74 @@ document.addEventListener("DOMContentLoaded", () => {
                 <div id="plans-container" class="grid grid-cols-1 md:grid-cols-3 gap-6">${plansHtml}</div>
             </div>`);
     }
+    function renderPlanChoicePage(renderFunc, activePlans) {
+        renderFunc(`
+            <div id="page-plan-choice" class="page">
+                <header class="text-center mb-10 reveal">
+                    <h2 class="text-2xl font-bold text-white">Choose Your Path</h2>
+                    <p class="text-gray-400 mt-2">You have an active plan. What would you like to do next?</p>
+                </header>
+                <div id="choice-container" class="flex flex-col sm:flex-row items-center justify-center gap-6">
+                    <div id="renew-choice-card" class="card reveal selectable glass-panel p-8 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-80 cursor-pointer">
+                        <i class="fa-solid fa-arrows-rotate text-4xl gradient-text mb-4"></i>
+                        <h3 class="text-xl font-bold text-white">Renew / Change Plan</h3>
+                        <p class="text-gray-400 mt-2 text-sm">Renew your existing plan or upgrade to a new one.</p>
+                    </div>
+                    <div id="buy-new-choice-card" class="card reveal selectable glass-panel p-8 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-80 cursor-pointer">
+                        <i class="fa-solid fa-plus text-4xl gradient-text mb-4"></i>
+                        <h3 class="text-xl font-bold text-white">Buy a New Plan</h3>
+                        <p class="text-gray-400 mt-2 text-sm">Purchase a completely separate, additional plan.</p>
+                    </div>
+                </div>
+            </div>
+        `);
+
+        // Event Listeners for the new cards
+        document.getElementById('renew-choice-card')?.addEventListener('click', () => {
+            handleRenewalChoice(activePlans);
+        });
+        document.getElementById('buy-new-choice-card')?.addEventListener('click', () => {
+            // Navigate to plans page, forcing it to show the plan list
+            navigateTo('/plans?new=true');
+        });
+    }
+
+    async function handleRenewalChoice(activePlans, specificPlan = null) {
+        const planToRenew = specificPlan || activePlans[0];
+
+        // If user has multiple plans and hasn't chosen one from profile page yet
+        if (!specificPlan && activePlans.length > 1) {
+            const options = activePlans.map((p, index) => `<option value="${index}">${p.v2rayUsername}</option>`).join('');
+            
+            const choiceModal = await showChoiceModal({
+                title: 'Select a Plan to Renew',
+                message: `<select id="multi-plan-selector" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm">${options}</select>`,
+                option1Text: 'Continue',
+                option2Text: 'Cancel'
+            });
+
+            if(choiceModal === 'option1') {
+                const selectedIndex = document.getElementById('multi-plan-selector').value;
+                handleRenewalChoice(activePlans, activePlans[selectedIndex]);
+            }
+            return;
+        }
+        
+        // Now we have a specific plan to work with (planToRenew)
+        const choice = await showChoiceModal({
+            title: `Renew: ${planToRenew.v2rayUsername}`,
+            message: `Do you want to renew your current '${planToRenew.planId}' plan or change to a different one?`,
+            option1Text: 'Renew Current Plan',
+            option2Text: 'Change Plan'
+        });
+
+        if (choice === 'option1') { // Renew Current Plan
+            const checkoutUrl = `/checkout?planId=${planToRenew.planId}&connId=${encodeURIComponent(planToRenew.connId)}&renew=${encodeURIComponent(planToRenew.v2rayUsername)}`;
+            navigateTo(checkoutUrl);
+        } else if (choice === 'option2') { // Change Plan
+            navigateTo('/plans?new=true');
+        }
+    }
 
 function renderConnectionsPage(renderFunc, params) {
     const planId = params.get("planId");
@@ -1478,34 +1546,18 @@ planDetailsContainer.innerHTML = `
                         });
                     };
 
-                    const updateRenewButton = async() => {
+                    const updateRenewButton = async () => {
                         const container = document.getElementById("renew-button-container");
                         if (!container) return;
+
+                        // Display the "Renew Plan" button directly.
+                        container.innerHTML = `<button id="renew-profile-btn" class="ai-button inline-block py-2 px-6 text-sm rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew Plan</button>`;
                         
-                        container.innerHTML = `<button disabled class="ai-button secondary inline-block py-2 px-6 text-sm rounded-lg !bg-gray-700/50 !text-gray-400 cursor-not-allowed"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking status...</button>`;
-                        try {
-                            const res = await apiFetch(`/api/check-usage/${plan.v2rayUsername}`);
-                            if (!res.ok) throw new Error(`API responded with status ${res.status}`);
-                            const result = await res.json();
-                            if (result.success) {
-                                if (result.data.expiryTime > 0) {
-                                    const expiryDate = new Date(result.data.expiryTime);
-                                    const isExpired = new Date() > expiryDate;
-                                    if (isExpired) {
-                                        container.innerHTML = `<a href="/checkout?planId=${plan.planId}&connId=${plan.connId}&renew=${encodeURIComponent(plan.v2rayUsername)}" class="nav-link-internal ai-button inline-block py-2 px-6 text-sm rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew Plan</a>`;
-                                    } else {
-                                        container.innerHTML = `<button disabled class="ai-button secondary inline-block py-2 px-6 text-sm rounded-lg !bg-gray-700/50 !text-gray-400 cursor-not-allowed">Renew Plan</button>`;
-                                    }
-                                } else {
-                                    container.innerHTML = `<button disabled class="ai-button secondary inline-block py-2 px-6 text-sm rounded-lg !bg-gray-700/50 !text-gray-400 cursor-not-allowed">Does not expire</button>`;
-                                }
-                            } else {
-                                container.innerHTML = `<p class="text-xs text-amber-400">${result.message || 'Could not verify plan expiry status.'}</p>`;
-                            }
-                        } catch (error) {
-                            console.error('Error fetching plan status for renewal:', error);
-                            container.innerHTML = `<p class="text-xs text-red-400">Error checking status. Please refresh.</p>`;
-                        }
+                        // Add an event listener to the new button.
+                        document.getElementById('renew-profile-btn').addEventListener('click', () => {
+                            // When clicked, call the new handler function with the user's active plans and the currently selected plan.
+                            handleRenewalChoice(data.activePlans, plan);
+                        });
                     };
 
                     const loadMyOrders = async () => {
@@ -2048,34 +2100,29 @@ const router = async () => {
             navigateTo("/login");
             return;
         }
-
-        // START: NEW LOGIC FOR RENEWAL
-        if (pageKey === 'plans' && userSession) {
+        
+        // START: MODIFIED LOGIC FOR RENEWAL
+        // Check if the user is on the plans page and doesn't have the 'new=true' param
+        if (pageKey === 'plans' && userSession && params.get('new') !== 'true') {
             try {
                 const res = await apiFetch("/api/user/status");
+                if (!res.ok) throw new Error('Failed to fetch user status');
                 const data = await res.json();
 
                 if (data.status === "approved" && data.activePlans?.length > 0) {
-                    const choice = await showChoiceModal({
-                        title: "Renew or Buy New?",
-                        message: "You already have an active plan. Would you like to renew it or purchase a completely new plan?",
-                        option1Text: "Renew / Change Plan",
-                        option2Text: "Buy a New Plan"
-                    });
-
-                    if (choice === 'option1') {
-                        // For now, redirect to profile to handle renewal. We will improve this in the next step.
-                        navigateTo('/profile'); 
-                        return; // Stop further execution
-                    }
-                    // If 'option2' (Buy New), continue to render plans page below
+                    // User has plans, so show the choice page instead of the plan list
+                    renderPlanChoicePage((html) => {
+                        mainContentArea.innerHTML = html;
+                        initAnimations();
+                    }, data.activePlans);
+                    return; // Stop further execution to prevent rendering the plan list
                 }
             } catch (error) {
                 console.error("Could not check user status for renewal flow:", error);
-                // If there's an error, just show the plans page as normal
+                // If there's an error, just continue to show the plans page as normal
             }
         }
-        // END: NEW LOGIC FOR RENEWAL
+        // END: MODIFIED LOGIC FOR RENEWAL
 
         const renderFunction = allRoutes[pageKey] || allRoutes["home"];
         if (renderFunction) {
