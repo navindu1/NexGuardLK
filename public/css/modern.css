@@ -76,7 +76,7 @@ body.modal-open {
   transition: all 0.5s ease;
   overflow: hidden;
   font-family: "Orbitron", sans-serif;
-  border-radius: 1rem;; /* Fully rounded */
+  border-radius: 9999px; /* Fully rounded */
 }
 
 .ai-button:hover:not(:disabled) {
@@ -98,7 +98,7 @@ body.modal-open {
   color: #a0aec0;
   transition: all 0.3s;
   padding: 4px 8px;
-  border-radius: 1rem;; /* Fully rounded */
+  border-radius: 9999px; /* Fully rounded */
 }
 
 .nav-link.active,
@@ -188,7 +188,7 @@ body.modal-open {
   padding: 14px 12px 0 12px;
   transition: 0.4s;
   outline: none;
-  border-radius: 1rem;; /* Fully rounded */
+  border-radius: 9999px; /* Fully rounded */
 }
 
 .form-label {
@@ -218,7 +218,7 @@ body.modal-open {
   height: 2px;
   background-color: var(--brand-purple);
   transition: 0.4s;
-  border-radius: 1rem;; /* Fully rounded */
+  border-radius: 9999px; /* Fully rounded */
 }
 
 .form-input ~ .focus-border:after {
@@ -244,7 +244,7 @@ body.modal-open {
 }
 
 .navbar {
-  border-radius: 1rem;
+  border-radius: 9999px
 }
 
 .form-input:focus ~ .focus-border:before,
