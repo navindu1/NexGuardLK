@@ -118,8 +118,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
-    // --- RENDER FUNCTIONS ---
-    function renderOrders(status) {
+function renderOrders(status) {
         contentTitle.textContent = `${status.charAt(0).toUpperCase() + status.slice(1)} Orders`;
         searchBarContainer.classList.add('hidden');
         addNewBtn.classList.add('hidden');
@@ -129,14 +128,30 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
         contentContainer.innerHTML = orders.map(order => {
+            // START: NEW LOGIC FOR ORDER TYPE
+            let orderType, typeColor;
+            if (order.old_v2ray_username) {
+                orderType = 'Change';
+                typeColor = 'text-orange-400';
+            } else if (order.is_renewal) {
+                orderType = 'Renew';
+                typeColor = 'text-blue-400';
+            } else {
+                orderType = 'New';
+                typeColor = 'text-green-400';
+            }
+            // END: NEW LOGIC FOR ORDER TYPE
+
             const finalUsernameHtml = order.final_username 
                 ? `<div><span class="font-bold text-slate-400 text-xs">V2Ray User</span><p class="text-purple-300">${order.final_username}</p></div>`
                 : '';
+
             return `
-                <div class="glass-panel p-4 rounded-lg grid grid-cols-2 md:grid-cols-6 gap-4 items-center">
+                <div class="glass-panel p-4 rounded-lg grid grid-cols-2 md:grid-cols-7 gap-4 items-center">
                     <div><span class="font-bold text-slate-400 text-xs">User</span><p>${order.website_username}</p></div>
                     <div><span class="font-bold text-slate-400 text-xs">Plan</span><p>${order.plan_id}</p></div>
-                    ${status === 'approved' ? finalUsernameHtml : `<div><span class="font-bold text-slate-400 text-xs">Type</span><p>${order.is_renewal ? 'Renewal' : 'New'}</p></div>`}
+                    <div><span class="font-bold text-slate-400 text-xs">Connection</span><p>${order.conn_id || 'N/A'}</p></div>
+                    <div><span class="font-bold text-slate-400 text-xs">Type</span><p class="font-bold ${typeColor}">${orderType}</p></div>
                     <div><span class="font-bold text-slate-400 text-xs">Submitted</span><p>${new Date(order.created_at).toLocaleString()}</p></div>
                     <div class="flex gap-2"><button class="btn btn-view view-receipt-btn" data-url="${order.receipt_path}"><i class="fa-solid fa-receipt"></i> View</button></div>
                     <div class="flex gap-2 items-center justify-end">

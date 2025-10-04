@@ -6,7 +6,8 @@ const { generateEmailTemplate, generateOrderPlacedEmailContent } = require('../s
 const { v4: uuidv4 } = require('uuid');
 
 exports.createOrder = async (req, res) => {
-    const { planId, connId, pkg, whatsapp, username, isRenewal } = req.body;
+    // ADD 'old_v2ray_username' to the destructured variables
+    const { planId, connId, pkg, whatsapp, username, isRenewal, old_v2ray_username } = req.body;
     
     if (!planId || !connId || !whatsapp || !username || !req.file) {
         return res.status(400).json({
@@ -101,6 +102,7 @@ exports.createOrder = async (req, res) => {
             receipt_path: publicUrl,
             status: "pending",
             is_renewal: isRenewal === "true",
+            old_v2ray_username: old_v2ray_username || null, // ADD THIS LINE
             inbound_id: parseInt(inboundId, 10),
             vless_template: vlessTemplate,
             price: orderPrice
@@ -109,15 +111,12 @@ exports.createOrder = async (req, res) => {
         const { error: orderError } = await supabase.from("orders").insert([newOrder]);
         if (orderError) throw orderError;
         
-        // --- START: ADDED CODE ---
-        // Fetch user's email for notification
         const { data: websiteUser } = await supabase
             .from("users")
             .select("email, username")
             .eq("username", req.user.username)
             .single();
             
-        // Send email if the user has one
         if (websiteUser && websiteUser.email) {
             const mailOptions = {
                 from: `NexGuard Orders <${process.env.EMAIL_SENDER}>`,
@@ -132,15 +131,12 @@ exports.createOrder = async (req, res) => {
             transporter.sendMail(mailOptions).catch(err => console.error(`FAILED to send order placed email:`, err));
         }
 
-        // Send a success response back to the browser
         res.status(201).json({ success: true, message: "Order placed successfully! It is now pending approval." });
-        // --- END: ADDED CODE ---
         
     } catch (error) {
         console.error("Error creating order:", error.message);
-        // Delete the uploaded file if order creation fails after upload
         if (req.file && error.message !== "Failed to upload the receipt file.") {
-            const fileName = `receipt-${req.file.filename.split('-')[1]}`; // Reconstruct filename if needed
+            const fileName = `receipt-${req.file.filename.split('-')[1]}`; 
             supabase.storage.from('receipts').remove([fileName]).catch(removeError => {
                 console.error("Failed to rollback receipt upload:", removeError.message);
             });

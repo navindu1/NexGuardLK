@@ -13,8 +13,8 @@ const planConfig = {
     "Unlimited": { totalGB: 0 },
 };
 
-// --- CHANGED FUNCTION SIGNATURE ---
-// 'isAutoConfirm' parameter added to distinguish between auto and manual actions.
+// File: src/services/orderService.js
+
 exports.approveOrder = async (orderId, isAutoConfirm = false) => {
     let finalUsername = '';
     let createdV2rayClient = null;
@@ -23,8 +23,22 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
         const { data: order, error: orderError } = await supabase.from("orders").select("*").eq("id", orderId).single();
         if (orderError || !order) return { success: false, message: "Order not found." };
         
-        // --- CHANGED LOGIC: Allow processing if pending OR unconfirmed ---
         if (order.status === 'approved') return { success: false, message: "Order is already approved." };
+
+        // START: ADDED LOGIC FOR "CHANGE PLAN"
+        if (order.old_v2ray_username && order.status === 'pending') {
+            console.log(`[Change Plan] Deleting old V2Ray user: ${order.old_v2ray_username}`);
+            try {
+                const oldClientData = await v2rayService.findV2rayClient(order.old_v2ray_username);
+                if (oldClientData) {
+                    await v2rayService.deleteClient(oldClientData.inboundId, oldClientData.client.id);
+                    console.log(`[Change Plan] Successfully deleted old user: ${order.old_v2ray_username}`);
+                }
+            } catch (deleteError) {
+                console.error(`[Change Plan] Failed to delete old V2Ray user ${order.old_v2ray_username}. Continuing with new user creation. Error: ${deleteError.message}`);
+            }
+        }
+        // END: ADDED LOGIC
 
         const inboundId = order.inbound_id;
         const vlessTemplate = order.vless_template;
@@ -48,7 +62,6 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
         
         let clientLink;
         
-        // --- NEW: Only create/update V2Ray user if it's the first step (when status is 'pending') ---
         if (order.status === 'pending') {
             if (order.is_renewal) {
                 const clientInPanel = await v2rayService.findV2rayClient(order.username);
@@ -81,39 +94,40 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                 clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientSettings);
             }
         
+            // START: MODIFIED LOGIC FOR UPDATING USER'S ACTIVE PLANS
             let updatedActivePlans = websiteUser.active_plans || [];
-            const planIndex = updatedActivePlans.findIndex(p => p.v2rayUsername.toLowerCase() === order.username.toLowerCase());
-            
+            const planIndex = order.old_v2ray_username 
+                ? updatedActivePlans.findIndex(p => p.v2rayUsername.toLowerCase() === order.old_v2ray_username.toLowerCase())
+                : updatedActivePlans.findIndex(p => p.v2rayUsername.toLowerCase() === order.username.toLowerCase());
+
             const newPlanDetails = {
                 v2rayUsername: finalUsername, v2rayLink: clientLink, planId: order.plan_id, connId: order.conn_id,
                 activatedAt: new Date().toISOString(), orderId: order.id,
             };
 
-            if (order.is_renewal && planIndex !== -1) {
-                updatedActivePlans[planIndex] = { ...updatedActivePlans[planIndex], ...newPlanDetails };
+            if (planIndex !== -1) {
+                updatedActivePlans[planIndex] = newPlanDetails;
             } else {
                 updatedActivePlans.push(newPlanDetails);
             }
-            
+            // END: MODIFIED LOGIC
+
             await supabase.from("users").update({ active_plans: updatedActivePlans }).eq("id", websiteUser.id);
         } else {
-            // If the order is already 'unconfirmed', the user and V2Ray client exist. We just need to find the link.
             const existingPlan = websiteUser.active_plans.find(p => p.orderId === order.id);
             clientLink = existingPlan ? existingPlan.v2rayLink : '#';
             finalUsername = order.final_username;
         }
 
-        // --- CHANGED LOGIC: Determine the final status based on the function call ---
         const finalStatus = isAutoConfirm ? 'unconfirmed' : 'approved';
 
         await supabase.from("orders").update({
             status: finalStatus,
             final_username: finalUsername,
-            approved_at: finalStatus === 'approved' ? new Date().toISOString() : null, // Only set approved_at on final approval
-            auto_approved: order.auto_approved || isAutoConfirm // Preserve the auto_approved flag
+            approved_at: finalStatus === 'approved' ? new Date().toISOString() : null,
+            auto_approved: order.auto_approved || isAutoConfirm 
         }).eq("id", orderId);
 
-        // --- CHANGED LOGIC: Only send the approval email on final 'approved' status ---
         if (finalStatus === 'approved' && websiteUser.email) {
             const mailOptions = { from: `NexGuard Orders <${process.env.EMAIL_SENDER}>`, to: websiteUser.email, subject: `Your NexGuard Plan is ${order.is_renewal ? "Renewed" : "Activated"}!`, html: generateEmailTemplate( `Plan ${order.is_renewal ? "Renewed" : "Activated"}!`, `Your ${order.plan_id} plan is ready.`, generateApprovalEmailContent(websiteUser.username, order.plan_id, finalUsername))};
             transporter.sendMail(mailOptions).catch(error => console.error(`FAILED to send approval email:`, error));

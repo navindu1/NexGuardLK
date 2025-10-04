@@ -1,4 +1,4 @@
-// public/js/main.js - FULLY UPDATED FOR UNIFIED BUTTONS
+// public/js/main.js - FULLY UPDATED FOR "CHANGE PLAN" & ALL PREVIOUS FIXES
 
 document.addEventListener("DOMContentLoaded", () => {
     // Initialize Vanta.js animated background
@@ -80,7 +80,7 @@ document.addEventListener("DOMContentLoaded", () => {
         plans: {
             "100GB": { name: "100GB Plan", price: "300", features: ["High-Speed Connection", "Optimal for Streaming", "30-Day Validity"] },
             "200GB": { name: "200GB Plan", price: "500", features: ["Ultra-Fast Speeds", "Perfect for Gaming", "30-Day Validity"] },
-            Unlimited: { name: "Unlimited Plan", price: "800", features: ["No Data Caps", "Ultimate Freedom", "Best for Power Users"] },
+            "Unlimited": { name: "Unlimited Plan", price: "800", features: ["No Data Caps", "Ultimate Freedom", "Best for Power Users"] },
         },
         bankDetails: `Name: N.R Lekamge\nBank: BOC Bank\nBranch: Eheliyagoda\nAccount Number: 93129972`.trim(),
     };
@@ -529,7 +529,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // NEW FUNCTION FOR SELECTING A PLAN FROM A MODAL
     function showPlanSelectorModal(activePlans) {
         return new Promise((resolve) => {
             const modalId = `plan-selector-modal-${Date.now()}`;
@@ -564,7 +563,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     selectedPlan = activePlans[selectedIndex];
                 }
                 modalElement.remove();
-                resolve(selectedPlan); // Resolve with the selected plan object or null
+                resolve(selectedPlan); 
             };
 
             opt1Button.addEventListener('click', () => closeModal('option1'));
@@ -598,33 +597,32 @@ document.addEventListener("DOMContentLoaded", () => {
                         <img src="/assets/image.jpg" alt="V2Ray on a laptop" class="rounded-xl shadow-2xl shadow-purple-500/20 w-full h-auto object-cover">
                     </div>
                     <div class="w-full lg:w-1/2 text-center lg:text-left px-4">
-        <h2 class="text-2xl md:text-3xl font-bold text-white mb-4">How to Get Started?</h2>
-        <p class="text-gray-300 mb-6 text-sm md:text-base">Connecting is simple. Just follow these three easy steps to unlock true internet freedom.</p>
-        <div class="space-y-4">
-            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500/30 flex items-center justify-center font-bold text-purple-300">1</div>
-                <div>
-                    <h3 class="font-semibold text-white text-left sm:text-left">Choose a Plan</h3>
-                    <p class="text-gray-400 text-sm text-left sm:text-left">Select a data plan that fits your needs and pick your internet provider (ISP).</p>
-                </div>
-            </div>
-            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500/30 flex items-center justify-center font-bold text-purple-300">2</div>
-                <div>
-                    <h3 class="font-semibold text-white text-left sm:text-left">Make the Payment</h3>
-                    <p class="text-gray-400 text-sm text-left sm:text-left">Complete the payment via bank transfer and submit the receipt through our checkout page.</p>
-                </div>
-            </div>
-            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500/30 flex items-center justify-center font-bold text-purple-300">3</div>
-                <div>
-                    <h3 class="font-semibold text-white text-left sm:text-left">Get Approved & Connect</h3>
-                    <p class="text-gray-400 text-sm text-left sm:text-left">Your order will be approved by an admin. You'll receive the config link via WhatsApp to connect!</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
+                        <h2 class="text-2xl md:text-3xl font-bold text-white mb-4">How to Get Started?</h2>
+                        <p class="text-gray-300 mb-6 text-sm md:text-base">Connecting is simple. Just follow these three easy steps to unlock true internet freedom.</p>
+                        <div class="space-y-4">
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500/30 flex items-center justify-center font-bold text-purple-300">1</div>
+                                <div>
+                                    <h3 class="font-semibold text-white text-left sm:text-left">Choose a Plan</h3>
+                                    <p class="text-gray-400 text-sm text-left sm:text-left">Select a data plan that fits your needs and pick your internet provider (ISP).</p>
+                                </div>
+                            </div>
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500/30 flex items-center justify-center font-bold text-purple-300">2</div>
+                                <div>
+                                    <h3 class="font-semibold text-white text-left sm:text-left">Make the Payment</h3>
+                                    <p class="text-gray-400 text-sm text-left sm:text-left">Complete the payment via bank transfer and submit the receipt through our checkout page.</p>
+                                </div>
+                            </div>
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500/30 flex items-center justify-center font-bold text-purple-300">3</div>
+                                <div>
+                                    <h3 class="font-semibold text-white text-left sm:text-left">Get Approved & Connect</h3>
+                                    <p class="text-gray-400 text-sm text-left sm:text-left">Your order will be approved by an admin. You'll receive the config link via WhatsApp to connect!</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>`);
     }
@@ -893,35 +891,8 @@ document.addEventListener("DOMContentLoaded", () => {
             
         }, 100);
     }
-
-    function renderPlansPage(renderFunc) {
-        let plansHtml = Object.entries(appData.plans)
-            .map(
-                ([key, plan]) => `
-                <div class="card reveal glass-panel p-5 rounded-xl text-center flex flex-col">
-                    <h3 class="text-xl font-bold gradient-text">${plan.name}</h3>
-                    <p class="text-3xl font-bold my-3">LKR. ${
-                        plan.price
-                    }<span class="text-base font-normal text-gray-400">/ month</span></p>
-                    <ul class="space-y-2 text-gray-300 text-sm text-left my-4 flex-grow">${plan.features
-                        .map(
-                            (f) =>
-                                `<li><i class="fa-solid fa-check text-green-400 mr-2"></i>${f}</li>`
-                        )
-                        .join("")}</ul>
-                    <a href="/connections?planId=${key}" class="nav-link-internal mt-6 inline-block ai-button rounded-lg">Select Plan</a>
-                </div>`
-            )
-            .join("");
-        renderFunc(`
-            <div id="page-plans" class="page">
-                <header class="text-center mb-10 reveal">
-                    <h2 class="text-2xl font-bold text-white">Our V2Ray Plans</h2>
-                    <p class="text-gray-400 mt-2">Step 1: Choose your desired data package.</p>
-                </header>
-                <div id="plans-container" class="grid grid-cols-1 md:grid-cols-3 gap-6">${plansHtml}</div>
-            </div>`);
-    }
+    
+    // START: ALL FUNCTIONS BELOW ARE UPDATED FOR "CHANGE PLAN" & UNIFIED BUTTONS
 
     function renderPlanChoicePage(renderFunc, activePlans) {
         renderFunc(`
@@ -958,22 +929,19 @@ document.addEventListener("DOMContentLoaded", () => {
     async function handleRenewalChoice(activePlans, specificPlan = null) {
         let planToRenew = specificPlan;
 
-        // If a specific plan isn't provided and the user has multiple plans, show the new selector modal
         if (!specificPlan && activePlans.length > 1) {
             const chosenPlan = await showPlanSelectorModal(activePlans);
             if (chosenPlan) {
-                planToRenew = chosenPlan; // User selected a plan, so we can proceed
+                planToRenew = chosenPlan; 
             } else {
-                return; // User cancelled, so do nothing
+                return; 
             }
         }
         
-        // If there's only one plan, it's assigned to planToRenew automatically
         if (!planToRenew && activePlans.length === 1) {
              planToRenew = activePlans[0];
         }
 
-        // If after all checks we have a plan, ask the next question
         if (planToRenew) {
             const choice = await showChoiceModal({
                 title: `Renew: ${planToRenew.v2rayUsername}`,
@@ -986,78 +954,111 @@ document.addEventListener("DOMContentLoaded", () => {
                 const checkoutUrl = `/checkout?planId=${planToRenew.planId}&connId=${encodeURIComponent(planToRenew.connId)}&renew=${encodeURIComponent(planToRenew.v2rayUsername)}`;
                 navigateTo(checkoutUrl);
             } else if (choice === 'option2') { // Change Plan
-                navigateTo('/plans?new=true');
+                navigateTo(`/plans?change=${encodeURIComponent(planToRenew.v2rayUsername)}`);
             }
         }
     }
 
+    function renderPlansPage(renderFunc, params) {
+        const userToChange = params.get("change");
+        const changeQuery = userToChange ? `&change=${encodeURIComponent(userToChange)}` : '';
 
-function renderConnectionsPage(renderFunc, params) {
-    const planId = params.get("planId");
-    if (!planId || !appData.plans[planId]) {
-        renderFunc('<div class="page text-center"><p class="text-red-400">Invalid plan selection.</p><a href="/plans" class="nav-link-internal underline mt-2">Go back to plans</a></div>');
-        return;
+        let plansHtml = Object.entries(appData.plans)
+            .map(
+                ([key, plan]) => `
+                <div class="card reveal glass-panel p-5 rounded-xl text-center flex flex-col">
+                    <h3 class="text-xl font-bold gradient-text">${plan.name}</h3>
+                    <p class="text-3xl font-bold my-3">LKR. ${
+                        plan.price
+                    }<span class="text-base font-normal text-gray-400">/ month</span></p>
+                    <ul class="space-y-2 text-gray-300 text-sm text-left my-4 flex-grow">${plan.features
+                        .map(
+                            (f) =>
+                                `<li><i class="fa-solid fa-check text-green-400 mr-2"></i>${f}</li>`
+                        )
+                        .join("")}</ul>
+                    <a href="/connections?planId=${key}${changeQuery}" class="nav-link-internal mt-6 inline-block ai-button rounded-lg">Select Plan</a>
+                </div>`
+            )
+            .join("");
+        renderFunc(`
+            <div id="page-plans" class="page">
+                <header class="text-center mb-10 reveal">
+                    <h2 class="text-2xl font-bold text-white">${userToChange ? 'Select Your New Plan' : 'Our V2Ray Plans'}</h2>
+                    <p class="text-gray-400 mt-2">${userToChange ? `You are changing the plan for ${userToChange}` : 'Step 1: Choose your desired data package.'}</p>
+                </header>
+                <div id="plans-container" class="grid grid-cols-1 md:grid-cols-3 gap-6">${plansHtml}</div>
+            </div>`);
     }
 
-    let connectionsHtml = dynamicConnections.length > 0
-        ? dynamicConnections.map(conn => {
-            let linkUrl = '';
-            let packageInfoHtml = '';
+    function renderConnectionsPage(renderFunc, params) {
+        const planId = params.get("planId");
+        const userToChange = params.get("change");
+        const changeQuery = userToChange ? `&change=${encodeURIComponent(userToChange)}` : '';
 
-            if (conn.requires_package_choice) {
-                linkUrl = `/package-choice?planId=${planId}&connId=${encodeURIComponent(conn.name)}`;
-                
-                let packageCount = 0;
-                if (conn.package_options && Array.isArray(conn.package_options)) {
-                    packageCount = conn.package_options.length;
-                }
-                
-                packageInfoHtml = `<p class="text-xs text-purple-300 mt-2 font-semibold">${packageCount} Packages Available</p>`;
+        if (!planId || !appData.plans[planId]) {
+            renderFunc('<div class="page text-center"><p class="text-red-400">Invalid plan selection.</p><a href="/plans" class="nav-link-internal underline mt-2">Go back to plans</a></div>');
+            return;
+        }
 
-            } else {
-                linkUrl = `/checkout?planId=${planId}&connId=${encodeURIComponent(conn.name)}&pkg=${encodeURIComponent(conn.default_package || '')}&inboundId=${conn.default_inbound_id}&vlessTemplate=${encodeURIComponent(conn.default_vless_template)}`;
-                
-                if (conn.default_package) {
-                    packageInfoHtml = `<p class="text-xs text-purple-300 mt-2 font-semibold">${conn.default_package}</p>`;
+        let connectionsHtml = dynamicConnections.length > 0
+            ? dynamicConnections.map(conn => {
+                let linkUrl = '';
+                let packageInfoHtml = '';
+
+                if (conn.requires_package_choice) {
+                    linkUrl = `/package-choice?planId=${planId}&connId=${encodeURIComponent(conn.name)}${changeQuery}`;
+                    
+                    let packageCount = conn.package_options ? conn.package_options.length : 0;
+                    
+                    packageInfoHtml = `<p class="text-xs text-purple-300 mt-2 font-semibold">${packageCount} Packages Available</p>`;
+
                 } else {
-                    packageInfoHtml = `<p class="text-xs text-purple-300 mt-2 font-semibold">Standard Connection</p>`;
+                    linkUrl = `/checkout?planId=${planId}&connId=${encodeURIComponent(conn.name)}&pkg=${encodeURIComponent(conn.default_package || '')}&inboundId=${conn.default_inbound_id}&vlessTemplate=${encodeURIComponent(conn.default_vless_template)}${changeQuery}`;
+                    
+                    if (conn.default_package) {
+                        packageInfoHtml = `<p class="text-xs text-purple-300 mt-2 font-semibold">${conn.default_package}</p>`;
+                    } else {
+                        packageInfoHtml = `<p class="text-xs text-purple-300 mt-2 font-semibold">Standard Connection</p>`;
+                    }
                 }
-            }
-            
-            // The <a> tag now has a defined width to maintain the card size
-            return `<a href="${linkUrl}" class="nav-link-internal card reveal selectable glass-panel p-5 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-64">
-                        <i class="${conn.icon || 'fa-solid fa-wifi'} text-3xl gradient-text mb-3"></i>
-                        <h3 class="text-lg font-bold text-white mb-2">${conn.name}</h3>
-                        ${packageInfoHtml}
-                    </a>`;
-        }).join("")
-        : '<div class="text-amber-400 text-center col-span-full"><p>No connection types are currently available. Please check back later.</p></div>';
+                
+                return `<a href="${linkUrl}" class="nav-link-internal card reveal selectable glass-panel p-5 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-64">
+                            <i class="${conn.icon || 'fa-solid fa-wifi'} text-3xl gradient-text mb-3"></i>
+                            <h3 class="text-lg font-bold text-white mb-2">${conn.name}</h3>
+                            ${packageInfoHtml}
+                        </a>`;
+            }).join("")
+            : '<div class="text-amber-400 text-center col-span-full"><p>No connection types are currently available. Please check back later.</p></div>';
 
-    renderFunc(`
-        <div id="page-connections" class="page">
-            <header class="text-center mb-10 reveal">
-                <h2 class="text-2xl font-bold text-white">Select Your Connection</h2>
-                <p class="text-gray-400 mt-2">Step 2: Choose your ISP.</p>
-            </header>
-            <div class="flex flex-wrap items-center justify-center gap-6">${connectionsHtml}</div>
-            <div class="text-center mt-8 reveal"><a href="/plans" class="nav-link-internal text-purple-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back to Plans</a></div>
-        </div>`);
-}
+        renderFunc(`
+            <div id="page-connections" class="page">
+                <header class="text-center mb-10 reveal">
+                    <h2 class="text-2xl font-bold text-white">Select Your Connection</h2>
+                    <p class="text-gray-400 mt-2">Step 2: Choose your ISP.</p>
+                </header>
+                <div class="flex flex-wrap items-center justify-center gap-6">${connectionsHtml}</div>
+                <div class="text-center mt-8 reveal"><a href="/plans${changeQuery}" class="nav-link-internal text-purple-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back to Plans</a></div>
+            </div>`);
+    }
 
     function renderPackageChoicePage(renderFunc, params) {
         const planId = params.get("planId");
         const connId = decodeURIComponent(params.get("connId"));
+        const userToChange = params.get("change");
+        const changeQuery = userToChange ? `&change=${encodeURIComponent(userToChange)}` : '';
+        
         const conn = dynamicConnections.find(c => c.name === connId);
 
         if (!planId || !conn || !conn.package_options) {
-            navigateTo("/plans");
+            navigateTo(`/plans${changeQuery}`);
             return;
         }
 
         let choiceHtml = conn.package_options.map((option) => {
             const encodedOptionName = encodeURIComponent(option.name);
             const encodedTemplate = encodeURIComponent(option.template);
-            return `<a href="/checkout?planId=${planId}&connId=${encodeURIComponent(connId)}&pkg=${encodedOptionName}&inboundId=${option.inbound_id}&vlessTemplate=${encodedTemplate}" class="nav-link-internal card reveal selectable glass-panel p-8 rounded-xl text-center flex flex-col items-center justify-center">
+            return `<a href="/checkout?planId=${planId}&connId=${encodeURIComponent(connId)}&pkg=${encodedOptionName}&inboundId=${option.inbound_id}&vlessTemplate=${encodedTemplate}${changeQuery}" class="nav-link-internal card reveal selectable glass-panel p-8 rounded-xl text-center flex flex-col items-center justify-center">
                 <i class="fa-solid fa-box-open text-3xl gradient-text mb-3"></i>
                 <h3 class="text-lg font-bold text-white">${option.name}</h3>
             </a>`;
@@ -1071,138 +1072,147 @@ function renderConnectionsPage(renderFunc, params) {
                 </header>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">${choiceHtml}</div>
                 <div class="text-center mt-8 reveal">
-                    <a href="/connections?planId=${planId}" class="nav-link-internal text-purple-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back to Connections</a>
+                    <a href="/connections?planId=${planId}${changeQuery}" class="nav-link-internal text-purple-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back to Connections</a>
                 </div>
             </div>`);
     }
 
-function renderCheckoutPage(renderFunc, params) {
-    const user = JSON.parse(localStorage.getItem("nexguard_user"));
-    if (!user) {
-        navigateTo("/login");
-        return;
-    }
+    function renderCheckoutPage(renderFunc, params) {
+        const user = JSON.parse(localStorage.getItem("nexguard_user"));
+        if (!user) {
+            navigateTo("/login");
+            return;
+        }
 
-    const planId = params.get("planId");
-    const connId = decodeURIComponent(params.get("connId"));
-    const pkg = decodeURIComponent(params.get("pkg") || "");
-    const plan = appData.plans[planId];
-    const conn = dynamicConnections.find(c => c.name === connId);
+        const planId = params.get("planId");
+        const connId = decodeURIComponent(params.get("connId"));
+        const pkg = decodeURIComponent(params.get("pkg") || "");
+        const plan = appData.plans[planId];
+        const conn = dynamicConnections.find(c => c.name === connId);
 
-    const userToRenew = params.get("renew");
-    const isRenewal = !!userToRenew;
+        const userToRenew = params.get("renew");
+        const userToChange = params.get("change");
+        const isRenewal = !!userToRenew;
+        const isChange = !!userToChange;
 
-    let summaryHtml;
-    if (plan && conn) {
-        const finalPackageNameWithPrice = pkg || conn.default_package || '';
-        const planPrice = plan.price;
-        const cleanPackageName = finalPackageNameWithPrice.split(' - LKR')[0];
-
-        const purchaseInfo = `<p>You are purchasing the <strong class="text-purple-400">${plan.name}</strong> for <strong class="text-purple-400">${conn.name}</strong>.</p>`;
+        const formActionType = isChange ? 'Change Plan' : (isRenewal ? 'Renew Your Plan' : 'Final Step: Checkout');
         
-        let packageInfo = '';
-        if (cleanPackageName) {
-            packageInfo = `
-                    <div style="text-align: center;">
-                        <p style="font-size: 0.875rem; line-height: 1.25rem; margin: 0;">
-                            <span style="color: #d1d5db;">Selected Package:</span>
-                            <br class="sm:hidden"> 
-                            <span style="font-weight: 600; color: #dda428ff;">${cleanPackageName} - LKR ${planPrice}</span>
-                        </p>
-                    </div>
-                `;
-        }
+        let summaryHtml;
+        if (plan && conn) {
+            const finalPackageNameWithPrice = pkg || conn.default_package || '';
+            const planPrice = plan.price;
+            const cleanPackageName = finalPackageNameWithPrice.split(' - LKR')[0];
 
-        let renewalInfo = '';
-        if (isRenewal) {
-            renewalInfo = `<p class="mt-2 text-center">You are renewing for V2Ray user: <strong class="text-purple-400">${userToRenew}</strong>.</p>`;
-        }
-        
-        summaryHtml = purchaseInfo + packageInfo + renewalInfo;
+            let purchaseInfo = `<p>You are purchasing the <strong class="text-purple-400">${plan.name}</strong> for <strong class="text-purple-400">${conn.name}</strong>.</p>`;
+            
+            let packageInfo = '';
+            if (cleanPackageName) {
+                packageInfo = `<div class="text-center"><p class="text-sm m-0"><span class="text-gray-300">Selected Package:</span> <span class="font-semibold text-amber-400">${cleanPackageName} - LKR ${planPrice}</span></p></div>`;
+            }
 
-    } else {
-        summaryHtml = `<p class="text-red-400 text-center">Invalid selection. Please <a href="/plans" class="nav-link-internal underline">start over</a>.</p>`;
-    }
+            let renewalInfo = '';
+            if (isRenewal) {
+                renewalInfo = `<p class="mt-2 text-center">You are renewing for V2Ray user: <strong class="text-purple-400">${userToRenew}</strong>.</p>`;
+            }
+            
+            let changeInfo = '';
+            if (isChange) {
+                changeInfo = `<p class="mt-2 text-center text-amber-400">You are changing the plan for: <strong class="text-white">${userToChange}</strong>. The old plan will be deleted upon approval.</p>`;
+                purchaseInfo = `<p>You are changing to the <strong class="text-purple-400">${plan.name}</strong> for <strong class="text-purple-400">${conn.name}</strong>.</p>`;
+            }
+            
+            summaryHtml = purchaseInfo + packageInfo + renewalInfo + changeInfo;
 
-    renderFunc(
-    pageStyles +
-    `
-    <div id="page-checkout" class="page">
-        <div class="w-full max-w-sm mx-auto glass-panel rounded-xl p-6 reveal">
-            <div id="checkout-view">
-                <h2 class="text-xl font-bold text-center text-white mb-2">${isRenewal ? "Renew Your Plan" : "Final Step: Checkout"}</h2>
-                <div id="checkout-summary" class="text-center mb-6 text-gray-300 text-sm">${summaryHtml}</div>
-                <form id="checkout-form" class="space-y-4">
-                    ${isRenewal ? `<input type="hidden" name="isRenewal" value="true">` : ""}
-                    <div class="form-group ${isRenewal ? 'pb-2' : ''}">
-
-                        <input type="text" id="checkout-username" name="username" class="form-input ${isRenewal ? 'renewal-username-field' : ''}" required placeholder=" " value="${isRenewal ? userToRenew : user.username}" ${isRenewal ? 'readonly' : ''}>
-
-                        <label class="form-label">V2Ray Username</label><span class="focus-border"><i></i></span>
-                        ${isRenewal ? '<p class="text-xs text-amber-400 mt-2 px-1">Username cannot be changed during renewal.</p>' : ''}
-                    </div>
-                    <div class="form-group">
-                        <input type="text" name="whatsapp" id="checkout-whatsapp" class="form-input" required placeholder=" " value="${user.whatsapp}">
-                        <label class="form-label">WhatsApp Number</label><span class="focus-border"><i></i></span>
-                    </div>
-                    <div>
-                        <p class="text-gray-300 text-sm mb-2">Upload receipt:</p>
-                        <div class="text-xs text-gray-400 mb-3 p-3 bg-black/20 rounded-lg border border-white/10 whitespace-pre-wrap">${appData.bankDetails}</div>
-                        <input type="file" name="receipt" required class="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100" accept="image/*">
-                    </div>
-                    <button type="submit" class="ai-button w-full !mt-8 rounded-lg">SUBMIT FOR APPROVAL</button>
-                </form>
-            </div>
-            <div id="success-view" class="hidden text-center">
-                <i class="fas fa-check-circle text-5xl text-green-400 mb-4"></i>
-                <p class="text-lg text-green-400 font-semibold">Order Submitted!</p>
-                <p class="text-gray-300 mt-2 text-sm">Your order is pending approval. You can check the status on your profile.</p>
-
-                <p class="text-gray-300 mt-6 text-sm">
-                    Join our WhatsApp group for the latest updates, support, and special offers!
-                </p>
-
-                <div class="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
-                    <a href="/profile?tab=orders" class="nav-link-internal ai-button rounded-lg">View My Orders</a>
-                    <a href="https://chat.whatsapp.com/Jaw6FQbQINCE1eMGboSovH" target="_blank" class="ai-button secondary rounded-lg">
-                        <i class="fa-brands fa-whatsapp mr-2"></i>Join Premium Group
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>`);
-
-    document.getElementById("checkout-form").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const formData = new FormData(e.target);
-        formData.append("planId", params.get("planId"));
-        formData.append("connId", params.get("connId"));
-        formData.append("inboundId", params.get("inboundId"));
-        formData.append("vlessTemplate", params.get("vlessTemplate"));
-        if (params.get("pkg")) {
-            formData.append("pkg", params.get("pkg"));
-        }
-
-        document.querySelector('#checkout-view button[type="submit"]').disabled = true;
-        document.querySelector('#checkout-view button[type="submit"]').textContent = "SUBMITTING...";
-
-        const res = await apiFetch("/api/create-order", {
-            method: "POST",
-            headers: { Authorization: "Bearer " + localStorage.getItem("nexguard_token"), },
-            body: formData,
-        });
-        if (res.ok) {
-            document.getElementById("checkout-view").style.display = "none";
-            document.getElementById("success-view").classList.remove("hidden");
         } else {
-            const result = await res.json();
-            alert(`Error: ${result.message}`);
-            document.querySelector('#checkout-view button[type="submit"]').disabled = false;
-            document.querySelector('#checkout-view button[type="submit"]').textContent = "SUBMIT FOR APPROVAL";
+            summaryHtml = `<p class="text-red-400 text-center">Invalid selection. Please <a href="/plans" class="nav-link-internal underline">start over</a>.</p>`;
         }
-    });
-}
 
+        renderFunc(`
+            <style>
+              .renewal-username-field[readonly] { background-color: rgba(30, 41, 59, 0.5); color: #9ca3af; cursor: not-allowed; }
+              .renewal-username-field[readonly]:focus ~ .focus-border:before,
+              .renewal-username-field[readonly]:focus ~ .focus-border:after { width: 0; }
+              .renewal-username-field[readonly]:focus ~ .focus-border i:before,
+              .renewal-username-field[readonly]:focus ~ .focus-border i:after { height: 0; }
+              .renewal-username-field[readonly]:focus ~ .form-label { color: #9ca3af; }
+            </style>
+            <div id="page-checkout" class="page">
+                <div class="w-full max-w-sm mx-auto glass-panel rounded-xl p-6 reveal">
+                    <div id="checkout-view">
+                        <h2 class="text-xl font-bold text-center text-white mb-2">${formActionType}</h2>
+                        <div id="checkout-summary" class="text-center mb-6 text-gray-300 text-sm space-y-2">${summaryHtml}</div>
+                        <form id="checkout-form" class="space-y-4">
+                            ${isRenewal ? `<input type="hidden" name="isRenewal" value="true">` : ""}
+                            ${isChange ? `<input type="hidden" name="old_v2ray_username" value="${userToChange}">` : ''}
+
+                            <div class="form-group ${isRenewal ? 'pb-2' : ''}">
+                                <input type="text" id="checkout-username" name="username" class="form-input ${isRenewal ? 'renewal-username-field' : ''}" required placeholder=" " value="${isRenewal ? userToRenew : (isChange ? '' : user.username)}" ${isRenewal ? 'readonly' : ''}>
+                                <label class="form-label">${isChange ? 'New V2Ray Username' : 'V2Ray Username'}</label><span class="focus-border"><i></i></span>
+                                ${isRenewal ? '<p class="text-xs text-amber-400 mt-2 px-1">Username cannot be changed during renewal.</p>' : ''}
+                            </div>
+                            <div class="form-group">
+                                <input type="text" name="whatsapp" id="checkout-whatsapp" class="form-input" required placeholder=" " value="${user.whatsapp}">
+                                <label class="form-label">WhatsApp Number</label><span class="focus-border"><i></i></span>
+                            </div>
+                            <div>
+                                <p class="text-gray-300 text-sm mb-2">Upload receipt:</p>
+                                <div class="text-xs text-gray-400 mb-3 p-3 bg-black/20 rounded-lg border border-white/10 whitespace-pre-wrap">${appData.bankDetails}</div>
+                                <input type="file" name="receipt" required class="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100" accept="image/*">
+                            </div>
+                            <button type="submit" class="ai-button w-full !mt-8 rounded-lg">SUBMIT FOR APPROVAL</button>
+                        </form>
+                    </div>
+                    <div id="success-view" class="hidden text-center">
+                        <i class="fas fa-check-circle text-5xl text-green-400 mb-4"></i>
+                        <p class="text-lg text-green-400 font-semibold">Order Submitted!</p>
+                        <p class="text-gray-300 mt-2 text-sm">Your order is pending approval. You can check the status on your profile.</p>
+
+                        <p class="text-gray-300 mt-6 text-sm">
+                            Join our WhatsApp group for the latest updates, support, and special offers!
+                        </p>
+
+                        <div class="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+                            <a href="/profile?tab=orders" class="nav-link-internal ai-button rounded-lg">View My Orders</a>
+                            <a href="https://chat.whatsapp.com/Jaw6FQbQINCE1eMGboSovH" target="_blank" class="ai-button secondary rounded-lg">
+                                <i class="fa-brands fa-whatsapp mr-2"></i>Join Premium Group
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>`);
+
+        document.getElementById("checkout-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            formData.append("planId", params.get("planId"));
+            formData.append("connId", params.get("connId"));
+            formData.append("inboundId", params.get("inboundId"));
+            formData.append("vlessTemplate", params.get("vlessTemplate"));
+            if (params.get("pkg")) {
+                formData.append("pkg", params.get("pkg"));
+            }
+
+            document.querySelector('#checkout-view button[type="submit"]').disabled = true;
+            document.querySelector('#checkout-view button[type="submit"]').textContent = "SUBMITTING...";
+
+            const res = await apiFetch("/api/create-order", {
+                method: "POST",
+                headers: { Authorization: "Bearer " + localStorage.getItem("nexguard_token"), },
+                body: formData,
+            });
+            if (res.ok) {
+                document.getElementById("checkout-view").style.display = "none";
+                document.getElementById("success-view").classList.remove("hidden");
+            } else {
+                const result = await res.json();
+                alert(`Error: ${result.message}`);
+                document.querySelector('#checkout-view button[type="submit"]').disabled = false;
+                document.querySelector('#checkout-view button[type="submit"]').textContent = "SUBMIT FOR APPROVAL";
+            }
+        });
+    }
+
+    
 const pageStyles = `
     <style>
       .renewal-username-field[readonly] {
