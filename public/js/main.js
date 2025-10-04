@@ -2169,8 +2169,8 @@ const router = async () => {
             return;
         }
         
-        // START: MODIFIED LOGIC FOR INSTANT LOADING
-        if (pageKey === 'plans' && userSession && params.get('new') !== 'true') {
+        // START: CORRECTED LOGIC FOR RENEWAL/CHANGE FLOW
+        if (pageKey === 'plans' && userSession && !params.has('new') && !params.has('change')) {
             // Step 1: Immediately render a loading spinner
             mainContentArea.innerHTML = `<div class="text-center p-10"><i class="fa-solid fa-spinner fa-spin text-3xl text-purple-400"></i></div>`;
 
@@ -2203,7 +2203,7 @@ const router = async () => {
             }
             return; // Stop further execution
         }
-        // END: MODIFIED LOGIC FOR INSTANT LOADING
+        // END: CORRECTED LOGIC
 
         const renderFunction = allRoutes[pageKey] || allRoutes["home"];
         if (renderFunction) {
