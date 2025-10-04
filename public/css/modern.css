@@ -76,13 +76,7 @@ body.modal-open {
   transition: all 0.5s ease;
   overflow: hidden;
   font-family: "Orbitron", sans-serif;
-  border-radius: 9999px;
-  /* NEW UNIFIED SIZE STYLES */
-  padding: 0.5rem 1.5rem; /* 8px vertical, 24px horizontal (py-2, px-6) */
-  font-size: 0.875rem;   /* 14px (text-sm) */
-  font-weight: 600;      /* semibold */
-  text-align: center;
-  line-height: 1.5;      /* Ensure consistent line height */
+  border-radius: 9999px; /* Fully rounded */
 }
 
 .ai-button:hover:not(:disabled) {
