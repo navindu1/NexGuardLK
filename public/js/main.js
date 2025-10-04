@@ -1,3 +1,5 @@
+// public/js/main.js - FULLY UPDATED FOR UNIFIED BUTTONS
+
 document.addEventListener("DOMContentLoaded", () => {
     // Initialize Vanta.js animated background
     VANTA.WAVES({
@@ -502,10 +504,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 <div id="${modalId}" class="fixed inset-0 bg-black/80 justify-center items-center z-[101] flex p-4" style="display: flex;">
                     <div class="glass-panel p-6 rounded-lg max-w-sm w-full text-center reveal is-visible">
                         <h3 class="text-xl font-bold text-white font-['Orbitron'] mb-3">${title}</h3>
-                        <p class="text-gray-300 text-sm mb-6">${message}</p>
+                        <div class="text-gray-300 text-sm mb-6">${message}</div>
                         <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
-                            <button id="${modalId}-opt1" class="ai-button py-2 px-6 rounded-lg text-sm">${option1Text}</button>
-                            <button id="${modalId}-opt2" class="ai-button secondary py-2 px-6 rounded-lg text-sm">${option2Text}</button>
+                            <button id="${modalId}-opt1" class="ai-button rounded-lg">${option1Text}</button>
+                            <button id="${modalId}-opt2" class="ai-button secondary rounded-lg">${option2Text}</button>
                         </div>
                     </div>
                 </div>
@@ -526,6 +528,7 @@ document.addEventListener("DOMContentLoaded", () => {
             opt2Button.addEventListener('click', () => closeModal('option2'));
         });
     }
+
     // NEW FUNCTION FOR SELECTING A PLAN FROM A MODAL
     function showPlanSelectorModal(activePlans) {
         return new Promise((resolve) => {
@@ -536,12 +539,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 <div id="${modalId}" class="fixed inset-0 bg-black/80 justify-center items-center z-[101] flex p-4" style="display: flex;">
                     <div class="glass-panel p-6 rounded-lg max-w-sm w-full text-center reveal is-visible">
                         <h3 class="text-xl font-bold text-white font-['Orbitron'] mb-3">Select a Plan to Renew</h3>
-                        <div class="my-6">
+                        <div class="mb-8">
                             <select id="multi-plan-selector" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">${options}</select>
                         </div>
                         <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
-                            <button id="${modalId}-opt1" class="ai-button py-2 px-6 rounded-lg text-sm">Continue</button>
-                            <button id="${modalId}-opt2" class="ai-button secondary py-2 px-6 rounded-lg text-sm">Cancel</button>
+                            <button id="${modalId}-opt1" class="ai-button rounded-lg">Continue</button>
+                            <button id="${modalId}-opt2" class="ai-button secondary rounded-lg">Cancel</button>
                         </div>
                     </div>
                 </div>
@@ -581,8 +584,8 @@ document.addEventListener("DOMContentLoaded", () => {
                         Blazing fast, ultra-secure V2Ray connections designed for seamless streaming, gaming, and browsing. Unleash the full potential of your internet with NexGuard.
                     </p>
                     <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-                        <a href="/plans" class="nav-link-internal px-7 py-2.5 text-sm font-semibold text-white rounded-lg ai-button">View Plans <i class="fa-solid fa-arrow-right ml-2"></i></a>
-                        <a href="/about?scroll=contact-section" class="nav-link-internal px-7 py-2.5 text-sm font-semibold text-white rounded-lg ai-button secondary"><i class="fa-solid fa-headset mr-2"></i> Contact Us</a>
+                        <a href="/plans" class="nav-link-internal ai-button rounded-lg">View Plans <i class="fa-solid fa-arrow-right ml-2"></i></a>
+                        <a href="/about?scroll=contact-section" class="nav-link-internal ai-button secondary rounded-lg"><i class="fa-solid fa-headset mr-2"></i> Contact Us</a>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
@@ -739,7 +742,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             <label for="username" class="form-label">Enter Username</label>
                             <span class="focus-border"><i></i></span>
                         </div>
-                        <button type="submit" class="w-full py-2.5 font-semibold text-white rounded-lg ai-button">
+                        <button type="submit" class="ai-button w-full">
                             <span class="button-text"><i class="fa-solid fa-magnifying-glass-chart mr-2"></i>ANALYZE USAGE</span>
                         </button>
                     </form>
@@ -906,7 +909,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                 `<li><i class="fa-solid fa-check text-green-400 mr-2"></i>${f}</li>`
                         )
                         .join("")}</ul>
-                    <a href="/connections?planId=${key}" class="nav-link-internal mt-6 inline-block px-8 py-2 text-sm font-semibold text-white rounded-lg ai-button">Select Plan</a>
+                    <a href="/connections?planId=${key}" class="nav-link-internal mt-6 inline-block ai-button rounded-lg">Select Plan</a>
                 </div>`
             )
             .join("");
@@ -919,6 +922,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <div id="plans-container" class="grid grid-cols-1 md:grid-cols-3 gap-6">${plansHtml}</div>
             </div>`);
     }
+
     function renderPlanChoicePage(renderFunc, activePlans) {
         renderFunc(`
             <div id="page-plan-choice" class="page">
@@ -986,6 +990,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
     }
+
 
 function renderConnectionsPage(renderFunc, params) {
     const planId = params.get("planId");
@@ -1145,7 +1150,7 @@ function renderCheckoutPage(renderFunc, params) {
                         <div class="text-xs text-gray-400 mb-3 p-3 bg-black/20 rounded-lg border border-white/10 whitespace-pre-wrap">${appData.bankDetails}</div>
                         <input type="file" name="receipt" required class="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100" accept="image/*">
                     </div>
-                    <button type="submit" class="ai-button w-full py-2.5 font-semibold text-white rounded-lg !mt-8">SUBMIT FOR APPROVAL</button>
+                    <button type="submit" class="ai-button w-full !mt-8 rounded-lg">SUBMIT FOR APPROVAL</button>
                 </form>
             </div>
             <div id="success-view" class="hidden text-center">
@@ -1156,13 +1161,14 @@ function renderCheckoutPage(renderFunc, params) {
                 <p class="text-gray-300 mt-6 text-sm">
                     Join our WhatsApp group for the latest updates, support, and special offers!
                 </p>
+
                 <div class="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
-                    <a href="/profile?tab=orders" class="nav-link-internal px-7 py-2 text-sm font-semibold text-white rounded-lg ai-button">View My Orders</a>
-                    <a href="https://chat.whatsapp.com/Jaw6FQbQINCE1eMGboSovH" target="_blank" class="px-7 py-2 text-sm font-semibold text-white rounded-lg ai-button secondary">
+                    <a href="/profile?tab=orders" class="nav-link-internal ai-button rounded-lg">View My Orders</a>
+                    <a href="https://chat.whatsapp.com/Jaw6FQbQINCE1eMGboSovH" target="_blank" class="ai-button secondary rounded-lg">
                         <i class="fa-brands fa-whatsapp mr-2"></i>Join Premium Group
                     </a>
                 </div>
-                </div>
+            </div>
         </div>
     </div>`);
 
@@ -1541,7 +1547,7 @@ planDetailsContainer.innerHTML = `
                         <span class="focus-border"><i></i></span>
                         <i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i>
                     </div>
-                    <button type="submit" class="ai-button w-full py-2.5 rounded-lg !mt-8">Save Changes</button>
+                    <button type="submit" class="ai-button w-full rounded-lg !mt-8">Save Changes</button>
                 </form>
             </div>
         </div>
@@ -1592,7 +1598,7 @@ planDetailsContainer.innerHTML = `
                         if (!container) return;
 
                         // Display the "Renew Plan" button directly.
-                        container.innerHTML = `<button id="renew-profile-btn" class="ai-button inline-block py-2 px-6 text-sm rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew Plan</button>`;
+                        container.innerHTML = `<button id="renew-profile-btn" class="ai-button rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew Plan</button>`;
                         
                         // Add an event listener to the new button.
                         document.getElementById('renew-profile-btn').addEventListener('click', () => {
@@ -1685,9 +1691,9 @@ planDetailsContainer.innerHTML = `
             } else if (data.status === "pending") {
                 statusContainer.innerHTML = `<div class="glass-panel p-8 rounded-xl text-center"><i class="fa-solid fa-clock text-4xl text-amber-400 mb-4 animate-pulse"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Order Pending Approval</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">Your order is currently being reviewed. Your profile will update here once approved.</p></div>`;
             } else { 
-                const settingsHtml = `<div class="glass-panel p-6 rounded-xl"><h3 class="text-xl font-bold text-white mb-4 font-['Orbitron']">Account Settings</h3><form id="profile-update-form" class="space-y-6"><div class="form-group"><input type="text" class="form-input" readonly value="${user.username}" title="Website username cannot be changed."><label class="form-label">Website Username</label></div><div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" placeholder=" "><label for="new-password" class="form-label">New Password (leave blank to keep)</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i></div><button type="submit" class="ai-button w-full py-2.5 rounded-lg !mt-8">Save Changes</button></form></div>`;
-                const linkAccountHtml = `<div class="glass-panel p-6 rounded-xl"><h3 class="text-xl font-bold text-white mb-2 font-['Orbitron']">Link Existing V2Ray Account</h3><p class="text-sm text-gray-400 mb-6">If you have an old account, link it here to manage renewals.</p><form id="link-account-form-profile" class="space-y-6"><div class="form-group"><input type="text" id="existing-v2ray-username-profile" class="form-input" required placeholder=" "><label for="existing-v2ray-username-profile" class="form-label">Your Old V2Ray Username</label><span class="focus-border"><i></i></span></div><button type="submit" class="ai-button secondary w-full py-2.5 rounded-lg">Link Account</button><div class="text-center text-sm mt-4"><span class="open-help-modal-link text-purple-400 cursor-pointer hover:underline">How to find your username?</span></div></form></div>`;
-                statusContainer.innerHTML = `<div class="glass-panel p-8 rounded-xl text-center"><i class="fa-solid fa-rocket text-4xl text-purple-400 mb-4"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Get Started</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">You do not have any active plans yet. Purchase a new plan or link an existing account below.</p><a href="/plans" class="nav-link-internal ai-button inline-block py-2 px-6 text-sm rounded-lg mt-6">Purchase a Plan</a></div><div class="grid md:grid-cols-2 gap-8 mt-8">${settingsHtml}${linkAccountHtml}</div>`;
+                const settingsHtml = `<div class="glass-panel p-6 rounded-xl"><h3 class="text-xl font-bold text-white mb-4 font-['Orbitron']">Account Settings</h3><form id="profile-update-form" class="space-y-6"><div class="form-group"><input type="text" class="form-input" readonly value="${user.username}" title="Website username cannot be changed."><label class="form-label">Website Username</label></div><div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" placeholder=" "><label for="new-password" class="form-label">New Password (leave blank to keep)</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i></div><button type="submit" class="ai-button w-full rounded-lg !mt-8">Save Changes</button></form></div>`;
+                const linkAccountHtml = `<div class="glass-panel p-6 rounded-xl"><h3 class="text-xl font-bold text-white mb-2 font-['Orbitron']">Link Existing V2Ray Account</h3><p class="text-sm text-gray-400 mb-6">If you have an old account, link it here to manage renewals.</p><form id="link-account-form-profile" class="space-y-6"><div class="form-group"><input type="text" id="existing-v2ray-username-profile" class="form-input" required placeholder=" "><label for="existing-v2ray-username-profile" class="form-label">Your Old V2Ray Username</label><span class="focus-border"><i></i></span></div><button type="submit" class="ai-button secondary w-full rounded-lg">Link Account</button><div class="text-center text-sm mt-4"><span class="open-help-modal-link text-purple-400 cursor-pointer hover:underline">How to find your username?</span></div></form></div>`;
+                statusContainer.innerHTML = `<div class="glass-panel p-8 rounded-xl text-center"><i class="fa-solid fa-rocket text-4xl text-purple-400 mb-4"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Get Started</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">You do not have any active plans yet. Purchase a new plan or link an existing account below.</p><a href="/plans" class="nav-link-internal ai-button inline-block rounded-lg mt-6">Purchase a Plan</a></div><div class="grid md:grid-cols-2 gap-8 mt-8">${settingsHtml}${linkAccountHtml}</div>`;
                 
                 setupEventListeners();
             }
@@ -1750,7 +1756,7 @@ planDetailsContainer.innerHTML = `
                     <div class="form-group"><input type="text" id="signin-username" class="form-input" required placeholder=" " /><label for="signin-username" class="form-label">Username</label><span class="focus-border"><i></i></span></div>
                     <div class="form-group relative"><input type="password" id="signin-password" class="form-input pr-10" required placeholder=" " /><label for="signin-password" class="form-label">Password</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="signin-toggle"></i></div>
                     <div class="text-right text-sm -mt-4"><span id="show-forgot-password" class="auth-toggle-link hover:underline">Forgot Password?</span></div>
-                    <button type="submit" class="ai-button w-full py-2.5 rounded-lg">Sign In</button>
+                    <button type="submit" class="ai-button w-full rounded-lg">Sign In</button>
                     <p class="text-center text-sm">Don't have an account? <span id="show-signup" class="auth-toggle-link">Sign Up</span></p>
                 </form>
                 <form class="auth-form space-y-6" id="signup-form">
@@ -1759,31 +1765,31 @@ planDetailsContainer.innerHTML = `
                     <div class="form-group"><input type="email" id="signup-email" class="form-input" required placeholder=" " /><label for="signup-email" class="form-label">Email</label><span class="focus-border"><i></i></span></div>
                     <div class="form-group"><input type="tel" id="signup-whatsapp" class="form-input" required placeholder=" " value="94" /><label for="signup-whatsapp" class="form-label">WhatsApp Number</label><span class="focus-border"><i></i></span></div>
                     <div class="form-group relative"><input type="password" id="signup-password" class="form-input pr-10" required placeholder=" " /><label for="signup-password" class="form-label">Password</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="signup-toggle"></i></div>
-                    <button type="submit" class="ai-button w-full py-2.5 rounded-lg">Create & Continue</button>
+                    <button type="submit" class="ai-button w-full rounded-lg">Create & Continue</button>
                     <p class="text-center text-sm">Already have an account? <span id="show-signin-from-signup" class="auth-toggle-link">Sign In</span></p>
                 </form>
                 <form class="auth-form space-y-6" id="otp-form">
                     <div class="text-center"><h1 class="text-2xl font-bold text-white font-['Orbitron']">Verify Email</h1><p class="text-sm text-gray-400 mt-1">Step 2: Enter the 6-digit code we sent you.</p></div>
                     <input type="hidden" id="otp-email"><div class="form-group"><input type="text" id="otp-code" class="form-input" required placeholder=" " maxlength="6" /><label for="otp-code" class="form-label">OTP Code</label><span class="focus-border"><i></i></span></div>
-                    <button type="submit" class="ai-button w-full py-2.5 rounded-lg">Verify & Create Account</button>
+                    <button type="submit" class="ai-button w-full rounded-lg">Verify & Create Account</button>
                     <p class="text-center text-sm">Didn't get the code? <span id="show-signup-again" class="auth-toggle-link">Go Back</span></p>
                 </form>
                 <form class="auth-form space-y-6" id="forgot-password-form">
                     <div class="text-center"><h1 class="text-2xl font-bold text-white font-['Orbitron']">Reset Password</h1><p class="text-sm text-gray-400 mt-1">Enter your email to receive a reset link.</p></div>
                     <div class="form-group"><input type="email" id="forgot-email" class="form-input" required placeholder=" " /><label for="forgot-email" class="form-label">Your Account Email</label><span class="focus-border"><i></i></span></div>
-                    <button type="submit" class="ai-button w-full py-2.5 rounded-lg">Send Reset Link</button>
+                    <button type="submit" class="ai-button w-full rounded-lg">Send Reset Link</button>
                     <p class="text-center text-sm">Remembered your password? <span id="show-signin-from-forgot" class="auth-toggle-link">Sign In</span></p>
                 </form>
                 <form class="auth-form space-y-6" id="reset-password-form">
                     <div class="text-center"><h1 class="text-2xl font-bold text-white font-['Orbitron']">Set New Password</h1><p class="text-sm text-gray-400 mt-1">Enter your new password below.</p></div>
                     <input type="hidden" id="reset-token" value="${resetToken || ""}"><div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" required placeholder=" " /><label for="new-password" class="form-label">New Password</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="reset-toggle"></i></div>
-                    <button type="submit" class="ai-button w-full py-2.5 rounded-lg">Update Password</button>
+                    <button type="submit" class="ai-button w-full rounded-lg">Update Password</button>
                 </form>
                 <div class="auth-form" id="link-account-form-container">
                     <div class="text-center"><h1 class="text-2xl font-bold text-white font-['Orbitron']">Link Account</h1><p class="text-sm text-gray-400 mt-1">Do you have an existing V2Ray account?</p></div>
                     <form id="link-account-form" class="mt-8 space-y-6">
                         <div class="form-group"><input type="text" id="existing-v2ray-username" class="form-input" required placeholder=" "><label for="existing-v2ray-username" class="form-label">Your Old V2Ray Username</label><span class="focus-border"><i></i></span></div>
-                        <button type="submit" class="ai-button w-full py-2.5 rounded-lg">Link Account & Continue</button>
+                        <button type="submit" class="ai-button w-full rounded-lg">Link Account & Continue</button>
                         <div class="text-center text-sm mt-4"><span class="open-help-modal-link text-purple-400 cursor-pointer hover:underline">How to find your username?</span></div>
                         <a href="/profile" id="skip-link-btn" class="nav-link-internal block text-center text-sm text-gray-400 hover:text-white !mt-2">Skip for Now</a>
                     </form>
