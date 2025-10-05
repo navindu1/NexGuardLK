@@ -1608,18 +1608,47 @@ planDetailsContainer.innerHTML = `
                         });
                     };
 
+                    // This is the updated function with the expiry check logic
                     const updateRenewButton = async () => {
                         const container = document.getElementById("renew-button-container");
                         if (!container) return;
-
-                        // Display the "Renew Plan" button directly.
-                        container.innerHTML = `<button id="renew-profile-btn" class="ai-button rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew Plan</button>`;
                         
-                        // Add an event listener to the new button.
-                        document.getElementById('renew-profile-btn').addEventListener('click', () => {
-                            // When clicked, call the new handler function with the user's active plans and the currently selected plan.
-                            handleRenewalChoice(data.activePlans, plan);
-                        });
+                        // Show a loading state first
+                        container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking status...</button>`;
+                        
+                        try {
+                            // Fetch the latest usage status to check expiry
+                            const res = await apiFetch(`/api/check-usage/${plan.v2rayUsername}`);
+                            if (!res.ok) throw new Error(`API responded with status ${res.status}`);
+                            
+                            const result = await res.json();
+                            
+                            if (result.success) {
+                                if (result.data.expiryTime > 0) {
+                                    const expiryDate = new Date(result.data.expiryTime);
+                                    const isExpired = new Date() > expiryDate;
+                                    
+                                    if (isExpired) {
+                                        // If expired, render an active button
+                                        container.innerHTML = `<button id="renew-profile-btn" class="ai-button inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew Plan</button>`;
+                                        document.getElementById('renew-profile-btn').addEventListener('click', () => {
+                                            handleRenewalChoice(data.activePlans, plan);
+                                        });
+                                    } else {
+                                        // If not expired, render a disabled button
+                                        container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Renew Plan</button>`;
+                                    }
+                                } else {
+                                    // If plan does not expire
+                                    container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Does not expire</button>`;
+                                }
+                            } else {
+                                container.innerHTML = `<p class="text-xs text-amber-400">${result.message || 'Could not verify plan expiry status.'}</p>`;
+                            }
+                        } catch (error) {
+                            console.error('Error fetching plan status for renewal:', error);
+                            container.innerHTML = `<p class="text-xs text-red-400">Error checking status. Please refresh.</p>`;
+                        }
                     };
 
                     const loadMyOrders = async () => {
