@@ -1,4 +1,4 @@
-// public/js/main.js - FULLY UPDATED FOR "CHANGE PLAN" & ALL PREVIOUS FIXES
+// public/js/main.js - FULLY CORRECTED AND COMPLETE
 
 document.addEventListener("DOMContentLoaded", () => {
     // Initialize Vanta.js animated background
@@ -502,7 +502,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const modalId = `choice-modal-${Date.now()}`;
             const modalHtml = `
                 <div id="${modalId}" class="fixed inset-0 bg-black/80 justify-center items-center z-[101] flex p-4" style="display: flex;">
-                    <div class="glass-panel p-6 rounded-lg max-w-sm w-full text-center reveal is-visible">
+                    <div class="glass-panel p-6 rounded-lg max-w-sm w-full text-center reveal is-visible relative">
+                        <button id="${modalId}-close" class="absolute top-3 right-4 text-gray-400 hover:text-white text-3xl">&times;</button>
                         <h3 class="text-xl font-bold text-white font-['Orbitron'] mb-3">${title}</h3>
                         <div class="text-gray-300 text-sm mb-6">${message}</div>
                         <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -518,6 +519,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const modalElement = document.getElementById(modalId);
             const opt1Button = document.getElementById(`${modalId}-opt1`);
             const opt2Button = document.getElementById(`${modalId}-opt2`);
+            const closeButton = document.getElementById(`${modalId}-close`);
 
             const closeModal = (choice) => {
                 modalElement.remove();
@@ -526,6 +528,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             opt1Button.addEventListener('click', () => closeModal('option1'));
             opt2Button.addEventListener('click', () => closeModal('option2'));
+            closeButton.addEventListener('click', () => closeModal(null));
         });
     }
 
@@ -536,7 +539,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const modalHtml = `
                 <div id="${modalId}" class="fixed inset-0 bg-black/80 justify-center items-center z-[101] flex p-4" style="display: flex;">
-                    <div class="glass-panel p-6 rounded-lg max-w-sm w-full text-center reveal is-visible">
+                    <div class="glass-panel p-6 rounded-lg max-w-sm w-full text-center reveal is-visible relative">
+                        <button id="${modalId}-close" class="absolute top-3 right-4 text-gray-400 hover:text-white text-3xl">&times;</button>
                         <h3 class="text-xl font-bold text-white font-['Orbitron'] mb-3">Select a Plan to Renew</h3>
                         <div class="mb-8">
                             <select id="multi-plan-selector" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">${options}</select>
@@ -554,6 +558,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const modalElement = document.getElementById(modalId);
             const opt1Button = document.getElementById(`${modalId}-opt1`);
             const opt2Button = document.getElementById(`${modalId}-opt2`);
+            const closeButton = document.getElementById(`${modalId}-close`);
             const selector = document.getElementById('multi-plan-selector');
 
             const closeModal = (choice) => {
@@ -567,7 +572,8 @@ document.addEventListener("DOMContentLoaded", () => {
             };
 
             opt1Button.addEventListener('click', () => closeModal('option1'));
-            opt2Button.addEventListener('click', () => closeModal('option2'));
+            opt2Button.addEventListener('click', () => closeModal(null));
+            closeButton.addEventListener('click', () => closeModal(null));
         });
     }
 
@@ -1212,7 +1218,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    
 const pageStyles = `
     <style>
       .renewal-username-field[readonly] {
@@ -1604,42 +1609,19 @@ planDetailsContainer.innerHTML = `
                     };
 
                     const updateRenewButton = async () => {
-                const container = document.getElementById("renew-button-container");
-                if (!container) return;
-                
-                container.innerHTML = `<button disabled class="ai-button secondary !bg-gray-700/50 !text-gray-400 cursor-not-allowed"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking status...</button>`;
-                
-                try {
-                    const res = await apiFetch(`/api/check-usage/${plan.v2rayUsername}`);
-                    if (!res.ok) throw new Error(`API responded with status ${res.status}`);
-                    const result = await res.json();
+                        const container = document.getElementById("renew-button-container");
+                        if (!container) return;
 
-                    if (result.success && result.data.expiryTime > 0) {
-                        const expiryDate = new Date(result.data.expiryTime);
-                        const isExpired = new Date() > expiryDate;
-
-                        if (isExpired) {
-                            container.innerHTML = `<button id="renew-profile-btn" class="ai-button rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew Plan</button>`;
-                        } else {
-                            container.innerHTML = `<button id="renew-profile-btn" class="ai-button secondary rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Change / Extend Plan</button>`;
-                        }
+                        // Display the "Renew Plan" button directly.
+                        container.innerHTML = `<button id="renew-profile-btn" class="ai-button rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew Plan</button>`;
                         
+                        // Add an event listener to the new button.
                         document.getElementById('renew-profile-btn').addEventListener('click', () => {
+                            // When clicked, call the new handler function with the user's active plans and the currently selected plan.
                             handleRenewalChoice(data.activePlans, plan);
                         });
+                    };
 
-                    } else {
-                         // This handles plans that don't expire (e.g., unlimited with no time limit)
-                         container.innerHTML = `<button id="renew-profile-btn" class="ai-button secondary rounded-lg"><i class="fa-solid fa-exchange-alt mr-2"></i>Change Plan</button>`;
-                         document.getElementById('renew-profile-btn').addEventListener('click', () => {
-                            handleRenewalChoice(data.activePlans, plan);
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error fetching plan status for renewal:', error);
-                    container.innerHTML = `<p class="text-xs text-red-400">Error checking status. Please refresh.</p>`;
-                }
-            };
                     const loadMyOrders = async () => {
                         const ordersContainer = document.getElementById("tab-orders");
                         if (!ordersContainer) return;
