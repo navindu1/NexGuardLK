@@ -115,3 +115,15 @@ exports.generateRejectionEmailContent = (username, planId, orderId) => `
 <p style="font-size: 16px; line-height: 24px; margin: 24px 0 0; color: #c7d2fe;">We apologize for any inconvenience this may cause.</p>
 `;
 
+// Add this to the end of: src/services/emailService.js
+
+exports.generateExpiryReminderEmailContent = (username, v2rayUsername, expiryDate) => `
+<p style="font-size: 16px; line-height: 24px; margin: 0 0 16px; color: #c7d2fe;">Hello, <strong>${username}</strong>,</p>
+<p style="font-size: 16px; line-height: 24px; margin: 0 0 24px; color: #c7d2fe;">This is a friendly reminder that your V2Ray plan for user <strong>${v2rayUsername}</strong> is scheduled to expire in less than 24 hours.</p>
+<div style="background-color: #1e1b4b; border-radius: 8px; padding: 24px; margin: 24px 0; border-left: 4px solid #f97316;">
+    <p style="margin: 0; font-size: 16px; color: #e0e0e0;"><strong>Expiry Date:</strong> ${expiryDate.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'medium' })}</p>
+</div>
+<p style="font-size: 16px; line-height: 24px; margin: 24px 0 0; color: #c7d2fe;">To avoid service interruption, please renew your plan by visiting your profile on our website.</p>
+<div style="text-align: center; margin-top: 24px;">
+    <a href="${FRONTEND_URL}/profile" target="_blank" style="background: linear-gradient(90deg, #818cf8, #a78bfa, #f472b6); color: #ffffff; padding: 14px 24px; font-size: 16px; font-weight: bold; text-decoration: none; border-radius: 8px; display: inline-block; font-family: 'Orbitron', sans-serif;">Renew Your Plan</a>
+</div>`;

@@ -1608,16 +1608,13 @@ planDetailsContainer.innerHTML = `
                         });
                     };
 
-                    // This is the updated function with the expiry check logic
                     const updateRenewButton = async () => {
                         const container = document.getElementById("renew-button-container");
                         if (!container) return;
                         
-                        // Show a loading state first
                         container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking status...</button>`;
                         
                         try {
-                            // Fetch the latest usage status to check expiry
                             const res = await apiFetch(`/api/check-usage/${plan.v2rayUsername}`);
                             if (!res.ok) throw new Error(`API responded with status ${res.status}`);
                             
@@ -1626,20 +1623,21 @@ planDetailsContainer.innerHTML = `
                             if (result.success) {
                                 if (result.data.expiryTime > 0) {
                                     const expiryDate = new Date(result.data.expiryTime);
-                                    const isExpired = new Date() > expiryDate;
+                                    // **MODIFIED LOGIC: Check if plan expires within the next 24 hours**
+                                    const oneDayFromNow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+                                    const canRenew = oneDayFromNow > expiryDate;
                                     
-                                    if (isExpired) {
-                                        // If expired, render an active button
+                                    if (canRenew) {
+                                        // If expired or expiring soon, render an active button
                                         container.innerHTML = `<button id="renew-profile-btn" class="ai-button inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew Plan</button>`;
                                         document.getElementById('renew-profile-btn').addEventListener('click', () => {
                                             handleRenewalChoice(data.activePlans, plan);
                                         });
                                     } else {
-                                        // If not expired, render a disabled button
-                                        container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Renew Plan</button>`;
+                                        // If not expiring soon, render a disabled button
+                                        container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Renew (Available 24h before expiry)</button>`;
                                     }
                                 } else {
-                                    // If plan does not expire
                                     container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Does not expire</button>`;
                                 }
                             } else {

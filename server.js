@@ -15,6 +15,7 @@ app.use(express.urlencoded({ extended: true }));
 // Vercel Cron Job Endpoint
 const { processAutoConfirmableOrders } = require('./src/services/orderService');
 const { cleanupOldReceipts } = require('./src/services/cronService');
+const { sendExpiryReminders } = require('./src/services/notificationService');
 
 // අලුත් කේතය:
 app.post('/api/cron', (req, res) => {
@@ -32,6 +33,20 @@ app.post('/api/cron', (req, res) => {
     cleanupOldReceipts();
 
     res.status(200).send('Cron job executed successfully.');
+});
+
+// Daily Cron Job Endpoint (for less frequent tasks)
+app.post('/api/daily-cron', (req, res) => {
+    const providedSecret = req.headers['authorization']?.split(' ')[1];
+    if (providedSecret !== process.env.DAILY_CRON_SECRET) {
+        console.warn('Unauthorized DAILY cron job attempt.');
+        return res.status(401).send('Unauthorized');
+    }
+    
+    console.log('Daily Cron Job triggered: Running daily tasks...');
+    sendExpiryReminders();
+    
+    res.status(200).send('Daily cron job executed successfully.');
 });
 
 // API Routes
