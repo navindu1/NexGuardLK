@@ -1364,7 +1364,8 @@ if (profilePictureUrl && !profilePictureUrl.startsWith('/')) {
     profilePictureUrl = '/' + profilePictureUrl;
 }
 
-const baseHtml = `<div id="page-profile" class="page space-y-8"><div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left reveal"><div class="relative flex-shrink-0"><img id="profile-pic-img" src="${profilePictureUrl}" alt="Profile Picture" class="w-24 h-24 rounded-full border-4 border-purple-500/50 object-cover shadow-lg"><label for="avatar-upload" class="absolute bottom-0 right-0 w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-purple-500 transition shadow-md"><i class="fa-solid fa-camera text-white"></i><input type="file" id="avatar-upload" class="hidden" accept="image/*"></label></div><div class="flex-grow"><h2 class="text-3xl font-bold font-['Orbitron'] text-white">${user.username}</h2><p class="text-gray-400">${user.email}</p><div id="plan-info-container" class="text-xs sm:text-sm mt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2"></div></div></div><div class="flex flex-col items-center justify-center min-h-[40vh]">
+const baseHtml = `<div id="page-profile" class="page space-y-8"><div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left reveal"><div class="relative flex-shrink-0"><img id="profile-pic-img" src="${profilePictureUrl}" alt="Profile Picture" class="w-24 h-24 rounded-full border-4 border-purple-500/50 object-cover shadow-lg"><label for="avatar-upload" class="absolute bottom-0 right-0 w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-purple-500 transition shadow-md"><i class="fa-solid fa-camera text-white"></i><input type="file" id="avatar-upload" class="hidden" accept="image/*"></label></div><div class="flex-grow"><h2 class="text-3xl font-bold font-['Orbitron'] text-white">${user.username}</h2><p class="text-gray-400">${user.email}</p><div id="plan-info-container" class="text-xs sm:text-sm mt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2"></div></div></div><div id="user-status-content" class="reveal">
+    <div class="flex flex-col items-center justify-center min-h-[40vh]">
         <div class="text-center p-8">
             <i class="fa-solid fa-spinner fa-spin text-3xl text-purple-400"></i>
             <p class="mt-4 text-lg font-semibold text-purple-300 animate-pulse">Loading Your Data...</p>
@@ -2212,7 +2213,7 @@ forgotPasswordForm?.addEventListener("submit", async(e) => {
         if (pageKey === 'plans' && userSession && !params.has('new') && !params.has('change')) {
             // Step 1: Immediately render an enhanced loading message
             mainContentArea.innerHTML = `
-    <div class="page flex flex-col items-center justify-center min-h-[50vh]">
+    <div class="page flex flex-col items-center justify-center h-full">
         <div class="text-center p-10">
             <i class="fa-solid fa-spinner fa-spin text-3xl text-purple-400"></i>
             <p class="mt-4 text-lg font-semibold text-purple-300 animate-pulse">Checking Your Active Plans...</p>
