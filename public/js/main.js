@@ -2213,7 +2213,7 @@ forgotPasswordForm?.addEventListener("submit", async(e) => {
         if (pageKey === 'plans' && userSession && !params.has('new') && !params.has('change')) {
             // Step 1: Immediately render an enhanced loading message
             mainContentArea.innerHTML = `
-    <div class="page flex flex-col items-center justify-center h-full">
+    <div class="page flex flex-col items-center justify-center min-h-[70vh]">
         <div class="text-center p-10">
             <i class="fa-solid fa-spinner fa-spin text-3xl text-purple-400"></i>
             <p class="mt-4 text-lg font-semibold text-purple-300 animate-pulse">Checking Your Active Plans...</p>
