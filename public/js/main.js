@@ -2170,8 +2170,8 @@ forgotPasswordForm?.addEventListener("submit", async(e) => {
         history.pushState(null, null, path);
         router();
     };
-    
-const router = async () => {
+
+    const router = async () => {
         const pathName = window.location.pathname;
         const params = new URLSearchParams(window.location.search);
         const pathParts = pathName.substring(1).split('/');
@@ -2223,7 +2223,7 @@ const router = async () => {
                     renderPlansPage((html) => {
                         mainContentArea.innerHTML = html;
                         initAnimations();
-                    });
+                    }, params); // <-- FIXED: Added 'params' here
                 }
             } catch (error) {
                 console.error("Could not check user status for renewal flow:", error);
@@ -2231,7 +2231,7 @@ const router = async () => {
                 renderPlansPage((html) => {
                     mainContentArea.innerHTML = html;
                     initAnimations();
-                });
+                }, params); // <-- FIXED: Added 'params' here
             }
             return; // Stop further execution
         }
