@@ -1635,7 +1635,7 @@ planDetailsContainer.innerHTML = `
                                         });
                                     } else {
                                         // If not expiring soon, render a disabled button
-                                        container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Renew (Available 24h before expiry)</button>`;
+                                        container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Renew Plan</button>`;
                                     }
                                 } else {
                                     container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Does not expire</button>`;
@@ -2203,8 +2203,15 @@ forgotPasswordForm?.addEventListener("submit", async(e) => {
         
         // START: CORRECTED LOGIC FOR RENEWAL/CHANGE FLOW
         if (pageKey === 'plans' && userSession && !params.has('new') && !params.has('change')) {
-            // Step 1: Immediately render a loading spinner
-            mainContentArea.innerHTML = `<div class="text-center p-10"><i class="fa-solid fa-spinner fa-spin text-3xl text-purple-400"></i></div>`;
+            // Step 1: Immediately render an enhanced loading message
+            mainContentArea.innerHTML = `
+                <div class="page flex flex-col items-center justify-center min-h-[50vh]">
+                    <div class="text-center p-10">
+                        <i class="fa-solid fa-spinner fa-spin text-3xl text-purple-400"></i>
+                        <p class="mt-4 text-lg font-semibold text-purple-300 animate-pulse">Checking Your Active Plans...</p>
+                        <p class="text-sm text-gray-500 mt-1">Please wait a moment.</p>
+                    </div>
+                </div>`;
 
             try {
                 // Step 2: Fetch data in the background
