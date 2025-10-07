@@ -37,6 +37,7 @@ body.modal-open {
   z-index: 1;
 }
 
+/* MODIFIED: Changed border-radius from 9999px to 1rem for a more professional look */
 .glass-panel {
   background: rgba(10, 8, 28, 0.75);
   backdrop-filter: blur(20px);
@@ -44,11 +45,6 @@ body.modal-open {
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
   border-radius: 1rem; /* A modern, subtle curve */
-}
-
-/* CHANGED: Navbar border-radius to match other glass panels */
-.navbar {
-  border-radius: 1rem; /* More consistent with other panels */
 }
 
 .gradient-text {
@@ -80,9 +76,9 @@ body.modal-open {
   transition: all 0.5s ease;
   overflow: hidden;
   font-family: "Orbitron", sans-serif;
-  border-radius: 9999px; /* Pill-shape is stylish, kept this */
+  border-radius: 9999px;
   /* NEW UNIFIED SIZE STYLES */
-  padding: 0.6rem 1.5rem; /* Standardized padding */
+  padding: 0.5rem 1.5rem; /* 8px vertical, 24px horizontal (py-2, px-6) */
   font-size: 0.875rem;   /* 14px (text-sm) */
   font-weight: 600;      /* semibold */
   text-align: center;
@@ -117,6 +113,7 @@ body.modal-open {
   background-color: rgba(255, 255, 255, 0.05);
 }
 
+/* MODIFIED: Changed border-radius from 9999px to 1rem */
 .card {
   position: relative;
   transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
@@ -186,7 +183,6 @@ body.modal-open {
   width: 100%;
 }
 
-/* CHANGED: Form inputs now have a more modern, subtle radius */
 .form-input {
   font-size: 14px;
   color: #e0e0e0;
@@ -198,7 +194,7 @@ body.modal-open {
   padding: 14px 12px 0 12px;
   transition: 0.4s;
   outline: none;
-  border-radius: 8px; /* Changed from 9999px for a more professional look */
+  border-radius: 9999px; /* Fully rounded */
 }
 
 .form-label {
@@ -228,7 +224,7 @@ body.modal-open {
   height: 2px;
   background-color: var(--brand-purple);
   transition: 0.4s;
-  border-radius: 8px; /* Match the input's border-radius */
+  border-radius: 9999px; /* Fully rounded */
 }
 
 .form-input ~ .focus-border:after {
@@ -251,6 +247,10 @@ body.modal-open {
 .form-input ~ .focus-border i:after {
   left: auto;
   right: 0;
+}
+
+.navbar {
+  border-radius: 9999px
 }
 
 .form-input:focus ~ .focus-border:before,
