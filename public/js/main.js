@@ -9,11 +9,11 @@ document.addEventListener("DOMContentLoaded", () => {
       gyroControls: false,
       minHeight: 200.00,
       minWidth: 200.00,
-      highlightColor: 0xa78bfa, // Purple from your theme
-      midtoneColor: 0x818cf8,   // Indigo from your theme
-      lowlightColor: 0x20002f,  // Dark blue/purple from old theme
-      baseColor: 0x020010,     // Your site's base background color
-      blurFactor: 0.79,
+      highlightColor: 0x7d159d,
+  midtoneColor: 0x1eff,
+  lowlightColor: 0x580093,
+  baseColor: 0x190128,
+  blurFactor: 0.69,
       zoom: 0.90,
       speed: 1.20 // Added for a subtle animation speed
     });
