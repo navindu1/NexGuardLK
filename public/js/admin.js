@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
   midtoneColor: 0x1eff,
   lowlightColor: 0x580093,
   baseColor: 0x190128,
-  blurFactor: 0.69
+  blurFactor: 0.69,
       zoom: 0.90,
       speed: 1.20 // Added for a subtle animation speed
     });
