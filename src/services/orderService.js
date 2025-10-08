@@ -165,7 +165,7 @@ exports.processAutoConfirmableOrders = async () => {
             return;
         }
 
-        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+        const tenMinutesAgo = new Date(Date.now() - 1 * 60 * 1000).toISOString();
         
         const { data: ordersToProcess, error: ordersError } = await supabase
             .from('orders')
