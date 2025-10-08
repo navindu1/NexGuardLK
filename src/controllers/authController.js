@@ -170,7 +170,7 @@ exports.adminLogin = async (req, res) => {
         const isPasswordValid = bcrypt.compareSync(password, adminUser.password);
 
         if (isPasswordValid) {
-            const expiresIn = rememberMe ? "30d" : "8h"; // <-- Set expiry based on rememberMe
+            const expiresIn = rememberMe ? "7d" : "8h"; // <-- Changed expiry from 30 days to 7 days
             const token = jwt.sign(
                 { id: adminUser.id, username: adminUser.username, role: "admin" },
                 process.env.JWT_SECRET,

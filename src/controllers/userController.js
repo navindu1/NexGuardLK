@@ -42,14 +42,28 @@ exports.getUserStatus = async (req, res) => {
             return res.json({ success: true, status: "no_plan" });
         }
         
+        // --- Performance Improvement: Fetch all clients once ---
+        const allPanelClients = await v2rayService.getAllClients();
+        
         const verifiedActivePlans = [];
+        let plansChanged = false; // To track if we need to update the database
+
         for (const plan of user.active_plans) {
-            const clientExists = await v2rayService.findV2rayClient(plan.v2rayUsername);
-            if (clientExists) {
+            // Check against the pre-fetched list instead of making a new API call in a loop
+            if (allPanelClients.has(plan.v2rayUsername.toLowerCase())) {
                 verifiedActivePlans.push(plan);
             } else {
+                plansChanged = true;
                 console.log(`[Verification] Plan '${plan.v2rayUsername}' for user ${user.username} not found in panel. Removing.`);
             }
+        }
+
+        // Only update the database if a plan was actually removed
+        if (plansChanged) {
+            await supabase
+                .from("users")
+                .update({ active_plans: verifiedActivePlans })
+                .eq("id", user.id);
         }
 
         if (verifiedActivePlans.length !== user.active_plans.length) {

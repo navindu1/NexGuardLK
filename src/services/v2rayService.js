@@ -13,9 +13,7 @@ const LOGIN_URL = `${PANEL_URL}/login`;
 const ADD_CLIENT_URL = `${PANEL_URL}/panel/api/inbounds/addClient`;
 const INBOUNDS_LIST_URL = `${PANEL_URL}/panel/api/inbounds/list`;
 const DEL_CLIENT_BY_UUID_URL = (inboundId, uuid) => `${PANEL_URL}/panel/api/inbounds/${inboundId}/delClient/${uuid}`;
-// ===== NEW: Endpoint for updating a client =====
 const UPDATE_CLIENT_URL = (uuid) => `${PANEL_URL}/panel/api/inbounds/updateClient/${uuid}`;
-// ===== NEW: Endpoint for resetting traffic =====
 const RESET_TRAFFIC_URL = (inboundId, email) => `${PANEL_URL}/panel/api/inbounds/${inboundId}/resetClientTraffic/${email}`;
 
 
@@ -71,18 +69,16 @@ async function getPanelCookie() {
     }
     return newCookie;
 }
+exports.getPanelCookie = getPanelCookie;
 
 /**
  * Finds a V2Ray client by their username (email) across all inbounds.
  */
 exports.findV2rayClient = async (username) => {
-    // ... (මෙම function එකේ කිසිඳු වෙනසක් සිදු නොකරන්න) ...
     if (typeof username !== "string" || !username) {
         return null;
     }
-
     const cookie = await getPanelCookie();
-
     try {
         const { data: inboundsData } = await axios.get(INBOUNDS_LIST_URL, {
             headers: { Cookie: cookie },
@@ -150,9 +146,6 @@ exports.deleteClient = async (inboundId, clientUuid) => {
     return data;
 };
 
-// ==========================================================
-// ===== NEW FUNCTION: Update an existing V2Ray client ======
-// ==========================================================
 exports.updateClient = async (inboundId, clientUuid, clientSettings) => {
     const cookie = await getPanelCookie();
     const payload = {
@@ -164,144 +157,38 @@ exports.updateClient = async (inboundId, clientUuid, clientSettings) => {
     return data;
 };
 
-// =============================================================
-// ===== NEW FUNCTION: Reset a client's data usage (traffic) =====
-// =============================================================
 exports.resetClientTraffic = async (inboundId, clientEmail) => {
     const cookie = await getPanelCookie();
     const url = RESET_TRAFFIC_URL(inboundId, clientEmail);
-    // This endpoint usually doesn't require a payload
     const { data } = await axios.post(url, {}, { headers: { Cookie: cookie }});
     return data;
-}
-
-
-async function loginAndGetCookie() {
-    console.log(`\n[Panel Login] Attempting to login to panel...`);
+};
+// Add this new function for performance optimization
+exports.getAllClients = async () => {
     try {
-        const response = await axios.post(
-            LOGIN_URL,
-            { username: ADMIN_USERNAME, password: ADMIN_PASSWORD },
-            {
-                maxRedirects: 0,
-                validateStatus: (status) => status >= 200 && status < 500,
-            }
-        );
-
-        if ((response.status === 200 || response.status === 302) && response.headers["set-cookie"]) {
-            console.log("✅ [Panel Login] Successfully logged in.");
-            panelSession.cookie = response.headers["set-cookie"][0];
-            panelSession.lastLogin = Date.now();
-            return panelSession.cookie;
-        } else {
-            throw new Error(`Login failed with status ${response.status}. Check panel credentials.`);
-        }
-    } catch (error) {
-        console.error("❌ [Panel Login] FAILED:", error.message);
-        panelSession.cookie = null;
-        return null;
-    }
-}
-
-/**
- * Gets a valid session cookie, logging in again if necessary.
- */
-async function getPanelCookie() {
-    if (panelSession.isValid()) {
-        return panelSession.cookie;
-    }
-    const newCookie = await loginAndGetCookie();
-    if (!newCookie) {
-        throw new Error("Panel authentication failed. Could not retrieve a new session cookie.");
-    }
-    return newCookie;
-}
-
-exports.getPanelCookie = getPanelCookie;
-
-exports.findV2rayClient = async (username) => {
-    if (typeof username !== "string" || !username) {
-        return null;
-    }
-    const cookie = await getPanelCookie();
-    try {
+        const cookie = await getPanelCookie();
         const { data: inboundsData } = await axios.get(INBOUNDS_LIST_URL, {
             headers: { Cookie: cookie },
         });
 
-        if (!inboundsData?.success) return null;
+        if (!inboundsData?.success) return [];
 
-        const lowerCaseUsername = username.toLowerCase();
+        const allClients = new Set(); // Use a Set for faster lookups
         for (const inbound of inboundsData.obj) {
             const clients = (inbound.settings && JSON.parse(inbound.settings).clients) || [];
-            const foundClient = clients.find(c => c && c.email && c.email.toLowerCase() === lowerCaseUsername);
-
-            if (foundClient) {
-                let clientTraffics = {};
-                try {
-                    const TRAFFIC_URL = `${PANEL_URL}/panel/api/inbounds/getClientTraffics/${foundClient.email}`;
-                    const { data: trafficData } = await axios.get(TRAFFIC_URL, { headers: { Cookie: cookie } });
-                    if (trafficData?.success && trafficData.obj) {
-                        clientTraffics = trafficData.obj;
-                    }
-                } catch (trafficError) {
-                    console.warn(`Could not fetch client traffics for ${username}. Continuing without it.`);
+            for (const client of clients) {
+                if (client && client.email) {
+                    allClients.add(client.email.toLowerCase());
                 }
-                
-                const finalClientData = { ...clientTraffics, ...foundClient };
-                return {
-                    client: finalClientData,
-                    inbound: inbound,
-                    inboundId: inbound.id,
-                };
             }
         }
-        return null;
+        return allClients;
     } catch (error) {
-        if (error.response?.status === 401 || error.response?.status === 403) {
-            console.log("[V2Ray Service] Session expired, attempting to re-authenticate and retry...");
-            panelSession.cookie = null;
-            return this.findV2rayClient(username);
-        }
-        console.error(`Error in findV2rayClient for ${username}:`, error.message);
-        throw error;
+         console.error(`Error in getAllClients:`, error.message);
+         // In case of error, return an empty set to avoid breaking the caller function
+         return new Set();
     }
 };
-
-exports.addClient = async (inboundId, clientSettings) => {
-    const cookie = await getPanelCookie();
-    const payload = {
-        id: parseInt(inboundId),
-        settings: JSON.stringify({ clients: [clientSettings] })
-    };
-    const { data } = await axios.post(ADD_CLIENT_URL, payload, { headers: { Cookie: cookie } });
-    return data;
-};
-
-exports.deleteClient = async (inboundId, clientUuid) => {
-    const cookie = await getPanelCookie();
-    const url = DEL_CLIENT_BY_UUID_URL(inboundId, clientUuid);
-    const { data } = await axios.post(url, {}, { headers: { Cookie: cookie } });
-    return data;
-};
-
-exports.updateClient = async (inboundId, clientUuid, clientSettings) => {
-    const cookie = await getPanelCookie();
-    const payload = {
-        id: parseInt(inboundId),
-        settings: JSON.stringify({ clients: [clientSettings] })
-    };
-    const url = UPDATE_CLIENT_URL(clientUuid);
-    const { data } = await axios.post(url, payload, { headers: { Cookie: cookie } });
-    return data;
-};
-
-exports.resetClientTraffic = async (inboundId, clientEmail) => {
-    const cookie = await getPanelCookie();
-    const url = RESET_TRAFFIC_URL(inboundId, clientEmail);
-    const { data } = await axios.post(url, {}, { headers: { Cookie: cookie }});
-    return data;
-}
 
 exports.generateV2rayConfigLink = (linkTemplate, client) => {
     if (!linkTemplate || !client || !client.id || !client.email) return null;

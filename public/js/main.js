@@ -1,21 +1,21 @@
-// public/js/main.js - FULLY CORRECTED AND COMPLETE
+// public/js/main.js - UPDATED CODE
 
 document.addEventListener("DOMContentLoaded", () => {
-    // Initialize Vanta.js animated background
-    VANTA.WAVES({
-        el: "#vanta-bg",
-        mouseControls: true,
-        touchControls: true,
-        gyroControls: false,
-        minHeight: 200.0,
-        minWidth: 200.0,
-        scale: 1.0,
-        scaleMobile: 1.0,
-        color: 0x20002f,
-        shininess: 25.0,
-        waveHeight: 15.0,
-        waveSpeed: 0.65,
-        zoom: 0.85,
+    // Initialize Vanta.js animated background with FOG effect
+    VANTA.FOG({
+      el: "#vanta-bg",
+      mouseControls: true,
+      touchControls: true,
+      gyroControls: false,
+      minHeight: 200.00,
+      minWidth: 200.00,
+      highlightColor: 0xa78bfa, // Purple from your theme
+      midtoneColor: 0x818cf8,   // Indigo from your theme
+      lowlightColor: 0x20002f,  // Dark blue/purple from old theme
+      baseColor: 0x020010,     // Your site's base background color
+      blurFactor: 0.79,
+      zoom: 0.90,
+      speed: 1.20 // Added for a subtle animation speed
     });
 
     // Global variables
@@ -77,12 +77,22 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     const appData = {
-        plans: {
-            "100GB": { name: "100GB Plan", price: "300", features: ["High-Speed Connection", "Optimal for Streaming", "30-Day Validity"] },
-            "200GB": { name: "200GB Plan", price: "500", features: ["Ultra-Fast Speeds", "Perfect for Gaming", "30-Day Validity"] },
-            "Unlimited": { name: "Unlimited Plan", price: "800", features: ["No Data Caps", "Ultimate Freedom", "Best for Power Users"] },
-        },
+        plans: {}, // This will be filled by the API call now
         bankDetails: `Name: N.R Lekamge\nBank: BOC Bank\nBranch: Eheliyagoda\nAccount Number: 93129972`.trim(),
+    };
+
+    const loadPlans = async () => {
+        try {
+            const res = await apiFetch('/api/public/plans');
+            const result = await res.json();
+            if (result.success) {
+                appData.plans = result.data;
+            } else {
+                console.error("Failed to load dynamic plans.");
+            }
+        } catch (error) {
+            console.error("Error fetching plans:", error);
+        }
     };
 
     let dynamicConnections = [];
@@ -2294,7 +2304,8 @@ forgotPasswordForm?.addEventListener("submit", async(e) => {
     
     const init = async () => {
         loadSession();
-        await loadConnections();
+        // Load plans and connections in parallel for better performance
+        await Promise.all([loadConnections(), loadPlans()]);
         router();
     };
 

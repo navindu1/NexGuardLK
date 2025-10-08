@@ -6,13 +6,6 @@ const { v4: uuidv4 } = require('uuid');
 const transporter = require('../config/mailer');
 const { generateEmailTemplate, generateApprovalEmailContent } = require('./emailService');
 
-const planConfig = {
-    "100GB": { totalGB: 100 },
-    "200GB": { totalGB: 200 },
-    "300GB": { totalGB: 300 },
-    "Unlimited": { totalGB: 0 },
-};
-
 // File: src/services/orderService.js
 
 exports.approveOrder = async (orderId, isAutoConfirm = false) => {
@@ -51,15 +44,21 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
         const { data: websiteUser } = await supabase.from("users").select("*").ilike("username", order.website_username).single();
         if (!websiteUser) return { success: false, message: `Website user "${order.website_username}" not found.` };
 
-        const plan = planConfig[order.plan_id];
-        
-        if (!plan) {
-            return { success: false, message: "Invalid plan configuration." };
+        // START: MODIFIED LOGIC - Fetch plan details from the database
+        const { data: planDetails, error: planError } = await supabase
+            .from("plans")
+            .select("total_gb")
+            .eq("plan_name", order.plan_id)
+            .single();
+
+        if (planError || !planDetails) {
+            return { success: false, message: `Plan details for "${order.plan_id}" not found in the database.` };
         }
+        // END: MODIFIED LOGIC
 
         const expiryTime = Date.now() + 30 * 24 * 60 * 60 * 1000;
-        const totalGBValue = (plan.totalGB || 0) * 1024 * 1024 * 1024;
-        
+        // Use 'total_gb' from the database to calculate the byte value
+        const totalGBValue = (planDetails.total_gb || 0) * 1024 * 1024 * 1024;        
         let clientLink;
         
         if (order.status === 'pending') {

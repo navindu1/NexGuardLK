@@ -75,4 +75,34 @@ router.get('/check-usage/:username', usageController.checkUsage);
 router.post('/create-order', authenticateToken, upload.single('receipt'), orderController.createOrder);
 
 
+// Add this new route before module.exports
+router.get('/public/plans', async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('plans')
+            .select('plan_name, price, total_gb')
+            .order('price', { ascending: true });
+        if (error) throw error;
+
+        const plansObject = data.reduce((acc, plan) => {
+            const features = [
+                `${plan.total_gb === 0 ? 'Unlimited Data' : `${plan.total_gb}GB Monthly Data`}`,
+                "High-Speed Connection",
+                "30-Day Validity"
+            ];
+            acc[plan.plan_name] = {
+                name: `${plan.plan_name} Plan`,
+                price: plan.price.toString(),
+                features: features
+            };
+            return acc;
+        }, {});
+
+        res.json({ success: true, data: plansObject });
+    } catch (error) {
+        console.error('Error fetching public plans:', error);
+        res.status(500).json({ success: false, message: 'Could not fetch plans.' });
+    }
+});
+
 module.exports = router;
