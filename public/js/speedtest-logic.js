@@ -1,71 +1,76 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // This function runs when the DOM is ready, but it doesn't do anything
-    // until the speed test page is loaded and the button is clicked.
-
-    // We use a global function to initialize the test,
-    // which will be called from the router in main.js
-    // This is a simple way to handle script loading for this specific page.
+    // This is a placeholder; main logic is in initSpeedTest
 });
 
-// We attach the main logic to the window object so our router can find it
 window.initSpeedTest = () => {
     const startBtn = document.getElementById('start-speedtest-btn');
-    if (!startBtn) {
-        // If the button isn't on the page, do nothing.
-        return;
-    }
+    if (!startBtn) return;
 
-    const pingVal = document.getElementById('ping-value');
-    const jitterVal = document.getElementById('jitter-value');
-    const downloadVal = document.getElementById('download-value');
-    const uploadVal = document.getElementById('upload-value');
+    const pingValEl = document.getElementById('ping-value');
+    const jitterValEl = document.getElementById('jitter-value');
+    const downloadValEl = document.getElementById('download-value');
+    const uploadValEl = document.getElementById('upload-value');
     const statusDiv = document.getElementById('test-status');
+    const speedValueEl = document.getElementById('speed-value');
+    const speedUnitTextEl = document.getElementById('speed-unit-text');
+    const speedIconEl = document.getElementById('speed-icon');
 
     let gauge;
 
-    // Initialize Gauge
     if (typeof RadialGauge !== 'undefined') {
         gauge = new RadialGauge({
             renderTo: 'speed-gauge',
-            width: 250,
-            height: 250,
+            width: 300,
+            height: 300,
             units: "Mbps",
             minValue: 0,
             maxValue: 100,
-            majorTicks: ["0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"],
-            minorTicks: 2,
+            startAngle: 150,
+            ticksAngle: 160,
+            valueBox: false, // We use a custom overlay
+            majorTicks: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+            minorTicks: 5,
             strokeTicks: true,
             highlights: [
-                { "from": 0, "to": 20, "color": "rgba(99, 102, 241, .75)" },
-                { "from": 20, "to": 50, "color": "rgba(168, 85, 247, .75)" },
-                { "from": 50, "to": 100, "color": "rgba(236, 72, 153, .75)" }
+                { "from": 0, "to": 100, "color": "rgba(0, 0, 0, 0.2)" }
             ],
             colorPlate: "transparent",
-            colorMajorTicks: "#e0e0e0",
-            colorMinorTicks: "#d1d5db",
-            colorTitle: "#e0e0e0",
-            colorUnits: "#9ca3af",
-            colorNumbers: "#e0e0e0",
-            colorNeedle: "rgba(244, 114, 182, 1)",
-            colorNeedleEnd: "rgba(236, 72, 153, 1)",
-            valueBox: true,
-            animationRule: "elastic",
+            borderShadowWidth: 0,
+            borders: false,
+            needleType: "arrow",
+            needleWidth: 3,
+            needleCircleSize: 10,
+            needleCircleOuter: true,
+            needleCircleInner: false,
             animationDuration: 500,
-            animatedValue: true
+            animationRule: "linear",
+            colorNeedle: "#a78bfa",
+            colorNeedleEnd: "#ec4899",
+            colorMajorTicks: "#4b5563",
+            colorMinorTicks: "#374151",
+            colorNumbers: "#9ca3af",
+            colorUnits: "#9ca3af",
+            fontNumbersSize: 18,
+            fontUnitsSize: 22,
+            barWidth: 15,
+            barProgress: true,
+            barStrokeWidth: 0,
+            colorBarProgress: "#a78bfa",
         }).draw();
-    } else {
-        console.error("canvas-gauges library not loaded.");
     }
 
     const resetUI = () => {
-        pingVal.textContent = '- ms';
-        jitterVal.textContent = '- ms';
-        downloadVal.textContent = '- Mbps';
-        uploadVal.textContent = '- Mbps';
+        pingValEl.textContent = '- ms';
+        jitterValEl.textContent = '- ms';
+        downloadValEl.textContent = '- Mbps';
+        uploadValEl.textContent = '- Mbps';
+        speedValueEl.textContent = '-';
         statusDiv.textContent = '';
-        if(gauge) gauge.value = 0;
+        if (gauge) gauge.value = 0;
         startBtn.disabled = false;
-        startBtn.innerHTML = '<i class="fa-solid fa-play mr-2"></i> START TEST';
+        startBtn.innerHTML = '<i class="fa-solid fa-play mr-2"></i> START';
+        speedUnitTextEl.textContent = 'DOWNLOAD';
+        speedIconEl.className = 'fa-solid fa-down-long';
     };
 
     const testPing = async () => {
@@ -74,7 +79,7 @@ window.initSpeedTest = () => {
         let pings = [];
         for (let i = 0; i < PING_COUNT; i++) {
             const startTime = Date.now();
-            await fetch(`/api/ping?t=${startTime}`); // Cache buster
+            await fetch(`/api/ping?t=${startTime}`);
             pings.push(Date.now() - startTime);
             await new Promise(resolve => setTimeout(resolve, 300));
         }
@@ -85,85 +90,65 @@ window.initSpeedTest = () => {
         }
         jitter = jitter / (pings.length - 1);
 
-        pingVal.textContent = `${avgPing.toFixed(0)} ms`;
-        jitterVal.textContent = `${jitter.toFixed(1)} ms`;
+        pingValEl.textContent = `${avgPing.toFixed(0)} ms`;
+        jitterValEl.textContent = `${jitter.toFixed(1)} ms`;
     };
+    
+    const testSpeed = async (type) => {
+        const isDownload = type === 'download';
+        statusDiv.textContent = `Testing ${isDownload ? 'Download' : 'Upload'} Speed...`;
+        speedUnitTextEl.textContent = isDownload ? 'DOWNLOAD' : 'UPLOAD';
+        speedIconEl.className = isDownload ? 'fa-solid fa-down-long' : 'fa-solid fa-up-long';
 
-    const testDownload = async () => {
-        statusDiv.textContent = 'Testing Download Speed...';
-        const FILE_URL = '/speedtest-files/dummy-10mb.bin';
-        const FILE_SIZE_MB = 10;
-
+        const FILE_SIZE_MB = isDownload ? 10 : 5;
         const startTime = Date.now();
         let loaded = 0;
 
-        const response = await fetch(`${FILE_URL}?t=${startTime}`); // Cache buster
-        const reader = response.body.getReader();
-
-        const read = async () => {
-            const { done, value } = await reader.read();
-            if (done) {
-                return;
+        if (isDownload) {
+            const response = await fetch(`/speedtest-files/dummy-10mb.bin?t=${startTime}`);
+            const reader = response.body.getReader();
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                loaded += value.length;
+                updateSpeed(loaded, startTime);
             }
-            loaded += value.length;
-            const duration = (Date.now() - startTime) / 1000;
-            const speedBps = loaded / duration;
-            const speedMbps = (speedBps * 8) / (1024 * 1024);
-            if (gauge) gauge.value = speedMbps;
-            downloadVal.textContent = `${speedMbps.toFixed(2)} Mbps`;
-            await read();
-        };
-        await read();
+        } else { // Upload
+            const CHUNK_SIZE = 256 * 1024;
+            const TOTAL_CHUNKS = (FILE_SIZE_MB * 1024 * 1024) / CHUNK_SIZE;
+            const data = new Blob([new ArrayBuffer(CHUNK_SIZE)], { type: 'application/octet-stream' });
+            for (let i = 0; i < TOTAL_CHUNKS; i++) {
+                await fetch('/api/upload', { method: 'POST', body: data });
+                loaded += CHUNK_SIZE;
+                updateSpeed(loaded, startTime);
+            }
+        }
 
         const finalDuration = (Date.now() - startTime) / 1000;
-        const finalSpeedBps = (FILE_SIZE_MB * 1024 * 1024) / finalDuration;
-        const finalSpeedMbps = (finalSpeedBps * 8) / (1024 * 1024);
-        downloadVal.textContent = `${finalSpeedMbps.toFixed(2)} Mbps`;
+        const finalSpeedMbps = ((FILE_SIZE_MB * 1024 * 1024 * 8) / finalDuration) / (1024 * 1024);
+        (isDownload ? downloadValEl : uploadValEl).textContent = `${finalSpeedMbps.toFixed(2)} Mbps`;
     };
-
-    const testUpload = async () => {
-        statusDiv.textContent = 'Testing Upload Speed...';
-        const UPLOAD_SIZE_MB = 5;
-        const CHUNK_SIZE = 1024 * 256; // 256KB chunks
-        const TOTAL_CHUNKS = (UPLOAD_SIZE_MB * 1024 * 1024) / CHUNK_SIZE;
-        const data = new Blob([new ArrayBuffer(CHUNK_SIZE)], { type: 'application/octet-stream' });
-
-        const startTime = Date.now();
-        let chunksSent = 0;
-
-        const sendChunk = async () => {
-            if (chunksSent >= TOTAL_CHUNKS) return;
-
-            await fetch('/api/upload', { method: 'POST', body: data });
-            chunksSent++;
-
-            const duration = (Date.now() - startTime) / 1000;
-            const uploadedBytes = chunksSent * CHUNK_SIZE;
-            const speedBps = uploadedBytes / duration;
-            const speedMbps = (speedBps * 8) / (1024 * 1024);
-            if(gauge) gauge.value = speedMbps;
-            uploadVal.textContent = `${speedMbps.toFixed(2)} Mbps`;
-            await sendChunk();
-        };
-
-        await sendChunk();
-
-        const finalDuration = (Date.now() - startTime) / 1000;
-        const finalSpeedBps = (UPLOAD_SIZE_MB * 1024 * 1024) / finalDuration;
-        const finalSpeedMbps = (finalSpeedBps * 8) / (1024 * 1024);
-        uploadVal.textContent = `${finalSpeedMbps.toFixed(2)} Mbps`;
+    
+    const updateSpeed = (bytes, startTime) => {
+        const duration = (Date.now() - startTime) / 1000;
+        if (duration === 0) return;
+        const speedBps = bytes / duration;
+        const speedMbps = (speedBps * 8) / (1024 * 1024);
+        if (gauge) gauge.value = speedMbps;
+        speedValueEl.textContent = speedMbps.toFixed(2);
     };
 
     startBtn.onclick = async () => {
         resetUI();
         startBtn.disabled = true;
         startBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> RUNNING...';
-
+        
         try {
             await testPing();
-            await testDownload();
-            if(gauge) gauge.value = 0; // Reset gauge for upload
-            await testUpload();
+            await testSpeed('download');
+            if (gauge) gauge.value = 0;
+            speedValueEl.textContent = '-';
+            await testSpeed('upload');
             statusDiv.textContent = 'Test Completed!';
         } catch (error) {
             console.error("Speed test failed:", error);
@@ -171,19 +156,17 @@ window.initSpeedTest = () => {
         } finally {
             startBtn.disabled = false;
             startBtn.innerHTML = '<i class="fa-solid fa-redo mr-2"></i> TEST AGAIN';
-            if(gauge) gauge.value = 0;
+            if (gauge) gauge.value = 0;
+            speedValueEl.textContent = '-';
         }
     };
 };
 
-// This is a bit of a hack to make sure the script runs when the page is rendered
-// A better SPA would handle script loading/unloading per route
 const observer = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
         if (mutation.addedNodes.length) {
             if (document.getElementById('start-speedtest-btn')) {
                 window.initSpeedTest();
-                // Once initialized on the page, we don't need to observe anymore
                 observer.disconnect();
                 return;
             }

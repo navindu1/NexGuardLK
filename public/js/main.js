@@ -1335,41 +1335,47 @@ const pageStyles = `
     function renderSpeedTestPage(renderFunc) {
     renderFunc(`
         <div id="page-speedtest" class="page">
-            <header class="text-center mb-8 reveal">
-                <h2 class="text-2xl font-bold text-white">Connection Speed Test</h2>
-                <p class="text-gray-400 mt-2">Check the speed and latency of your internet connection.</p>
-            </header>
-            <div class="glass-panel p-4 sm:p-8 rounded-xl">
-                <div class="flex justify-center mb-6">
-                    <canvas id="speed-gauge"></canvas>
+            <div class="speedtest-container">
+                <div class="glass-panel p-4 sm:p-8 rounded-xl">
+                    <div class="gauge-container">
+                        <canvas id="speed-gauge"></canvas>
+                        <div class="gauge-overlay">
+                            <div id="speed-unit-container" class="speed-unit">
+                                <i id="speed-icon" class="fa-solid fa-down-long"></i>
+                                <span id="speed-unit-text">DOWNLOAD</span>
+                            </div>
+                            <div id="speed-value" class="speed-value">-</div>
+                        </div>
+                    </div>
+
+                    <div class="speed-info-grid mb-8">
+                        <div class="info-box">
+                            <p class="label"><i class="fa-solid fa-arrows-up-down"></i> Ping</p>
+                            <p id="ping-value" class="value">- ms</p>
+                        </div>
+                        <div class="info-box">
+                            <p class="label"><i class="fa-solid fa-wave-square"></i> Jitter</p>
+                            <p id="jitter-value" class="value">- ms</p>
+                        </div>
+                        <div class="info-box">
+                            <p class="label text-sky-300"><i class="fa-solid fa-circle-down"></i> Download</p>
+                            <p id="download-value" class="value">- Mbps</p>
+                        </div>
+                        <div class="info-box">
+                            <p class="label text-violet-300"><i class="fa-solid fa-circle-up"></i> Upload</p>
+                            <p id="upload-value" class="value">- Mbps</p>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-center">
+                        <button id="start-speedtest-btn" class="ai-button px-10 py-3 text-lg rounded-lg">
+                            <i class="fa-solid fa-play mr-2"></i> START
+                        </button>
+                    </div>
+                    <div id="test-status" class="text-center text-sm text-gray-400 mt-4 min-h-[20px]"></div>
                 </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center mb-8">
-                    <div class="bg-black/20 p-3 rounded-lg">
-                        <p class="text-xs text-purple-300">PING</p>
-                        <p id="ping-value" class="text-xl font-bold">- ms</p>
-                    </div>
-                    <div class="bg-black/20 p-3 rounded-lg">
-                        <p class="text-xs text-purple-300">JITTER</p>
-                        <p id="jitter-value" class="text-xl font-bold">- ms</p>
-                    </div>
-                    <div class="bg-black/20 p-3 rounded-lg">
-                        <p class="text-xs text-sky-300">DOWNLOAD</p>
-                        <p id="download-value" class="text-xl font-bold">- Mbps</p>
-                    </div>
-                    <div class="bg-black/20 p-3 rounded-lg">
-                        <p class="text-xs text-violet-300">UPLOAD</p>
-                        <p id="upload-value" class="text-xl font-bold">- Mbps</p>
-                    </div>
-                </div>
-                <div class="flex justify-center">
-                    <button id="start-speedtest-btn" class="ai-button px-10 py-3 text-lg rounded-lg">
-                        <i class="fa-solid fa-play mr-2"></i> START TEST
-                    </button>
-                </div>
-                <div id="test-status" class="text-center text-sm text-gray-400 mt-4 min-h-[20px]"></div>
             </div>
-        </div>
-    `);
+        `);
 }
 
 
