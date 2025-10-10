@@ -38,7 +38,8 @@ document.addEventListener("DOMContentLoaded", () => {
         signup: 'Login / Signup - NexGuardLK STORE',
         'reset-password': 'Reset Password - NexGuardLK STORE',
         checkout: 'Checkout - NexGuardLK STORE',
-        profile: 'My Profile - NexGuardLK STORE'
+        profile: 'My Profile - NexGuardLK STORE',
+        speedtest: 'Speed Test - NexGuardLK STORE'
     };
 
     const apiFetch = async (url, options = {}) => {
@@ -1331,6 +1332,20 @@ const pageStyles = `
             </div>`);
     }
 
+    function renderSpeedTestPage(renderFunc) {
+    renderFunc(`
+        <div id="page-speedtest" class="page">
+            <header class="text-center mb-10 reveal">
+                <h2 class="text-2xl font-bold text-white">Connection Speed Test</h2>
+                <p class="text-gray-400 mt-2">Check the speed and latency of your internet connection.</p>
+            </header>
+            <div class="glass-panel p-2 sm:p-4 rounded-xl">
+                <iframe style="width: 100%; height: 65vh; border: none; border-radius: 0.75rem;" src="https://librespeed.org/iframe.html"></iframe>
+            </div>
+        </div>
+    `);
+}
+
 
     function renderProfilePage(renderFunc, params) {
     const user = JSON.parse(localStorage.getItem("nexguard_user"));
@@ -2182,6 +2197,7 @@ forgotPasswordForm?.addEventListener("submit", async(e) => {
         "reset-password": renderAuthPage,
         checkout: renderCheckoutPage,
         profile: renderProfilePage,
+        speedtest: renderSpeedTestPage,
     };
 
     const navigateTo = (path) => {
