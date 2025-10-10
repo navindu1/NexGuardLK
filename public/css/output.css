@@ -2008,7 +2008,7 @@ h1, h2, h3, h4, h5, h6 {
   background-color: rgb(17 24 39 / var(--tw-bg-opacity, 1));
 }
 
-/* Add other custom styles here */
+/* You can add any other custom styles here */
 
 .file\:mr-4::file-selector-button {
   margin-right: 1rem;

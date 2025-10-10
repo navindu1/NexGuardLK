@@ -1,8 +1,8 @@
 /* src/input.css */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
 
 body {
   @apply bg-custom-black text-custom-gray;
@@ -20,4 +20,4 @@ h1, h2, h3, h4, h5, h6 {
   @apply bg-gray-900 border border-custom-gray-dark;
 }
 
-/* Add other custom styles here */
+/* You can add any other custom styles here */
