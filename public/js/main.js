@@ -1340,7 +1340,7 @@ const pageStyles = `
                 <p class="text-gray-400 mt-2">Check the speed and latency of your internet connection.</p>
             </header>
             <div class="glass-panel p-2 sm:p-4 rounded-xl">
-                <iframe style="width: 100%; height: 65vh; border: none; border-radius: 0.75rem;" src="https://librespeed.org/iframe.html"></iframe>
+                <iframe style="width: 100%; height: 65vh; border: none; border-radius: 0.75rem;" src="https://openspeedtest.com/speedtest-widget.html"></iframe>
             </div>
         </div>
     `);
