@@ -56,7 +56,7 @@
       body.modal-open {
         overflow: hidden;
       }
- /* --- Default (Mobile View) --- */
+  /* --- Default (Mobile View) --- */
 
 /* Hide desktop-specific buttons on mobile by default */
 #desktop-auth-buttons,
@@ -258,8 +258,8 @@ html.logged-in #mobile-user-profile { display: flex !important; }
 
   /* image එකට උඩින් padding එක පේන්න */
   .animated-profile-border img {
-     position: relative;
-     z-index: 2;
+      position: relative;
+      z-index: 2;
   }
 }
       .form-input {
@@ -345,7 +345,7 @@ html.logged-in #mobile-user-profile { display: flex !important; }
     flex-direction: column; /* අන්තර්ගතය සිරස්ව තැබීම */
     justify-content: center; /* සිරස්ව (Vertically) මැදට ගැනීම */
     align-items: center;   /* තිරස්ව (Horizontally) මැදට ගැනීම */
-    min-height: 70vh;      /* මැදට ගැනීමට අවශ්‍ය අවම උස ලබා දීම */
+    min-height: 70vh;       /* මැදට ගැනීමට අවශ්‍ය අවම උස ලබා දීම */
     padding: 2rem 0;       /* උඩින් සහ යටින් ඉඩක් තැබීම */
 }
 
@@ -355,7 +355,7 @@ html.logged-in #mobile-user-profile { display: flex !important; }
 #page-checkout > .glass-panel {
     width: 100%; /* container එකේ සම්පූර්ණ පළල ලබාගැනීමට සැලැස්වීම */
     /* දැන්, container එකේම ඇති max-width (උදා: max-w-md) එකෙන් 
-        එහි උපරිම පළල සීමා වේ. එම නිසා size එක වෙනස් නොවේ. */
+       එහි උපරිම පළල සීමා වේ. එම නිසා size එක වෙනස් නොවේ. */
 }
 
 /* Profile පිටුවේ grid එක මැදට ගැනීම (පෙර පරිදිම) */
@@ -679,7 +679,6 @@ html.logged-in #mobile-user-profile { display: flex !important; }
         >
         <hr class="border-white/10 my-4" />
 
-        <!-- **** මෙතන වෙනස්කම සිදුකළා **** -->
         <div id="mobile-auth-buttons" class="flex flex-col gap-3 mt-6">
             <a href="/login" class="nav-link-internal flex items-center justify-center w-full py-2.5 text-center font-semibold text-white rounded-lg ai-button secondary">
                 Login
@@ -734,7 +733,7 @@ html.logged-in #mobile-user-profile { display: flex !important; }
           </a>
 
           <nav id="main-nav" class="hidden sm:flex flex-wrap justify-center items-center gap-x-1 sm:gap-x-3">
-    <a href="/home" class="nav-link text-sm">Home</a>  <a href="/usage" class="nav-link text-sm">Usage</a>
+    <a href="/home" class="nav-link text-sm">Home</a>   <a href="/usage" class="nav-link text-sm">Usage</a>
     <a href="/plans" class="nav-link text-sm">Plans</a>
     <a href="/about" class="nav-link text-sm">About</a>
     <a href="/privacy" class="nav-link text-sm">Privacy Policy</a>
@@ -813,4 +812,3 @@ html.logged-in #mobile-user-profile { display: flex !important; }
         <script src="./js/main.js"></script>
   </body>
 </html>
-
