@@ -64,6 +64,24 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+
+// Create a dummy file for speed testing on server start
+const speedTestDir = path.join(__dirname, 'public', 'speedtest-files');
+if (!fs.existsSync(speedTestDir)) {
+  fs.mkdirSync(speedTestDir, { recursive: true });
+}
+const dummyFilePath = path.join(speedTestDir, 'dummy-10mb.bin');
+if (!fs.existsSync(dummyFilePath)) {
+  console.log('Creating 10MB dummy file for speed test...');
+  try {
+    const buffer = crypto.randomBytes(1024 * 1024 * 10); // Create a 10MB buffer
+    fs.writeFileSync(dummyFilePath, buffer);
+    console.log('Dummy file created successfully.');
+  } catch (err) {
+    console.error('Error creating dummy file:', err);
+  }
+}
+
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });

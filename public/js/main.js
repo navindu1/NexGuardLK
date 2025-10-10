@@ -1335,12 +1335,38 @@ const pageStyles = `
     function renderSpeedTestPage(renderFunc) {
     renderFunc(`
         <div id="page-speedtest" class="page">
-            <header class="text-center mb-10 reveal">
+            <header class="text-center mb-8 reveal">
                 <h2 class="text-2xl font-bold text-white">Connection Speed Test</h2>
                 <p class="text-gray-400 mt-2">Check the speed and latency of your internet connection.</p>
             </header>
-            <div class="glass-panel p-2 sm:p-4 rounded-xl">
-                <iframe style="width: 100%; height: 65vh; border: none; border-radius: 0.75rem;" src="https://openspeedtest.com/speedtest-widget.html"></iframe>
+            <div class="glass-panel p-4 sm:p-8 rounded-xl">
+                <div class="flex justify-center mb-6">
+                    <canvas id="speed-gauge"></canvas>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center mb-8">
+                    <div class="bg-black/20 p-3 rounded-lg">
+                        <p class="text-xs text-purple-300">PING</p>
+                        <p id="ping-value" class="text-xl font-bold">- ms</p>
+                    </div>
+                    <div class="bg-black/20 p-3 rounded-lg">
+                        <p class="text-xs text-purple-300">JITTER</p>
+                        <p id="jitter-value" class="text-xl font-bold">- ms</p>
+                    </div>
+                    <div class="bg-black/20 p-3 rounded-lg">
+                        <p class="text-xs text-sky-300">DOWNLOAD</p>
+                        <p id="download-value" class="text-xl font-bold">- Mbps</p>
+                    </div>
+                    <div class="bg-black/20 p-3 rounded-lg">
+                        <p class="text-xs text-violet-300">UPLOAD</p>
+                        <p id="upload-value" class="text-xl font-bold">- Mbps</p>
+                    </div>
+                </div>
+                <div class="flex justify-center">
+                    <button id="start-speedtest-btn" class="ai-button px-10 py-3 text-lg rounded-lg">
+                        <i class="fa-solid fa-play mr-2"></i> START TEST
+                    </button>
+                </div>
+                <div id="test-status" class="text-center text-sm text-gray-400 mt-4 min-h-[20px]"></div>
             </div>
         </div>
     `);
