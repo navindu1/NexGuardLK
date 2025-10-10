@@ -38,8 +38,7 @@ document.addEventListener("DOMContentLoaded", () => {
         signup: 'Login / Signup - NexGuardLK STORE',
         'reset-password': 'Reset Password - NexGuardLK STORE',
         checkout: 'Checkout - NexGuardLK STORE',
-        profile: 'My Profile - NexGuardLK STORE',
-        speedtest: 'Speed Test - NexGuardLK STORE'
+        profile: 'My Profile - NexGuardLK STORE'
     };
 
     const apiFetch = async (url, options = {}) => {
@@ -1332,52 +1331,6 @@ const pageStyles = `
             </div>`);
     }
 
-    function renderSpeedTestPage(renderFunc) {
-    renderFunc(`
-        <div id="page-speedtest" class="page">
-            <div class="speedtest-container">
-                <div class="glass-panel p-4 sm:p-8 rounded-xl">
-                    <div class="gauge-container">
-                        <canvas id="speed-gauge"></canvas>
-                        <div class="gauge-overlay">
-                            <div id="speed-unit-container" class="speed-unit">
-                                <i id="speed-icon" class="fa-solid fa-down-long"></i>
-                                <span id="speed-unit-text">DOWNLOAD</span>
-                            </div>
-                            <div id="speed-value" class="speed-value">-</div>
-                        </div>
-                    </div>
-
-                    <div class="speed-info-grid mb-8">
-                        <div class="info-box">
-                            <p class="label"><i class="fa-solid fa-arrows-up-down"></i> Ping</p>
-                            <p id="ping-value" class="value">- ms</p>
-                        </div>
-                        <div class="info-box">
-                            <p class="label"><i class="fa-solid fa-wave-square"></i> Jitter</p>
-                            <p id="jitter-value" class="value">- ms</p>
-                        </div>
-                        <div class="info-box">
-                            <p class="label text-sky-300"><i class="fa-solid fa-circle-down"></i> Download</p>
-                            <p id="download-value" class="value">- Mbps</p>
-                        </div>
-                        <div class="info-box">
-                            <p class="label text-violet-300"><i class="fa-solid fa-circle-up"></i> Upload</p>
-                            <p id="upload-value" class="value">- Mbps</p>
-                        </div>
-                    </div>
-
-                    <div class="flex justify-center">
-                        <button id="start-speedtest-btn" class="ai-button px-10 py-3 text-lg rounded-lg">
-                            <i class="fa-solid fa-play mr-2"></i> START
-                        </button>
-                    </div>
-                    <div id="test-status" class="text-center text-sm text-gray-400 mt-4 min-h-[20px]"></div>
-                </div>
-            </div>
-        `);
-}
-
 
     function renderProfilePage(renderFunc, params) {
     const user = JSON.parse(localStorage.getItem("nexguard_user"));
@@ -2229,7 +2182,6 @@ forgotPasswordForm?.addEventListener("submit", async(e) => {
         "reset-password": renderAuthPage,
         checkout: renderCheckoutPage,
         profile: renderProfilePage,
-        speedtest: renderSpeedTestPage,
     };
 
     const navigateTo = (path) => {

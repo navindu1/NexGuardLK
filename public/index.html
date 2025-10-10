@@ -19,7 +19,6 @@
   } catch (e) {
     document.documentElement.classList.add('logged-out');
   }
-  
 </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://gstatic.com" crossorigin />
@@ -32,14 +31,12 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://app.nexguardlk.store/">
 <meta property="og:image" content="https://app.nexguardlk.store/assets/NEX.jpg">
-
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
     />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.fog.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-gauges@2.1.7/gauge.min.js"></script>
     <style>
       :root {
         --glow-color: rgba(168, 85, 247, 0.7);
@@ -663,12 +660,24 @@ html.logged-in #mobile-user-profile { display: flex !important; }
         </h1>
       </a>
       <nav id="mobile-nav" class="flex flex-col space-y-2">
-    <a href="/home" class="nav-link text-lg p-3 flex items-center gap-3 bg-white/5 rounded-lg text-white"><i class="fa-solid fa-home w-5 text-center"></i> Dashboard</a>
-    <a href="/usage" class="nav-link text-lg p-3 flex items-center gap-3"><i class="fa-solid fa-chart-simple w-5 text-center"></i> Usage</a>
-    <a href="/plans" class="nav-link text-lg p-3 flex items-center gap-3"><i class="fa-solid fa-rocket w-5 text-center"></i> Plans</a>
-    <a href="/speedtest" class="nav-link text-lg p-3 flex items-center gap-3"><i class="fa-solid fa-gauge-high w-5 text-center"></i> Speed Test</a> <a href="/about" class="nav-link text-lg p-3 flex items-center gap-3"><i class="fa-solid fa-info-circle w-5 text-center"></i> About</a>
-    <a href="/privacy" class="nav-link text-lg p-3 flex items-center gap-3"><i class="fa-solid fa-shield-halved w-5 text-center"></i> Privacy</a>
-    <hr class="border-white/10 my-4" />
+        <a
+          href="/home"
+          class="nav-link text-lg p-3 flex items-center gap-3 bg-white/5 rounded-lg text-white"
+          ><i class="fa-solid fa-home w-5 text-center"></i> Dashboard</a
+        >
+        <a href="/usage" class="nav-link text-lg p-3 flex items-center gap-3"
+          ><i class="fa-solid fa-chart-simple w-5 text-center"></i> Usage</a
+        >
+        <a href="/plans" class="nav-link text-lg p-3 flex items-center gap-3"
+          ><i class="fa-solid fa-rocket w-5 text-center"></i> Plans</a
+        >
+        <a href="/about" class="nav-link text-lg p-3 flex items-center gap-3"
+          ><i class="fa-solid fa-info-circle w-5 text-center"></i> About</a
+        >
+        <a href="/privacy" class="nav-link text-lg p-3 flex items-center gap-3"
+          ><i class="fa-solid fa-shield-halved w-5 text-center"></i> Privacy</a
+        >
+        <hr class="border-white/10 my-4" />
 
         <!-- **** මෙතන වෙනස්කම සිදුකළා **** -->
         <div id="mobile-auth-buttons" class="flex flex-col gap-3 mt-6">
@@ -725,10 +734,9 @@ html.logged-in #mobile-user-profile { display: flex !important; }
           </a>
 
           <nav id="main-nav" class="hidden sm:flex flex-wrap justify-center items-center gap-x-1 sm:gap-x-3">
-    <a href="/home" class="nav-link text-sm">Home</a>
-    <a href="/usage" class="nav-link text-sm">Usage</a>
+    <a href="/home" class="nav-link text-sm">Home</a>  <a href="/usage" class="nav-link text-sm">Usage</a>
     <a href="/plans" class="nav-link text-sm">Plans</a>
-    <a href="/speedtest" class="nav-link text-sm">Speed Test</a> <a href="/about" class="nav-link text-sm">About</a>
+    <a href="/about" class="nav-link text-sm">About</a>
     <a href="/privacy" class="nav-link text-sm">Privacy Policy</a>
 </nav>
 
@@ -803,7 +811,6 @@ html.logged-in #mobile-user-profile { display: flex !important; }
     
     <script src="./js/effects.js"></script> 
         <script src="./js/main.js"></script>
-        <script src="./js/speedtest-logic.js"></script> </body>
   </body>
 </html>
 

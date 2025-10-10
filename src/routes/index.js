@@ -105,16 +105,4 @@ router.get('/public/plans', async (req, res) => {
     }
 });
 
-// Speed Test Endpoints
-router.get('/ping', (req, res) => {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    res.sendStatus(200);
-});
-
-router.post('/upload', (req, res) => {
-    res.sendStatus(200);
-});
-
 module.exports = router;
