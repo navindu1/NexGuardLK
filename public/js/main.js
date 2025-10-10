@@ -1,22 +1,7 @@
-// public/js/main.js - UPDATED CODE
+// public/js/main.js - UPDATED CODE (Vanta.js removed, animation logic updated)
 
 document.addEventListener("DOMContentLoaded", () => {
-    // Initialize Vanta.js animated background with FOG effect
-    VANTA.FOG({
-      el: "#vanta-bg",
-      mouseControls: true,
-      touchControls: true,
-      gyroControls: false,
-      minHeight: 200.00,
-      minWidth: 200.00,
-      highlightColor: 0x7d159d,
-  midtoneColor: 0x1eff,
-  lowlightColor: 0x580093,
-  baseColor: 0x190128,
-  blurFactor: 0.69,
-      zoom: 0.90,
-      speed: 1.20 // Added for a subtle animation speed
-    });
+    // Vanta.js initialization is now removed and handled by effects.js with Three.js
 
     // Global variables
     const mainContentArea = document.getElementById("app-router");
@@ -64,15 +49,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 message: "Login Expired. Please Login Again.",
                 type: "warning"
             });
-            
+
             setTimeout(() => {
-                clearSession(); 
-                navigateTo('/login'); 
+                clearSession();
+                navigateTo('/login');
             }, 2000);
 
             return Promise.reject(new Error("Token expired or invalid"));
         }
-        
+
         return response;
     };
 
@@ -126,7 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
                 const connections = await response.json();
                 renderConnections(connections);
-            } catch (error) {
+            } catch (error){
                 console.error('Failed to fetch connections:', error);
                 connectionsGrid.innerHTML = '<p class="text-danger">Failed to load connections. Please try again later.</p>';
             }
