@@ -633,6 +633,22 @@ video {
                       radial-gradient(at 90% 90%, hsla(240,30%,15%,0.3) 0px, transparent 50%);
 }
 
+#main-nav a.active,
+  #mobile-nav a.active {
+  /* නිල් පැහැති Gradient එකක් නිර්මාණය කිරීම */
+  background-image: linear-gradient(to right, var(--tw-gradient-stops));
+  --tw-gradient-from: #60a5fa var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(96 165 250 / 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  --tw-gradient-to: #3B82F6 var(--tw-gradient-to-position);
+  /* Gradient එක අකුරු වලට පමණක් යෙදීම */
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* අකුරු වලට සියුම් දිස්නයක් ලබා දීම */
+  text-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -2005,6 +2021,10 @@ video {
 .ease-out {
   transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
 }
+
+/* src/input.css ගොනුවේ පහළටම මෙය එක් කරන්න */
+
+/* Navigation Bar එකේ Active Link එක සඳහා වන Style එක */
 
 .file\:mr-4::file-selector-button {
   margin-right: 1rem;
