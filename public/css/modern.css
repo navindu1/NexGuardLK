@@ -11,6 +11,35 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Add to: public/css/modern.css */
+
+/* Styles for the "Popular" package badge and glowing border */
+.popular-package {
+  position: relative;
+  /* Add a subtle glow to the popular card */
+  box-shadow: 0 0 35px rgba(59, 130, 246, 0.5), 0 0 15px rgba(59, 130, 246, 0.3);
+  border: 1px solid rgba(96, 165, 250, 0.6); /* Lighter blue border */
+  transform: scale(1.03); /* Slightly larger */
+}
+
+.popular-badge {
+  position: absolute;
+  top: -16px; /* Adjust to sit perfectly on the border */
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--brand-gradient);
+  color: white;
+  padding: 6px 18px;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 5px 20px rgba(59, 130, 246, 0.4);
+}
+
+
+
 body {
   font-family: 'Inter', sans-serif;
   background-color: #020010;

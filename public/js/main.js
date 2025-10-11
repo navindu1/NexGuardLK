@@ -587,105 +587,158 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    function renderHomePage(renderFunc) {
-        renderFunc(`
-            <div class="page" id="page-home">
-                <div class="text-center py-10 md:py-16 px-4 reveal">
-                    <h1 class="text-4xl md:text-5xl font-black text-white leading-tight" style="font-family: 'Orbitron', sans-serif;">
-                        Experience <span class="gradient-text">True Internet Freedom</span>
-                        <span class="block text-3xl md:text-4xl mt-2">in Sri Lanka.</span>
-                    </h1>
-                    <p class="max-w-3xl mx-auto mt-5 text-base md:text-lg text-gray-300">
-                        Blazing fast, ultra-secure V2Ray connections designed for seamless streaming, gaming, and browsing. Unleash the full potential of your internet with NexGuard.
-                    </p>
-                    <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-                        <a href="/plans" class="nav-link-internal ai-button rounded-lg">View Plans <i class="fa-solid fa-arrow-right ml-2"></i></a>
-                        <a href="/about?scroll=contact-section" class="nav-link-internal ai-button secondary rounded-lg"><i class="fa-solid fa-headset mr-2"></i> Contact Us</a>
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                    <div class="card reveal card-glass p-5 rounded-xl text-center"><i class="fa-solid fa-bolt text-2xl gradient-text mb-3"></i><h3 class="text-lg font-bold text-white">Unmatched Speed</h3><p class="text-gray-400 mt-2 text-sm">Optimized servers for Sri Lankan networks for the lowest latency and highest speeds.</p></div>
-                    <div class="card reveal card-glass p-5 rounded-xl text-center"><i class="fa-solid fa-shield-halved text-2xl gradient-text mb-3"></i><h3 class="text-lg font-bold text-white">Rock-Solid Security</h3><p class="text-gray-400 mt-2 text-sm">Advanced V2Ray protocols to keep your online activities private and secure.</p></div>
-                    <div class="card reveal card-glass p-5 rounded-xl text-center"><i class="fa-solid fa-headset text-2xl gradient-text mb-3"></i><h3 class="text-lg font-bold text-white">24/7 Support</h3><p class="text-gray-400 mt-2 text-sm">Dedicated support team available via WhatsApp and Telegram to assist you.</p></div>
-                </div>
-                <div class="mt-20 flex flex-col lg:flex-row items-center gap-8 lg:gap-12 reveal">
-                    <div class="lg:w-1/2">
-                        <img src="/assets/image.jpg" alt="V2Ray on a laptop" class="rounded-xl shadow-2xl shadow-blue-500/20 w-full h-auto object-cover">
-                    </div>
-                    <div class="w-full lg:w-1/2 text-center lg:text-left px-4">
-                        <h2 class="text-2xl md:text-3xl font-bold text-white mb-4">How to Get Started?</h2>
-                        <p class="text-gray-300 mb-6 text-sm md:text-base">Connecting is simple. Just follow these three easy steps to unlock true internet freedom.</p>
-                        <div class="space-y-4">
-                            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500/30 flex items-center justify-center font-bold text-blue-300">1</div>
-                                <div>
-                                    <h3 class="font-semibold text-white text-left sm:text-left">Choose a Plan</h3>
-                                    <p class="text-gray-400 text-sm text-left sm:text-left">Select a data plan that fits your needs and pick your internet provider (ISP).</p>
-                                </div>
-                            </div>
-                            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500/30 flex items-center justify-center font-bold text-blue-300">2</div>
-                                <div>
-                                    <h3 class="font-semibold text-white text-left sm:text-left">Make the Payment</h3>
-                                    <p class="text-gray-400 text-sm text-left sm:text-left">Complete the payment via bank transfer and submit the receipt through our checkout page.</p>
-                                </div>
-                            </div>
-                            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500/30 flex items-center justify-center font-bold text-blue-300">3</div>
-                                <div>
-                                    <h3 class="font-semibold text-white text-left sm:text-left">Get Approved & Connect</h3>
-                                    <p class="text-gray-400 text-sm text-left sm:text-left">Your order will be approved by an admin. You'll receive the config link via WhatsApp to connect!</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div id="faq-section" class="mt-20 reveal">
-    <header class="text-center mb-10">
-        <h2 class="text-2xl font-bold text-white">Frequently Asked Questions</h2>
-        <p class="text-gray-400 mt-2">Answers to common questions about our service.</p>
-    </header>
-    <div class="space-y-4 max-w-3xl mx-auto">
-        <details class="card-glass p-5 rounded-lg cursor-pointer">
+    // public/js/main.js
+
+function renderHomePage(renderFunc) {
+  renderFunc(`
+    <div class="page" id="page-home">
+      <div class="text-center py-10 md:py-16 px-4 reveal">
+        <h1 class="text-4xl md:text-5xl font-black text-white leading-tight" style="font-family: 'Orbitron', sans-serif;">
+          Experience <span class="gradient-text">True Internet Freedom</span>
+          <span class="block text-3xl md:text-4xl mt-2">in Sri Lanka.</span>
+        </h1>
+        <p class="max-w-3xl mx-auto mt-5 text-base md:text-lg text-gray-300">
+          Blazing fast, ultra-secure V2Ray connections designed for seamless streaming, gaming, and browsing. Unleash the full potential of your internet with NexGuard.
+        </p>
+        <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <a href="/plans" class="nav-link-internal ai-button rounded-lg">View Plans <i class="fa-solid fa-arrow-right ml-2"></i></a>
+          <a href="/about?scroll=contact-section" class="nav-link-internal ai-button secondary rounded-lg"><i class="fa-solid fa-headset mr-2"></i> Contact Us</a>
+        </div>
+      </div>
+
+      <div class="text-center my-16 reveal">
+        <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4" style="font-family: 'Orbitron', sans-serif;">
+            Our Most <span class="gradient-text">Popular Plans</span>
+        </h2>
+        <p class="text-lg text-gray-400 max-w-2xl mx-auto">
+            Select the perfect high-speed plan that fits your needs.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto reveal px-4">
+        <div class="card glass-panel p-8 rounded-xl flex flex-col">
+          <h3 class="text-2xl font-bold text-white mb-2">Standard</h3>
+          <p class="text-4xl font-bold mb-4">50 <span class="text-lg font-medium text-gray-400">GB</span></p>
+          <p class="text-gray-400 mb-6 min-h-[40px]">Ideal for regular browsing, streaming, and social media.</p>
+          <ul class="space-y-3 text-gray-300 mb-8 flex-grow">
+            <li class="flex items-center"><i class="fa-solid fa-check-circle text-blue-500 mr-3"></i> High-Speed Access</li>
+            <li class="flex items-center"><i class="fa-solid fa-check-circle text-blue-500 mr-3"></i> 24/7 Support</li>
+            <li class="flex items-center"><i class="fa-solid fa-check-circle text-blue-500 mr-3"></i> Secure Connection</li>
+          </ul>
+          <a href="/plans" class="nav-link-internal ai-button w-full py-3 rounded-lg font-semibold text-center">Get Plan</a>
+        </div>
+
+        <div class="card glass-panel p-8 rounded-xl flex flex-col popular-package">
+          <div class="popular-badge">Popular Package</div>
+          <h3 class="text-2xl font-bold text-white mb-2">Unlimited</h3>
+          <p class="text-4xl font-bold mb-4">∞ <span class="text-lg font-medium text-gray-400">GB</span></p>
+          <p class="text-gray-400 mb-6 min-h-[40px]">The ultimate package for heavy users, streamers, and downloaders.</p>
+          <ul class="space-y-3 text-gray-300 mb-8 flex-grow">
+            <li class="flex items-center"><i class="fa-solid fa-check-circle text-blue-500 mr-3"></i> Unrestricted Data</li>
+            <li class="flex items-center"><i class="fa-solid fa-check-circle text-blue-500 mr-3"></i> Highest Priority Speed</li>
+            <li class="flex items-center"><i class="fa-solid fa-check-circle text-blue-500 mr-3"></i> All Standard Features</li>
+          </ul>
+          <a href="/plans" class="nav-link-internal ai-button w-full py-3 rounded-lg font-semibold text-center">Get Plan</a>
+        </div>
+
+        <div class="card glass-panel p-8 rounded-xl flex flex-col">
+          <h3 class="text-2xl font-bold text-white mb-2">Basic</h3>
+          <p class="text-4xl font-bold mb-4">25 <span class="text-lg font-medium text-gray-400">GB</span></p>
+          <p class="text-gray-400 mb-6 min-h-[40px]">Perfect for light users who need a fast, secure connection.</p>
+          <ul class="space-y-3 text-gray-300 mb-8 flex-grow">
+            <li class="flex items-center"><i class="fa-solid fa-check-circle text-blue-500 mr-3"></i> High-Speed Access</li>
+            <li class="flex items-center"><i class="fa-solid fa-check-circle text-blue-500 mr-3"></i> Secure Connection</li>
+            <li class="flex items-center"><i class="fa-solid fa-check-circle text-blue-500 mr-3"></i> Limited to 2 Devices</li>
+          </ul>
+          <a href="/plans" class="nav-link-internal ai-button w-full py-3 rounded-lg font-semibold text-center">Get Plan</a>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-20">
+        <div class="card reveal glass-panel p-5 rounded-xl text-center"><i class="fa-solid fa-bolt text-2xl gradient-text mb-3"></i><h3 class="text-lg font-bold text-white">Unmatched Speed</h3><p class="text-gray-400 mt-2 text-sm">Optimized servers for Sri Lankan networks for the lowest latency and highest speeds.</p></div>
+        <div class="card reveal glass-panel p-5 rounded-xl text-center"><i class="fa-solid fa-shield-halved text-2xl gradient-text mb-3"></i><h3 class="text-lg font-bold text-white">Rock-Solid Security</h3><p class="text-gray-400 mt-2 text-sm">Advanced V2Ray protocols to keep your online activities private and secure.</p></div>
+        <div class="card reveal glass-panel p-5 rounded-xl text-center"><i class="fa-solid fa-headset text-2xl gradient-text mb-3"></i><h3 class="text-lg font-bold text-white">24/7 Support</h3><p class="text-gray-400 mt-2 text-sm">Dedicated support team available via WhatsApp and Telegram to assist you.</p></div>
+      </div>
+
+      <div class="mt-20 flex flex-col lg:flex-row items-center gap-8 lg:gap-12 reveal">
+        <div class="lg:w-1/2">
+          <img src="/assets/image.jpg" alt="V2Ray on a laptop" class="rounded-xl shadow-2xl shadow-blue-500/20 w-full h-auto object-cover">
+        </div>
+        <div class="w-full lg:w-1/2 text-center lg:text-left px-4">
+          <h2 class="text-2xl md:text-3xl font-bold text-white mb-4">How to Get Started?</h2>
+          <p class="text-gray-300 mb-6 text-sm md:text-base">Connecting is simple. Just follow these three easy steps to unlock true internet freedom.</p>
+          <div class="space-y-4">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500/30 flex items-center justify-center font-bold text-blue-300">1</div>
+              <div>
+                <h3 class="font-semibold text-white text-left sm:text-left">Choose a Plan</h3>
+                <p class="text-gray-400 text-sm text-left sm:text-left">Select a data plan that fits your needs and pick your internet provider (ISP).</p>
+              </div>
+            </div>
+            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500/30 flex items-center justify-center font-bold text-blue-300">2</div>
+              <div>
+                <h3 class="font-semibold text-white text-left sm:text-left">Make the Payment</h3>
+                <p class="text-gray-400 text-sm text-left sm:text-left">Complete the payment via bank transfer and submit the receipt through our checkout page.</p>
+              </div>
+            </div>
+            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500/30 flex items-center justify-center font-bold text-blue-300">3</div>
+              <div>
+                <h3 class="font-semibold text-white text-left sm:text-left">Get Approved & Connect</h3>
+                <p class="text-gray-400 text-sm text-left sm:text-left">Your order will be approved by an admin. You'll receive the config link via WhatsApp to connect!</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="faq-section" class="mt-20 reveal">
+        <header class="text-center mb-10">
+          <h2 class="text-2xl font-bold text-white">Frequently Asked Questions</h2>
+          <p class="text-gray-400 mt-2">Answers to common questions about our service.</p>
+        </header>
+        <div class="space-y-4 max-w-3xl mx-auto">
+          <details class="glass-panel p-5 rounded-lg cursor-pointer">
             <summary class="font-semibold text-white flex justify-between items-center">
-                <span>What exactly is V2Ray?</span>
-                <i class="fa-solid fa-chevron-down transition-transform duration-300"></i>
+              <span>What exactly is V2Ray?</span>
+              <i class="fa-solid fa-chevron-down transition-transform duration-300"></i>
             </summary>
             <p class="text-gray-300 text-sm mt-3 pt-3 border-t border-white/10">
-                V2Ray is a powerful and flexible networking tool used to secure your internet connection and bypass restrictions. It routes your internet traffic through an encrypted tunnel, protecting your data from being monitored and giving you access to the open internet.
+              V2Ray is a powerful and flexible networking tool used to secure your internet connection and bypass restrictions. It routes your internet traffic through an encrypted tunnel, protecting your data from being monitored and giving you access to the open internet.
             </p>
-        </details>
-        <details class="card-glass p-5 rounded-lg cursor-pointer">
+          </details>
+          <details class="glass-panel p-5 rounded-lg cursor-pointer">
             <summary class="font-semibold text-white flex justify-between items-center">
-                <span>Which devices and apps are supported?</span>
-                <i class="fa-solid fa-chevron-down transition-transform duration-300"></i>
+              <span>Which devices and apps are supported?</span>
+              <i class="fa-solid fa-chevron-down transition-transform duration-300"></i>
             </summary>
             <p class="text-gray-300 text-sm mt-3 pt-3 border-t border-white/10">
-                Our service works on a wide range of devices. For Android, we recommend using 'v2rayNG'. For iOS, 'FoXray' or 'Shadowrocket' are great options. For Windows, you can use 'v2rayN'. We provide guides to help you set up the connection easily.
+              Our service works on a wide range of devices. For Android, we recommend using 'v2rayNG'. For iOS, 'FoXray' or 'Shadowrocket' are great options. For Windows, you can use 'v2rayN'. We provide guides to help you set up the connection easily.
             </p>
-        </details>
-        <details class="card-glass p-5 rounded-lg cursor-pointer">
+          </details>
+          <details class="glass-panel p-5 rounded-lg cursor-pointer">
             <summary class="font-semibold text-white flex justify-between items-center">
-                <span>What is your refund policy?</span>
-                <i class="fa-solid fa-chevron-down transition-transform duration-300"></i>
+              <span>What is your refund policy?</span>
+              <i class="fa-solid fa-chevron-down transition-transform duration-300"></i>
             </summary>
             <p class="text-gray-300 text-sm mt-3 pt-3 border-t border-white/10">
-                You are eligible for a full refund if the request is made within <strong>48 hours</strong> of purchase and your total data usage is less than <strong>10 GB</strong>. If these conditions are not met, a refund will not be possible.
+              You are eligible for a full refund if the request is made within <strong>48 hours</strong> of purchase and your total data usage is less than <strong>10 GB</strong>. If these conditions are not met, a refund will not be possible.
             </p>
-        </details>
-        <details class="card-glass p-5 rounded-lg cursor-pointer">
+          </details>
+          <details class="glass-panel p-5 rounded-lg cursor-pointer">
             <summary class="font-semibold text-white flex justify-between items-center">
-                <span>How long does it take for an order to be approved?</span>
-                <i class="fa-solid fa-chevron-down transition-transform duration-300"></i>
+              <span>How long does it take for an order to be approved?</span>
+              <i class="fa-solid fa-chevron-down transition-transform duration-300"></i>
             </summary>
             <p class="text-gray-300 text-sm mt-3 pt-3 border-t border-white/10">
-                Orders are typically reviewed and approved by an admin within a few hours. After you submit your payment receipt, we will verify it and send the connection details to you via WhatsApp as quickly as possible.
+              Orders are typically reviewed and approved by an admin within a few hours. After you submit your payment receipt, we will verify it and send the connection details to you via WhatsApp as quickly as possible.
             </p>
-        </details>
+          </details>
+        </div>
+      </div>
     </div>
-</div>
-            </div>`);
-    }
+  `);
+}
 
     function displayUserData(data, name, container) {
         const down = data.down || 0,
