@@ -1,5 +1,3 @@
-// File Path: src/controllers/authController.js
-
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
@@ -8,7 +6,6 @@ const supabase = require("../config/supabaseClient");
 const transporter = require("../config/mailer");
 const { generateEmailTemplate, generateOtpEmailContent, generatePasswordResetEmailContent } = require("../services/emailService");
 
-// ... (register, verifyOtp, login functions remain the same)
 exports.register = async (req, res) => {
     const { username, email, whatsapp, password } = req.body;
     if (!username || !email || !whatsapp || !password)
@@ -152,9 +149,8 @@ exports.login = async (req, res) => {
     }
 };
 
-
 exports.adminLogin = async (req, res) => {
-    const { username, password, rememberMe } = req.body; // <-- rememberMe added
+    const { username, password, rememberMe } = req.body;
     try {
         const { data: adminUser, error } = await supabase
             .from("users")
@@ -170,7 +166,7 @@ exports.adminLogin = async (req, res) => {
         const isPasswordValid = bcrypt.compareSync(password, adminUser.password);
 
         if (isPasswordValid) {
-            const expiresIn = rememberMe ? "7d" : "8h"; // <-- Changed expiry from 30 days to 7 days
+            const expiresIn = rememberMe ? "7d" : "8h";
             const token = jwt.sign(
                 { id: adminUser.id, username: adminUser.username, role: "admin" },
                 process.env.JWT_SECRET,
@@ -186,7 +182,6 @@ exports.adminLogin = async (req, res) => {
     }
 };
 
-// ... (resellerLogin, forgotPassword, resetPassword functions remain the same)
 exports.resellerLogin = async (req, res) => {
     const { username, password } = req.body;
     try {
@@ -194,7 +189,7 @@ exports.resellerLogin = async (req, res) => {
             .from("users")
             .select("*")
             .ilike("username", username)
-            .eq("role", "reseller") // Check for 'reseller' role
+            .eq("role", "reseller")
             .single();
 
         if (error || !reseller) {
@@ -218,21 +213,38 @@ exports.resellerLogin = async (req, res) => {
         res.status(500).json({ success: false, message: "An internal server error occurred." });
     }
 };
+
+// --- UPDATED forgotPassword FUNCTION ---
 exports.forgotPassword = async (req, res) => {
     const { email } = req.body;
     try {
-        const user = await User.findOne({ where: { email } });
+        // Use Supabase syntax to find the user
+        const { data: user, error: userError } = await supabase
+            .from("users")
+            .select("*")
+            .eq("email", email)
+            .single();
 
-        if (!user) {
+        // Always send a vague success message for security
+        if (userError || !user) {
             return res.json({ message: 'If an account with that email exists, a password reset link has been sent.' });
         }
 
         const resetToken = crypto.randomBytes(32).toString('hex');
-        
-        user.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-        user.passwordResetExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
-        await user.save({ validate: false });
+        const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+        const resetExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
+        // Use Supabase syntax to update the user record
+        const { error: updateError } = await supabase
+            .from("users")
+            .update({
+                password_reset_token: hashedToken,
+                password_reset_expires: resetExpiry.toISOString(),
+            })
+            .eq("id", user.id);
+        
+        if (updateError) throw updateError;
+        
         const resetURL = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
         const title = 'Password Reset Request';
         const preheader = 'Use the link inside to reset your password.';
@@ -241,22 +253,23 @@ exports.forgotPassword = async (req, res) => {
         const emailHtml = generateEmailTemplate(title, preheader, content);
         const subject = 'Your Password Reset Link (Valid for 10 mins)';
 
-        try {
-            await sendEmail(user.email, subject, emailHtml);
-            res.json({ message: 'Password reset link has been sent to your email.' });
-        } catch (err) {
-            user.passwordResetToken = null;
-            user.passwordResetExpires = null;
-            await user.save({ validate: false });
-            return res.status(500).json({ message: 'There was an error sending the email. Please try again later.' });
-        }
+        const mailOptions = {
+            from: `NexGuard <${process.env.EMAIL_SENDER}>`,
+            to: user.email,
+            subject: subject,
+            html: emailHtml,
+        };
+
+        await transporter.sendMail(mailOptions);
+        res.json({ message: 'Password reset link has been sent to your email.' });
+
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server error' });
+        console.error("Forgot Password Error:", error);
+        res.status(500).json({ message: 'Server error occurred during forgot password process.' });
     }
 };
 
-
+// --- UPDATED resetPassword FUNCTION ---
 exports.resetPassword = async (req, res) => {
     const { token, newPassword } = req.body;
     if (!token || !newPassword || newPassword.length < 6) {
@@ -267,25 +280,29 @@ exports.resetPassword = async (req, res) => {
     }
 
     try {
+        const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+        // Use Supabase syntax to find user by hashed token
         const { data: user, error } = await supabase
             .from("users")
             .select("*")
-            .eq("reset_token", token)
+            .eq("password_reset_token", hashedToken)
             .single();
 
         if (error || !user) {
             return res.status(400).json({ success: false, message: "This reset link is invalid." });
         }
 
-        if (new Date() > new Date(user.reset_token_expiry)) {
+        if (new Date() > new Date(user.password_reset_expires)) {
             return res.status(400).json({ success: false, message: "This reset link has expired." });
         }
 
         const hashedPassword = bcrypt.hashSync(newPassword, 10);
         
+        // Use Supabase syntax to update password and clear tokens
         const { error: updateError } = await supabase
             .from("users")
-            .update({ password: hashedPassword, reset_token: null, reset_token_expiry: null })
+            .update({ password: hashedPassword, password_reset_token: null, password_reset_expires: null })
             .eq("id", user.id);
 
         if (updateError) throw updateError;
@@ -296,3 +313,4 @@ exports.resetPassword = async (req, res) => {
         res.status(500).json({ success: false, message: "Error updating password." });
     }
 };
+
