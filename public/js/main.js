@@ -797,7 +797,7 @@ function renderUsagePage(renderFunc) {
             <main class="w-full max-w-sm space-y-4 z-10 mx-auto"> 
                 <header class="text-center space-y-1 reveal is-visible">
                     <i class="fa-solid fa-microchip text-4xl gradient-text"></i>
-                    <h1 class="text-2xl sm:text-3xl font-bold text-white" style="font-family: 'Orbitron', sans-serif;">NexGuard <span class="gradient-text">LK</span></h1>
+                    <h1 class="text-xl sm:text-2xl font-bold text-white" style="font-family: 'Orbitron', sans-serif;">NexGuard <span class="gradient-text">LK</span></h1>
                     <p class="text-gray-400 text-sm">Enter client identifier for real-time usage.</p>
                 </header>
 
