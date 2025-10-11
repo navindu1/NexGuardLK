@@ -10,12 +10,12 @@ document.addEventListener("DOMContentLoaded", () => {
       minHeight: 200.00,
       minWidth: 200.00,
       highlightColor: 0x0,
-      midtoneColor: 0x20c, // Changed to a blue tone
-      lowlightColor: 0x0,
-      baseColor: 0x0,
-      blurFactor: 0.90,
-      speed: 1.30,
-      zoom: 0.60
+midtoneColor: 0x569e8,
+  lowlightColor: 0x0,
+  baseColor: 0x0,
+  blurFactor: 0.90,
+  speed: 1.30,
+  zoom: 0.60
     });
 
     // Global variables
@@ -2309,5 +2309,5 @@ forgotPasswordForm?.addEventListener("submit", async(e) => {
         router();
     };
 
-    init();
+    int();
 });
