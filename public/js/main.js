@@ -10,12 +10,12 @@ document.addEventListener("DOMContentLoaded", () => {
       minHeight: 200.00,
       minWidth: 200.00,
       highlightColor: 0x0,
-  midtoneColor: 0xa2,
-  lowlightColor: 0x0,
-  baseColor: 0x0,
-  blurFactor: 0.90,
-  speed: 1.30,
-  zoom: 0.60
+      midtoneColor: 0x20c, // Changed to a blue tone
+      lowlightColor: 0x0,
+      baseColor: 0x0,
+      blurFactor: 0.90,
+      speed: 1.30,
+      zoom: 0.60
     });
 
     // Global variables
@@ -610,28 +610,28 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
                 <div class="mt-20 flex flex-col lg:flex-row items-center gap-8 lg:gap-12 reveal">
                     <div class="lg:w-1/2">
-                        <img src="/assets/image.jpg" alt="V2Ray on a laptop" class="rounded-xl shadow-2xl shadow-purple-500/20 w-full h-auto object-cover">
+                        <img src="/assets/image.jpg" alt="V2Ray on a laptop" class="rounded-xl shadow-2xl shadow-blue-500/20 w-full h-auto object-cover">
                     </div>
                     <div class="w-full lg:w-1/2 text-center lg:text-left px-4">
                         <h2 class="text-2xl md:text-3xl font-bold text-white mb-4">How to Get Started?</h2>
                         <p class="text-gray-300 mb-6 text-sm md:text-base">Connecting is simple. Just follow these three easy steps to unlock true internet freedom.</p>
                         <div class="space-y-4">
                             <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500/30 flex items-center justify-center font-bold text-purple-300">1</div>
+                                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500/30 flex items-center justify-center font-bold text-blue-300">1</div>
                                 <div>
                                     <h3 class="font-semibold text-white text-left sm:text-left">Choose a Plan</h3>
                                     <p class="text-gray-400 text-sm text-left sm:text-left">Select a data plan that fits your needs and pick your internet provider (ISP).</p>
                                 </div>
                             </div>
                             <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500/30 flex items-center justify-center font-bold text-purple-300">2</div>
+                                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500/30 flex items-center justify-center font-bold text-blue-300">2</div>
                                 <div>
                                     <h3 class="font-semibold text-white text-left sm:text-left">Make the Payment</h3>
                                     <p class="text-gray-400 text-sm text-left sm:text-left">Complete the payment via bank transfer and submit the receipt through our checkout page.</p>
                                 </div>
                             </div>
                             <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500/30 flex items-center justify-center font-bold text-purple-300">3</div>
+                                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500/30 flex items-center justify-center font-bold text-blue-300">3</div>
                                 <div>
                                     <h3 class="font-semibold text-white text-left sm:text-left">Get Approved & Connect</h3>
                                     <p class="text-gray-400 text-sm text-left sm:text-left">Your order will be approved by an admin. You'll receive the config link via WhatsApp to connect!</p>
@@ -660,12 +660,12 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="result-card p-4 sm:p-6 glass-panel rounded-xl space-y-5 reveal is-visible">
                 <div class="flex justify-between items-center pb-3 border-b border-white/10">
                     <h3 class="text-lg font-semibold text-white flex items-center min-w-0">
-                        <i class="fa-solid fa-satellite-dish mr-3 text-purple-400 flex-shrink-0"></i>
+                        <i class="fa-solid fa-satellite-dish mr-3 text-blue-400 flex-shrink-0"></i>
                         <span class="truncate" title="${name}">Client: ${name}</span>
                     </h3>
                     <div>${status}</div>
                 </div>
-                ${totalQuota > 0 ? `<div class="space-y-2"><div class="flex justify-between items-baseline text-sm"><span class="font-medium text-gray-300">Data Quota Usage</span><span id="usage-percentage" class="font-bold text-white">0%</span></div><div class="w-full bg-black/30 rounded-full h-2.5"><div class="progress-bar-inner bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 h-2.5 rounded-full" style="width: ${usagePercentage}%"></div></div></div>` : ''}
+                ${totalQuota > 0 ? `<div class="space-y-2"><div class="flex justify-between items-baseline text-sm"><span class="font-medium text-gray-300">Data Quota Usage</span><span id="usage-percentage" class="font-bold text-white">0%</span></div><div class="w-full bg-black/30 rounded-full h-2.5"><div class="progress-bar-inner bg-gradient-to-r from-sky-500 to-blue-500 h-2.5 rounded-full" style="width: ${usagePercentage}%"></div></div></div>` : ''}
                 
                 <div class="space-y-4 text-sm sm:hidden">
                     <div class="flex justify-between items-center border-b border-white/10 pb-3">
@@ -764,7 +764,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <div id="result" class="mt-8"></div>
                     
                     <div id="how-to-find-link-container" class="text-center pt-0 reveal is-visible">
-                        <span id="open-help-modal-link" class="text-purple-400 text-sm cursor-pointer hover:underline ">
+                        <span id="open-help-modal-link" class="text-blue-400 text-sm cursor-pointer hover:underline ">
                             How to find your username?
                         </span>
                     </div>
@@ -775,19 +775,19 @@ document.addEventListener("DOMContentLoaded", () => {
                         <div class="flex justify-between items-start">
                             <div>
                                 <h2 class="text-xl font-bold text-white font-['Orbitron']">Help & Support Matrix</h2>
-                                <button id="lang-toggle-btn" class="text-xs text-purple-400 hover:underline mt-1">English / සිංහල</button>
+                                <button id="lang-toggle-btn" class="text-xs text-blue-400 hover:underline mt-1">English / සිංහල</button>
                             </div>
                             <button id="help-modal-close" class="text-gray-400 hover:text-white text-3xl">&times;</button>
                         </div>
                         <div class="lang-content lang-en">
                             <div>
-                                <h3 class="text-lg font-semibold text-purple-400 mb-2">How to find your Username?</h3>
+                                <h3 class="text-lg font-semibold text-blue-400 mb-2">How to find your Username?</h3>
                                 <p class="text-gray-300 text-sm mb-4">Your username is the name assigned to your V2ray configuration. It's often visible in your V2ray client app, usually next to the server connection name.</p>
                             </div>
                         </div>
                         <div class="lang-content lang-si hidden">
                             <div>
-                                <h3 class="text-lg font-semibold text-purple-400 mb-2">ඔබගේ Username එක සොයාගන්නේ කෙසේද?</h3>
+                                <h3 class="text-lg font-semibold text-blue-400 mb-2">ඔබගේ Username එක සොයාගන්නේ කෙසේද?</h3>
                                 <p class="text-gray-300 text-sm mb-4">ඔබගේ username යනු V2ray config ගොනුවට ලබා දී ඇති නමයි. එය බොහෝවිට V2ray client ඇප් එකේ, server සම්බන්ධතාවය අසල දිස්වේ.</p>
                             </div>
                         </div>
@@ -1027,15 +1027,15 @@ document.addEventListener("DOMContentLoaded", () => {
                     
                     let packageCount = conn.package_options ? conn.package_options.length : 0;
                     
-                    packageInfoHtml = `<p class="text-xs text-purple-300 mt-2 font-semibold">${packageCount} Packages Available</p>`;
+                    packageInfoHtml = `<p class="text-xs text-blue-300 mt-2 font-semibold">${packageCount} Packages Available</p>`;
 
                 } else {
                     linkUrl = `/checkout?planId=${planId}&connId=${encodeURIComponent(conn.name)}&pkg=${encodeURIComponent(conn.default_package || '')}&inboundId=${conn.default_inbound_id}&vlessTemplate=${encodeURIComponent(conn.default_vless_template)}${changeQuery}`;
                     
                     if (conn.default_package) {
-                        packageInfoHtml = `<p class="text-xs text-purple-300 mt-2 font-semibold">${conn.default_package}</p>`;
+                        packageInfoHtml = `<p class="text-xs text-blue-300 mt-2 font-semibold">${conn.default_package}</p>`;
                     } else {
-                        packageInfoHtml = `<p class="text-xs text-purple-300 mt-2 font-semibold">Standard Connection</p>`;
+                        packageInfoHtml = `<p class="text-xs text-blue-300 mt-2 font-semibold">Standard Connection</p>`;
                     }
                 }
                 
@@ -1054,7 +1054,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <p class="text-gray-400 mt-2">Step 2: Choose your ISP.</p>
                 </header>
                 <div class="flex flex-wrap items-center justify-center gap-6">${connectionsHtml}</div>
-                <div class="text-center mt-8 reveal"><a href="/plans${changeQuery}" class="nav-link-internal text-purple-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back to Plans</a></div>
+                <div class="text-center mt-8 reveal"><a href="/plans${changeQuery}" class="nav-link-internal text-blue-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back to Plans</a></div>
             </div>`);
     }
 
@@ -1088,7 +1088,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 </header>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">${choiceHtml}</div>
                 <div class="text-center mt-8 reveal">
-                    <a href="/connections?planId=${planId}${changeQuery}" class="nav-link-internal text-purple-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back to Connections</a>
+                    <a href="/connections?planId=${planId}${changeQuery}" class="nav-link-internal text-blue-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back to Connections</a>
                 </div>
             </div>`);
     }
@@ -1119,7 +1119,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const planPrice = plan.price;
             const cleanPackageName = finalPackageNameWithPrice.split(' - LKR')[0];
 
-            let purchaseInfo = `<p>You are purchasing the <strong class="text-purple-400">${plan.name}</strong> for <strong class="text-purple-400">${conn.name}</strong>.</p>`;
+            let purchaseInfo = `<p>You are purchasing the <strong class="text-blue-400">${plan.name}</strong> for <strong class="text-blue-400">${conn.name}</strong>.</p>`;
             
             let packageInfo = '';
             if (cleanPackageName) {
@@ -1128,13 +1128,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
             let renewalInfo = '';
             if (isRenewal) {
-                renewalInfo = `<p class="mt-2 text-center">You are renewing for V2Ray user: <strong class="text-purple-400">${userToRenew}</strong>.</p>`;
+                renewalInfo = `<p class="mt-2 text-center">You are renewing for V2Ray user: <strong class="text-blue-400">${userToRenew}</strong>.</p>`;
             }
             
             let changeInfo = '';
             if (isChange) {
                 changeInfo = `<p class="mt-2 text-center text-amber-400">You are changing the plan for: <strong class="text-white">${userToChange}</strong>. The old plan will be deleted upon approval.</p>`;
-                purchaseInfo = `<p>You are changing to the <strong class="text-purple-400">${plan.name}</strong> for <strong class="text-purple-400">${conn.name}</strong>.</p>`;
+                purchaseInfo = `<p>You are changing to the <strong class="text-blue-400">${plan.name}</strong> for <strong class="text-blue-400">${conn.name}</strong>.</p>`;
             }
             
             summaryHtml = purchaseInfo + packageInfo + renewalInfo + changeInfo;
@@ -1257,10 +1257,10 @@ const pageStyles = `
                     <div class="flex-grow glass-panel p-8 rounded-lg space-y-5 reveal">
                         <h2 class="text-2xl font-bold">About NexGuard LK</h2>
                         <p class="text-gray-300 text-sm">NexGuard is dedicated to providing secure, fast, and reliable internet freedom in Sri Lanka. Our mission is to deliver top-tier V2Ray services that are both affordable and powerful.</p>
-                        <div><h3 class="text-lg font-bold text-white mb-2"><i class="fa-solid fa-rocket text-purple-400 mr-2"></i> Our Mission</h3><p class="text-gray-300 text-sm">To democratize internet access by providing robust, uncensored, and private connectivity solutions to every Sri Lankan.</p></div>
-                        <div><h3 class="text-lg font-bold text-white mb-2"><i class="fa-solid fa-server text-purple-400 mr-2"></i> Our Technology</h3><p class="text-gray-300 text-sm">We leverage cutting-edge V2Ray technology with advanced protocols like VLESS and VMess, coupled with optimized routing over Sri Lankan ISPs.</p></div>
+                        <div><h3 class="text-lg font-bold text-white mb-2"><i class="fa-solid fa-rocket text-blue-400 mr-2"></i> Our Mission</h3><p class="text-gray-300 text-sm">To democratize internet access by providing robust, uncensored, and private connectivity solutions to every Sri Lankan.</p></div>
+                        <div><h3 class="text-lg font-bold text-white mb-2"><i class="fa-solid fa-server text-blue-400 mr-2"></i> Our Technology</h3><p class="text-gray-300 text-sm">We leverage cutting-edge V2Ray technology with advanced protocols like VLESS and VMess, coupled with optimized routing over Sri Lankan ISPs.</p></div>
                         <div class="pt-4 mt-4 border-t border-white/10">
-                            <h3 class="text-lg font-bold text-white mb-3"><i class="fa-solid fa-star text-purple-400 mr-2"></i> Our Core Features</h3>
+                            <h3 class="text-lg font-bold text-white mb-3"><i class="fa-solid fa-star text-blue-400 mr-2"></i> Our Core Features</h3>
                             <div class="space-y-3 text-sm">
                                 <p><i class="fa-solid fa-shield-virus text-green-400 w-5 text-center"></i> <strong>Strict No-Log Policy:</strong> Your privacy is paramount. We never track or store your online activity.</p>
                                 <p><i class="fa-solid fa-mobile-screen-button text-green-400 w-5 text-center"></i> <strong>Multi-Device Support:</strong> Use your single account on your phone, laptop, and tablet simultaneously.</p>
@@ -1271,17 +1271,17 @@ const pageStyles = `
                     <div class="lg:w-80 flex-shrink-0 reveal">
                         <div class="glass-panel p-6 rounded-2xl text-center sticky top-28 shadow-xl">
                             
-                            <img src="/assets/ceo.jpg" alt="Nexguard Founder" class="w-24 h-24 rounded-full mx-auto border-4 border-purple-500 shadow-md">
+                            <img src="/assets/ceo.jpg" alt="Nexguard Founder" class="w-24 h-24 rounded-full mx-auto border-4 border-blue-500 shadow-md">
                             
                             <h3 class="text-xl font-bold mt-4 text-white">Navindu R.</h3>
-                            <p class="text-purple-400 text-sm font-medium">CEO & Founder</p>
+                            <p class="text-blue-400 text-sm font-medium">CEO & Founder</p>
                             
-                            <p class="text-xs text-gray-300 mt-3 leading-relaxed">A passionate advocate for digital privacy, I founded <span class="text-purple-400 font-semibold">NexGuard</span> to bring world-class, unrestricted connectivity to Sri Lanka.</p>
+                            <p class="text-xs text-gray-300 mt-3 leading-relaxed">A passionate advocate for digital privacy, I founded <span class="text-blue-400 font-semibold">NexGuard</span> to bring world-class, unrestricted connectivity to Sri Lanka.</p>
 
                             <div class="mt-4 text-sm text-gray-300 space-y-3 text-left">
-                                <p class="flex items-center gap-2"><i class="fas fa-map-marker-alt text-purple-400"></i> Based in Eheliyagoda, Sri Lanka</p>
-                                <p class="flex items-center gap-2"><i class="fas fa-shield-alt text-purple-400"></i> 2+ Years in Networking & Cybersecurity</p>
-                                <p class="flex items-center gap-2"><i class="fas fa-bullseye text-purple-400"></i> Mission: Empowering Digital Freedom</p>
+                                <p class="flex items-center gap-2"><i class="fas fa-map-marker-alt text-blue-400"></i> Based in Eheliyagoda, Sri Lanka</p>
+                                <p class="flex items-center gap-2"><i class="fas fa-shield-alt text-blue-400"></i> 2+ Years in Networking & Cybersecurity</p>
+                                <p class="flex items-center gap-2"><i class="fas fa-bullseye text-blue-400"></i> Mission: Empowering Digital Freedom</p>
                             </div>
 
                             <div class="flex justify-center space-x-5 mt-6">
@@ -1345,19 +1345,19 @@ const pageStyles = `
                 <div class="flex justify-between items-start">
                     <div>
                         <h2 class="text-xl font-bold text-white font-['Orbitron']">Help & Support Matrix</h2>
-                        <button id="lang-toggle-btn" class="text-xs text-purple-400 hover:underline mt-1">English / සිංහල</button>
+                        <button id="lang-toggle-btn" class="text-xs text-blue-400 hover:underline mt-1">English / සිංහල</button>
                     </div>
                     <button id="help-modal-close" class="text-gray-400 hover:text-white text-3xl">&times;</button>
                 </div>
                 <div class="lang-content lang-en">
                     <div>
-                        <h3 class="text-lg font-semibold text-purple-400 mb-2">How to find your Username?</h3>
+                        <h3 class="text-lg font-semibold text-blue-400 mb-2">How to find your Username?</h3>
                         <p class="text-gray-300 text-sm mb-4">Your username is the name assigned to your V2ray configuration. It's often visible in your V2ray client app, usually next to the server connection name.</p>
                     </div>
                 </div>
                 <div class="lang-content lang-si hidden">
                     <div>
-                        <h3 class="text-lg font-semibold text-purple-400 mb-2">ඔබගේ Username එක සොයාගන්නේ කෙසේද?</h3>
+                        <h3 class="text-lg font-semibold text-blue-400 mb-2">ඔබගේ Username එක සොයාගන්නේ කෙසේද?</h3>
                         <p class="text-gray-300 text-sm mb-4">ඔබගේ username යනු V2ray config ගොනුවට ලබා දී ඇති නමයි. එය බොහෝවිට V2ray client ඇප් එකේ, server සම්බන්ධතාවය අසල දිස්වේ.</p>
                     </div>
                 </div>
@@ -1367,18 +1367,18 @@ const pageStyles = `
             </div>
         </div>`;
     
-    const pageStyles = `<style>#page-profile .form-input { height: 56px; padding: 20px 12px 8px 12px; background-color: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.2); } #page-profile .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; } #page-profile .form-input:focus ~ .form-label, #page-profile .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: var(--brand-purple); } #page-profile .form-input[readonly] { background-color: rgba(0,0,0,0.2); cursor: not-allowed; } .tab-btn { border-bottom: 3px solid transparent; transition: all .3s ease; color: #9ca3af; padding: 0.75rem 0.25rem; font-weight: 600; white-space: nowrap; } .tab-btn.active { border-bottom-color: var(--brand-purple); color: #fff; } .tab-panel { display: none; } .tab-panel.active { display: block; animation: pageFadeIn 0.5s; } .plan-selector-wrapper { display: inline-block; width: auto; } #plan-selector { -webkit-appearance: none; -moz-appearance: none; appearance: none; background-color: rgba(49, 23, 82, 0.7); border: 1px solid rgba(168, 85, 247, 0.5); border-radius: 8px; padding: 0.5rem 2.5rem 0.5rem 1rem; color: #ffffff; font-weight: 500; font-size: 0.9rem; cursor: pointer; transition: all 0.2s ease; width: 100%; } #plan-selector:hover { border-color: #a855f7; background-color: rgba(69, 33, 112, 0.7); } #plan-selector:focus { outline: none; border-color: #a855f7; box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.3); } .plan-selector-wrapper i { transition: color 0.2s ease; }</style>`;
+    const pageStyles = `<style>#page-profile .form-input { height: 56px; padding: 20px 12px 8px 12px; background-color: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.2); } #page-profile .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; } #page-profile .form-input:focus ~ .form-label, #page-profile .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: var(--brand-blue); } #page-profile .form-input[readonly] { background-color: rgba(0,0,0,0.2); cursor: not-allowed; } .tab-btn { border-bottom: 3px solid transparent; transition: all .3s ease; color: #9ca3af; padding: 0.75rem 0.25rem; font-weight: 600; white-space: nowrap; } .tab-btn.active { border-bottom-color: var(--brand-blue); color: #fff; } .tab-panel { display: none; } .tab-panel.active { display: block; animation: pageFadeIn 0.5s; } .plan-selector-wrapper { display: inline-block; width: auto; } #plan-selector { -webkit-appearance: none; -moz-appearance: none; appearance: none; background-color: rgba(23, 37, 82, 0.7); border: 1px solid rgba(85, 127, 247, 0.5); border-radius: 8px; padding: 0.5rem 2.5rem 0.5rem 1rem; color: #ffffff; font-weight: 500; font-size: 0.9rem; cursor: pointer; transition: all 0.2s ease; width: 100%; } #plan-selector:hover { border-color: #3b82f6; background-color: rgba(33, 53, 112, 0.7); } #plan-selector:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3); } .plan-selector-wrapper i { transition: color 0.2s ease; }</style>`;
 
 let profilePictureUrl = (user.profilePicture || "/assets/profilePhoto.jpg").replace("public/", "");
 if (profilePictureUrl && !profilePictureUrl.startsWith('/')) {
     profilePictureUrl = '/' + profilePictureUrl;
 }
 
-const baseHtml = `<div id="page-profile" class="page space-y-8"><div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left reveal"><div class="relative flex-shrink-0"><img id="profile-pic-img" src="${profilePictureUrl}" alt="Profile Picture" class="w-24 h-24 rounded-full border-4 border-purple-500/50 object-cover shadow-lg"><label for="avatar-upload" class="absolute bottom-0 right-0 w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-purple-500 transition shadow-md"><i class="fa-solid fa-camera text-white"></i><input type="file" id="avatar-upload" class="hidden" accept="image/*"></label></div><div class="flex-grow"><h2 class="text-3xl font-bold font-['Orbitron'] text-white">${user.username}</h2><p class="text-gray-400">${user.email}</p><div id="plan-info-container" class="text-xs sm:text-sm mt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2"></div></div></div><div id="user-status-content" class="reveal">
+const baseHtml = `<div id="page-profile" class="page space-y-8"><div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left reveal"><div class="relative flex-shrink-0"><img id="profile-pic-img" src="${profilePictureUrl}" alt="Profile Picture" class="w-24 h-24 rounded-full border-4 border-blue-500/50 object-cover shadow-lg"><label for="avatar-upload" class="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-500 transition shadow-md"><i class="fa-solid fa-camera text-white"></i><input type="file" id="avatar-upload" class="hidden" accept="image/*"></label></div><div class="flex-grow"><h2 class="text-3xl font-bold font-['Orbitron'] text-white">${user.username}</h2><p class="text-gray-400">${user.email}</p><div id="plan-info-container" class="text-xs sm:text-sm mt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2"></div></div></div><div id="user-status-content" class="reveal">
     <div class="flex flex-col items-center justify-center min-h-[40vh]">
         <div class="text-center p-8">
-            <i class="fa-solid fa-spinner fa-spin text-3xl text-purple-400"></i>
-            <p class="mt-4 text-lg font-semibold text-purple-300 animate-pulse">Loading Your Data...</p>
+            <i class="fa-solid fa-spinner fa-spin text-3xl text-blue-400"></i>
+            <p class="mt-4 text-lg font-semibold text-blue-300 animate-pulse">Loading Your Data...</p>
             <p class="text-sm text-gray-500 mt-1">Please wait while we fetch your profile information.</p>
         </div>
     </div>
@@ -1523,7 +1523,7 @@ const baseHtml = `<div id="page-profile" class="page space-y-8"><div class="flex
                     const connection = dynamicConnections.find(c => c.name === plan.connId);
                         const connectionName = connection ? connection.name : (plan.connId || 'N/A');
                     const planName = appData.plans[plan.planId]?.name || plan.planId;
-                    document.getElementById("plan-info-container").innerHTML = `<span class="bg-purple-500/10 text-purple-300 px-2 py-1 rounded-full"><i class="fa-solid fa-rocket fa-fw mr-2"></i>${planName}</span><span class="bg-indigo-500/10 text-indigo-300 px-2 py-1 rounded-full"><i class="fa-solid fa-wifi fa-fw mr-2"></i>${connectionName}</span>`;
+                    document.getElementById("plan-info-container").innerHTML = `<span class="bg-blue-500/10 text-blue-300 px-2 py-1 rounded-full"><i class="fa-solid fa-rocket fa-fw mr-2"></i>${planName}</span><span class="bg-indigo-500/10 text-indigo-300 px-2 py-1 rounded-full"><i class="fa-solid fa-wifi fa-fw mr-2"></i>${connectionName}</span>`;
                     
 planDetailsContainer.innerHTML = `
     <div id="profile-tabs" class="flex items-center gap-4 sm:gap-6 border-b border-white/10 mb-6 overflow-x-auto">
@@ -1538,7 +1538,7 @@ planDetailsContainer.innerHTML = `
             <div class="grid md:grid-cols-2 gap-8 items-center">
                 <div class="flex flex-col items-center text-center">
                     <h3 class="text-lg font-semibold text-white mb-3">Scan with your V2Ray App</h3>
-                    <div id="qrcode-container" class="w-44 h-44 p-3 bg-white rounded-lg cursor-pointer flex items-center justify-center shadow-lg shadow-purple-500/20" title="Click to view larger">
+                    <div id="qrcode-container" class="w-44 h-44 p-3 bg-white rounded-lg cursor-pointer flex items-center justify-center shadow-lg shadow-blue-500/20" title="Click to view larger">
                         </div>
                 </div>
                 <div class="space-y-6">
@@ -1613,7 +1613,7 @@ planDetailsContainer.innerHTML = `
                         const usageContainer = document.getElementById("tab-usage");  
                         if (!usageContainer) return;
                         
-                        usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-purple-400"></i></div>`;
+                        usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
                         apiFetch(`/api/check-usage/${plan.v2rayUsername}`).then(res => res.json()).then(result => {
                             if (result.success) {
                                 displayUserData(result.data, plan.v2rayUsername, usageContainer);
@@ -1671,7 +1671,7 @@ planDetailsContainer.innerHTML = `
                         const ordersContainer = document.getElementById("tab-orders");
                         if (!ordersContainer) return;
 
-                        ordersContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-purple-400"></i></div>`;
+                        ordersContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
                         try {
                             const res = await apiFetch("/api/user/orders", { headers: { Authorization: "Bearer " + token } });
                             if (!res.ok) throw new Error("Failed to fetch orders");
@@ -1696,7 +1696,7 @@ planDetailsContainer.innerHTML = `
                                         <p class="font-bold text-white">${planName} <span class="text-gray-400 font-normal">for</span> ${connName}</p>
                                         <p class="text-xs text-gray-400 mt-1">
                                             Ordered on: ${new Date(order.created_at).toLocaleDateString()}
-                                            ${order.status === 'approved' && order.final_username ? `| V2Ray User: <strong class="text-purple-300">${order.final_username}</strong>` : ''}
+                                            ${order.status === 'approved' && order.final_username ? `| V2Ray User: <strong class="text-blue-300">${order.final_username}</strong>` : ''}
                                         </p>
                                     </div>
                                     <div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'}">
@@ -1752,8 +1752,8 @@ planDetailsContainer.innerHTML = `
                 statusContainer.innerHTML = `<div class="glass-panel p-8 rounded-xl text-center"><i class="fa-solid fa-clock text-4xl text-amber-400 mb-4 animate-pulse"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Order Pending Approval</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">Your order is currently being reviewed. Your profile will update here once approved.</p></div>`;
             } else { 
                 const settingsHtml = `<div class="glass-panel p-6 rounded-xl"><h3 class="text-xl font-bold text-white mb-4 font-['Orbitron']">Account Settings</h3><form id="profile-update-form" class="space-y-6"><div class="form-group"><input type="text" class="form-input" readonly value="${user.username}" title="Website username cannot be changed."><label class="form-label">Website Username</label></div><div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" placeholder=" "><label for="new-password" class="form-label">New Password (leave blank to keep)</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i></div><button type="submit" class="ai-button w-full rounded-lg !mt-8">Save Changes</button></form></div>`;
-                const linkAccountHtml = `<div class="glass-panel p-6 rounded-xl"><h3 class="text-xl font-bold text-white mb-2 font-['Orbitron']">Link Existing V2Ray Account</h3><p class="text-sm text-gray-400 mb-6">If you have an old account, link it here to manage renewals.</p><form id="link-account-form-profile" class="space-y-6"><div class="form-group"><input type="text" id="existing-v2ray-username-profile" class="form-input" required placeholder=" "><label for="existing-v2ray-username-profile" class="form-label">Your Old V2Ray Username</label><span class="focus-border"><i></i></span></div><button type="submit" class="ai-button secondary w-full rounded-lg">Link Account</button><div class="text-center text-sm mt-4"><span class="open-help-modal-link text-purple-400 cursor-pointer hover:underline">How to find your username?</span></div></form></div>`;
-                statusContainer.innerHTML = `<div class="glass-panel p-8 rounded-xl text-center"><i class="fa-solid fa-rocket text-4xl text-purple-400 mb-4"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Get Started</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">You do not have any active plans yet. Purchase a new plan or link an existing account below.</p><a href="/plans" class="nav-link-internal ai-button inline-block rounded-lg mt-6">Purchase a Plan</a></div><div class="grid md:grid-cols-2 gap-8 mt-8">${settingsHtml}${linkAccountHtml}</div>`;
+                const linkAccountHtml = `<div class="glass-panel p-6 rounded-xl"><h3 class="text-xl font-bold text-white mb-2 font-['Orbitron']">Link Existing V2Ray Account</h3><p class="text-sm text-gray-400 mb-6">If you have an old account, link it here to manage renewals.</p><form id="link-account-form-profile" class="space-y-6"><div class="form-group"><input type="text" id="existing-v2ray-username-profile" class="form-input" required placeholder=" "><label for="existing-v2ray-username-profile" class="form-label">Your Old V2Ray Username</label><span class="focus-border"><i></i></span></div><button type="submit" class="ai-button secondary w-full rounded-lg">Link Account</button><div class="text-center text-sm mt-4"><span class="open-help-modal-link text-blue-400 cursor-pointer hover:underline">How to find your username?</span></div></form></div>`;
+                statusContainer.innerHTML = `<div class="glass-panel p-8 rounded-xl text-center"><i class="fa-solid fa-rocket text-4xl text-blue-400 mb-4"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Get Started</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">You do not have any active plans yet. Purchase a new plan or link an existing account below.</p><a href="/plans" class="nav-link-internal ai-button inline-block rounded-lg mt-6">Purchase a Plan</a></div><div class="grid md:grid-cols-2 gap-8 mt-8">${settingsHtml}${linkAccountHtml}</div>`;
                 
                 setupEventListeners();
             }
@@ -1776,19 +1776,19 @@ planDetailsContainer.innerHTML = `
                 <div class="flex justify-between items-start">
                     <div>
                         <h2 class="text-xl font-bold text-white font-['Orbitron']">Help & Support Matrix</h2>
-                        <button id="lang-toggle-btn" class="text-xs text-purple-400 hover:underline mt-1">English / සිංහල</button>
+                        <button id="lang-toggle-btn" class="text-xs text-blue-400 hover:underline mt-1">English / සිංහල</button>
                     </div>
                     <button id="help-modal-close" class="text-gray-400 hover:text-white text-3xl">&times;</button>
                 </div>
                 <div class="lang-content lang-en">
                     <div>
-                        <h3 class="text-lg font-semibold text-purple-400 mb-2">How to find your Username?</h3>
+                        <h3 class="text-lg font-semibold text-blue-400 mb-2">How to find your Username?</h3>
                         <p class="text-gray-300 text-sm mb-4">Your username is the name assigned to your V2ray configuration. It's often visible in your V2ray client app, usually next to the server connection name.</p>
                     </div>
                 </div>
                 <div class="lang-content lang-si hidden">
                     <div>
-                        <h3 class="text-lg font-semibold text-purple-400 mb-2">ඔබගේ Username එක සොයාගන්නේ කෙසේද?</h3>
+                        <h3 class="text-lg font-semibold text-blue-400 mb-2">ඔබගේ Username එක සොයාගන්නේ කෙසේද?</h3>
                         <p class="text-gray-300 text-sm mb-4">ඔබගේ username යනු V2ray config ගොනුවට ලබා දී ඇති නමයි. එය බොහෝවිට V2ray client ඇප් එකේ, server සම්බන්ධතාවය අසල දිස්වේ.</p>
                     </div>
                 </div>
@@ -1798,16 +1798,16 @@ planDetailsContainer.innerHTML = `
             </div>
         </div>`;
 
-    renderFunc(`
+        renderFunc(`
         <div id="page-login" class="page">
             <style>
                 .auth-form { display: none; }
                 .auth-form.active { display: block; }
-                .auth-toggle-link { color: var(--brand-purple); cursor: pointer; font-weight: 500; }
+                .auth-toggle-link { color: var(--brand-blue); cursor: pointer; font-weight: 500; }
                 #auth-container { max-width: 380px; }
                 #page-login .form-input { height: 56px; padding: 20px 12px 8px 12px; }
                 #page-login .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; background: none; padding: 0; }
-                #page-login .form-input:focus ~ .form-label, #page-login .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: var(--brand-purple); }
+                #page-login .form-input:focus ~ .form-label, #page-login .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: var(--brand-blue); }
                 #link-account-form .form-group { margin-top: 0; }
             </style>
             <div id="auth-container" class="mx-auto my-12 glass-panel rounded-xl p-8 sm:p-10">
@@ -1850,7 +1850,7 @@ planDetailsContainer.innerHTML = `
                     <form id="link-account-form" class="mt-8 space-y-6">
                         <div class="form-group"><input type="text" id="existing-v2ray-username" class="form-input" required placeholder=" "><label for="existing-v2ray-username" class="form-label">Your Old V2Ray Username</label><span class="focus-border"><i></i></span></div>
                         <button type="submit" class="ai-button w-full rounded-lg">Link Account & Continue</button>
-                        <div class="text-center text-sm mt-4"><span class="open-help-modal-link text-purple-400 cursor-pointer hover:underline">How to find your username?</span></div>
+                        <div class="text-center text-sm mt-4"><span class="open-help-modal-link text-blue-400 cursor-pointer hover:underline">How to find your username?</span></div>
                         <a href="/profile" id="skip-link-btn" class="nav-link-internal block text-center text-sm text-gray-400 hover:text-white !mt-2">Skip for Now</a>
                     </form>
                 </div>
@@ -2225,8 +2225,8 @@ forgotPasswordForm?.addEventListener("submit", async(e) => {
             mainContentArea.innerHTML = `
     <div class="page flex flex-col items-center justify-center min-h-[70vh]">
         <div class="text-center p-10">
-            <i class="fa-solid fa-spinner fa-spin text-3xl text-purple-400"></i>
-            <p class="mt-4 text-lg font-semibold text-purple-300 animate-pulse">Checking Your Active Plans...</p>
+            <i class="fa-solid fa-spinner fa-spin text-3xl text-blue-400"></i>
+            <p class="mt-4 text-lg font-semibold text-blue-300 animate-pulse">Checking Your Active Plans...</p>
             <p class="text-sm text-gray-500 mt-1">Please wait a moment.</p>
         </div>
     </div>`;

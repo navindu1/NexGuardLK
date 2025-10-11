@@ -39,9 +39,9 @@
     <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.fog.min.js"></script>
     <style>
       :root {
-        --glow-color: rgba(168, 85, 247, 0.7);
-        --brand-purple: #a855f7;
-        --brand-gradient: linear-gradient(90deg, #818cf8, #a78bfa, #f472b6);
+        --glow-color: rgba(59, 130, 246, 0.7); /* Blue Glow */
+        --brand-blue: #3b82f6; /* Blue-500 */
+        --brand-gradient: linear-gradient(90deg, #3b82f6, #60a5fa, #2563eb); /* Blue Gradient */
       }
       html {
         scroll-behavior: smooth;
@@ -56,7 +56,7 @@
       body.modal-open {
         overflow: hidden;
       }
- /* --- Default (Mobile View) --- */
+   /* --- Default (Mobile View) --- */
 
 /* Hide desktop-specific buttons on mobile by default */
 #desktop-auth-buttons,
@@ -135,10 +135,10 @@ html.logged-in #mobile-user-profile { display: flex !important; }
       }
       .ai-button.secondary {
         background: transparent;
-        border: 1px solid var(--brand-purple);
+        border: 1px solid var(--brand-blue);
       }
       .ai-button.secondary:hover {
-        background: rgba(168, 85, 247, 0.2);
+        background: rgba(59, 130, 246, 0.2);
       }
       .nav-link {
         position: relative;
@@ -185,7 +185,7 @@ html.logged-in #mobile-user-profile { display: flex !important; }
       .card::after {
         background: radial-gradient(
           400px circle at var(--mouse-x, 0px) var(--mouse-y, 0px),
-          rgba(168, 85, 247, 0.4),
+          rgba(59, 130, 246, 0.4),
           transparent 80%
         );
       }
@@ -237,9 +237,9 @@ html.logged-in #mobile-user-profile { display: flex !important; }
     /* Gradient එක - ඔබේ තේමාවට ගැලපෙන වර්ණ භාවිතා කරන්න */
     background: conic-gradient(
       from 180deg at 50% 50%,
-      #a855f7 0%, 
-      #f472b6 50%, 
-      #818cf8 100%
+      #3b82f6 0%,  
+      #60a5fa 50%, 
+      #2563eb 100%
     );
     
     /* Animation එකේ නම, වේගය සහ එය නොනවත්වා ක්‍රියාත්මක වන බව */
@@ -258,8 +258,8 @@ html.logged-in #mobile-user-profile { display: flex !important; }
 
   /* image එකට උඩින් padding එක පේන්න */
   .animated-profile-border img {
-     position: relative;
-     z-index: 2;
+      position: relative;
+      z-index: 2;
   }
 }
       .form-input {
@@ -288,7 +288,7 @@ html.logged-in #mobile-user-profile { display: flex !important; }
       .form-input:not(:placeholder-shown) ~ .form-label {
         top: 6px;
         font-size: 11px;
-        color: var(--brand-purple);
+        color: var(--brand-blue);
       }
       .form-input ~ .focus-border:before,
       .form-input ~ .focus-border:after {
@@ -298,7 +298,7 @@ html.logged-in #mobile-user-profile { display: flex !important; }
         left: 50%;
         width: 0;
         height: 2px;
-        background-color: var(--brand-purple);
+        background-color: var(--brand-blue);
         transition: 0.4s;
         border-radius: 6px;
       }
@@ -314,7 +314,7 @@ html.logged-in #mobile-user-profile { display: flex !important; }
         left: 0;
         width: 2px;
         height: 0;
-        background-color: var(--brand-purple);
+        background-color: var(--brand-blue);
         transition: 0.6s;
       }
       .form-input ~ .focus-border i:after {
@@ -344,9 +344,9 @@ html.logged-in #mobile-user-profile { display: flex !important; }
     display: flex;
     flex-direction: column; /* අන්තර්ගතය සිරස්ව තැබීම */
     justify-content: center; /* සිරස්ව (Vertically) මැදට ගැනීම */
-    align-items: center;   /* තිරස්ව (Horizontally) මැදට ගැනීම */
-    min-height: 70vh;      /* මැදට ගැනීමට අවශ්‍ය අවම උස ලබා දීම */
-    padding: 2rem 0;       /* උඩින් සහ යටින් ඉඩක් තැබීම */
+    align-items: center;    /* තිරස්ව (Horizontally) මැදට ගැනීම */
+    min-height: 70vh;       /* මැදට ගැනීමට අවශ්‍ය අවම උස ලබා දීම */
+    padding: 2rem 0;        /* උඩින් සහ යටින් ඉඩක් තැබීම */
 }
 
 /* flex නිසා හැකිලෙන (shrink) ෆෝරම් container එක නැවත సరిగ్గా ගැනීම */
@@ -355,7 +355,7 @@ html.logged-in #mobile-user-profile { display: flex !important; }
 #page-checkout > .glass-panel {
     width: 100%; /* container එකේ සම්පූර්ණ පළල ලබාගැනීමට සැලැස්වීම */
     /* දැන්, container එකේම ඇති max-width (උදා: max-w-md) එකෙන් 
-        එහි උපරිම පළල සීමා වේ. එම නිසා size එක වෙනස් නොවේ. */
+       එහි උපරිම පළල සීමා වේ. එම නිසා size එක වෙනස් නොවේ. */
 }
 
 /* Profile පිටුවේ grid එක මැදට ගැනීම (පෙර පරිදිම) */
@@ -377,7 +377,7 @@ html.logged-in #mobile-user-profile { display: flex !important; }
   height: 100%;
   z-index: 9999;
   display: flex;
-  align-items: center;   /* සිරස්ව (vertically) මැදට ගේන්න */
+  align-items: center;    /* සිරස්ව (vertically) මැදට ගේන්න */
   justify-content: center; /* තිරස්ව (horizontally) මැදට ගේන්න */
   padding: 1rem;
   
@@ -408,7 +408,7 @@ html.logged-in #mobile-user-profile { display: flex !important; }
       /* Firefox */
       * {
         scrollbar-width: thin;
-        scrollbar-color: #b600ce #222; /* thumb color | track color */
+        scrollbar-color: #2563eb #222; /* thumb color | track color */
       }
 
       /* Chrome, Edge, Safari */
@@ -421,12 +421,12 @@ html.logged-in #mobile-user-profile { display: flex !important; }
       }
 
       *::-webkit-scrollbar-thumb {
-        background: linear-gradient(180deg, 270039, #00ffff);
+        background: linear-gradient(180deg, #3b82f6, #60a5fa);
         border-radius: 10px;
       }
 
       *::-webkit-scrollbar-thumb:hover {
-        background: linear-gradient(180deg, #ff00ff, #00ff00);
+        background: linear-gradient(180deg, #2563eb, #3b82f6);
       }
 /* ======================================== */
 /* Toast Notification Styles (Complete & Fixed) */
@@ -571,7 +571,7 @@ html.logged-in #mobile-user-profile { display: flex !important; }
 .loader:after {
   width: 35px;
   aspect-ratio: 1;
-  box-shadow: 0 0 0 3px inset #2d0040;
+  box-shadow: 0 0 0 3px inset #1e40af;
   position: relative;
   animation: 1.5s infinite 0.5s;
   animation-name: l7-1, l7-2;
@@ -679,7 +679,6 @@ html.logged-in #mobile-user-profile { display: flex !important; }
         >
         <hr class="border-white/10 my-4" />
 
-        <!-- **** මෙතන වෙනස්කම සිදුකළා **** -->
         <div id="mobile-auth-buttons" class="flex flex-col gap-3 mt-6">
             <a href="/login" class="nav-link-internal flex items-center justify-center w-full py-2.5 text-center font-semibold text-white rounded-lg ai-button secondary">
                 Login
@@ -813,4 +812,3 @@ html.logged-in #mobile-user-profile { display: flex !important; }
         <script src="./js/main.js"></script>
   </body>
 </html>
-

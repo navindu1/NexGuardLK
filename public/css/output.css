@@ -1976,40 +1976,6 @@ video {
   transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
 }
 
-body {
-  --tw-bg-opacity: 1;
-  background-color: rgb(0 0 0 / var(--tw-bg-opacity, 1));
-  --tw-text-opacity: 1;
-  color: rgb(162 162 162 / var(--tw-text-opacity, 1));
-}
-
-h1, h2, h3, h4, h5, h6 {
-  --tw-text-opacity: 1;
-  color: rgb(255 255 255 / var(--tw-text-opacity, 1));
-}
-
-.btn-primary {
-  --tw-bg-opacity: 1;
-  background-color: rgb(162 162 162 / var(--tw-bg-opacity, 1));
-  --tw-text-opacity: 1;
-  color: rgb(0 0 0 / var(--tw-text-opacity, 1));
-}
-
-.btn-primary:hover {
-  --tw-bg-opacity: 1;
-  background-color: rgb(128 128 128 / var(--tw-bg-opacity, 1));
-}
-
-.card {
-  border-width: 1px;
-  --tw-border-opacity: 1;
-  border-color: rgb(128 128 128 / var(--tw-border-opacity, 1));
-  --tw-bg-opacity: 1;
-  background-color: rgb(17 24 39 / var(--tw-bg-opacity, 1));
-}
-
-/* You can add any other custom styles here */
-
 .file\:mr-4::file-selector-button {
   margin-right: 1rem;
 }
