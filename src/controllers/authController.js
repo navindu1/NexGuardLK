@@ -24,7 +24,7 @@ exports.register = async (req, res) => {
 
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const hashedPassword = bcrypt.hashSync(password, 10);
-        const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+        const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
 
         const userData = {
             username,
@@ -64,7 +64,6 @@ exports.register = async (req, res) => {
 
 exports.verifyOtp = async (req, res) => {
     const { email, otp } = req.body;
-
     try {
         const { data: user, error } = await supabase
             .from("users")
@@ -75,11 +74,9 @@ exports.verifyOtp = async (req, res) => {
         if (error || !user || !user.otp_code) {
             return res.status(400).json({ success: false, message: "Invalid request or user not found." });
         }
-
         if (new Date() > new Date(user.otp_expiry)) {
             return res.status(400).json({ success: false, message: "OTP has expired. Please register again." });
         }
-
         if (user.otp_code !== otp) {
             return res.status(400).json({ success: false, message: "Invalid OTP." });
         }
@@ -88,11 +85,9 @@ exports.verifyOtp = async (req, res) => {
             .from("users")
             .update({ otp_code: null, otp_expiry: null })
             .eq("id", user.id);
-
         if (updateError) throw updateError;
         
         const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, { expiresIn: "1d" });
-        
         const userPayload = {
             id: user.id,
             username: user.username,
@@ -100,7 +95,6 @@ exports.verifyOtp = async (req, res) => {
             whatsapp: user.whatsapp,
             profilePicture: user.profile_picture,
         };
-
         res.status(201).json({ success: true, message: "Account verified successfully!", token, user: userPayload });
     } catch (error) {
         console.error("Error in /api/auth/verify-otp:", error);
@@ -120,13 +114,8 @@ exports.login = async (req, res) => {
         if (error || !user) {
             return res.status(401).json({ success: false, message: "Invalid username or password." });
         }
-
         if (bcrypt.compareSync(password, user.password)) {
-            const token = jwt.sign(
-                { id: user.id, username: user.username },
-                process.env.JWT_SECRET,
-                { expiresIn: "1d" }
-            );
+            const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, { expiresIn: "1d" });
             const userPayload = {
                 id: user.id,
                 username: user.username,
@@ -134,12 +123,7 @@ exports.login = async (req, res) => {
                 whatsapp: user.whatsapp,
                 profilePicture: user.profile_picture ? user.profile_picture.replace(/\\/g, "/").replace("public/", "") : "assets/profilePhoto.jpg",
             };
-            res.json({
-                success: true,
-                message: "Logged in successfully!",
-                token,
-                user: userPayload,
-            });
+            res.json({ success: true, message: "Logged in successfully!", token, user: userPayload });
         } else {
             res.status(401).json({ success: false, message: "Invalid username or password." });
         }
@@ -162,16 +146,10 @@ exports.adminLogin = async (req, res) => {
         if (error || !adminUser) {
             return res.status(401).json({ success: false, message: "Invalid credentials or not an admin." });
         }
-
         const isPasswordValid = bcrypt.compareSync(password, adminUser.password);
-
         if (isPasswordValid) {
             const expiresIn = rememberMe ? "7d" : "8h";
-            const token = jwt.sign(
-                { id: adminUser.id, username: adminUser.username, role: "admin" },
-                process.env.JWT_SECRET,
-                { expiresIn }
-            );
+            const token = jwt.sign({ id: adminUser.id, username: adminUser.username, role: "admin" }, process.env.JWT_SECRET, { expiresIn });
             res.json({ success: true, token });
         } else {
             res.status(401).json({ success: false, message: "Invalid credentials." });
@@ -195,15 +173,9 @@ exports.resellerLogin = async (req, res) => {
         if (error || !reseller) {
             return res.status(401).json({ success: false, message: "Invalid credentials or not a reseller." });
         }
-
         const isPasswordValid = bcrypt.compareSync(password, reseller.password);
-
         if (isPasswordValid) {
-            const token = jwt.sign(
-                { id: reseller.id, username: reseller.username, role: "reseller" },
-                process.env.JWT_SECRET,
-                { expiresIn: "8h" }
-            );
+            const token = jwt.sign({ id: reseller.id, username: reseller.username, role: "reseller" }, process.env.JWT_SECRET, { expiresIn: "8h" });
             res.json({ success: true, token });
         } else {
             res.status(401).json({ success: false, message: "Invalid credentials." });
@@ -313,4 +285,3 @@ exports.resetPassword = async (req, res) => {
         res.status(500).json({ success: false, message: "Error updating password." });
     }
 };
-
