@@ -39,7 +39,6 @@ body.modal-open {
 
 /* MODIFIED: Changed border-radius from 9999px to 1rem for a more professional look */
 .glass-panel {
-  background: rgba(10, 8, 28, 0.75);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.1);

@@ -640,7 +640,50 @@ document.addEventListener("DOMContentLoaded", () => {
                         </div>
                     </div>
                 </div>
-                
+                <div id="faq-section" class="mt-20 reveal">
+    <header class="text-center mb-10">
+        <h2 class="text-2xl font-bold text-white">Frequently Asked Questions</h2>
+        <p class="text-gray-400 mt-2">Answers to common questions about our service.</p>
+    </header>
+    <div class="space-y-4 max-w-3xl mx-auto">
+        <details class="card-glass p-5 rounded-lg cursor-pointer">
+            <summary class="font-semibold text-white flex justify-between items-center">
+                <span>What exactly is V2Ray?</span>
+                <i class="fa-solid fa-chevron-down transition-transform duration-300"></i>
+            </summary>
+            <p class="text-gray-300 text-sm mt-3 pt-3 border-t border-white/10">
+                V2Ray is a powerful and flexible networking tool used to secure your internet connection and bypass restrictions. It routes your internet traffic through an encrypted tunnel, protecting your data from being monitored and giving you access to the open internet.
+            </p>
+        </details>
+        <details class="card-glass p-5 rounded-lg cursor-pointer">
+            <summary class="font-semibold text-white flex justify-between items-center">
+                <span>Which devices and apps are supported?</span>
+                <i class="fa-solid fa-chevron-down transition-transform duration-300"></i>
+            </summary>
+            <p class="text-gray-300 text-sm mt-3 pt-3 border-t border-white/10">
+                Our service works on a wide range of devices. For Android, we recommend using 'v2rayNG'. For iOS, 'FoXray' or 'Shadowrocket' are great options. For Windows, you can use 'v2rayN'. We provide guides to help you set up the connection easily.
+            </p>
+        </details>
+        <details class="card-glass p-5 rounded-lg cursor-pointer">
+            <summary class="font-semibold text-white flex justify-between items-center">
+                <span>What is your refund policy?</span>
+                <i class="fa-solid fa-chevron-down transition-transform duration-300"></i>
+            </summary>
+            <p class="text-gray-300 text-sm mt-3 pt-3 border-t border-white/10">
+                You are eligible for a full refund if the request is made within <strong>48 hours</strong> of purchase and your total data usage is less than <strong>10 GB</strong>. If these conditions are not met, a refund will not be possible.
+            </p>
+        </details>
+        <details class="card-glass p-5 rounded-lg cursor-pointer">
+            <summary class="font-semibold text-white flex justify-between items-center">
+                <span>How long does it take for an order to be approved?</span>
+                <i class="fa-solid fa-chevron-down transition-transform duration-300"></i>
+            </summary>
+            <p class="text-gray-300 text-sm mt-3 pt-3 border-t border-white/10">
+                Orders are typically reviewed and approved by an admin within a few hours. After you submit your payment receipt, we will verify it and send the connection details to you via WhatsApp as quickly as possible.
+            </p>
+        </details>
+    </div>
+</div>
             </div>`);
     }
 
@@ -1913,44 +1956,50 @@ planDetailsContainer.innerHTML = `
         else if (initialPanel === "signup") switchAuthView(signupForm);
         else switchAuthView(signinForm);
 
-        signinForm ?.addEventListener("submit", async(e) => {
-            e.preventDefault();
-            const btn = e.target.querySelector("button");
-            btn.disabled = true;
-            showToast({
-                title: "Signing In",
-                message: "Please wait...",
-                type: "info",
-            });
-            const payload = {
-                username: e.target.elements["signin-username"].value,
-                password: e.target.elements["signin-password"].value,
-            };
-            const res = await apiFetch("/api/auth/login", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(payload),
-            });
-            const result = await res.json();
-            btn.disabled = false;
-            if (res.ok) {
-                showToast({
-                    title: "Success!",
-                    message: "You have logged in successfully.",
-                    type: "success",
-                });
-                saveSession(result);
-                navigateTo("/profile");
-            } else {
-                showToast({
-                    title: "Login Failed",
-                    message: result.message,
-                    type: "error",
-                });
-            }
+        // This event listener is inside the renderAuthPage function in your main.js file
+
+signinForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = e.target.querySelector("button");
+    btn.disabled = true;
+    showToast({
+        title: "Signing In",
+        message: "Please wait...",
+        type: "info",
+    });
+    const payload = {
+        username: e.target.elements["signin-username"].value,
+        password: e.target.elements["signin-password"].value,
+    };
+    const res = await apiFetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload),
+    });
+    
+    btn.disabled = false; // Moved this up to re-enable the button faster
+
+    if (res.ok) {
+        const result = await res.json();
+        showToast({
+            title: "Success!",
+            message: "You have logged in successfully.",
+            type: "success",
         });
+        saveSession(result);
+        navigateTo("/profile");
+    } else {
+        // --- THIS IS THE MODIFIED PART ---
+        // Instead of showing the server message, we show our own custom message.
+        showToast({
+            title: "Login Failed",
+            message: "Incorrect username or password. Please try again.",
+            type: "error",
+        });
+    }
+});
 
         signupForm ?.addEventListener("submit", async(e) => {
             e.preventDefault();
