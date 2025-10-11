@@ -789,173 +789,176 @@ const apiFetch = async (url, options = {}) => {
         if (totalQuota > 0) animateCounter(container.querySelector('#usage-percentage'), 0, Math.floor(usagePercentage), animDuration);
     }
 
-    function renderUsagePage(renderFunc) {
-        renderFunc(`
-            <div class="page" id="page-usage">
-                <main class="w-full max-w-md space-y-8 z-10 mx-auto">
-                    <header class="text-center space-y-2 reveal is-visible">
-                        <i class="fa-solid fa-microchip text-5xl gradient-text"></i>
-                        <h1 class="text-3xl sm:text-4xl font-bold text-white" style="font-family: 'Orbitron', sans-serif;">NexGuard <span class="gradient-text">LK</span></h1>
-                        <p class="text-gray-400">Enter client identifier for real-time usage matrix.</p>
-                    </header>
+    // This function is inside public/js/main.js
 
-                    <form id="usage-form" class="space-y-6 reveal is-visible">
-                        <div class="form-group">
-                            <input type="text" id="username" name="username" class="form-input" placeholder=" " required="">
-                            <label for="username" class="form-label">Enter Username</label>
-                            <span class="focus-border"><i></i></span>
-                        </div>
-                        <button type="submit" class="ai-button w-full">
-                            <span class="button-text"><i class="fa-solid fa-magnifying-glass-chart mr-2"></i>ANALYZE USAGE</span>
-                        </button>
-                    </form>
+function renderUsagePage(renderFunc) {
+    renderFunc(`
+        <div class="page" id="page-usage">
+            <main class="w-full max-w-sm space-y-4 z-10 mx-auto"> 
+                <header class="text-center space-y-1 reveal is-visible">
+                    <i class="fa-solid fa-microchip text-4xl gradient-text"></i>
+                    <h1 class="text-2xl sm:text-3xl font-bold text-white" style="font-family: 'Orbitron', sans-serif;">NexGuard <span class="gradient-text">LK</span></h1>
+                    <p class="text-gray-400 text-sm">Enter client identifier for real-time usage.</p>
+                </header>
 
-                    <div id="result" class="mt-8"></div>
-                    
-                    <div id="how-to-find-link-container" class="text-center pt-0 reveal is-visible">
-                        <span id="open-help-modal-link" class="text-blue-400 text-sm cursor-pointer hover:underline ">
-                            How to find your username?
-                        </span>
+                <form id="usage-form" class="space-y-4 reveal is-visible">
+                    <div class="form-group">
+                        <input type="text" id="username" name="username" class="form-input" placeholder=" " required="">
+                        <label for="username" class="form-label">Enter Username</label>
+                        <span class="focus-border"><i></i></span>
                     </div>
-                </main>
+                    <button type="submit" class="ai-button w-full">
+                        <span class="button-text"><i class="fa-solid fa-magnifying-glass-chart mr-2"></i>ANALYZE USAGE</span>
+                    </button>
+                </form>
 
-                <div id="help-modal" class="help-modal-overlay">
-                    <div class="help-modal-content card-glass rounded-lg p-6 space-y-4 w-full max-w-md">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h2 class="text-xl font-bold text-white font-['Orbitron']">Help & Support Matrix</h2>
-                                <button id="lang-toggle-btn" class="text-xs text-blue-400 hover:underline mt-1">English / සිංහල</button>
-                            </div>
-                            <button id="help-modal-close" class="text-gray-400 hover:text-white text-3xl">&times;</button>
+                <div id="result" class="mt-6"></div>
+                
+                <div id="how-to-find-link-container" class="text-center pt-0 reveal is-visible">
+                    <span id="open-help-modal-link" class="text-blue-400 text-sm cursor-pointer hover:underline ">
+                        How to find your username?
+                    </span>
+                </div>
+            </main>
+
+            <div id="help-modal" class="help-modal-overlay">
+                <div class="help-modal-content card-glass rounded-lg p-6 space-y-4 w-full max-w-md">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h2 class="text-xl font-bold text-white font-['Orbitron']">Help & Support Matrix</h2>
+                            <button id="lang-toggle-btn" class="text-xs text-blue-400 hover:underline mt-1">English / සිංහල</button>
                         </div>
-                        <div class="lang-content lang-en">
-                            <div>
-                                <h3 class="text-lg font-semibold text-blue-400 mb-2">How to find your Username?</h3>
-                                <p class="text-gray-300 text-sm mb-4">Your username is the name assigned to your V2ray configuration. It's often visible in your V2ray client app, usually next to the server connection name.</p>
-                            </div>
+                        <button id="help-modal-close" class="text-gray-400 hover:text-white text-3xl">&times;</button>
+                    </div>
+                    <div class="lang-content lang-en">
+                        <div>
+                            <h3 class="text-lg font-semibold text-blue-400 mb-2">How to find your Username?</h3>
+                            <p class="text-gray-300 text-sm mb-4">Your username is the name assigned to your V2ray configuration. It's often visible in your V2ray client app, usually next to the server connection name.</p>
                         </div>
-                        <div class="lang-content lang-si hidden">
-                            <div>
-                                <h3 class="text-lg font-semibold text-blue-400 mb-2">ඔබගේ Username එක සොයාගන්නේ කෙසේද?</h3>
-                                <p class="text-gray-300 text-sm mb-4">ඔබගේ username යනු V2ray config ගොනුවට ලබා දී ඇති නමයි. එය බොහෝවිට V2ray client ඇප් එකේ, server සම්බන්ධතාවය අසල දිස්වේ.</p>
-                            </div>
+                    </div>
+                    <div class="lang-content lang-si hidden">
+                        <div>
+                            <h3 class="text-lg font-semibold text-blue-400 mb-2">ඔබගේ Username එක සොයාගන්නේ කෙසේද?</h3>
+                            <p class="text-gray-300 text-sm mb-4">ඔබගේ username යනු V2ray config ගොනුවට ලබා දී ඇති නමයි. එය බොහෝවිට V2ray client ඇප් එකේ, server සම්බන්ධතාවය අසල දිස්වේ.</p>
                         </div>
-                        <div class="bg-black/50 border border-white/10 rounded-lg p-2">
-                            <img src="/assets/help.jpg" alt="Example image of where to find the username" class="rounded w-full h-auto">
-                        </div>
+                    </div>
+                    <div class="bg-black/50 border border-white/10 rounded-lg p-2">
+                        <img src="/assets/help.jpg" alt="Example image of where to find the username" class="rounded w-full h-auto">
                     </div>
                 </div>
             </div>
-        `);
+        </div>
+    `);
 
-        setTimeout(() => {
-            const usageForm = document.getElementById('usage-form');
-            if (usageForm) {
-                usageForm.addEventListener('submit', async e => {
-                    e.preventDefault();
-                    const submitButton = usageForm.querySelector('button');
-                    const buttonText = submitButton.querySelector('.button-text');
-                    const username = document.getElementById('username').value.trim();
-                    const resultDiv = document.getElementById('result');
-                    const howToFindLinkContainer = document.getElementById('how-to-find-link-container');
+    // The rest of the function (setTimeout with event listeners) remains the same
+    setTimeout(() => {
+        const usageForm = document.getElementById('usage-form');
+        if (usageForm) {
+            usageForm.addEventListener('submit', async e => {
+                e.preventDefault();
+                const submitButton = usageForm.querySelector('button');
+                const buttonText = submitButton.querySelector('.button-text');
+                const username = document.getElementById('username').value.trim();
+                const resultDiv = document.getElementById('result');
+                const howToFindLinkContainer = document.getElementById('how-to-find-link-container');
+                
+                submitButton.disabled = true;
+                buttonText.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i>ANALYZING...`;
+                resultDiv.innerHTML = "";
+                howToFindLinkContainer.classList.remove('hidden'); 
+                
+                try {
+                    const res = await apiFetch(`/api/check-usage/${username}`);
                     
-                    submitButton.disabled = true;
-                    buttonText.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i>ANALYZING...`;
-                    resultDiv.innerHTML = "";
-                    howToFindLinkContainer.classList.remove('hidden'); 
-                    
-                    try {
-                        const res = await apiFetch(`/api/check-usage/${username}`);
-                        
-                        if (!res.ok) {
-                            howToFindLinkContainer.classList.remove('hidden');
-                            if (res.status === 404) {
-                                resultDiv.innerHTML = `<div class="p-4 text-center text-amber-400 card-glass rounded-lg flex flex-col items-center gap-3"><i class="fa-solid fa-user-slash text-2xl"></i><div><p class="font-semibold">This client name does not exist.`;
-                            } else if (res.status === 503) {
-                                const errorData = await res.json();
-                                resultDiv.innerHTML = `<div class="p-4 text-center text-blue-400 card-glass rounded-lg">${errorData.message || 'Session renewed. Please try again.'}</div>`;
-                            } else {
-                                const errorResult = await res.json();
-                                resultDiv.innerHTML = `<div class="p-4 text-center text-amber-400 card-glass rounded-lg">${errorResult.message || `Server error: ${res.status}`}</div>`;
-                            }
-                            return; 
-                        }
-
-                        const result = await res.json();
-                        
-                        if (result.success) {
-                            displayUserData(result.data, username, resultDiv);
-                            howToFindLinkContainer.classList.add('hidden'); 
-                            usageForm.reset();
-                        } else {
-                            resultDiv.innerHTML = `<div class="p-4 text-center text-amber-400 card-glass rounded-lg">${result.message || 'Could not retrieve user data.'}</div>`;
-                            howToFindLinkContainer.classList.remove('hidden');
-                        }
-
-                    } catch (err) {
-                        console.error(err);
-                        resultDiv.innerHTML = `<div class="p-4 text-center text-red-400 card-glass rounded-lg">An error occurred. Please try again later.</div>`;
+                    if (!res.ok) {
                         howToFindLinkContainer.classList.remove('hidden');
-                    } finally {
-                        submitButton.disabled = false;
-                        buttonText.innerHTML = `<i class="fa-solid fa-magnifying-glass-chart mr-2"></i>ANALYZE USAGE`;
-                    }
-                });
-            }
-
-            const openHelpModalLink = document.getElementById('open-help-modal-link');
-            const helpModal = document.getElementById('help-modal');
-            const helpModalCloseBtn = document.getElementById('help-modal-close');
-            const langToggleBtn = document.getElementById('lang-toggle-btn');
-
-            if (openHelpModalLink && helpModal && helpModalCloseBtn) {
-                const openModal = () => {
-                    helpModal.classList.add('visible');
-                    document.body.classList.add('modal-open');
-                };
-
-                const closeModal = () => {
-                    helpModal.classList.remove('visible');
-                    document.body.classList.remove('modal-open');
-                };
-
-                openHelpModalLink.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    openModal();
-                });
-                
-                helpModalCloseBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    closeModal();
-                });
-                
-                helpModal.addEventListener('click', (event) => {
-                    if (event.target === helpModal) {
-                        closeModal();
-                    }
-                });
-
-                document.addEventListener('keydown', (event) => {
-                    if (event.key === 'Escape' && helpModal.classList.contains('visible')) {
-                        closeModal();
-                    }
-                });
-
-                if (langToggleBtn) {
-                    langToggleBtn.addEventListener('click', () => {
-                        const langEn = document.querySelector('.lang-content.lang-en');
-                        const langSi = document.querySelector('.lang-content.lang-si');
-                        
-                        if (langEn && langSi) {
-                            langEn.classList.toggle('hidden');
-                            langSi.classList.toggle('hidden');
+                        if (res.status === 404) {
+                            resultDiv.innerHTML = `<div class="p-4 text-center text-amber-400 card-glass rounded-lg flex flex-col items-center gap-3"><i class="fa-solid fa-user-slash text-2xl"></i><div><p class="font-semibold">This client name does not exist.`;
+                        } else if (res.status === 503) {
+                            const errorData = await res.json();
+                            resultDiv.innerHTML = `<div class="p-4 text-center text-blue-400 card-glass rounded-lg">${errorData.message || 'Session renewed. Please try again.'}</div>`;
+                        } else {
+                            const errorResult = await res.json();
+                            resultDiv.innerHTML = `<div class="p-4 text-center text-amber-400 card-glass rounded-lg">${errorResult.message || `Server error: ${res.status}`}</div>`;
                         }
-                    });
+                        return; 
+                    }
+
+                    const result = await res.json();
+                    
+                    if (result.success) {
+                        displayUserData(result.data, username, resultDiv);
+                        howToFindLinkContainer.classList.add('hidden'); 
+                        usageForm.reset();
+                    } else {
+                        resultDiv.innerHTML = `<div class="p-4 text-center text-amber-400 card-glass rounded-lg">${result.message || 'Could not retrieve user data.'}</div>`;
+                        howToFindLinkContainer.classList.remove('hidden');
+                    }
+
+                } catch (err) {
+                    console.error(err);
+                    resultDiv.innerHTML = `<div class="p-4 text-center text-red-400 card-glass rounded-lg">An error occurred. Please try again later.</div>`;
+                    howToFindLinkContainer.classList.remove('hidden');
+                } finally {
+                    submitButton.disabled = false;
+                    buttonText.innerHTML = `<i class="fa-solid fa-magnifying-glass-chart mr-2"></i>ANALYZE USAGE`;
                 }
-            }
+            });
+        }
+
+        const openHelpModalLink = document.getElementById('open-help-modal-link');
+        const helpModal = document.getElementById('help-modal');
+        const helpModalCloseBtn = document.getElementById('help-modal-close');
+        const langToggleBtn = document.getElementById('lang-toggle-btn');
+
+        if (openHelpModalLink && helpModal && helpModalCloseBtn) {
+            const openModal = () => {
+                helpModal.classList.add('visible');
+                document.body.classList.add('modal-open');
+            };
+
+            const closeModal = () => {
+                helpModal.classList.remove('visible');
+                document.body.classList.remove('modal-open');
+            };
+
+            openHelpModalLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                openModal();
+            });
             
-        }, 100);
-    }
+            helpModalCloseBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                closeModal();
+            });
+            
+            helpModal.addEventListener('click', (event) => {
+                if (event.target === helpModal) {
+                    closeModal();
+                }
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && helpModal.classList.contains('visible')) {
+                    closeModal();
+                }
+            });
+
+            if (langToggleBtn) {
+                langToggleBtn.addEventListener('click', () => {
+                    const langEn = document.querySelector('.lang-content.lang-en');
+                    const langSi = document.querySelector('.lang-content.lang-si');
+                    
+                    if (langEn && langSi) {
+                        langEn.classList.toggle('hidden');
+                        langSi.classList.toggle('hidden');
+                    }
+                });
+            }
+        }
+        
+    }, 100);
+}
     
     // START: ALL FUNCTIONS BELOW ARE UPDATED FOR "CHANGE PLAN" & UNIFIED BUTTONS
 
