@@ -76,37 +76,20 @@ details[open] > summary i {
 }
 
 
-/* Add to your public/css/modern.css file */
+/* Existing CSS code in your output.css file... */
 
-/* Ensure the navbar has the same glass effect as the cards */
-#main-header {
-  background: rgba(10, 8, 28, 0.75);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-}
-
-/* Styles for the "Popular" package badge and glowing border */
-.popular-package {
-  position: relative;
-  /* Add a subtle glow to the popular card */
-  box-shadow: 0 0 30px rgba(99, 102, 241, 0.5); 
-  border-color: rgba(99, 102, 241, 0.7);
-}
-
-.popular-badge {
-  position: absolute;
-  top: -15px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: linear-gradient(90deg, #4f46e5, #818cf8);
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  /* Old color might be here e.g., background-color: #333; */
+  background-color: #D94A27; /* This is the new color from the car */
+  padding: 1rem 2rem;
   color: white;
-  padding: 6px 16px;
-  border-radius: 9999px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  box-shadow: 0 4px 15px rgba(79, 70, 229, 0.5);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  transition: background-color 0.3s ease;
 }
+
+/* Rest of your CSS code in output.css file... */
