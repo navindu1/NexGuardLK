@@ -512,7 +512,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const modalId = `choice-modal-${Date.now()}`;
             const modalHtml = `
                 <div id="${modalId}" class="fixed inset-0 bg-black/80 justify-center items-center z-[101] flex p-4" style="display: flex;">
-                    <div class="glass-panel p-6 rounded-lg max-w-sm w-full text-center reveal is-visible relative">
+                    <div class="card-glass p-6 rounded-lg max-w-sm w-full text-center reveal is-visible relative">
                         <button id="${modalId}-close" class="absolute top-3 right-4 text-gray-400 hover:text-white text-3xl">&times;</button>
                         <h3 class="text-xl font-bold text-white font-['Orbitron'] mb-3">${title}</h3>
                         <div class="text-gray-300 text-sm mb-6">${message}</div>
@@ -549,7 +549,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const modalHtml = `
                 <div id="${modalId}" class="fixed inset-0 bg-black/80 justify-center items-center z-[101] flex p-4" style="display: flex;">
-                    <div class="glass-panel p-6 rounded-lg max-w-sm w-full text-center reveal is-visible relative">
+                    <div class="card-glass p-6 rounded-lg max-w-sm w-full text-center reveal is-visible relative">
                         <button id="${modalId}-close" class="absolute top-3 right-4 text-gray-400 hover:text-white text-3xl">&times;</button>
                         <h3 class="text-xl font-bold text-white font-['Orbitron'] mb-3">Select a Plan to Renew</h3>
                         <div class="mb-8">
@@ -604,9 +604,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                    <div class="card reveal glass-panel p-5 rounded-xl text-center"><i class="fa-solid fa-bolt text-2xl gradient-text mb-3"></i><h3 class="text-lg font-bold text-white">Unmatched Speed</h3><p class="text-gray-400 mt-2 text-sm">Optimized servers for Sri Lankan networks for the lowest latency and highest speeds.</p></div>
-                    <div class="card reveal glass-panel p-5 rounded-xl text-center"><i class="fa-solid fa-shield-halved text-2xl gradient-text mb-3"></i><h3 class="text-lg font-bold text-white">Rock-Solid Security</h3><p class="text-gray-400 mt-2 text-sm">Advanced V2Ray protocols to keep your online activities private and secure.</p></div>
-                    <div class="card reveal glass-panel p-5 rounded-xl text-center"><i class="fa-solid fa-headset text-2xl gradient-text mb-3"></i><h3 class="text-lg font-bold text-white">24/7 Support</h3><p class="text-gray-400 mt-2 text-sm">Dedicated support team available via WhatsApp and Telegram to assist you.</p></div>
+                    <div class="card reveal card-glass p-5 rounded-xl text-center"><i class="fa-solid fa-bolt text-2xl gradient-text mb-3"></i><h3 class="text-lg font-bold text-white">Unmatched Speed</h3><p class="text-gray-400 mt-2 text-sm">Optimized servers for Sri Lankan networks for the lowest latency and highest speeds.</p></div>
+                    <div class="card reveal card-glass p-5 rounded-xl text-center"><i class="fa-solid fa-shield-halved text-2xl gradient-text mb-3"></i><h3 class="text-lg font-bold text-white">Rock-Solid Security</h3><p class="text-gray-400 mt-2 text-sm">Advanced V2Ray protocols to keep your online activities private and secure.</p></div>
+                    <div class="card reveal card-glass p-5 rounded-xl text-center"><i class="fa-solid fa-headset text-2xl gradient-text mb-3"></i><h3 class="text-lg font-bold text-white">24/7 Support</h3><p class="text-gray-400 mt-2 text-sm">Dedicated support team available via WhatsApp and Telegram to assist you.</p></div>
                 </div>
                 <div class="mt-20 flex flex-col lg:flex-row items-center gap-8 lg:gap-12 reveal">
                     <div class="lg:w-1/2">
@@ -640,6 +640,50 @@ document.addEventListener("DOMContentLoaded", () => {
                         </div>
                     </div>
                 </div>
+                <div id="faq-section" class="mt-20 reveal">
+    <header class="text-center mb-10">
+        <h2 class="text-2xl font-bold text-white">Frequently Asked Questions</h2>
+        <p class="text-gray-400 mt-2">Answers to common questions about our service.</p>
+    </header>
+    <div class="space-y-4 max-w-3xl mx-auto">
+        <details class="card-glass p-5 rounded-lg cursor-pointer">
+            <summary class="font-semibold text-white flex justify-between items-center">
+                <span>What exactly is V2Ray?</span>
+                <i class="fa-solid fa-chevron-down transition-transform duration-300"></i>
+            </summary>
+            <p class="text-gray-300 text-sm mt-3 pt-3 border-t border-white/10">
+                V2Ray is a powerful and flexible networking tool used to secure your internet connection and bypass restrictions. It routes your internet traffic through an encrypted tunnel, protecting your data from being monitored and giving you access to the open internet.
+            </p>
+        </details>
+        <details class="card-glass p-5 rounded-lg cursor-pointer">
+            <summary class="font-semibold text-white flex justify-between items-center">
+                <span>Which devices and apps are supported?</span>
+                <i class="fa-solid fa-chevron-down transition-transform duration-300"></i>
+            </summary>
+            <p class="text-gray-300 text-sm mt-3 pt-3 border-t border-white/10">
+                Our service works on a wide range of devices. For Android, we recommend using 'v2rayNG'. For iOS, 'FoXray' or 'Shadowrocket' are great options. For Windows, you can use 'v2rayN'. We provide guides to help you set up the connection easily.
+            </p>
+        </details>
+        <details class="card-glass p-5 rounded-lg cursor-pointer">
+            <summary class="font-semibold text-white flex justify-between items-center">
+                <span>What is your refund policy?</span>
+                <i class="fa-solid fa-chevron-down transition-transform duration-300"></i>
+            </summary>
+            <p class="text-gray-300 text-sm mt-3 pt-3 border-t border-white/10">
+                You are eligible for a full refund if the request is made within <strong>48 hours</strong> of purchase and your total data usage is less than <strong>10 GB</strong>. If these conditions are not met, a refund will not be possible.
+            </p>
+        </details>
+        <details class="card-glass p-5 rounded-lg cursor-pointer">
+            <summary class="font-semibold text-white flex justify-between items-center">
+                <span>How long does it take for an order to be approved?</span>
+                <i class="fa-solid fa-chevron-down transition-transform duration-300"></i>
+            </summary>
+            <p class="text-gray-300 text-sm mt-3 pt-3 border-t border-white/10">
+                Orders are typically reviewed and approved by an admin within a few hours. After you submit your payment receipt, we will verify it and send the connection details to you via WhatsApp as quickly as possible.
+            </p>
+        </details>
+    </div>
+</div>
             </div>`);
     }
 
@@ -657,7 +701,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         const html = `
-            <div class="result-card p-4 sm:p-6 glass-panel rounded-xl space-y-5 reveal is-visible">
+            <div class="result-card p-4 sm:p-6 card-glass rounded-xl space-y-5 reveal is-visible">
                 <div class="flex justify-between items-center pb-3 border-b border-white/10">
                     <h3 class="text-lg font-semibold text-white flex items-center min-w-0">
                         <i class="fa-solid fa-satellite-dish mr-3 text-blue-400 flex-shrink-0"></i>
@@ -771,7 +815,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 </main>
 
                 <div id="help-modal" class="help-modal-overlay">
-                    <div class="help-modal-content glass-panel rounded-lg p-6 space-y-4 w-full max-w-md">
+                    <div class="help-modal-content card-glass rounded-lg p-6 space-y-4 w-full max-w-md">
                         <div class="flex justify-between items-start">
                             <div>
                                 <h2 class="text-xl font-bold text-white font-['Orbitron']">Help & Support Matrix</h2>
@@ -821,13 +865,13 @@ document.addEventListener("DOMContentLoaded", () => {
                         if (!res.ok) {
                             howToFindLinkContainer.classList.remove('hidden');
                             if (res.status === 404) {
-                                resultDiv.innerHTML = `<div class="p-4 text-center text-amber-400 glass-panel rounded-lg flex flex-col items-center gap-3"><i class="fa-solid fa-user-slash text-2xl"></i><div><p class="font-semibold">This client name does not exist.`;
+                                resultDiv.innerHTML = `<div class="p-4 text-center text-amber-400 card-glass rounded-lg flex flex-col items-center gap-3"><i class="fa-solid fa-user-slash text-2xl"></i><div><p class="font-semibold">This client name does not exist.`;
                             } else if (res.status === 503) {
                                 const errorData = await res.json();
-                                resultDiv.innerHTML = `<div class="p-4 text-center text-blue-400 glass-panel rounded-lg">${errorData.message || 'Session renewed. Please try again.'}</div>`;
+                                resultDiv.innerHTML = `<div class="p-4 text-center text-blue-400 card-glass rounded-lg">${errorData.message || 'Session renewed. Please try again.'}</div>`;
                             } else {
                                 const errorResult = await res.json();
-                                resultDiv.innerHTML = `<div class="p-4 text-center text-amber-400 glass-panel rounded-lg">${errorResult.message || `Server error: ${res.status}`}</div>`;
+                                resultDiv.innerHTML = `<div class="p-4 text-center text-amber-400 card-glass rounded-lg">${errorResult.message || `Server error: ${res.status}`}</div>`;
                             }
                             return; 
                         }
@@ -839,13 +883,13 @@ document.addEventListener("DOMContentLoaded", () => {
                             howToFindLinkContainer.classList.add('hidden'); 
                             usageForm.reset();
                         } else {
-                            resultDiv.innerHTML = `<div class="p-4 text-center text-amber-400 glass-panel rounded-lg">${result.message || 'Could not retrieve user data.'}</div>`;
+                            resultDiv.innerHTML = `<div class="p-4 text-center text-amber-400 card-glass rounded-lg">${result.message || 'Could not retrieve user data.'}</div>`;
                             howToFindLinkContainer.classList.remove('hidden');
                         }
 
                     } catch (err) {
                         console.error(err);
-                        resultDiv.innerHTML = `<div class="p-4 text-center text-red-400 glass-panel rounded-lg">An error occurred. Please try again later.</div>`;
+                        resultDiv.innerHTML = `<div class="p-4 text-center text-red-400 card-glass rounded-lg">An error occurred. Please try again later.</div>`;
                         howToFindLinkContainer.classList.remove('hidden');
                     } finally {
                         submitButton.disabled = false;
@@ -918,12 +962,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     <p class="text-gray-400 mt-2">You have an active plan. What would you like to do next?</p>
                 </header>
                 <div id="choice-container" class="flex flex-col sm:flex-row items-center justify-center gap-6">
-                    <div id="renew-choice-card" class="card reveal selectable glass-panel p-6 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-72 cursor-pointer">
+                    <div id="renew-choice-card" class="card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-72 cursor-pointer">
                         <i class="fa-solid fa-arrows-rotate text-3xl gradient-text mb-3"></i>
                         <h3 class="text-lg font-bold text-white">Renew / Change Plan</h3>
                         <p class="text-gray-400 mt-1 text-xs">Renew your existing plan or upgrade to a new one.</p>
                     </div>
-                    <div id="buy-new-choice-card" class="card reveal selectable glass-panel p-6 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-72 cursor-pointer">
+                    <div id="buy-new-choice-card" class="card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-72 cursor-pointer">
                         <i class="fa-solid fa-plus text-3xl gradient-text mb-3"></i>
                         <h3 class="text-lg font-bold text-white">Buy a New Plan</h3>
                         <p class="text-gray-400 mt-1 text-xs">Purchase a completely separate, additional plan.</p>
@@ -982,7 +1026,7 @@ document.addEventListener("DOMContentLoaded", () => {
         let plansHtml = Object.entries(appData.plans)
             .map(
                 ([key, plan]) => `
-                <div class="card reveal glass-panel p-5 rounded-xl text-center flex flex-col">
+                <div class="card reveal card-glass p-5 rounded-xl text-center flex flex-col">
                     <h3 class="text-xl font-bold gradient-text">${plan.name}</h3>
                     <p class="text-3xl font-bold my-3">LKR. ${
                         plan.price
@@ -1039,7 +1083,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 }
                 
-                return `<a href="${linkUrl}" class="nav-link-internal card reveal selectable glass-panel p-5 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-64">
+                return `<a href="${linkUrl}" class="nav-link-internal card reveal selectable card-glass p-5 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-64">
                             <i class="${conn.icon || 'fa-solid fa-wifi'} text-3xl gradient-text mb-3"></i>
                             <h3 class="text-lg font-bold text-white mb-2">${conn.name}</h3>
                             ${packageInfoHtml}
@@ -1074,7 +1118,7 @@ document.addEventListener("DOMContentLoaded", () => {
         let choiceHtml = conn.package_options.map((option) => {
             const encodedOptionName = encodeURIComponent(option.name);
             const encodedTemplate = encodeURIComponent(option.template);
-            return `<a href="/checkout?planId=${planId}&connId=${encodeURIComponent(connId)}&pkg=${encodedOptionName}&inboundId=${option.inbound_id}&vlessTemplate=${encodedTemplate}${changeQuery}" class="nav-link-internal card reveal selectable glass-panel p-8 rounded-xl text-center flex flex-col items-center justify-center">
+            return `<a href="/checkout?planId=${planId}&connId=${encodeURIComponent(connId)}&pkg=${encodedOptionName}&inboundId=${option.inbound_id}&vlessTemplate=${encodedTemplate}${changeQuery}" class="nav-link-internal card reveal selectable card-glass p-8 rounded-xl text-center flex flex-col items-center justify-center">
                 <i class="fa-solid fa-box-open text-3xl gradient-text mb-3"></i>
                 <h3 class="text-lg font-bold text-white">${option.name}</h3>
             </a>`;
@@ -1153,7 +1197,7 @@ document.addEventListener("DOMContentLoaded", () => {
               .renewal-username-field[readonly]:focus ~ .form-label { color: #9ca3af; }
             </style>
             <div id="page-checkout" class="page">
-                <div class="w-full max-w-sm mx-auto glass-panel rounded-xl p-6 reveal">
+                <div class="w-full max-w-sm mx-auto card-glass rounded-xl p-6 reveal">
                     <div id="checkout-view">
                         <h2 class="text-xl font-bold text-center text-white mb-2">${formActionType}</h2>
                         <div id="checkout-summary" class="text-center mb-6 text-gray-300 text-sm space-y-2">${summaryHtml}</div>
@@ -1254,7 +1298,7 @@ const pageStyles = `
         renderFunc(`
             <div id="page-about" class="page">
                 <div class="flex flex-col lg:flex-row gap-8">
-                    <div class="flex-grow glass-panel p-8 rounded-lg space-y-5 reveal">
+                    <div class="flex-grow card-glass p-8 rounded-lg space-y-5 reveal">
                         <h2 class="text-2xl font-bold">About NexGuard LK</h2>
                         <p class="text-gray-300 text-sm">NexGuard is dedicated to providing secure, fast, and reliable internet freedom in Sri Lanka. Our mission is to deliver top-tier V2Ray services that are both affordable and powerful.</p>
                         <div><h3 class="text-lg font-bold text-white mb-2"><i class="fa-solid fa-rocket text-blue-400 mr-2"></i> Our Mission</h3><p class="text-gray-300 text-sm">To democratize internet access by providing robust, uncensored, and private connectivity solutions to every Sri Lankan.</p></div>
@@ -1269,7 +1313,7 @@ const pageStyles = `
                         </div>
                     </div>
                     <div class="lg:w-80 flex-shrink-0 reveal">
-                        <div class="glass-panel p-6 rounded-2xl text-center sticky top-28 shadow-xl">
+                        <div class="card-glass p-6 rounded-2xl text-center sticky top-28 shadow-xl">
                             
                             <img src="/assets/ceo.jpg" alt="Nexguard Founder" class="w-24 h-24 rounded-full mx-auto border-4 border-blue-500 shadow-md">
                             
@@ -1297,9 +1341,9 @@ const pageStyles = `
                 <div id="contact-section" class="mt-20">
                     <header class="text-center mb-10 reveal"><h2 class="text-2xl font-bold text-white">Get In Touch</h2></header>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-                        <a href="https://chat.whatsapp.com/DoErFmB8KSW6XLmjmJPWar" target="_blank" class="card reveal glass-panel p-5 rounded-xl text-center flex flex-col items-center justify-center"><i class="fa-brands fa-whatsapp text-3xl text-green-400 mb-3"></i><h3 class="text-lg font-bold text-white">WhatsApp</h3><p class="text-gray-400 mt-1 text-xs">Tap to chat for quick support.</p></a>
-                        <a href="https://t.me/nexguardusagebot" target="_blank" class="card reveal glass-panel p-5 rounded-xl text-center flex flex-col items-center justify-center"><i class="fa-brands fa-telegram text-3xl text-sky-400 mb-3"></i><h3 class="text-lg font-bold text-white">Telegram</h3><p class="text-gray-400 mt-1 text-xs">Join our channel or contact our bot.</p></a>
-                        <a href="mailto:navindu4000@gmail.com" class="card reveal glass-panel p-5 rounded-xl text-center flex flex-col items-center justify-center"><i class="fa-solid fa-envelope-open-text text-3xl text-red-400 mb-3"></i><h3 class="text-lg font-bold text-white">Email</h3><p class="text-gray-400 mt-1 text-xs">Send us an email for detailed inquiries.</p></a>
+                        <a href="https://chat.whatsapp.com/DoErFmB8KSW6XLmjmJPWar" target="_blank" class="card reveal card-glass p-5 rounded-xl text-center flex flex-col items-center justify-center"><i class="fa-brands fa-whatsapp text-3xl text-green-400 mb-3"></i><h3 class="text-lg font-bold text-white">WhatsApp</h3><p class="text-gray-400 mt-1 text-xs">Tap to chat for quick support.</p></a>
+                        <a href="https://t.me/nexguardusagebot" target="_blank" class="card reveal card-glass p-5 rounded-xl text-center flex flex-col items-center justify-center"><i class="fa-brands fa-telegram text-3xl text-sky-400 mb-3"></i><h3 class="text-lg font-bold text-white">Telegram</h3><p class="text-gray-400 mt-1 text-xs">Join our channel or contact our bot.</p></a>
+                        <a href="mailto:navindu4000@gmail.com" class="card reveal card-glass p-5 rounded-xl text-center flex flex-col items-center justify-center"><i class="fa-solid fa-envelope-open-text text-3xl text-red-400 mb-3"></i><h3 class="text-lg font-bold text-white">Email</h3><p class="text-gray-400 mt-1 text-xs">Send us an email for detailed inquiries.</p></a>
                     </div>
                 </div>
             </div>`);
@@ -1308,7 +1352,7 @@ const pageStyles = `
     function renderPrivacyPage(renderFunc) {
         renderFunc(`
             <div id="page-privacy" class="page">
-                <div class="glass-panel p-8 rounded-lg space-y-5 max-w-4xl mx-auto reveal">
+                <div class="card-glass p-8 rounded-lg space-y-5 max-w-4xl mx-auto reveal">
                     <h2 class="text-2xl font-bold">Privacy & Refund Policy</h2>
                     <div>
                         <h3 class="text-lg font-bold text-white mb-2">Our Commitment to Privacy</h3>
@@ -1341,7 +1385,7 @@ const pageStyles = `
 
     const modalHtml = `
         <div id="help-modal" class="help-modal-overlay">
-            <div class="help-modal-content glass-panel rounded-lg p-6 space-y-4 w-full max-w-md">
+            <div class="help-modal-content card-glass rounded-lg p-6 space-y-4 w-full max-w-md">
                 <div class="flex justify-between items-start">
                     <div>
                         <h2 class="text-xl font-bold text-white font-['Orbitron']">Help & Support Matrix</h2>
@@ -1534,7 +1578,7 @@ planDetailsContainer.innerHTML = `
     </div>
 
     <div id="tab-config" class="tab-panel">
-        <div class="glass-panel p-6 sm:p-8 rounded-xl">
+        <div class="card-glass p-6 sm:p-8 rounded-xl">
             <div class="grid md:grid-cols-2 gap-8 items-center">
                 <div class="flex flex-col items-center text-center">
                     <h3 class="text-lg font-semibold text-white mb-3">Scan with your V2Ray App</h3>
@@ -1566,7 +1610,7 @@ planDetailsContainer.innerHTML = `
     </div>
     
     <div id="tab-settings" class="tab-panel">
-        <div class="glass-panel p-6 sm:p-8 rounded-xl">
+        <div class="card-glass p-6 sm:p-8 rounded-xl">
             <div class="max-w-md mx-auto">
                 <h3 class="text-xl font-bold text-white mb-6 font-['Orbitron'] text-center">Account Settings</h3>
                 <form id="profile-update-form" class="space-y-6">
@@ -1618,11 +1662,11 @@ planDetailsContainer.innerHTML = `
                             if (result.success) {
                                 displayUserData(result.data, plan.v2rayUsername, usageContainer);
                             } else {
-                                usageContainer.innerHTML = `<div class="glass-panel p-4 rounded-xl text-center text-amber-400"><p>${result.message}</p></div>`;
+                                usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-amber-400"><p>${result.message}</p></div>`;
                             }
                         }).catch(err => {
                             console.error("Failed to load usage stats:", err);
-                            usageContainer.innerHTML = `<div class="glass-panel p-4 rounded-xl text-center text-red-400"><p>Could not load usage statistics.</p></div>`;
+                            usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-red-400"><p>Could not load usage statistics.</p></div>`;
                         });
                     };
 
@@ -1678,7 +1722,7 @@ planDetailsContainer.innerHTML = `
                             const { orders } = await res.json();
                             
                             if (orders.length === 0) {
-                                ordersContainer.innerHTML = `<div class="glass-panel p-8 rounded-xl text-center"><i class="fa-solid fa-box-open text-4xl text-gray-400 mb-4"></i><h3 class="font-bold text-white">No Orders Found</h3><p class="text-gray-400 text-sm mt-2">You have not placed any orders yet.</p></div>`;
+                                ordersContainer.innerHTML = `<div class="card-glass p-8 rounded-xl text-center"><i class="fa-solid fa-box-open text-4xl text-gray-400 mb-4"></i><h3 class="font-bold text-white">No Orders Found</h3><p class="text-gray-400 text-sm mt-2">You have not placed any orders yet.</p></div>`;
                                 return;
                             }
 
@@ -1691,7 +1735,7 @@ planDetailsContainer.innerHTML = `
                                 const statusIcons = { pending: "fa-solid fa-clock", approved: "fa-solid fa-check-circle", rejected: "fa-solid fa-times-circle" };
                                 
                                 return `
-                                <div class="glass-panel p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                <div class="card-glass p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                     <div>
                                         <p class="font-bold text-white">${planName} <span class="text-gray-400 font-normal">for</span> ${connName}</p>
                                         <p class="text-xs text-gray-400 mt-1">
@@ -1709,7 +1753,7 @@ planDetailsContainer.innerHTML = `
 
                         } catch (err) {
                             console.error("Failed to load orders:", err);
-                            ordersContainer.innerHTML = `<div class="glass-panel p-4 rounded-xl text-center text-red-400"><p>Could not load your orders.</p></div>`;
+                            ordersContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-red-400"><p>Could not load your orders.</p></div>`;
                         }
                     };
 
@@ -1749,18 +1793,18 @@ planDetailsContainer.innerHTML = `
                 displayPlanDetails(planSelector.value);
 
             } else if (data.status === "pending") {
-                statusContainer.innerHTML = `<div class="glass-panel p-8 rounded-xl text-center"><i class="fa-solid fa-clock text-4xl text-amber-400 mb-4 animate-pulse"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Order Pending Approval</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">Your order is currently being reviewed. Your profile will update here once approved.</p></div>`;
+                statusContainer.innerHTML = `<div class="card-glass p-8 rounded-xl text-center"><i class="fa-solid fa-clock text-4xl text-amber-400 mb-4 animate-pulse"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Order Pending Approval</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">Your order is currently being reviewed. Your profile will update here once approved.</p></div>`;
             } else { 
-                const settingsHtml = `<div class="glass-panel p-6 rounded-xl"><h3 class="text-xl font-bold text-white mb-4 font-['Orbitron']">Account Settings</h3><form id="profile-update-form" class="space-y-6"><div class="form-group"><input type="text" class="form-input" readonly value="${user.username}" title="Website username cannot be changed."><label class="form-label">Website Username</label></div><div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" placeholder=" "><label for="new-password" class="form-label">New Password (leave blank to keep)</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i></div><button type="submit" class="ai-button w-full rounded-lg !mt-8">Save Changes</button></form></div>`;
-                const linkAccountHtml = `<div class="glass-panel p-6 rounded-xl"><h3 class="text-xl font-bold text-white mb-2 font-['Orbitron']">Link Existing V2Ray Account</h3><p class="text-sm text-gray-400 mb-6">If you have an old account, link it here to manage renewals.</p><form id="link-account-form-profile" class="space-y-6"><div class="form-group"><input type="text" id="existing-v2ray-username-profile" class="form-input" required placeholder=" "><label for="existing-v2ray-username-profile" class="form-label">Your Old V2Ray Username</label><span class="focus-border"><i></i></span></div><button type="submit" class="ai-button secondary w-full rounded-lg">Link Account</button><div class="text-center text-sm mt-4"><span class="open-help-modal-link text-blue-400 cursor-pointer hover:underline">How to find your username?</span></div></form></div>`;
-                statusContainer.innerHTML = `<div class="glass-panel p-8 rounded-xl text-center"><i class="fa-solid fa-rocket text-4xl text-blue-400 mb-4"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Get Started</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">You do not have any active plans yet. Purchase a new plan or link an existing account below.</p><a href="/plans" class="nav-link-internal ai-button inline-block rounded-lg mt-6">Purchase a Plan</a></div><div class="grid md:grid-cols-2 gap-8 mt-8">${settingsHtml}${linkAccountHtml}</div>`;
+                const settingsHtml = `<div class="card-glass p-6 rounded-xl"><h3 class="text-xl font-bold text-white mb-4 font-['Orbitron']">Account Settings</h3><form id="profile-update-form" class="space-y-6"><div class="form-group"><input type="text" class="form-input" readonly value="${user.username}" title="Website username cannot be changed."><label class="form-label">Website Username</label></div><div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" placeholder=" "><label for="new-password" class="form-label">New Password (leave blank to keep)</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i></div><button type="submit" class="ai-button w-full rounded-lg !mt-8">Save Changes</button></form></div>`;
+                const linkAccountHtml = `<div class="card-glass p-6 rounded-xl"><h3 class="text-xl font-bold text-white mb-2 font-['Orbitron']">Link Existing V2Ray Account</h3><p class="text-sm text-gray-400 mb-6">If you have an old account, link it here to manage renewals.</p><form id="link-account-form-profile" class="space-y-6"><div class="form-group"><input type="text" id="existing-v2ray-username-profile" class="form-input" required placeholder=" "><label for="existing-v2ray-username-profile" class="form-label">Your Old V2Ray Username</label><span class="focus-border"><i></i></span></div><button type="submit" class="ai-button secondary w-full rounded-lg">Link Account</button><div class="text-center text-sm mt-4"><span class="open-help-modal-link text-blue-400 cursor-pointer hover:underline">How to find your username?</span></div></form></div>`;
+                statusContainer.innerHTML = `<div class="card-glass p-8 rounded-xl text-center"><i class="fa-solid fa-rocket text-4xl text-blue-400 mb-4"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Get Started</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">You do not have any active plans yet. Purchase a new plan or link an existing account below.</p><a href="/plans" class="nav-link-internal ai-button inline-block rounded-lg mt-6">Purchase a Plan</a></div><div class="grid md:grid-cols-2 gap-8 mt-8">${settingsHtml}${linkAccountHtml}</div>`;
                 
                 setupEventListeners();
             }
         })
         .catch((error) => {
             console.error("Error fetching user status:", error);
-            statusContainer.innerHTML = `<div class="glass-panel p-8 rounded-xl text-center"><p class="text-red-400">Could not load profile data. Please try logging in again.</p></div>`;
+            statusContainer.innerHTML = `<div class="card-glass p-8 rounded-xl text-center"><p class="text-red-400">Could not load profile data. Please try logging in again.</p></div>`;
         });
 }
 
@@ -1772,7 +1816,7 @@ planDetailsContainer.innerHTML = `
 
         const modalHtml = `
         <div id="help-modal" class="help-modal-overlay">
-            <div class="help-modal-content glass-panel rounded-lg p-6 space-y-4 w-full max-w-md">
+            <div class="help-modal-content card-glass rounded-lg p-6 space-y-4 w-full max-w-md">
                 <div class="flex justify-between items-start">
                     <div>
                         <h2 class="text-xl font-bold text-white font-['Orbitron']">Help & Support Matrix</h2>
@@ -1810,7 +1854,7 @@ planDetailsContainer.innerHTML = `
                 #page-login .form-input:focus ~ .form-label, #page-login .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: var(--brand-blue); }
                 #link-account-form .form-group { margin-top: 0; }
             </style>
-            <div id="auth-container" class="mx-auto my-12 glass-panel rounded-xl p-8 sm:p-10">
+            <div id="auth-container" class="mx-auto my-12 card-glass rounded-xl p-8 sm:p-10">
                 <form class="auth-form space-y-6" id="signin-form">
                     <div class="text-center"><h1 class="text-2xl font-bold text-white font-['Orbitron']">Welcome Back</h1><p class="text-sm text-gray-400 mt-1">Sign in to access your dashboard.</p></div>
                     <div class="form-group"><input type="text" id="signin-username" class="form-input" required placeholder=" " /><label for="signin-username" class="form-label">Username</label><span class="focus-border"><i></i></span></div>

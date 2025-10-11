@@ -1,5 +1,26 @@
-// public/js/effects.js
+// public/js/effects.js - COMPLETE AND CORRECTED CODE
 document.addEventListener("DOMContentLoaded", () => {
+
+  // --- START: NAVBAR SCROLL EFFECT ---
+  const header = document.getElementById("main-header");
+
+  // මෙම function එක මගින් ඔබ පිටුව පහළට scroll කරන විට Navbar එකට glass effect එක එක් කරයි
+  const handleScroll = () => {
+    if (window.scrollY > 20) {
+      // අපි CSS ගොනුවේ සෑදූ 'navbar-glass' class එක මෙහිදී එක් කරයි
+      header.classList.add("scrolled", "navbar-glass");
+    } else {
+      header.classList.remove("scrolled", "navbar-glass");
+    }
+  };
+
+  // Scroll event එකට සවන් දී ඉහත function එක ක්‍රියාත්මක කරයි
+  window.addEventListener("scroll", handleScroll);
+  // --- END: NAVBAR SCROLL EFFECT ---
+
+
+  // --- START: EXISTING ANIMATION CODE ---
+  // මෙය ඔබගේ ගොනුවේ දැනටමත් තිබූ කේතයයි
   const initAnimations = () => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -23,5 +44,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
   };
+
   initAnimations();
+  // --- END: EXISTING ANIMATION CODE ---
 });
