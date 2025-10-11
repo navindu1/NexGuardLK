@@ -2309,5 +2309,5 @@ forgotPasswordForm?.addEventListener("submit", async(e) => {
         router();
     };
 
-    int();
+    init();
 });
