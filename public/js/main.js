@@ -41,40 +41,45 @@ document.addEventListener("DOMContentLoaded", () => {
         profile: 'My Profile - NexGuardLK STORE'
     };
 
-    const apiFetch = async (url, options = {}) => {
-        const token = localStorage.getItem("nexguard_token");
+    // public/js/main.js
 
-        if (!options.headers) {
-            options.headers = {};
-        }
+const apiFetch = async (url, options = {}) => {
+    const token = localStorage.getItem("nexguard_token");
 
-        if (options.body instanceof FormData) {
-            delete options.headers['Content-Type'];
-        }
+    if (!options.headers) {
+        options.headers = {};
+    }
 
-        if (token) {
-            options.headers['Authorization'] = `Bearer ${token}`;
-        }
+    if (options.body instanceof FormData) {
+        delete options.headers['Content-Type'];
+    }
 
-        const response = await fetch(url, options);
+    if (token) {
+        options.headers['Authorization'] = `Bearer ${token}`;
+    }
 
-        if (response.status === 401 || response.status === 403) {
-            showToast({
-                title: "Session Expired",
-                message: "Login Expired. Please Login Again.",
-                type: "warning"
-            });
-            
-            setTimeout(() => {
-                clearSession(); 
-                navigateTo('/login'); 
-            }, 2000);
+    const response = await fetch(url, options);
 
-            return Promise.reject(new Error("Token expired or invalid"));
-        }
+    // --- THIS IS THE CORRECTED LOGIC ---
+    // Check for 401/403 errors, BUT IGNORE this check if the URL is the login URL itself.
+    if ((response.status === 401 || response.status === 403) && url !== '/api/auth/login') {
+        showToast({
+            title: "Session Expired",
+            message: "Login Expired. Please Login Again.",
+            type: "warning"
+        });
         
-        return response;
-    };
+        setTimeout(() => {
+            clearSession(); 
+            navigateTo('/login'); 
+        }, 2000);
+
+        return Promise.reject(new Error("Token expired or invalid"));
+    }
+    
+    // For all other cases (including a failed login), just return the response
+    return response;
+};
 
     const appData = {
         plans: {}, // This will be filled by the API call now
@@ -1958,6 +1963,8 @@ planDetailsContainer.innerHTML = `
 
         // This event listener is inside the renderAuthPage function in your main.js file
 
+// public/js/main.js - inside renderAuthPage function
+
 signinForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const btn = e.target.querySelector("button");
@@ -1976,9 +1983,7 @@ signinForm?.addEventListener("submit", async (e) => {
     
     const res = await apiFetch("/api/auth/login", {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
     });
 
@@ -1994,28 +1999,21 @@ signinForm?.addEventListener("submit", async (e) => {
         saveSession(result);
         navigateTo("/profile");
     } else {
-        // --- THIS IS THE NEW LOGIC ---
-        // We will now check the error message from the server to show a more specific toast.
-        
-        // Default error message
         let errorMessage = "An unknown error occurred. Please try again.";
 
         try {
             const result = await res.json();
             const serverMessage = result.message.toLowerCase();
 
-            // Check for specific phrases in the server's message
-            if (serverMessage.includes('user not found') || serverMessage.includes('does not exist')) {
+            if (serverMessage.includes('user not found')) {
                 errorMessage = `No account found with the username '${payload.username}'.`;
-            } else if (serverMessage.includes('invalid password') || serverMessage.includes('incorrect password')) {
+            } else if (serverMessage.includes('invalid password')) {
                 errorMessage = "The password you entered is incorrect.";
             } else {
-                // If it's another type of error, show the message from the server
                 errorMessage = result.message;
             }
         } catch (error) {
-            // If the server response is not valid JSON or something else goes wrong
-            errorMessage = "Failed to login. Please check the server connection.";
+            errorMessage = "Failed to login. Please check server connection.";
         }
         
         showToast({
