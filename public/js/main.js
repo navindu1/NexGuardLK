@@ -1967,10 +1967,13 @@ signinForm?.addEventListener("submit", async (e) => {
         message: "Please wait...",
         type: "info",
     });
+
+    const usernameInput = e.target.elements["signin-username"];
     const payload = {
-        username: e.target.elements["signin-username"].value,
+        username: usernameInput.value,
         password: e.target.elements["signin-password"].value,
     };
+    
     const res = await apiFetch("/api/auth/login", {
         method: "POST",
         headers: {
@@ -1978,8 +1981,8 @@ signinForm?.addEventListener("submit", async (e) => {
         },
         body: JSON.stringify(payload),
     });
-    
-    btn.disabled = false; // Moved this up to re-enable the button faster
+
+    btn.disabled = false;
 
     if (res.ok) {
         const result = await res.json();
@@ -1991,11 +1994,33 @@ signinForm?.addEventListener("submit", async (e) => {
         saveSession(result);
         navigateTo("/profile");
     } else {
-        // --- THIS IS THE MODIFIED PART ---
-        // Instead of showing the server message, we show our own custom message.
+        // --- THIS IS THE NEW LOGIC ---
+        // We will now check the error message from the server to show a more specific toast.
+        
+        // Default error message
+        let errorMessage = "An unknown error occurred. Please try again.";
+
+        try {
+            const result = await res.json();
+            const serverMessage = result.message.toLowerCase();
+
+            // Check for specific phrases in the server's message
+            if (serverMessage.includes('user not found') || serverMessage.includes('does not exist')) {
+                errorMessage = `No account found with the username '${payload.username}'.`;
+            } else if (serverMessage.includes('invalid password') || serverMessage.includes('incorrect password')) {
+                errorMessage = "The password you entered is incorrect.";
+            } else {
+                // If it's another type of error, show the message from the server
+                errorMessage = result.message;
+            }
+        } catch (error) {
+            // If the server response is not valid JSON or something else goes wrong
+            errorMessage = "Failed to login. Please check the server connection.";
+        }
+        
         showToast({
             title: "Login Failed",
-            message: "Incorrect username or password. Please try again.",
+            message: errorMessage,
             type: "error",
         });
     }
