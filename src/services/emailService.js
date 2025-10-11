@@ -1,14 +1,47 @@
-// File Path: src/services/emailService.js
+const nodemailer = require('nodemailer');
+require('dotenv').config();
+
+// --- ZOHO Transporter Logic ---
+// This part configures HOW the email is sent, using your Zoho credentials
+const transporter = nodemailer.createTransport({
+    host: "smtp.zoho.com",
+    port: 465,
+    secure: true, // true for 465
+    auth: {
+        user: process.env.ZOHO_USER,
+        pass: process.env.ZOHO_PASS,
+    },
+});
+
+// --- ZOHO Send Email Function ---
+// This function actually sends the email.
+const sendEmail = async (to, subject, html) => {
+    try {
+        await transporter.sendMail({
+            from: `"NexGuard LK" <${process.env.EMAIL_SENDER}>`,
+            to,
+            subject,
+            html,
+        });
+        console.log('Email sent successfully using Zoho');
+    } catch (error) {
+        console.error('Error sending email via Zoho:', error);
+        throw new Error('Failed to send email.');
+    }
+};
+
+// --- Export the sendEmail function so other files can use it ---
+exports.sendEmail = sendEmail;
+
+
+// --- HTML Template Generation Logic ---
+// This part defines WHAT the email looks like.
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "https://app.nexguardlk.store";
-// IMPORTANT: Replace YOUR_SERVER_URL with your actual domain
-const BACKGROUND_IMAGE_URL = process.env.BACKGROUND_IMAGE_URL || "YOUR_SERVER_URL/assets/image.jpg"; 
+// IMPORTANT: Replace YOUR_SERVER_URL with your actual domain for the background image to work
+const BACKGROUND_IMAGE_URL = process.env.BACKGROUND_IMAGE_URL || "https://app.nexguardlk.store/assets/image.jpg"; 
 const LOGO_URL = process.env.LOGO_PUBLIC_URL || `${FRONTEND_URL}/assets/logo.png`;
 
-/**
- * This is the new master template. It creates a full-page background
- * with a centered, semi-transparent "glass" container for the content.
- */
 exports.generateEmailTemplate = (title, preheader, content) => `
 <!DOCTYPE html>
 <html lang="en">
@@ -56,10 +89,6 @@ exports.generateEmailTemplate = (title, preheader, content) => `
 </body>
 </html>`;
 
-/**
- * All content generators now provide simple, clean HTML snippets
- * that will be injected into the master template.
- */
 const buttonStyle = `background: linear-gradient(90deg, #818cf8, #a78bfa, #f472b6); color: #ffffff; padding: 14px 24px; font-size: 16px; font-weight: bold; text-decoration: none; border-radius: 8px; display: inline-block; font-family: 'Orbitron', sans-serif;`;
 
 exports.generateOtpEmailContent = (otp) => `
