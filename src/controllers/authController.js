@@ -224,51 +224,38 @@ exports.forgotPassword = async (req, res) => {
         const user = await User.findOne({ where: { email } });
 
         if (!user) {
-            // For security, always send a vague success message
             return res.json({ message: 'If an account with that email exists, a password reset link has been sent.' });
         }
 
-        // --- Token Generation ---
         const resetToken = crypto.randomBytes(32).toString('hex');
         
-        user.passwordResetToken = crypto
-            .createHash('sha256')
-            .update(resetToken)
-            .digest('hex');
-            
+        user.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
         user.passwordResetExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
-
         await user.save({ validate: false });
 
-        // --- Email Sending Logic ---
-        const resetURL = `${process.env.FRONTEND_URL || 'https://app.nexguardlk.store'}/reset-password?token=${resetToken}`;
+        const resetURL = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
         const title = 'Password Reset Request';
         const preheader = 'Use the link inside to reset your password.';
         
-        // Generate the specific content for the password reset email
         const content = generatePasswordResetEmailContent(user.username, resetURL);
-        
-        // Use the master template to build the final HTML
         const emailHtml = generateEmailTemplate(title, preheader, content);
         const subject = 'Your Password Reset Link (Valid for 10 mins)';
 
         try {
-            // Call the sendEmail function
             await sendEmail(user.email, subject, emailHtml);
             res.json({ message: 'Password reset link has been sent to your email.' });
         } catch (err) {
-            console.error('EMAIL SENDING ERROR:', err);
             user.passwordResetToken = null;
             user.passwordResetExpires = null;
             await user.save({ validate: false });
             return res.status(500).json({ message: 'There was an error sending the email. Please try again later.' });
         }
-
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 };
+
 
 exports.resetPassword = async (req, res) => {
     const { token, newPassword } = req.body;
