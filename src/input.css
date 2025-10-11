@@ -1,4 +1,21 @@
 /* src/input.css */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+  /* Liquid Glass Effect එක සඳහා වන නව class එක */
+  .glass-panel {
+    /*
+      - bg-slate-900/40: 40%ක විනිවිදභාවයක් සහිත අඳුරු පසුබිමක්.
+      - backdrop-blur-lg: පසුබිම glass එකක් සේ blur කිරීම. 'lg' මඟින් blur ප්‍රමාණය වැඩි කරයි.
+      - border border-slate-600/50: වීදුරුවේ දාරය පැහැදිලිව පෙන්වීමට සියුම් border එකක්.
+    */
+    @apply bg-slate-900/40 backdrop-blur-lg border border-slate-600/50 shadow-2xl;
+    
+    /* Glass Effect එකට සියුම් දිස්නයක් එක් කිරීමට */
+    background-image: radial-gradient(at 10% 10%, hsla(222,33%,15%,0.3) 0px, transparent 50%),
+                      radial-gradient(at 90% 90%, hsla(240,30%,15%,0.3) 0px, transparent 50%);
+  }
+}
