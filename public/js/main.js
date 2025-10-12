@@ -592,6 +592,92 @@ const apiFetch = async (url, options = {}) => {
         });
     }
 
+    
+    function renderPlanChoicePage(renderFunc, activePlans) {
+        renderFunc(`
+            <div id="page-plan-choice" class="page">
+                <header class="text-center mb-10 reveal">
+                    <h2 class="text-2xl font-bold text-white">Choose Your Path</h2>
+                    <p class="text-gray-400 mt-2">You have an active plan. What would you like to do next?</p>
+                </header>
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-6">
+                    <div id="renew-choice-card" class="card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-72 cursor-pointer">
+                        <i class="fa-solid fa-arrows-rotate text-3xl gradient-text mb-3"></i>
+                        <h3 class="text-lg font-bold text-white">Renew / Change Plan</h3>
+                        <p class="text-gray-400 mt-1 text-xs">Manage your existing subscription(s).</p>
+                    </div>
+                    <div id="buy-new-choice-card" class="card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-72 cursor-pointer">
+                        <i class="fa-solid fa-plus text-3xl gradient-text mb-3"></i>
+                        <h3 class="text-lg font-bold text-white">Buy a New Plan</h3>
+                        <p class="text-gray-400 mt-1 text-xs">Purchase a completely separate, additional plan.</p>
+                    </div>
+                </div>
+            </div>`);
+
+        document.getElementById('renew-choice-card')?.addEventListener('click', () => handleRenewalChoice(activePlans));
+        document.getElementById('buy-new-choice-card')?.addEventListener('click', () => navigateTo('/plans?new=true'));
+    }
+
+    function renderRenewOrChangePage(renderFunc, planToManage) {
+        const currentPlanName = appData.plans[planToManage.planId]?.name || planToManage.planId;
+        const currentPlanPrice = appData.plans[planToManage.planId]?.price || 'N/A';
+
+        renderFunc(`
+            <div id="page-renew-choice" class="page">
+                <header class="text-center mb-10 reveal">
+                    <h2 class="text-2xl font-bold text-white">Manage Plan: <span class="gradient-text">${planToManage.v2rayUsername}</span></h2>
+                    <p class="text-gray-400 mt-2">Would you like to renew your current plan or change to a different one?</p>
+                </header>
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-6">
+                    <div id="renew-current-card" class="card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-80 cursor-pointer">
+                        <i class="fa-solid fa-calendar-check text-3xl text-green-400 mb-3"></i>
+                        <h3 class="text-lg font-bold text-white">Renew Current Plan</h3>
+                        <div class="text-sm mt-2 bg-black/20 px-3 py-2 rounded-lg">
+                            <p class="font-semibold text-blue-300">${currentPlanName}</p>
+                            <p class="text-xs text-gray-400">LKR ${currentPlanPrice}/month</p>
+                        </div>
+                    </div>
+                    <div id="change-plan-card" class="card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-80 cursor-pointer">
+                        <i class="fa-solid fa-right-left text-3xl text-amber-400 mb-3"></i>
+                        <h3 class="text-lg font-bold text-white">Change to a New Plan</h3>
+                         <p class="text-gray-400 mt-1 text-xs">Select a different package.<br/>Your old plan will be replaced.</p>
+                    </div>
+                </div>
+                 <div class="text-center mt-8 reveal"><a href="/plans" class="nav-link-internal text-blue-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back</a></div>
+            </div>`);
+
+        document.getElementById('renew-current-card')?.addEventListener('click', () => {
+            const checkoutUrl = `/checkout?planId=${planToManage.planId}&connId=${encodeURIComponent(planToManage.connId)}&renew=${encodeURIComponent(planToManage.v2rayUsername)}`;
+            navigateTo(checkoutUrl);
+        });
+
+        document.getElementById('change-plan-card')?.addEventListener('click', () => {
+            navigateTo(`/plans?change=${encodeURIComponent(planToManage.v2rayUsername)}`);
+        });
+    }
+
+    async function handleRenewalChoice(activePlans, specificPlan = null) {
+        let planToManage = specificPlan;
+
+        if (!specificPlan) {
+            if (activePlans.length > 1) {
+                const chosenPlan = await showPlanSelectorModal(activePlans);
+                if (!chosenPlan) return;
+                planToManage = chosenPlan;
+            } else if (activePlans.length === 1) {
+                planToManage = activePlans[0];
+            }
+        }
+
+        if (planToManage) {
+            renderRenewOrChangePage((html) => {
+                mainContentArea.innerHTML = html;
+                initAnimations();
+            }, planToManage);
+        }
+    }
+    
+
     function renderHomePage(renderFunc) {
         renderFunc(`
             <div class="page" id="page-home">
@@ -1026,43 +1112,6 @@ function renderUsagePage(renderFunc) {
             }
         }
     }
-
-
-    // START: ALL FUNCTIONS BELOW ARE UPDATED FOR "CHANGE PLAN" & UNIFIED BUTTONS
-
-    function renderPlanChoicePage(renderFunc, activePlans) {
-        renderFunc(`
-            <div id="page-plan-choice" class="page">
-                <header class="text-center mb-10 reveal">
-                    <h2 class="text-2xl font-bold text-white">Choose Your Path</h2>
-                    <p class="text-gray-400 mt-2">You have an active plan. What would you like to do next?</p>
-                </header>
-                <div id="choice-container" class="flex flex-col sm:flex-row items-center justify-center gap-6">
-                    <div id="renew-choice-card" class="card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-72 cursor-pointer">
-                        <i class="fa-solid fa-arrows-rotate text-3xl gradient-text mb-3"></i>
-                        <h3 class="text-lg font-bold text-white">Renew / Change Plan</h3>
-                        <p class="text-gray-400 mt-1 text-xs">Renew your existing plan or upgrade to a new one.</p>
-                    </div>
-                    <div id="buy-new-choice-card" class="card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-72 cursor-pointer">
-                        <i class="fa-solid fa-plus text-3xl gradient-text mb-3"></i>
-                        <h3 class="text-lg font-bold text-white">Buy a New Plan</h3>
-                        <p class="text-gray-400 mt-1 text-xs">Purchase a completely separate, additional plan.</p>
-                    </div>
-                </div>
-            </div>
-        `);
-
-        // Event Listeners for the new cards
-        document.getElementById('renew-choice-card')?.addEventListener('click', () => {
-            handleRenewalChoice(activePlans);
-        });
-        document.getElementById('buy-new-choice-card')?.addEventListener('click', () => {
-            // Navigate to plans page, forcing it to show the plan list
-            navigateTo('/plans?new=true');
-        });
-    }
-
-
 
     function renderPlansPage(renderFunc, params) {
         const userToChange = params.get("change");
@@ -2361,7 +2410,7 @@ forgotPasswordForm?.addEventListener("submit", async(e) => {
                     renderPlansPage((html) => {
                         mainContentArea.innerHTML = html;
                         initAnimations();
-                    }, params);
+                    }, params); // <-- FIXED: Added 'params' here
                 }
             } catch (error) {
                 console.error("Could not check user status for renewal flow:", error);
@@ -2369,11 +2418,10 @@ forgotPasswordForm?.addEventListener("submit", async(e) => {
                 renderPlansPage((html) => {
                     mainContentArea.innerHTML = html;
                     initAnimations();
-                }, params);
+                }, params); // <-- FIXED: Added 'params' here
             }
             return; // Stop further execution
         }
-
         // END: CORRECTED LOGIC
 
         const renderFunction = allRoutes[pageKey] || allRoutes["home"];
