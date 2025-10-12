@@ -321,42 +321,42 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function renderRenewOrChangePage(renderFunc, planToManage) {
-        const currentPlanName = appData.plans[planToManage.planId]?.name || planToManage.planId;
-        const currentPlanPrice = appData.plans[planToManage.planId]?.price || 'N/A';
+    const currentPlanName = appData.plans[planToManage.planId]?.name || planToManage.planId;
+    const currentPlanPrice = appData.plans[planToManage.planId]?.price || 'N/A';
 
-        renderFunc(`
-            <div id="page-renew-choice" class="page">
-                <header class="text-center mb-10 reveal">
-                    <h2 class="text-2xl font-bold text-white">Manage Plan: <span class="gradient-text">${planToManage.v2rayUsername}</span></h2>
-                    <p class="text-gray-400 mt-2">Would you like to renew your current plan or change to a different one?</p>
-                </header>
-                <div class="flex flex-col sm:flex-row items-center justify-center gap-6">
-                    <div id="renew-current-card" class="card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-80 cursor-pointer">
-                        <i class="fa-solid fa-calendar-check text-3xl text-green-400 mb-3"></i>
-                        <h3 class="text-lg font-bold text-white">Renew Current Plan</h3>
-                        <div class="text-sm mt-2 bg-black/20 px-3 py-2 rounded-lg">
-                            <p class="font-semibold text-blue-300">${currentPlanName}</p>
-                            <p class="text-xs text-gray-400">LKR ${currentPlanPrice}/month</p>
-                        </div>
-                    </div>
-                    <div id="change-plan-card" class="card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-80 cursor-pointer">
-                        <i class="fa-solid fa-right-left text-3xl text-amber-400 mb-3"></i>
-                        <h3 class="text-lg font-bold text-white">Change to a New Plan</h3>
-                         <p class="text-gray-400 mt-1 text-xs">Select a different package.<br/>Your old plan will be replaced.</p>
+    renderFunc(`
+        <div id="page-renew-choice" class="page">
+            <header class="text-center mb-10 reveal">
+                <h2 class="text-2xl font-bold text-white">Manage Plan: <span class="gradient-text">${planToManage.v2rayUsername}</span></h2>
+                <p class="text-gray-400 mt-2">Would you like to renew your current plan or change to a different one?</p>
+            </header>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-6">
+                <div id="renew-current-card" class="card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-72 cursor-pointer"> {/* CHANGED: sm:w-80 to sm:w-72 */}
+                    <i class="fa-solid fa-calendar-check text-3xl gradient-text mb-3"></i> {/* CHANGED: text-green-400 to gradient-text */}
+                    <h3 class="text-lg font-bold text-white">Renew Current Plan</h3>
+                    <div class="text-sm mt-2 bg-black/20 px-3 py-2 rounded-lg">
+                        <p class="font-semibold text-blue-300">${currentPlanName}</p>
+                        <p class="text-xs text-gray-400">LKR ${currentPlanPrice}/month</p>
                     </div>
                 </div>
-                 <div class="text-center mt-8 reveal"><a href="/plans" class="nav-link-internal text-blue-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back</a></div>
-            </div>`);
+                <div id="change-plan-card" class="card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-72 cursor-pointer"> {/* CHANGED: sm:w-80 to sm:w-72 */}
+                    <i class="fa-solid fa-right-left text-3xl gradient-text mb-3"></i> {/* CHANGED: text-amber-400 to gradient-text */}
+                    <h3 class="text-lg font-bold text-white">Change to a New Plan</h3>
+                    <p class="text-gray-400 mt-1 text-xs">Select a different package.<br/>Your old plan will be replaced.</p>
+                </div>
+            </div>
+            <div class="text-center mt-8 reveal"><a href="/plans" class="nav-link-internal text-blue-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back</a></div>
+        </div>`);
 
-        document.getElementById('renew-current-card')?.addEventListener('click', () => {
-            const checkoutUrl = `/checkout?planId=${planToManage.planId}&connId=${encodeURIComponent(planToManage.connId)}&renew=${encodeURIComponent(planToManage.v2rayUsername)}`;
-            navigateTo(checkoutUrl);
-        });
+    document.getElementById('renew-current-card')?.addEventListener('click', () => {
+        const checkoutUrl = `/checkout?planId=${planToManage.planId}&connId=${encodeURIComponent(planToManage.connId)}&renew=${encodeURIComponent(planToManage.v2rayUsername)}`;
+        navigateTo(checkoutUrl);
+    });
 
-        document.getElementById('change-plan-card')?.addEventListener('click', () => {
-            navigateTo(`/plans?change=${encodeURIComponent(planToManage.v2rayUsername)}`);
-        });
-    }
+    document.getElementById('change-plan-card')?.addEventListener('click', () => {
+        navigateTo(`/plans?change=${encodeURIComponent(planToManage.v2rayUsername)}`);
+    });
+}
 
     async function handleRenewalChoice(activePlans, specificPlan = null) {
         let planToManage = specificPlan;
