@@ -4,8 +4,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* src/input.css ගොනුවේ ඇති .glass-panel වෙනුවට මෙය යොදන්න */
-
 @layer components {
   /* Navbar එක සඳහා වන Glass Effect එක */
   .navbar-glass {
@@ -20,6 +18,16 @@
     background-image: radial-gradient(at 10% 10%, hsla(222,33%,15%,0.3) 0px, transparent 50%),
                       radial-gradient(at 90% 90%, hsla(240,30%,15%,0.3) 0px, transparent 50%);
   }
+
+  /* --- START: නිවැරදි කරන ලද .navbar style එක --- */
+  /* මෙම style එක දැන් @layer components තුළ ඇති නිසා, එය නිවැරදිව compile වනු ඇත. */
+  .navbar {
+    /* ඔබ මෙහි යෙදූ style කිහිපයක් උදාහරණයක් ලෙස තබා ඇත. */
+    /* බොහෝ styles (flex, justify-between) ඔබ දැනටමත් HTML එකේ Tailwind class ලෙස යොදා ඇති නිසා ඒවා නැවත මෙහි යෙදීම අනවශ්‍යයි. */
+    transition: background-color 0.3s ease;
+    /* ඔබට අවශ්‍ය නම් තවත් custom styles මෙහි එක් කළ හැකියි. */
+  }
+  /* --- END: නිවැරදි කරන ලද .navbar style එක --- */
 }
 
 /* Navigation Bar එකේ Active Link එක සඳහා වන Style එක */
@@ -42,8 +50,6 @@
 details[open] > summary i {
   transform: rotate(180deg);
 }
-
-/* src/input.css ගොනුවේ පහළටම මෙය එක් කරන්න */
 
 /* --- Slideshow Styles --- */
 .swiper-container {
@@ -74,22 +80,3 @@ details[open] > summary i {
 .swiper-pagination-bullet-active {
   @apply bg-primary;
 }
-
-
-/* Existing CSS code in your output.css file... */
-
-.navbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  /* Old color might be here e.g., background-color: #333; */
-  background-color: #D94A27; /* This is the new color from the car */
-  padding: 1rem 2rem;
-  color: white;
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-  transition: background-color 0.3s ease;
-}
-
-/* Rest of your CSS code in output.css file... */

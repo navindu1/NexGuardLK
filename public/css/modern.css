@@ -275,19 +275,7 @@ body.modal-open {
     overflow: hidden;
 }
 
-/* --- Navbar Scroll Animation සඳහා (යාවත්කාලීන කරන ලදී) --- */
-#main-header {
-  background-color: transparent;
-  border: 1px solid transparent;
-  box-shadow: none; /* මුලින්ම shadow එකක් නැති බවට වග බලාගැනීම */
-  
-  /* Animation එකට box-shadow එකද එක් කිරීම */
-  transition: background-color 0.4s ease-in-out, border-color 0.4s ease-in-out, backdrop-filter 0.4s ease-in-out, box-shadow 0.4s ease-in-out;
-}
-
-/* --- Navbar Scroll Animation (සරල කරන ලද නව ක්‍රමය) --- */
-/* මෙම කොටස modern.css ගොනුවේ පහළටම එක් කරන්න */
-
+/* --- START: CLEANED UP AND UPDATED NAVBAR SCROLL ANIMATION --- */
 #main-header {
     /* 1. මූලික තත්ත්වය (පිටුව උඩම ඇති විට) */
     background-color: transparent !important;
@@ -305,6 +293,8 @@ body.modal-open {
     border-bottom: 1px solid rgba(148, 163, 184, 0.3) !important;
     backdrop-filter: blur(16px) !important;
 
-    /* පැහැදිලිව පෙනෙන Shadow එක */
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.2), 0 4px 6px -4px rgb(0 0 0 / 0.1), 0 0 25px rgba(59, 130, 246, 0.15) !important;
+    /* 4. යාවත්කාලීන කරන ලද, වඩාත් මෘදු Shadow එක */
+    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25), 0 0 40px rgba(59, 130, 246, 0.2) !important;
 }
+/* --- END: CLEANED UP AND UPDATED NAVBAR SCROLL ANIMATION --- */
+

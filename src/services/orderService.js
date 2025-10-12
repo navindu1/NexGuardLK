@@ -81,12 +81,24 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                     clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientSettings);
                 }
             } else {
-                const clientInPanel = await v2rayService.findV2rayClient(finalUsername);
-                if (clientInPanel) {
-                    let counter = 1, newUsername;
-                    do { newUsername = `${order.username}-${counter++}`; } while (await v2rayService.findV2rayClient(newUsername));
+                // --- START: OPTIMIZED USERNAME UNIQUENESS CHECK ---
+                // 1. V2Ray පැනලයේ ඇති සියලුම user නම් එකවර ලබාගැනීම.
+                const allPanelClients = await v2rayService.getAllClients();
+
+                // 2. ලබා දී ඇති username එක දැනටමත් පවතීදැයි පරීක්ෂා කිරීම.
+                if (allPanelClients.has(finalUsername.toLowerCase())) {
+                    let counter = 1;
+                    let newUsername;
+                    // 3. නව username එකක් local list එකෙන් පරීක්ෂා කරමින්, ගැටුමක් නොමැති නමක් සොයාගැනීම.
+                    //    මෙම ක්‍රියාවලිය ඉතා වේගවත්ය, કારણ કે API calls සිදු නොවේ.
+                    do {
+                        newUsername = `${order.username}-${counter++}`;
+                    } while (allPanelClients.has(newUsername.toLowerCase()));
                     finalUsername = newUsername;
+                    console.log(`[Username Conflict] Original username was taken. Generated new unique username: ${finalUsername}`);
                 }
+                // --- END: OPTIMIZED USERNAME UNIQUENESS CHECK ---
+                
                 const clientSettings = { id: uuidv4(), email: finalUsername, total: totalGBValue, expiryTime, enable: true };
                 await v2rayService.addClient(inboundId, clientSettings);
                 createdV2rayClient = { settings: clientSettings, inboundId: inboundId };
