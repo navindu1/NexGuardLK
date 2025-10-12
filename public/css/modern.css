@@ -275,20 +275,13 @@ body.modal-open {
     overflow: hidden;
 }
 
-/* public/css/modern.css ගොනුවේ පහළටම එක් කරන්න */
-
-/* --- Navbar Scroll Animation සඳහා --- */
-
+/* --- Navbar Scroll Animation සඳහා (යාවත්කාලීන කරන ලදී) --- */
 #main-header {
-  /* මූලික තත්ත්වය: පසුබිම සහ border එක විනිවිද පෙනෙන ලෙස සකස් කිරීම */
   background-color: transparent;
   border: 1px solid transparent;
-
-  /* Animation එක සුමටව (smooth) සිදු කිරීමට වැදගත්ම කොටස */
-  transition: background-color 0.4s ease-in-out, border-color 0.4s ease-in-out, backdrop-filter 0.4s ease-in-out;
+  box-shadow: none; /* මුලින්ම shadow එකක් නැති බවට වග බලාගැනීම */
+  
+  /* Animation එකට box-shadow එකද එක් කිරීම */
+  transition: background-color 0.4s ease-in-out, border-color 0.4s ease-in-out, backdrop-filter 0.4s ease-in-out, box-shadow 0.4s ease-in-out;
 }
 
-/* ඔබගේ effects.js ගොනුව මගින් 'navbar-glass' class එක එක් කළ විට,
-  එහි ඇති style එක (උදා: background-color, border-color) ක්‍රමයෙන් යෙදීම 
-  ඉහත transition එක මගින් සිදු වේ.
-*/

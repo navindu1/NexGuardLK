@@ -612,20 +612,28 @@ video {
   }
 }
 
-/* Navbar එක සඳහා වන Glass Effect එක */
-
+/* --- START: UPDATED NAVBAR CLASS --- */
 .navbar-glass {
   border-bottom-width: 1px;
-  border-color: rgb(51 65 85 / 0.8);
-  background-color: rgb(15 23 42 / 0.6);
-  --tw-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  /* Making the border a bit brighter for separation */
+  border-color: rgba(148, 163, 184, 0.3); /* slate-400 with 30% opacity */
+  
+  /* Increasing opacity */
+  background-color: rgb(15 23 42 / 0.85); /* slate-900 with 85% opacity */
+  
+  /* Adding a more prominent shadow with a subtle glow */
+  --tw-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.2), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   --tw-shadow-colored: 0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);
-  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+  /* The original shadow plus a new glow effect */
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow), 0 0 25px rgba(59, 130, 246, 0.15);
+
   --tw-backdrop-blur: blur(16px);
   backdrop-filter: var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);
+  
   background-image: radial-gradient(at 10% 10%, hsla(222,33%,15%,0.3) 0px, transparent 50%),
                       radial-gradient(at 90% 90%, hsla(240,30%,15%,0.3) 0px, transparent 50%);
 }
+/* --- END: UPDATED NAVBAR CLASS --- */
 
 /* Cards සඳහා වන Glass Effect එක */
 
@@ -2493,5 +2501,4 @@ details[open] > summary i {
     text-align: left;
   }
 }
-
 
