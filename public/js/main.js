@@ -296,29 +296,38 @@ document.addEventListener("DOMContentLoaded", () => {
     // --- START: FULLY INLINE PLAN MANAGEMENT FLOW ---
 
     function renderPlanChoicePage(renderFunc, activePlans) {
-        renderFunc(`
-            <div id="page-plan-choice" class="page">
-                <header class="text-center mb-10 reveal">
-                    <h2 class="text-2xl font-bold text-white">Choose Your Path</h2>
-                    <p class="text-gray-400 mt-2">You have an active plan. What would you like to do next?</p>
-                </header>
-                <div class="flex flex-col sm:flex-row items-center justify-center gap-6">
-                    <div id="renew-choice-card" class="card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-72 cursor-pointer">
-                        <i class="fa-solid fa-arrows-rotate text-3xl gradient-text mb-3"></i>
+    renderFunc(`
+        <div id="page-plan-choice" class="page">
+            <header class="text-center mb-10 reveal">
+                <h2 class="text-2xl font-bold text-white">Choose Your Path</h2>
+                <p class="text-gray-400 mt-2">You have an active plan. What would you like to do next?</p>
+            </header>
+            {/* CHANGED: items-center to items-stretch to make cards equal height */}
+            <div class="flex flex-col sm:flex-row items-stretch justify-center gap-6">
+                {/* CHANGED: Removed justify-center from the card itself */}
+                <div id="renew-choice-card" class="card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col w-full sm:w-72 cursor-pointer">
+                    <i class="fa-solid fa-arrows-rotate text-3xl gradient-text mb-3"></i>
+                    {/* NEW: Added a flex-grow container to vertically center the text content */}
+                    <div class="flex-grow flex flex-col justify-center">
                         <h3 class="text-lg font-bold text-white">Renew / Change Plan</h3>
                         <p class="text-gray-400 mt-1 text-xs">Manage your existing subscription(s).</p>
                     </div>
-                    <div id="buy-new-choice-card" class="card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-72 cursor-pointer">
-                        <i class="fa-solid fa-plus text-3xl gradient-text mb-3"></i>
+                </div>
+                {/* CHANGED: Removed justify-center from the card itself */}
+                <div id="buy-new-choice-card" class="card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col w-full sm:w-72 cursor-pointer">
+                    <i class="fa-solid fa-plus text-3xl gradient-text mb-3"></i>
+                     {/* NEW: Added a flex-grow container to vertically center the text content */}
+                    <div class="flex-grow flex flex-col justify-center">
                         <h3 class="text-lg font-bold text-white">Buy a New Plan</h3>
                         <p class="text-gray-400 mt-1 text-xs">Purchase a completely separate, additional plan.</p>
                     </div>
                 </div>
-            </div>`);
+            </div>
+        </div>`);
 
-        document.getElementById('renew-choice-card')?.addEventListener('click', () => handleRenewalChoice(activePlans));
-        document.getElementById('buy-new-choice-card')?.addEventListener('click', () => navigateTo('/plans?new=true'));
-    }
+    document.getElementById('renew-choice-card')?.addEventListener('click', () => handleRenewalChoice(activePlans));
+    document.getElementById('buy-new-choice-card')?.addEventListener('click', () => navigateTo('/plans?new=true'));
+}
 
     function renderRenewOrChangePage(renderFunc, planToManage) {
     const currentPlanName = appData.plans[planToManage.planId]?.name || planToManage.planId;
