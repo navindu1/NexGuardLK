@@ -1131,7 +1131,7 @@ function renderProfilePage(renderFunc, params) {
     
             if (data.status === "approved" && data.activePlans?.length > 0) {
                 const planSelectorOptions = data.activePlans.map((plan, index) => `<option value="${index}">${plan.v2rayUsername}</option>`).join("");
-                statusContainer.innerHTML = `<div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-6"><label for="plan-selector" class="text-sm font-semibold text-gray-300 flex-shrink-0">Viewing Plan:</label><div class="relative plan-selector-wrapper"><select id="plan-selector">${planSelectorOptions}</select><i class="fa-solid fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2"></i></div></div><div id="plan-details-container"></div>`;
+                statusContainer.innerHTML = `<div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-6"><label for="plan-selector" class="text-sm font-semibold text-gray-300 flex-shrink-0">Viewing Plan:</label><div class="relative plan-selector-wrapper"><select id="plan-selector">${planSelectorOptions}<i class="fa-solid fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2"></i></select></div></div><div id="plan-details-container"></div>`;
                 
                 const planDetailsContainer = document.getElementById("plan-details-container");
                 const planSelector = document.getElementById("plan-selector");
