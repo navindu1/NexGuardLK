@@ -682,76 +682,79 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function renderConnectionsPage(renderFunc, params) {
-        const planId = params.get("planId");
-        const userToChange = params.get("change");
-        const changeQuery = userToChange ? `&change=${encodeURIComponent(userToChange)}` : '';
+    const planId = params.get("planId");
+    const userToChange = params.get("change");
+    const changeQuery = userToChange ? `&change=${encodeURIComponent(userToChange)}` : '';
 
-        if (!planId || !appData.plans[planId]) {
-            renderFunc('<div class="page text-center"><p class="text-red-400">Invalid plan selection.</p><a href="/plans" class="nav-link-internal underline mt-2">Go back to plans</a></div>');
-            return;
-        }
-
-        let connectionsHtml = dynamicConnections.length > 0 ? dynamicConnections.map(conn => {
-            let linkUrl = '';
-            let packageInfoHtml = '';
-            if (conn.requires_package_choice) {
-                linkUrl = `/package-choice?planId=${planId}&connId=${encodeURIComponent(conn.name)}${changeQuery}`;
-                packageInfoHtml = `<p class="text-xs text-blue-300 mt-2 font-semibold">${conn.package_options?.length || 0} Packages Available</p>`;
-            } else {
-                linkUrl = `/checkout?planId=${planId}&connId=${encodeURIComponent(conn.name)}&pkg=${encodeURIComponent(conn.default_package || '')}&inboundId=${conn.default_inbound_id}&vlessTemplate=${encodeURIComponent(conn.default_vless_template)}${changeQuery}`;
-                packageInfoHtml = `<p class="text-xs text-blue-300 mt-2 font-semibold">${conn.default_package || 'Standard Connection'}</p>`;
-            }
-            return `<a href="${linkUrl}" class="nav-link-internal card reveal selectable card-glass p-5 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-64">
-                        <i class="${conn.icon || 'fa-solid fa-wifi'} text-3xl gradient-text mb-3"></i>
-                        <h3 class="text-lg font-bold text-white mb-2">${conn.name}</h3>
-                        ${packageInfoHtml}
-                    </a>`;
-        }).join("") : '<div class="text-amber-400 text-center col-span-full"><p>No connection types are currently available.</p></div>';
-
-        renderFunc(`
-            <div id="page-connections" class="page">
-                <header class="text-center mb-10 reveal">
-                    <h2 class="text-2xl font-bold text-white">Select Your Connection</h2>
-                    <p class="text-gray-400 mt-2">Step 2: Choose your ISP.</p>
-                </header>
-                <div class="flex flex-wrap items-center justify-center gap-6">${connectionsHtml}</div>
-                <div class="text-center mt-8 reveal"><a href="/plans${changeQuery}" class="nav-link-internal text-blue-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back to Plans</a></div>
-            </div>`);
+    if (!planId || !appData.plans[planId]) {
+        renderFunc('<div class="page text-center"><p class="text-red-400">Invalid plan selection.</p><a href="/plans" class="nav-link-internal underline mt-2">Go back to plans</a></div>');
+        return;
     }
+
+    let connectionsHtml = dynamicConnections.length > 0 ? dynamicConnections.map(conn => {
+        let linkUrl = '';
+        let packageInfoHtml = '';
+        if (conn.requires_package_choice) {
+            linkUrl = `/package-choice?planId=${planId}&connId=${encodeURIComponent(conn.name)}${changeQuery}`;
+            packageInfoHtml = `<p class="text-xs text-blue-300 mt-2 font-semibold">${conn.package_options?.length || 0} Packages Available</p>`;
+        } else {
+            linkUrl = `/checkout?planId=${planId}&connId=${encodeURIComponent(conn.name)}&pkg=${encodeURIComponent(conn.default_package || '')}&inboundId=${conn.default_inbound_id}&vlessTemplate=${encodeURIComponent(conn.default_vless_template)}${changeQuery}`;
+            packageInfoHtml = `<p class="text-xs text-blue-300 mt-2 font-semibold">${conn.default_package || 'Standard Connection'}</p>`;
+        }
+        // CHANGED: sm:w-64 to sm:w-72 for consistent sizing
+        return `<a href="${linkUrl}" class="nav-link-internal card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-72">
+                    <i class="${conn.icon || 'fa-solid fa-wifi'} text-3xl gradient-text mb-3"></i>
+                    <h3 class="text-lg font-bold text-white mb-2">${conn.name}</h3>
+                    ${packageInfoHtml}
+                </a>`;
+    }).join("") : '<div class="text-amber-400 text-center col-span-full"><p>No connection types are currently available.</p></div>';
+
+    renderFunc(`
+        <div id="page-connections" class="page">
+            <header class="text-center mb-10 reveal">
+                <h2 class="text-2xl font-bold text-white">Select Your Connection</h2>
+                <p class="text-gray-400 mt-2">Step 2: Choose your ISP.</p>
+            </header>
+            <div class="flex flex-wrap items-center justify-center gap-6">${connectionsHtml}</div>
+            <div class="text-center mt-8 reveal"><a href="/plans${changeQuery}" class="nav-link-internal text-blue-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back to Plans</a></div>
+        </div>`);
+}
 
     function renderPackageChoicePage(renderFunc, params) {
-        const planId = params.get("planId");
-        const connId = decodeURIComponent(params.get("connId"));
-        const userToChange = params.get("change");
-        const changeQuery = userToChange ? `&change=${encodeURIComponent(userToChange)}` : '';
-        const conn = dynamicConnections.find(c => c.name === connId);
+    const planId = params.get("planId");
+    const connId = decodeURIComponent(params.get("connId"));
+    const userToChange = params.get("change");
+    const changeQuery = userToChange ? `&change=${encodeURIComponent(userToChange)}` : '';
+    const conn = dynamicConnections.find(c => c.name === connId);
 
-        if (!planId || !conn || !conn.package_options) {
-            navigateTo(`/plans${changeQuery}`);
-            return;
-        }
-
-        let choiceHtml = conn.package_options.map((option) => {
-            const encodedOptionName = encodeURIComponent(option.name);
-            const encodedTemplate = encodeURIComponent(option.template);
-            return `<a href="/checkout?planId=${planId}&connId=${encodeURIComponent(connId)}&pkg=${encodedOptionName}&inboundId=${option.inbound_id}&vlessTemplate=${encodedTemplate}${changeQuery}" class="nav-link-internal card reveal selectable card-glass p-8 rounded-xl text-center flex flex-col items-center justify-center">
-                <i class="fa-solid fa-box-open text-3xl gradient-text mb-3"></i>
-                <h3 class="text-lg font-bold text-white">${option.name}</h3>
-            </a>`;
-        }).join("");
-
-        renderFunc(`
-            <div id="page-package-choice" class="page">
-                <header class="text-center mb-10 reveal">
-                    <h2 class="text-2xl font-bold text-white">Select Your Add-On Package</h2>
-                    <p class="text-gray-400 mt-2">Step 2.5: Choose the required package for your ${conn.name} connection.</p>
-                </header>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">${choiceHtml}</div>
-                <div class="text-center mt-8 reveal">
-                    <a href="/connections?planId=${planId}${changeQuery}" class="nav-link-internal text-blue-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back to Connections</a>
-                </div>
-            </div>`);
+    if (!planId || !conn || !conn.package_options) {
+        navigateTo(`/plans${changeQuery}`);
+        return;
     }
+
+    let choiceHtml = conn.package_options.map((option) => {
+        const encodedOptionName = encodeURIComponent(option.name);
+        const encodedTemplate = encodeURIComponent(option.template);
+        // CHANGED: Added width class sm:w-72 and changed padding from p-8 to p-6 for consistency
+        return `<a href="/checkout?planId=${planId}&connId=${encodeURIComponent(connId)}&pkg=${encodedOptionName}&inboundId=${option.inbound_id}&vlessTemplate=${encodedTemplate}${changeQuery}" class="nav-link-internal card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-72">
+            <i class="fa-solid fa-box-open text-3xl gradient-text mb-3"></i>
+            <h3 class="text-lg font-bold text-white">${option.name}</h3>
+        </a>`;
+    }).join("");
+
+    renderFunc(`
+        <div id="page-package-choice" class="page">
+            <header class="text-center mb-10 reveal">
+                <h2 class="text-2xl font-bold text-white">Select Your Add-On Package</h2>
+                <p class="text-gray-400 mt-2">Step 2.5: Choose the required package for your ${conn.name} connection.</p>
+            </header>
+            {/* CHANGED: Switched from grid to flex container for consistent layout */}
+            <div class="flex flex-wrap items-center justify-center gap-6">${choiceHtml}</div>
+            <div class="text-center mt-8 reveal">
+                <a href="/connections?planId=${planId}${changeQuery}" class="nav-link-internal text-blue-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back to Connections</a>
+            </div>
+        </div>`);
+}
     
     function renderCheckoutPage(renderFunc, params) {
         const user = JSON.parse(localStorage.getItem("nexguard_user"));
@@ -1530,7 +1533,7 @@ document.addEventListener("DOMContentLoaded", () => {
         
         if (pageKey === 'plans' && userSession && !params.has('new') && !params.has('change')) {
             mainContentArea.innerHTML = `<div class="page flex flex-col items-center justify-center min-h-[70vh]"><div class="text-center p-10"><i class="fa-solid fa-spinner fa-spin text-3xl text-blue-400"></i><p class="mt-4 text-lg font-semibold text-blue-300 animate-pulse">Checking Your Active Plans...</p>
-            <p class="text-sm text-gray-500 mt-1">Please wait while we fetch your profile information.</p></div></div>`;
+            <p class="text-sm text-gray-500 mt-1">Please wait while we fetch your plan information.</p></div></div>`;
             
             try {
                 const res = await apiFetch("/api/user/status");
