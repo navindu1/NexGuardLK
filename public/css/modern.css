@@ -285,3 +285,26 @@ body.modal-open {
   transition: background-color 0.4s ease-in-out, border-color 0.4s ease-in-out, backdrop-filter 0.4s ease-in-out, box-shadow 0.4s ease-in-out;
 }
 
+/* --- Navbar Scroll Animation (සරල කරන ලද නව ක්‍රමය) --- */
+/* මෙම කොටස modern.css ගොනුවේ පහළටම එක් කරන්න */
+
+#main-header {
+    /* 1. මූලික තත්ත්වය (පිටුව උඩම ඇති විට) */
+    background-color: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: blur(0px) !important;
+
+    /* 2. Animation එක (සියලුම දේ සුමටව වෙනස් වීමට) */
+    transition: all 0.4s ease-in-out;
+}
+
+#main-header.scrolled {
+    /* 3. Scroll කළ විට ලැබෙන පෙනුම */
+    background-color: rgb(15 23 42 / 0.85) !important; /* වඩාත් පැහැදිලි පසුබිමක් */
+    border-bottom: 1px solid rgba(148, 163, 184, 0.3) !important;
+    backdrop-filter: blur(16px) !important;
+
+    /* පැහැදිලිව පෙනෙන Shadow එක */
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.2), 0 4px 6px -4px rgb(0 0 0 / 0.1), 0 0 25px rgba(59, 130, 246, 0.15) !important;
+}
