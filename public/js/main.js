@@ -330,10 +330,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 <h2 class="text-2xl font-bold text-white">Manage Plan: <span class="gradient-text">${planToManage.v2rayUsername}</span></h2>
                 <p class="text-gray-400 mt-2">Would you like to renew your current plan or change to a different one?</p>
             </header>
-            <div class="flex flex-col sm:flex-row items-stretch justify-center gap-6"> {/* CHANGED: items-center to items-stretch */}
+            <div class="flex flex-col sm:flex-row items-stretch justify-center gap-6"> 
                 <div id="renew-current-card" class="card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col w-full sm:w-72 cursor-pointer">
                     <i class="fa-solid fa-calendar-check text-3xl gradient-text mb-3"></i>
-                    {/* NEW: Added a flex-grow container to vertically center the content */}
                     <div class="flex-grow flex flex-col justify-center">
                         <h3 class="text-lg font-bold text-white">Renew Current Plan</h3>
                         <div class="text-sm mt-2 bg-black/20 px-3 py-2 rounded-lg">
@@ -344,7 +343,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
                 <div id="change-plan-card" class="card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col w-full sm:w-72 cursor-pointer">
                     <i class="fa-solid fa-right-left text-3xl gradient-text mb-3"></i>
-                    {/* NEW: Added a flex-grow container to vertically center the content */}
                     <div class="flex-grow flex flex-col justify-center">
                         <h3 class="text-lg font-bold text-white">Change to a New Plan</h3>
                         <p class="text-gray-400 mt-1 text-xs">Select a different package.<br/>Your old plan will be replaced.</p>
