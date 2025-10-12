@@ -756,7 +756,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 <h2 class="text-2xl font-bold text-white">Select Your Add-On Package</h2>
                 <p class="text-gray-400 mt-2">Step 2.5: Choose the required package for your ${conn.name} connection.</p>
             </header>
-            {/* CHANGED: Switched from grid to flex container for consistent layout */}
             <div class="flex flex-wrap items-center justify-center gap-6">${choiceHtml}</div>
             <div class="text-center mt-8 reveal">
                 <a href="/connections?planId=${planId}${changeQuery}" class="nav-link-internal text-blue-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back to Connections</a>
@@ -859,7 +858,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             Join our WhatsApp group for the latest updates, support, and special offers!
                         </p>
 
-                        <div class="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+                        <div class="mt-4 flex flex-col items-center justify-center gap-3">
                             <a href="/profile?tab=orders" class="nav-link-internal ai-button rounded-lg">View My Orders</a>
                             <a href="https://chat.whatsapp.com/Jaw6FQbQINCE1eMGboSovH" target="_blank" class="nav-link-internal ai-button rounded-lg">
                                 <i class="fa-brands fa-whatsapp mr-2"></i>Join Premium Group
