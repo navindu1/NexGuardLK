@@ -26,7 +26,7 @@ const sendEmail = async (to, subject, html) => {
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "https://app.nexguardlk.store";
 // මෙම URL එක ඔබගේ email-blurimage.jpg ගොනුවට අදාළ public URL එක විය යුතුය
-const BACKGROUND_IMAGE_URL = process.env.BACKGROUND_IMAGE_URL || `${FRONTEND_URL}/assets/email-blurimage.jpg`; 
+const BACKGROUND_IMAGE_URL = process.env.BACKGROUND_IMAGE_URL || `${FRONTEND_URL}/assets/email-blurimage.jpg`;
 const LOGO_URL = process.env.LOGO_PUBLIC_URL || `${FRONTEND_URL}/assets/logo.png`;
 
 /**
@@ -72,7 +72,8 @@ const generateEmailTemplate = (title, preheader, content) => `
 </body>
 </html>`;
 
-const buttonStyle = `background: linear-gradient(90deg, #818cf8, #a78bfa, #f472b6); color: #ffffff; padding: 14px 24px; font-size: 16px; font-weight: bold; text-decoration: none; border-radius: 8px; display: inline-block; font-family: 'Orbitron', sans-serif;`;
+// --- මෙතනින් පහළ කේතය වෙනස් කර ඇත ---
+const buttonStyle = `background: linear-gradient(to right, #007bff, #4da3ff); color: #ffffff; padding: 14px 24px; font-size: 16px; font-weight: bold; text-decoration: none; border-radius: 12px; display: inline-block; font-family: 'Orbitron', sans-serif;`;
 
 const generateOtpEmailContent = (otp) => `
 <p style="font-size: 16px; line-height: 1.5; margin: 0 0 16px; color: #c7d2fe;">Your One-Time Password (OTP) is below. Use this code to complete your verification.</p>
@@ -135,4 +136,3 @@ module.exports = {
     generateRejectionEmailContent,
     generateExpiryReminderEmailContent,
 };
-
