@@ -331,16 +331,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 <p class="text-gray-400 mt-2">Would you like to renew your current plan or change to a different one?</p>
             </header>
             <div class="flex flex-col sm:flex-row items-center justify-center gap-6">
-                <div id="renew-current-card" class="card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-72 cursor-pointer"> {/* CHANGED: sm:w-80 to sm:w-72 */}
-                    <i class="fa-solid fa-calendar-check text-3xl gradient-text mb-3"></i> {/* CHANGED: text-green-400 to gradient-text */}
+                <div id="renew-current-card" class="card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-72 cursor-pointer"> 
+                    <i class="fa-solid fa-calendar-check text-3xl gradient-text mb-3"></i> 
                     <h3 class="text-lg font-bold text-white">Renew Current Plan</h3>
                     <div class="text-sm mt-2 bg-black/20 px-3 py-2 rounded-lg">
                         <p class="font-semibold text-blue-300">${currentPlanName}</p>
                         <p class="text-xs text-gray-400">LKR ${currentPlanPrice}/month</p>
                     </div>
                 </div>
-                <div id="change-plan-card" class="card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-72 cursor-pointer"> {/* CHANGED: sm:w-80 to sm:w-72 */}
-                    <i class="fa-solid fa-right-left text-3xl gradient-text mb-3"></i> {/* CHANGED: text-amber-400 to gradient-text */}
+                <div id="change-plan-card" class="card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-72 cursor-pointer">
+                    <i class="fa-solid fa-right-left text-3xl gradient-text mb-3"></i>
                     <h3 class="text-lg font-bold text-white">Change to a New Plan</h3>
                     <p class="text-gray-400 mt-1 text-xs">Select a different package.<br/>Your old plan will be replaced.</p>
                 </div>
@@ -1529,7 +1529,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         
         if (pageKey === 'plans' && userSession && !params.has('new') && !params.has('change')) {
-            mainContentArea.innerHTML = `<div class="page flex flex-col items-center justify-center min-h-[70vh]"><div class="text-center p-10"><i class="fa-solid fa-spinner fa-spin text-3xl text-blue-400"></i><p class="mt-4 text-lg font-semibold text-blue-300 animate-pulse">Checking Your Active Plans...</p></div></div>`;
+            mainContentArea.innerHTML = `<div class="page flex flex-col items-center justify-center min-h-[70vh]"><div class="text-center p-10"><i class="fa-solid fa-spinner fa-spin text-3xl text-blue-400"></i><p class="mt-4 text-lg font-semibold text-blue-300 animate-pulse">Checking Your Active Plans...</p>
+            <p class="text-sm text-gray-500 mt-1">Please wait while we fetch your profile information.</p></div></div>`;
+            
             try {
                 const res = await apiFetch("/api/user/status");
                 if (!res.ok) throw new Error('Failed to fetch user status');
