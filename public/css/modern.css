@@ -289,8 +289,6 @@ body.modal-open {
 
 #main-header.scrolled {
     /* 3. Scroll කළ විට ලැබෙන පෙනුම */
-    background-color: rgb(15 23 42 / 0.85) !important; /* වඩාත් පැහැදිලි පසුබිමක් */
-    border-bottom: 1px solid rgba(148, 163, 184, 0.3) !important;
     backdrop-filter: blur(16px) !important;
 
     /* 4. යාවත්කාලීන කරන ලද, වඩාත් මෘදු Shadow එක */
