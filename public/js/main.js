@@ -1027,6 +1027,43 @@ function renderUsagePage(renderFunc) {
         }
     }
 
+
+    // START: ALL FUNCTIONS BELOW ARE UPDATED FOR "CHANGE PLAN" & UNIFIED BUTTONS
+
+    function renderPlanChoicePage(renderFunc, activePlans) {
+        renderFunc(`
+            <div id="page-plan-choice" class="page">
+                <header class="text-center mb-10 reveal">
+                    <h2 class="text-2xl font-bold text-white">Choose Your Path</h2>
+                    <p class="text-gray-400 mt-2">You have an active plan. What would you like to do next?</p>
+                </header>
+                <div id="choice-container" class="flex flex-col sm:flex-row items-center justify-center gap-6">
+                    <div id="renew-choice-card" class="card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-72 cursor-pointer">
+                        <i class="fa-solid fa-arrows-rotate text-3xl gradient-text mb-3"></i>
+                        <h3 class="text-lg font-bold text-white">Renew / Change Plan</h3>
+                        <p class="text-gray-400 mt-1 text-xs">Renew your existing plan or upgrade to a new one.</p>
+                    </div>
+                    <div id="buy-new-choice-card" class="card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-72 cursor-pointer">
+                        <i class="fa-solid fa-plus text-3xl gradient-text mb-3"></i>
+                        <h3 class="text-lg font-bold text-white">Buy a New Plan</h3>
+                        <p class="text-gray-400 mt-1 text-xs">Purchase a completely separate, additional plan.</p>
+                    </div>
+                </div>
+            </div>
+        `);
+
+        // Event Listeners for the new cards
+        document.getElementById('renew-choice-card')?.addEventListener('click', () => {
+            handleRenewalChoice(activePlans);
+        });
+        document.getElementById('buy-new-choice-card')?.addEventListener('click', () => {
+            // Navigate to plans page, forcing it to show the plan list
+            navigateTo('/plans?new=true');
+        });
+    }
+
+
+
     function renderPlansPage(renderFunc, params) {
         const userToChange = params.get("change");
         const changeQuery = userToChange ? `&change=${encodeURIComponent(userToChange)}` : '';
@@ -2324,7 +2361,7 @@ forgotPasswordForm?.addEventListener("submit", async(e) => {
                     renderPlansPage((html) => {
                         mainContentArea.innerHTML = html;
                         initAnimations();
-                    }, params); // <-- FIXED: Added 'params' here
+                    }, params);
                 }
             } catch (error) {
                 console.error("Could not check user status for renewal flow:", error);
@@ -2332,10 +2369,11 @@ forgotPasswordForm?.addEventListener("submit", async(e) => {
                 renderPlansPage((html) => {
                     mainContentArea.innerHTML = html;
                     initAnimations();
-                }, params); // <-- FIXED: Added 'params' here
+                }, params);
             }
             return; // Stop further execution
         }
+
         // END: CORRECTED LOGIC
 
         const renderFunction = allRoutes[pageKey] || allRoutes["home"];
