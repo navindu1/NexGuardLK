@@ -972,7 +972,7 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>`);
     }
 
- function renderProfilePage(renderFunc, params) {
+function renderProfilePage(renderFunc, params) {
     const user = JSON.parse(localStorage.getItem("nexguard_user"));
     if (!user) {
         navigateTo("/login");
@@ -1007,6 +1007,7 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
         </div>`;
     
+    // UPDATED: Modern and Compact styles for the plan selector
     const pageStyles = `<style>
         #page-profile .form-input { height: 56px; padding: 20px 12px 8px 12px; background-color: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.2); } #page-profile .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; } #page-profile .form-input:focus ~ .form-label, #page-profile .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: var(--brand-blue); } #page-profile .form-input[readonly] { background-color: rgba(0,0,0,0.2); cursor: not-allowed; } .tab-btn { border-bottom: 3px solid transparent; transition: all .3s ease; color: #9ca3af; padding: 0.75rem 0.25rem; font-weight: 600; white-space: nowrap; } .tab-btn.active { border-bottom-color: var(--brand-blue); color: #fff; } .tab-panel { display: none; } .tab-panel.active { display: block; animation: pageFadeIn 0.5s; }
         .plan-selector-wrapper { display: inline-block; width: auto; position: relative; }
@@ -1015,13 +1016,12 @@ document.addEventListener("DOMContentLoaded", () => {
             background-color: rgba(0, 0, 0, 0.2); 
             border: 1px solid rgba(255, 255, 255, 0.15); 
             border-radius: 8px; 
-            padding: 0.5rem 2.5rem 0.5rem 1rem; 
+            padding: 0.375rem 2.5rem 0.375rem 0.75rem; /* Reduced padding */
             color: #e0e0e0; 
-            font-weight: 600; 
-            font-size: 1rem; 
+            font-weight: 500; /* Medium weight */
+            font-size: 0.875rem; /* Smaller font size */
             cursor: pointer; 
             transition: all 0.3s ease; 
-            min-width: 200px;
         }
         #plan-selector:hover { border-color: var(--brand-blue); background-color: rgba(59, 130, 246, 0.1); }
         #plan-selector:focus { outline: none; border-color: var(--brand-blue); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3), inset 0 0 10px rgba(59, 130, 246, 0.1); }
@@ -1131,7 +1131,7 @@ document.addEventListener("DOMContentLoaded", () => {
     
             if (data.status === "approved" && data.activePlans?.length > 0) {
                 const planSelectorOptions = data.activePlans.map((plan, index) => `<option value="${index}">${plan.v2rayUsername}</option>`).join("");
-                statusContainer.innerHTML = `<div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-6"><label for="plan-selector" class="font-semibold text-gray-200 flex-shrink-0">Viewing Plan:</label><div class="relative plan-selector-wrapper"><select id="plan-selector">${planSelectorOptions}</select><i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2"></i></div></div><div id="plan-details-container"></div>`;
+                statusContainer.innerHTML = `<div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-6"><label for="plan-selector" class="text-sm font-semibold text-gray-300 flex-shrink-0">Viewing Plan:</label><div class="relative plan-selector-wrapper"><select id="plan-selector">${planSelectorOptions}</select><i class="fa-solid fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2"></i></div></div><div id="plan-details-container"></div>`;
                 
                 const planDetailsContainer = document.getElementById("plan-details-container");
                 const planSelector = document.getElementById("plan-selector");
@@ -1209,7 +1209,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             else usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-amber-400"><p>${result.message}</p></div>`;
                         }).catch(() => usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-red-400"><p>Could not load usage statistics.</p></div>`);
                     };
-
+    
                     const loadMyOrders = async (isSilent = false) => {
                         const ordersContainer = document.getElementById("tab-orders");
                         if (!ordersContainer) return;
@@ -1220,14 +1220,15 @@ document.addEventListener("DOMContentLoaded", () => {
                             const res = await apiFetch("/api/user/orders");
                             if (!res.ok) throw new Error("Failed to fetch orders");
                             const { orders } = await res.json();
-                            const currentHtml = ordersContainer.innerHTML; // Get current content
-                            const ordersHtml = orders.map(order => {
+                            const currentHtml = ordersContainer.innerHTML;
+                            const ordersHtml = (orders.length > 0) ? orders.map(order => {
                                 const statusColors = { pending: "text-amber-400", approved: "text-green-400", rejected: "text-red-400" };
                                 const statusIcons = { pending: "fa-solid fa-clock", approved: "fa-solid fa-check-circle", rejected: "fa-solid fa-times-circle" };
                                 return `<div class="card-glass p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"><div><p class="font-bold text-white">${appData.plans[order.plan_id]?.name || order.plan_id} <span class="text-gray-400 font-normal">for</span> ${dynamicConnections.find(c => c.name === order.conn_id)?.name || order.conn_id}</p><p class="text-xs text-gray-400 mt-1">Ordered on: ${new Date(order.created_at).toLocaleDateString()} ${order.status === 'approved' && order.final_username ? `| V2Ray User: <strong class="text-blue-300">${order.final_username}</strong>` : ''}</p></div><div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'}"><i class="${statusIcons[order.status] || 'fa-solid fa-question-circle'}"></i><span>${order.status}</span></div></div>`;
-                            }).join('');
+                            }).join('') : `<div class="card-glass p-8 rounded-xl text-center"><i class="fa-solid fa-box-open text-4xl text-gray-400 mb-4"></i><h3 class="font-bold text-white">No Orders Found</h3><p class="text-gray-400 text-sm mt-2">You have not placed any orders yet.</p></div>`;
+                            
                             const newHtml = `<div class="space-y-3">${ordersHtml}</div>`;
-                            if (currentHtml !== newHtml) { // Only update if content has changed
+                            if (currentHtml !== newHtml) {
                                 ordersContainer.innerHTML = newHtml;
                             }
                         } catch (err) {
@@ -1254,7 +1255,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     switchTab(params.get('tab') || 'config');
                     setupEventListeners();
 
-                    // NEW: Set up the auto-reloader
                     if (globalProfileReloader) clearInterval(globalProfileReloader);
                     globalProfileReloader = setInterval(() => {
                         const activeTabEl = document.querySelector('#profile-tabs .tab-btn.active');
@@ -1263,12 +1263,12 @@ document.addEventListener("DOMContentLoaded", () => {
                             const currentPlanIndex = document.getElementById('plan-selector').value;
                             const currentPlan = data.activePlans[currentPlanIndex];
                             if (activeTabId === 'config') {
-                                updateRenewButton(currentPlan, true); // silent update
+                                updateRenewButton(currentPlan, true);
                             } else if (activeTabId === 'orders') {
-                                loadMyOrders(true); // silent update
+                                loadMyOrders(true);
                             }
                         }
-                    }, 30000); // Refresh every 30 seconds
+                    }, 30000); 
 
                 };
                 
