@@ -291,3 +291,81 @@ exports.updatePassword = async (req, res) => {
         res.status(500).json({ success: false, message: "Error updating password." });
     }
 };
+
+
+exports.getUserStatus = async (req, res) => {
+    try {
+        const { data: user, error: userError } = await supabase
+            .from("users")
+            .select("*")
+            .eq("id", req.user.id)
+            .single();
+
+        if (userError || !user) {
+            return res.status(404).json({ success: false, message: "User not found." });
+        }
+        
+        const { data: pendingOrders, error: orderError } = await supabase
+            .from("orders")
+            .select("id")
+            .eq("website_username", user.username)
+            .eq("status", "pending");
+            
+        if (orderError) throw orderError;
+
+        if (pendingOrders && pendingOrders.length > 0 && (!user.active_plans || user.active_plans.length === 0)) {
+            return res.json({ success: true, status: "pending" });
+        }
+
+        if (!user.active_plans || user.active_plans.length === 0) {
+            return res.json({ success: true, status: "no_plan" });
+        }
+        
+        const verifiedActivePlans = [];
+        let plansChanged = false;
+
+        // Use Promise.all to fetch all client data from the panel in parallel for better performance
+        const clientDataPromises = user.active_plans.map(plan => 
+            v2rayService.findV2rayClient(plan.v2rayUsername)
+        );
+        const allClientData = await Promise.all(clientDataPromises);
+
+        for (let i = 0; i < user.active_plans.length; i++) {
+            const plan = user.active_plans[i];
+            const clientData = allClientData[i];
+
+            if (clientData && clientData.client) {
+                // Add the live expiryTime from the panel to the plan object
+                const enrichedPlan = {
+                    ...plan,
+                    expiryTime: clientData.client.expiryTime || 0
+                };
+                verifiedActivePlans.push(enrichedPlan);
+            } else {
+                plansChanged = true;
+                console.log(`[Verification] Plan '${plan.v2rayUsername}' for user ${user.username} not found in panel. Removing.`);
+            }
+        }
+
+        if (plansChanged) {
+            await supabase
+                .from("users")
+                .update({ active_plans: verifiedActivePlans.map(({ expiryTime, ...plan }) => plan) }) // Save without the temporary expiryTime
+                .eq("id", user.id);
+        }
+        
+        if (verifiedActivePlans.length === 0) {
+            return res.json({ success: true, status: "no_plan" });
+        }
+
+        return res.json({
+            success: true,
+            status: "approved",
+            activePlans: verifiedActivePlans,
+        });
+
+    } catch (error) {
+        console.error(`[Status Check Error] User: ${req.user.username}, Error: ${error.message}`);
+        return res.status(500).json({ success: false, message: "Server error during status check." });
+    }
+};
