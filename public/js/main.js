@@ -1012,17 +1012,17 @@ function renderProfilePage(renderFunc, params) {
         #page-profile .form-input { height: 56px; padding: 20px 12px 8px 12px; background-color: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.2); } #page-profile .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; } #page-profile .form-input:focus ~ .form-label, #page-profile .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: var(--brand-blue); } #page-profile .form-input[readonly] { background-color: rgba(0,0,0,0.2); cursor: not-allowed; } .tab-btn { border-bottom: 3px solid transparent; transition: all .3s ease; color: #9ca3af; padding: 0.75rem 0.25rem; font-weight: 600; white-space: nowrap; } .tab-btn.active { border-bottom-color: var(--brand-blue); color: #fff; } .tab-panel { display: none; } .tab-panel.active { display: block; animation: pageFadeIn 0.5s; }
         .plan-selector-wrapper { display: inline-block; width: auto; position: relative; }
         #plan-selector { 
-            -webkit-appearance: none; -moz-appearance: none; appearance: none; 
-            background-color: rgba(0, 0, 0, 0.2); 
-            border: 1px solid rgba(255, 255, 255, 0.15); 
-            border-radius: 8px; 
-            padding: 0.375rem 2.5rem 0.375rem 0.75rem; /* right-padding ensures space for the icon */
-            color: #e0e0e0; 
-            font-weight: 500;
-            font-size: 0.875rem;
-            cursor: pointer; 
-            transition: all 0.3s ease; 
-        }
+    -webkit-appearance: none; -moz-appearance: none; appearance: none; 
+    background-color: rgba(0, 0, 0, 0.2); 
+    border: 1px solid rgba(255, 255, 255, 0.15); 
+    border-radius: 8px; 
+    padding: 0.375rem 2.5rem 0.375rem 0.75rem; /* <-- මෙයින් icon එකට ඉඩ වෙන් කරයි */
+    color: #e0e0e0; 
+    font-weight: 500;
+    font-size: 0.875rem;
+    cursor: pointer; 
+    transition: all 0.3s ease; 
+}
         #plan-selector:hover { border-color: var(--brand-blue); background-color: rgba(59, 130, 246, 0.1); }
         #plan-selector:focus { outline: none; border-color: var(--brand-blue); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3), inset 0 0 10px rgba(59, 130, 246, 0.1); }
         .plan-selector-wrapper i { color: #9ca3af; transition: color 0.3s ease; pointer-events: none; }
