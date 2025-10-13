@@ -859,8 +859,8 @@ document.addEventListener("DOMContentLoaded", () => {
                         </p>
 
                         <div class="mt-4 flex flex-col items-center justify-center gap-3">
-                            <a href="/profile?tab=orders" class="nav-link-internal ai-button rounded-lg">View My Orders</a>
-                            <a href="https://chat.whatsapp.com/Jaw6FQbQINCE1eMGboSovH" target="_blank" class="nav-link-internal ai-button rounded-lg">
+                            <a href="/profile?tab=orders" class="nav-link-internal ai-button rounded-lg w-full flex justify-center">View My Orders</a>
+                            <a href="https://chat.whatsapp.com/Jaw6FQbQINCE1eMGboSovH" target="_blank" class="nav-link-internal ai-secondary-button rounded-lg w-full flex justify-center">
                                 <i class="fa-brands fa-whatsapp mr-2"></i>Join Premium Group
                             </a>
                         </div>
