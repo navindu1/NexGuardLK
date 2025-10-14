@@ -190,6 +190,36 @@ exports.getAllClients = async () => {
     }
 };
 
+/**
+ * NEW FUNCTION: Fetches all clients and their full details from all inbounds.
+ * Returns a Map for efficient lookups where: key = lowercase email, value = client object.
+ */
+exports.getAllClientDetails = async () => {
+    try {
+        const cookie = await getPanelCookie();
+        const { data: inboundsData } = await axios.get(INBOUNDS_LIST_URL, {
+            headers: { Cookie: cookie },
+        });
+
+        if (!inboundsData?.success) return new Map();
+
+        const allClientsMap = new Map();
+        for (const inbound of inboundsData.obj) {
+            const clients = (inbound.settings && JSON.parse(inbound.settings).clients) || [];
+            for (const client of clients) {
+                if (client && client.email) {
+                    allClientsMap.set(client.email.toLowerCase(), client);
+                }
+            }
+        }
+        return allClientsMap;
+    } catch (error) {
+         console.error(`Error in getAllClientDetails:`, error.message);
+         // In case of error, return an empty Map to avoid breaking the caller function
+         return new Map();
+    }
+};
+
 exports.generateV2rayConfigLink = (linkTemplate, client) => {
     if (!linkTemplate || !client || !client.id || !client.email) return null;
     
