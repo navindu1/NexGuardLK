@@ -82,9 +82,11 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                     createdV2rayClient = { settings: existingClient.client, inboundId: existingClient.inboundId, isAdopted: true };
                     clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, existingClient.client);
                 } else {
+                    // --- START: NEW LOGIC FOR UNIQUE USERNAME GENERATION ---
                     finalUsername = order.username;
                     const allPanelClients = await v2rayService.getAllClients();
 
+                    // Check if the username already exists in the panel AND has not been finalized yet on the order
                     if (allPanelClients.has(finalUsername.toLowerCase()) && !order.final_username) { 
                         let counter = 1;
                         let newUsername;
@@ -94,6 +96,7 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                         finalUsername = newUsername;
                         console.log(`[Username Conflict] Original username was taken. Generated new unique username: ${finalUsername}`);
                     }
+                    // --- END: NEW LOGIC ---
                     
                     if (order.status === 'pending') {
                         const clientSettings = { id: uuidv4(), email: finalUsername, total: totalGBValue, expiryTime, enable: true };
