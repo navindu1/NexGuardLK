@@ -17,13 +17,15 @@ const { generateEmailTemplate, generateApprovalEmailContent } = require('./email
 exports.approveOrder = async (orderId, isAutoConfirm = false) => {
     let finalUsername = '';
     let createdV2rayClient = null;
-    let result = {}; // Define result object to be returned
+    let result = {};
+    let order = null; // Declare order variable in the function scope
 
     try {
-        const { data: order, error: orderError } = await supabase.from("orders").select("*").eq("id", orderId).single();
-        if (orderError || !order) {
+        const { data: orderData, error: orderError } = await supabase.from("orders").select("*").eq("id", orderId).single();
+        if (orderError || !orderData) {
             return { success: false, message: "Order not found." };
         }
+        order = orderData; // Assign fetched data to the higher-scoped variable
         
         if (order.status === 'approved') {
             return { success: false, message: "Order is already approved." };
@@ -55,7 +57,6 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
         const totalGBValue = (planDetails.total_gb || 0) * 1024 * 1024 * 1024;
         let clientLink;
         
-        // This logic now runs for both 'pending' and 'unconfirmed' orders to ensure consistency.
         if (order.status === 'pending' || order.status === 'unconfirmed') {
             if (order.is_renewal) {
                 const clientInPanel = await v2rayService.findV2rayClient(order.username);
@@ -70,11 +71,9 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                     clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientInPanel.client);
                     finalUsername = clientInPanel.client.email;
                 } else {
-                    // FIX 1: Stop creating a new user on a failed renewal.
                     return { success: false, message: `Renewal failed: User '${order.username}' not found in the panel. Cannot create a new user during renewal.` };
                 }
-            } else { // This block is for new users or plan changes
-                // FIX 3: Check if a user already exists from a previously failed auto-confirm
+            } else { 
                 const existingClient = await v2rayService.findV2rayClient(order.username);
 
                 if (existingClient && order.status === 'pending') {
@@ -83,11 +82,10 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                     createdV2rayClient = { settings: existingClient.client, inboundId: existingClient.inboundId, isAdopted: true };
                     clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, existingClient.client);
                 } else {
-                    // If no user exists (or it's an 'unconfirmed' order being approved), proceed with creation logic
                     finalUsername = order.username;
                     const allPanelClients = await v2rayService.getAllClients();
 
-                    if (allPanelClients.has(finalUsername.toLowerCase()) && !order.final_username) { // Check if a username collision will happen
+                    if (allPanelClients.has(finalUsername.toLowerCase()) && !order.final_username) { 
                         let counter = 1;
                         let newUsername;
                         do {
@@ -106,7 +104,6 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                 }
             }
         
-            // This part only runs if a client was actually created or updated
             if (finalUsername && !clientLink) {
                  const clientData = await v2rayService.findV2rayClient(finalUsername);
                  if (clientData) {
@@ -128,7 +125,6 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                 if (planIndex !== -1) {
                     updatedActivePlans[planIndex] = newPlanDetails;
                 } else {
-                    // Avoid adding duplicate plans
                     if (!updatedActivePlans.some(p => p.orderId === order.id)) {
                         updatedActivePlans.push(newPlanDetails);
                     }
@@ -138,7 +134,6 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
             }
         } 
         
-        // If the order was already processed ('unconfirmed'), just retrieve the existing details
         if (!finalUsername) {
             finalUsername = order.final_username;
         }
@@ -162,7 +157,6 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
     } catch (error) {
         console.error(`Error processing order ${orderId} for user ${finalUsername}:`, error.message, error.stack);
 
-        // Rollback V2Ray user creation if it's a new user and an error occurred after creation
         if (createdV2rayClient && !createdV2rayClient.isRenewal && !createdV2rayClient.isAdopted) {
             console.log(`[ROLLBACK] An error occurred after creating V2Ray client ${createdV2rayClient.settings.email}. Attempting to delete client...`);
             try {
@@ -176,8 +170,7 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
         return { success: false, message: error.message || "An error occurred during order approval." };
     }
 
-    // FIX 2: Safely delete the old user only after everything else is successful
-    if (result.success && order.old_v2ray_username) {
+    if (result.success && order && order.old_v2ray_username) {
         try {
             const oldClientData = await v2rayService.findV2rayClient(order.old_v2ray_username);
             if (oldClientData) {
@@ -185,7 +178,6 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                 console.log(`[Cleanup] Successfully deleted old user: ${order.old_v2ray_username} after plan change.`);
             }
         } catch (cleanupError) {
-            // Log this as a critical error for manual intervention, but don't fail the entire operation
             console.error(`[CRITICAL] Failed to clean up old V2Ray user ${order.old_v2ray_username}. Please delete manually. Error: ${cleanupError.message}`);
         }
     }

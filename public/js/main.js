@@ -763,139 +763,141 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>`);
 }
     
-    function renderCheckoutPage(renderFunc, params) {
-        const user = JSON.parse(localStorage.getItem("nexguard_user"));
-        if (!user) {
-            navigateTo("/login");
-            return;
-        }
+// File Path: public/js/main.js
 
-        const planId = params.get("planId");
-        const connId = decodeURIComponent(params.get("connId"));
-        const pkg = decodeURIComponent(params.get("pkg") || "");
-        const plan = appData.plans[planId];
-        const conn = dynamicConnections.find(c => c.name === connId);
+function renderCheckoutPage(renderFunc, params) {
+    const user = JSON.parse(localStorage.getItem("nexguard_user"));
+    if (!user) {
+        navigateTo("/login");
+        return;
+    }
 
-        const userToRenew = params.get("renew");
-        const userToChange = params.get("change");
-        const isRenewal = !!userToRenew;
-        const isChange = !!userToChange;
+    const planId = params.get("planId");
+    const connId = decodeURIComponent(params.get("connId"));
+    const pkg = decodeURIComponent(params.get("pkg") || "");
+    const plan = appData.plans[planId];
+    const conn = dynamicConnections.find(c => c.name === connId);
 
-        const formActionType = isChange ? 'Change Plan' : (isRenewal ? 'Renew Your Plan' : 'Final Step: Checkout');
+    const userToRenew = params.get("renew");
+    const userToChange = params.get("change");
+    const isRenewal = !!userToRenew;
+    const isChange = !!userToChange;
+
+    const formActionType = isChange ? 'Change Plan' : (isRenewal ? 'Renew Your Plan' : 'Final Step: Checkout');
+    
+    let summaryHtml;
+    if (plan && (conn || isRenewal)) { // conn might not exist on renewal but that's ok
+        const finalPackageNameWithPrice = pkg || conn?.default_package || '';
+        const planPrice = plan.price;
+        const cleanPackageName = finalPackageNameWithPrice.split(' - LKR')[0];
+        const connectionName = conn?.name || decodeURIComponent(params.get("connId"));
+
+        let purchaseInfo = `<p>You are purchasing the <strong class="text-blue-400">${plan.name}</strong> for <strong class="text-blue-400">${connectionName}</strong>.</p>`;
         
-        let summaryHtml;
-        if (plan && (conn || isRenewal)) { // conn might not exist on renewal but that's ok
-            const finalPackageNameWithPrice = pkg || conn?.default_package || '';
-            const planPrice = plan.price;
-            const cleanPackageName = finalPackageNameWithPrice.split(' - LKR')[0];
-            const connectionName = conn?.name || decodeURIComponent(params.get("connId"));
-
-            let purchaseInfo = `<p>You are purchasing the <strong class="text-blue-400">${plan.name}</strong> for <strong class="text-blue-400">${connectionName}</strong>.</p>`;
-            
-            let packageInfo = '';
-            if (cleanPackageName) {
-                packageInfo = `<div class="text-center"><p class="text-sm m-0"><span class="text-gray-300">Selected Package:</span> <span class="font-semibold text-amber-400">${cleanPackageName} - LKR ${planPrice}</span></p></div>`;
-            }
-
-            let renewalInfo = '';
-            if (isRenewal) {
-                renewalInfo = `<p class="mt-2 text-center">You are renewing for V2Ray user: <strong class="text-blue-400">${userToRenew}</strong>.</p>`;
-            }
-            
-            let changeInfo = '';
-            if (isChange) {
-                changeInfo = `<p class="mt-2 text-center text-amber-400">You are changing the plan for: <strong class="text-white">${userToChange}</strong>. The old plan will be deleted upon approval.</p>`;
-                purchaseInfo = `<p>You are changing to the <strong class="text-blue-400">${plan.name}</strong> for <strong class="text-blue-400">${connectionName}</strong>.</p>`;
-            }
-            
-            summaryHtml = purchaseInfo + packageInfo + renewalInfo + changeInfo;
-
-        } else {
-            summaryHtml = `<p class="text-red-400 text-center">Invalid selection. Please <a href="/plans" class="nav-link-internal underline">start over</a>.</p>`;
+        let packageInfo = '';
+        if (cleanPackageName) {
+            packageInfo = `<div class="text-center"><p class="text-sm m-0"><span class="text-gray-300">Selected Package:</span> <span class="font-semibold text-amber-400">${cleanPackageName} - LKR ${planPrice}</span></p></div>`;
         }
 
-        renderFunc(`
-            <style>
-              .renewal-username-field[readonly] { background-color: rgba(30, 41, 59, 0.5); color: #9ca3af; cursor: not-allowed; }
-              .renewal-username-field[readonly]:focus ~ .focus-border:before,
-              .renewal-username-field[readonly]:focus ~ .focus-border:after { width: 0; }
-              .renewal-username-field[readonly]:focus ~ .focus-border i:before,
-              .renewal-username-field[readonly]:focus ~ .focus-border i:after { height: 0; }
-              .renewal-username-field[readonly]:focus ~ .form-label { color: #9ca3af; }
-            </style>
-            <div id="page-checkout" class="page">
-                <div class="w-full max-w-sm mx-auto card-glass rounded-xl p-6 reveal">
-                    <div id="checkout-view">
-                        <h2 class="text-xl font-bold text-center text-white mb-2">${formActionType}</h2>
-                        <div id="checkout-summary" class="text-center mb-6 text-gray-300 text-sm space-y-2">${summaryHtml}</div>
-                        <form id="checkout-form" class="space-y-4">
-                            ${isRenewal ? `<input type="hidden" name="isRenewal" value="true">` : ""}
-                            ${isChange ? `<input type="hidden" name="old_v2ray_username" value="${userToChange}">` : ''}
+        let renewalInfo = '';
+        if (isRenewal) {
+            renewalInfo = `<p class="mt-2 text-center">You are renewing for V2Ray user: <strong class="text-blue-400">${userToRenew}</strong>.</p>`;
+        }
+        
+        let changeInfo = '';
+        if (isChange) {
+            changeInfo = `<p class="mt-2 text-center text-amber-400">You are changing the plan for: <strong class="text-white">${userToChange}</strong>. The old plan will be deleted upon approval.</p>`;
+            purchaseInfo = `<p>You are changing to the <strong class="text-blue-400">${plan.name}</strong> for <strong class="text-blue-400">${connectionName}</strong>.</p>`;
+        }
+        
+        summaryHtml = purchaseInfo + packageInfo + renewalInfo + changeInfo;
 
-                            <div class="form-group ${isRenewal ? 'pb-2' : ''}">
-                                <input type="text" id="checkout-username" name="username" class="form-input ${isRenewal ? 'renewal-username-field' : ''}" required placeholder=" " value="${isRenewal ? userToRenew : (isChange ? '' : (user.username || ''))}" ${isRenewal ? 'readonly' : ''}>
-                                <label class="form-label">${isChange ? 'New V2Ray Username' : 'V2Ray Username'}</label><span class="focus-border"><i></i></span>
-                                ${isRenewal ? '<p class="text-xs text-amber-400 mt-2 px-1">Username cannot be changed during renewal.</p>' : ''}
-                            </div>
-                            <div class="form-group">
-                                <input type="text" name="whatsapp" id="checkout-whatsapp" class="form-input" required placeholder=" " value="${user.whatsapp || ''}">
-                                <label class="form-label">WhatsApp Number</label><span class="focus-border"><i></i></span>
-                            </div>
-                            <div>
-                                <p class="text-gray-300 text-sm mb-2">Upload receipt:</p>
-                                <div class="text-xs text-gray-400 mb-3 p-3 bg-black/20 rounded-lg border border-white/10 whitespace-pre-wrap">${appData.bankDetails}</div>
-                                <input type="file" name="receipt" required class="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100" accept="image/*">
-                            </div>
-                            <button type="submit" class="ai-button w-full !mt-8 rounded-lg">SUBMIT FOR APPROVAL</button>
-                        </form>
-                    </div>
-                    <div id="success-view" class="hidden text-center">
-                        <i class="fas fa-check-circle text-5xl text-green-400 mb-4"></i>
-                        <p class="text-lg text-green-400 font-semibold">Order Submitted!</p>
-                        <p class="text-gray-300 mt-2 text-sm">Your order is pending approval. You can check the status on your profile.</p>
+    } else {
+        summaryHtml = `<p class="text-red-400 text-center">Invalid selection. Please <a href="/plans" class="nav-link-internal underline">start over</a>.</p>`;
+    }
 
-                        <p class="text-gray-300 mt-6 text-sm">
-                            Join our WhatsApp group for the latest updates, support, and special offers!
-                        </p>
+    renderFunc(`
+        <style>
+          .renewal-username-field[readonly] { background-color: rgba(30, 41, 59, 0.5); color: #9ca3af; cursor: not-allowed; }
+          .renewal-username-field[readonly]:focus ~ .focus-border:before,
+          .renewal-username-field[readonly]:focus ~ .focus-border:after { width: 0; }
+          .renewal-username-field[readonly]:focus ~ .focus-border i:before,
+          .renewal-username-field[readonly]:focus ~ .focus-border i:after { height: 0; }
+          .renewal-username-field[readonly]:focus ~ .form-label { color: #9ca3af; }
+        </style>
+        <div id="page-checkout" class="page">
+            <div class="w-full max-w-sm mx-auto card-glass rounded-xl p-6 reveal">
+                <div id="checkout-view">
+                    <h2 class="text-xl font-bold text-center text-white mb-2">${formActionType}</h2>
+                    <div id="checkout-summary" class="text-center mb-6 text-gray-300 text-sm space-y-2">${summaryHtml}</div>
+                    <form id="checkout-form" class="space-y-4">
+                        ${isRenewal ? `<input type="hidden" name="isRenewal" value="true">` : ""}
+                        ${isChange ? `<input type="hidden" name="old_v2ray_username" value="${userToChange}">` : ''}
 
-                        <div class="mt-4 flex flex-col items-center justify-center gap-3">
-                            <a href="/profile?tab=orders" class="nav-link-internal ai-button rounded-lg w-full flex justify-center">View My Orders</a>
-                            <a href="https://chat.whatsapp.com/Jaw6FQbQINCE1eMGboSovH" target="_blank" class="nav-link-internal ai-button rounded-lg w-full flex justify-center">
-                                <i class="fa-brands fa-whatsapp mr-2"></i>Join Premium Group
-                            </a>
+                        <div class="form-group ${isRenewal ? 'pb-2' : ''}">
+                            <input type="text" id="checkout-username" name="username" class="form-input ${isRenewal ? 'renewal-username-field' : ''}" required placeholder=" " value="${isRenewal ? userToRenew : (isChange ? '' : (user.username || ''))}" ${isRenewal ? 'readonly' : ''}>
+                            <label class="form-label">${isChange ? 'New V2Ray Username' : 'V2Ray Username'}</label><span class="focus-border"><i></i></span>
+                            ${isRenewal ? '<p class="text-xs text-amber-400 mt-2 px-1">Username cannot be changed during renewal.</p>' : ''}
                         </div>
+                        <div class="form-group">
+                            <input type="text" name="whatsapp" id="checkout-whatsapp" class="form-input" required placeholder=" " value="${user.whatsapp || ''}">
+                            <label class="form-label">WhatsApp Number</label><span class="focus-border"><i></i></span>
+                        </div>
+                        <div>
+                            <p class="text-gray-300 text-sm mb-2">Upload receipt:</p>
+                            <div class="text-xs text-gray-400 mb-3 p-3 bg-black/20 rounded-lg border border-white/10 whitespace-pre-wrap">${appData.bankDetails}</div>
+                            <input type="file" name="receipt" required class="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100" accept="image/*">
+                        </div>
+                        <button type="submit" class="ai-button w-full !mt-8 rounded-lg">SUBMIT FOR APPROVAL</button>
+                    </form>
+                </div>
+                <div id="success-view" class="hidden text-center">
+                    <i class="fas fa-check-circle text-5xl text-green-400 mb-4"></i>
+                    <p class="text-lg text-green-400 font-semibold">Order Submitted!</p>
+                    <p class="text-gray-300 mt-2 text-sm">Your order is pending approval. You can check the status on your profile.</p>
+
+                    <p class="text-gray-300 mt-6 text-sm">
+                        Join our WhatsApp group for the latest updates, support, and special offers!
+                    </p>
+
+                    <div class="mt-4 flex flex-col items-center justify-center gap-3">
+                        <a href="/profile?tab=orders" class="nav-link-internal ai-button rounded-lg w-full flex justify-center items-center">View My Orders</a>
+                        <a href="https://chat.whatsapp.com/Jaw6FQbQINCE1eMGboSovH" target="_blank" class="nav-link-internal ai-button secondary rounded-lg w-full flex justify-center items-center">
+                            <i class="fa-brands fa-whatsapp mr-2"></i>Join Premium Group
+                        </a>
                     </div>
                 </div>
-            </div>`);
+            </div>
+        </div>`);
 
-        document.getElementById("checkout-form")?.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            formData.append("planId", params.get("planId"));
-            formData.append("connId", params.get("connId"));
-            if (params.get("pkg")) formData.append("pkg", params.get("pkg"));
-            if (params.get("inboundId")) formData.append("inboundId", params.get("inboundId"));
-            if (params.get("vlessTemplate")) formData.append("vlessTemplate", params.get("vlessTemplate"));
+    document.getElementById("checkout-form")?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        formData.append("planId", params.get("planId"));
+        formData.append("connId", params.get("connId"));
+        if (params.get("pkg")) formData.append("pkg", params.get("pkg"));
+        if (params.get("inboundId")) formData.append("inboundId", params.get("inboundId"));
+        if (params.get("vlessTemplate")) formData.append("vlessTemplate", params.get("vlessTemplate"));
 
 
-            document.querySelector('#checkout-view button[type="submit"]').disabled = true;
-            document.querySelector('#checkout-view button[type="submit"]').textContent = "SUBMITTING...";
+        document.querySelector('#checkout-view button[type="submit"]').disabled = true;
+        document.querySelector('#checkout-view button[type="submit"]').textContent = "SUBMITTING...";
 
-            const res = await apiFetch("/api/create-order", {
-                method: "POST",
-                body: formData,
-            });
-            if (res.ok) {
-                document.getElementById("checkout-view").style.display = "none";
-                document.getElementById("success-view").classList.remove("hidden");
-            } else {
-                const result = await res.json();
-                alert(`Error: ${result.message}`);
-                document.querySelector('#checkout-view button[type="submit"]').disabled = false;
-                document.querySelector('#checkout-view button[type="submit"]').textContent = "SUBMIT FOR APPROVAL";
-            }
+        const res = await apiFetch("/api/create-order", {
+            method: "POST",
+            body: formData,
         });
-    }
+        if (res.ok) {
+            document.getElementById("checkout-view").style.display = "none";
+            document.getElementById("success-view").classList.remove("hidden");
+        } else {
+            const result = await res.json();
+            alert(`Error: ${result.message}`);
+            document.querySelector('#checkout-view button[type="submit"]').disabled = false;
+            document.querySelector('#checkout-view button[type="submit"]').textContent = "SUBMIT FOR APPROVAL";
+        }
+    });
+}
 
     function renderAboutPage(renderFunc) {
         renderFunc(`
