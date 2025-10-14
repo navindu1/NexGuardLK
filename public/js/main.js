@@ -1006,27 +1006,77 @@ function renderProfilePage(renderFunc, params) {
             </div>
         </div>`;
     
-    // UPDATED: Modern and Compact styles for the plan selector
+    // --- START: UPDATED AND FINAL CSS FOR PROFILE PAGE ---
     const pageStyles = `<style>
-        #page-profile .form-input { height: 56px; padding: 20px 12px 8px 12px; background-color: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.2); } #page-profile .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; } #page-profile .form-input:focus ~ .form-label, #page-profile .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: var(--brand-blue); } #page-profile .form-input[readonly] { background-color: rgba(0,0,0,0.2); cursor: not-allowed; } .tab-btn { border-bottom: 3px solid transparent; transition: all .3s ease; color: #9ca3af; padding: 0.75rem 0.25rem; font-weight: 600; white-space: nowrap; } .tab-btn.active { border-bottom-color: var(--brand-blue); color: #fff; } .tab-panel { display: none; } .tab-panel.active { display: block; animation: pageFadeIn 0.5s; }
-        .plan-selector-wrapper { display: inline-block; width: auto; position: relative; }
+        #page-profile .form-input { height: 56px; padding: 20px 12px 8px 12px; background-color: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.2); } 
+        #page-profile .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; } 
+        #page-profile .form-input:focus ~ .form-label, 
+        #page-profile .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: var(--brand-blue); } 
+        #page-profile .form-input[readonly] { background-color: rgba(0,0,0,0.2); cursor: not-allowed; } 
+        
+        .tab-btn { border-bottom: 3px solid transparent; transition: all .3s ease; color: #9ca3af; padding: 0.75rem 0.25rem; font-weight: 600; white-space: nowrap; } 
+        .tab-btn.active { border-bottom-color: var(--brand-blue); color: #fff; } 
+        .tab-panel { display: none; } 
+        .tab-panel.active { display: block; animation: pageFadeIn 0.5s; }
+        
+        /* New and improved styles for the plan selector */
+        .plan-selector-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .plan-selector-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #d1d5db; /* gray-300 */
+            flex-shrink: 0;
+        }
+        .plan-selector-wrapper { 
+            position: relative;
+            flex-grow: 1; /* Allows the selector to take available space */
+            min-width: 150px; /* Ensures it doesn't get too small */
+        }
         #plan-selector { 
-    -webkit-appearance: none; -moz-appearance: none; appearance: none; 
-    background-color: rgba(0, 0, 0, 0.2); 
-    border: 1px solid rgba(255, 255, 255, 0.15); 
-    border-radius: 8px; 
-    padding: 0.375rem 2.5rem 0.375rem 0.75rem; /* <-- This makes space for the icon */
-    color: #e0e0e0; 
-    font-weight: 500;
-    font-size: 0.875rem;
-    cursor: pointer; 
-    transition: all 0.3s ease; 
-}
-        #plan-selector:hover { border-color: var(--brand-blue); background-color: rgba(59, 130, 246, 0.1); }
-        #plan-selector:focus { outline: none; border-color: var(--brand-blue); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3), inset 0 0 10px rgba(59, 130, 246, 0.1); }
-        .plan-selector-wrapper i { color: #9ca3af; transition: color 0.3s ease; pointer-events: none; }
-        .plan-selector-wrapper:hover i { color: #fff; }
+            -webkit-appearance: none; 
+            -moz-appearance: none; 
+            appearance: none; 
+            width: 100%; /* Take the full width of its wrapper */
+            background-color: rgba(30, 41, 59, 0.5); /* slate-800 with opacity */
+            border: 1px solid rgba(71, 85, 105, 1); /* slate-600 */
+            border-radius: 8px; 
+            padding: 0.5rem 2.5rem 0.5rem 0.75rem; /* py-2 pl-3 pr-10 */
+            color: #e5e7eb; /* gray-200 */
+            font-weight: 500;
+            font-size: 0.875rem;
+            cursor: pointer; 
+            transition: all 0.3s ease; 
+        }
+        #plan-selector:hover { 
+            border-color: var(--brand-blue); 
+            background-color: rgba(59, 130, 246, 0.1); 
+        }
+        #plan-selector:focus { 
+            outline: none; 
+            border-color: var(--brand-blue); 
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        .plan-selector-wrapper .icon { 
+            position: absolute;
+            right: 0.75rem; /* right-3 */
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af; /* gray-400 */
+            font-size: 0.875rem; /* text-sm */
+            pointer-events: none; 
+            transition: color 0.3s ease;
+        }
+        .plan-selector-wrapper:hover .icon { 
+            color: #ffffff; 
+        }
     </style>`;
+    // --- END: UPDATED AND FINAL CSS ---
     
     let profilePictureUrl = (user.profilePicture || "/assets/profilePhoto.jpg").replace("public/", "");
     if (profilePictureUrl && !profilePictureUrl.startsWith('/')) {
@@ -1130,7 +1180,18 @@ function renderProfilePage(renderFunc, params) {
     
             if (data.status === "approved" && data.activePlans?.length > 0) {
                 const planSelectorOptions = data.activePlans.map((plan, index) => `<option value="${index}">${plan.v2rayUsername}</option>`).join("");
-                statusContainer.innerHTML = `<div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-6"><label for="plan-selector" class="text-sm font-semibold text-gray-300 flex-shrink-0">Viewing Plan:</label><div class="relative plan-selector-wrapper"><select id="plan-selector">${planSelectorOptions}</select><i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2"></i></div></div><div id="plan-details-container"></div>`;
+                
+                // --- START: UPDATED HTML STRUCTURE FOR PLAN SELECTOR ---
+                statusContainer.innerHTML = `
+                    <div class="plan-selector-container">
+                        <label for="plan-selector" class="plan-selector-label">Viewing Plan:</label>
+                        <div class="plan-selector-wrapper">
+                            <select id="plan-selector">${planSelectorOptions}</select>
+                            <i class="fa-solid fa-chevron-down icon"></i>
+                        </div>
+                    </div>
+                    <div id="plan-details-container"></div>`;
+                // --- END: UPDATED HTML STRUCTURE ---
                 
                 const planDetailsContainer = document.getElementById("plan-details-container");
                 const planSelector = document.getElementById("plan-selector");
@@ -1340,6 +1401,8 @@ function renderProfilePage(renderFunc, params) {
             statusContainer.innerHTML = `<div class="card-glass p-8 rounded-xl text-center"><p class="text-red-400">Could not load profile data. Please try logging in again.</p></div>`;
         });
 }
+
+
 
     function renderAuthPage(renderFunc, params, initialPanel = "signin") {
         const resetToken = params.get("token");
