@@ -1,4 +1,69 @@
 // public/js/main.js - FINAL MERGED AND CORRECTED CODE
+
+// --- START: CUSTOM FLOATING MENU JAVASCRIPT CLASS ---
+class SikFloatingMenu {
+    menuEl = null;
+    constructor(_menu) {
+        this.menuEl = typeof _menu === 'string' ? document.querySelector(_menu) : _menu;
+        this.attachHandlers();
+    }
+    attachHandlers() {
+        if (this.menuEl) {
+            this._on(this.menuEl, 'click', '.trigger-menu', this._handler.bind(this));
+            // Add a global click listener to close the menu when clicking outside
+            document.addEventListener('click', (e) => {
+                if (this.menuEl && !this.menuEl.contains(e.target)) {
+                    this.closeAll();
+                }
+            });
+        }
+    }
+    _open(item) {
+        this.closeAll(); // Close any other open menus
+        item.classList.add('open');
+        let list = item.closest('li').querySelector(".floating-menu");
+        list.style.setProperty("max-height", this._measureExpandableList(list));
+        list.style.setProperty("opacity", "1");
+    }
+    _close(item) {
+        let list = item.closest('li').querySelector(".floating-menu");
+        item.classList.remove('open');
+        list.style.removeProperty("max-height");
+        list.style.removeProperty("opacity");
+    }
+    closeAll() {
+        let opened = this.menuEl.querySelectorAll('.trigger-menu.open');
+        for (const ele of opened) {
+            this._close(ele);
+        }
+    }
+    _measureExpandableList(list) {
+        const items = list.querySelectorAll('li');
+        if (items.length === 0) return '0px';
+        return (items.length * this._getHeight(items[0], "outer") + 10) + 'px';
+    }
+    _getHeight(el, type) {
+        if (type === 'inner') return el.clientHeight;
+        else if (type === 'outer') return el.offsetHeight;
+        return 0;
+    }
+    _handler(el, ev) {
+        ev.stopPropagation(); // Prevent the global click listener from firing immediately
+        if (el.classList.contains('open')) {
+            this._close(el);
+        } else {
+            this._open(el);
+        }
+    }
+    _on(ele, type, selector, handler) {
+        ele.addEventListener(type, function(ev) {
+            let el = ev.target.closest(selector);
+            if (el) handler.call(this, el, ev);
+        });
+    }
+}
+// --- END: CUSTOM FLOATING MENU JAVASCRIPT CLASS ---
+
 document.addEventListener("DOMContentLoaded", () => {
     // Initialize Vanta.js animated background with FOG effect
     VANTA.FOG({
@@ -1006,7 +1071,7 @@ function renderProfilePage(renderFunc, params) {
             </div>
         </div>`;
     
-    // --- START: UPDATED AND FINAL CSS FOR PROFILE PAGE ---
+    // --- START: NEW CUSTOM DROPDOWN CSS ---
     const pageStyles = `<style>
         #page-profile .form-input { height: 56px; padding: 20px 12px 8px 12px; background-color: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.2); } 
         #page-profile .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; } 
@@ -1018,8 +1083,8 @@ function renderProfilePage(renderFunc, params) {
         .tab-btn.active { border-bottom-color: var(--brand-blue); color: #fff; } 
         .tab-panel { display: none; } 
         .tab-panel.active { display: block; animation: pageFadeIn 0.5s; }
-        
-        /* New and improved responsive styles for the plan selector */
+
+        /* Custom Floating Menu Styles */
         .plan-selector-container {
             display: flex;
             align-items: center;
@@ -1030,61 +1095,71 @@ function renderProfilePage(renderFunc, params) {
         .plan-selector-label {
             font-size: 0.875rem;
             font-weight: 600;
-            color: #d1d5db; /* gray-300 */
+            color: #d1d5db;
             flex-shrink: 0;
         }
-        .plan-selector-wrapper { 
-            position: relative;
-            width: 100%; /* Default to full width for mobile */
-        }
-        #plan-selector { 
-            -webkit-appearance: none; 
-            -moz-appearance: none; 
-            appearance: none; 
+
+        ul.fmenu { display: inline-block; list-style: none; padding: 0; margin: 0; white-space: nowrap; flex-grow: 1;}
+        ul.fmenu > li.fmenu-item { display: inline-block; position: relative; width: 100%; }
+        ul.fmenu .trigger-menu {
+            display: flex;
+            align-items: center;
+            box-sizing: border-box;
             width: 100%;
-            background-color: rgba(30, 41, 59, 0.5); 
+            height: 3rem; /* 48px */
+            padding: 0 1rem;
+            border-radius: 0.5rem; /* rounded-lg */
+            overflow: hidden;
+            background-color: rgba(30, 41, 59, 0.7); /* slate-800 with opacity */
             border: 1px solid #475569; /* slate-600 */
-            border-radius: 8px; 
-            padding: 0.5rem 2.5rem 0.5rem 0.75rem; 
-            color: #e5e7eb; 
-            font-weight: 500;
-            font-size: 0.875rem;
-            cursor: pointer; 
-            transition: all 0.3s ease; 
+            cursor: pointer;
+            transition: all ease 0.3s;
         }
-        #plan-selector:hover { 
-            border-color: var(--brand-blue); 
-        }
-        #plan-selector:focus { 
-            outline: none; 
-            border-color: var(--brand-blue); 
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
-        }
-        #plan-selector option {
-            background-color: #1e293b; /* slate-800 */
-            color: #e2e8f0; /* slate-200 */
-        }
-        .plan-selector-wrapper .icon { 
+        ul.fmenu .trigger-menu:hover, ul.fmenu .trigger-menu.open { border-color: var(--brand-blue); }
+        ul.fmenu .trigger-menu i { color: #9ca3af; font-size: 1rem; transition: color ease 0.3s; }
+        ul.fmenu .trigger-menu:hover i, ul.fmenu .trigger-menu.open i { color: #60a5fa; }
+        ul.fmenu .trigger-menu .text { display: block; font-size: 0.875rem; color: #e5e7eb; padding: 0 0.75rem; flex-grow: 1; text-align: left;}
+        ul.fmenu .trigger-menu .arrow { transition: transform ease 0.3s; }
+        ul.fmenu .trigger-menu.open .arrow { transform: rotate(180deg); }
+
+        ul.fmenu .floating-menu {
+            display: block;
             position: absolute;
-            right: 0.75rem; 
-            top: 50%;
-            transform: translateY(-50%);
-            color: #9ca3af; 
-            pointer-events: none; 
+            top: 3.25rem;
+            width: 100%;
+            list-style: none;
+            padding: 0.5rem;
+            margin: 0;
+            background-color: #1e293b; /* slate-800 */
+            border: 1px solid #475569; /* slate-600 */
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            max-height: 0px;
+            z-index: 100;
+            opacity: 0;
+            overflow: hidden;
+            transition: max-height ease 0.4s, opacity ease 0.3s;
+        }
+        ul.fmenu .floating-menu > li a {
+            color: #cbd5e1; /* slate-300 */
+            font-size: 0.875rem;
+            text-decoration: none;
+            display: block;
+            padding: 0.6rem 0.75rem;
+            border-radius: 0.375rem; /* rounded-md */
+            transition: all 0.2s ease;
+        }
+        ul.fmenu .floating-menu > li a:hover {
+            background-color: rgba(59, 130, 246, 0.2);
+            color: #ffffff;
         }
         
-        /* PC View adjustments */
         @media (min-width: 640px) { /* sm breakpoint */
-            .plan-selector-container {
-                justify-content: flex-start; 
-                flex-wrap: nowrap; /* Prevent wrapping on PC */
-            }
-            .plan-selector-wrapper {
-                width: 280px; /* Give it a fixed, appropriate width on PC */
-            }
+            .plan-selector-container { flex-wrap: nowrap; }
+            ul.fmenu { width: 280px; flex-grow: 0; }
         }
     </style>`;
-    // --- END: UPDATED AND FINAL CSS ---
+    // --- END: NEW CUSTOM DROPDOWN CSS ---
     
     let profilePictureUrl = (user.profilePicture || "/assets/profilePhoto.jpg").replace("public/", "");
     if (profilePictureUrl && !profilePictureUrl.startsWith('/')) {
@@ -1187,23 +1262,35 @@ function renderProfilePage(renderFunc, params) {
             };
     
             if (data.status === "approved" && data.activePlans?.length > 0) {
-                const planSelectorOptions = data.activePlans.map((plan, index) => `<option value="${index}">${plan.v2rayUsername}</option>`).join("");
-                
-                // --- START: UPDATED HTML STRUCTURE FOR PLAN SELECTOR ---
+                // --- START: NEW HTML FOR CUSTOM DROPDOWN ---
+                const planListItems = data.activePlans.map((plan, index) => 
+                    `<li><a href="#" data-plan-index="${index}">${plan.v2rayUsername}</a></li>`
+                ).join('');
+
                 statusContainer.innerHTML = `
                     <div class="plan-selector-container">
-                        <label for="plan-selector" class="plan-selector-label">Viewing Plan:</label>
-                        <div class="plan-selector-wrapper">
-                            <select id="plan-selector">${planSelectorOptions}</select>
-                            <i class="fa-solid fa-chevron-down icon"></i>
-                        </div>
+                        <label class="plan-selector-label">Viewing Plan:</label>
+                        <ul class="fmenu" id="plan-menu">
+                            <li class="fmenu-item">
+                                <div class="trigger-menu">
+                                    <i class="fa-solid fa-server"></i>
+                                    <span class="text">${data.activePlans[0].v2rayUsername}</span>
+                                    <i class="fa-solid fa-chevron-down arrow"></i>
+                                </div>
+                                <ul class="floating-menu">
+                                    ${planListItems}
+                                </ul>
+                            </li>
+                        </ul>
                     </div>
                     <div id="plan-details-container"></div>`;
-                // --- END: UPDATED HTML STRUCTURE ---
+                // --- END: NEW HTML FOR CUSTOM DROPDOWN ---
                 
                 const planDetailsContainer = document.getElementById("plan-details-container");
-                const planSelector = document.getElementById("plan-selector");
-    
+                
+                // Initialize the custom menu
+                planMenuInstance = new SikFloatingMenu("#plan-menu");
+                
                 const updateRenewButton = async (plan, isSilent = false) => {
                     const container = document.getElementById("renew-button-container");
                     if (!container) return;
@@ -1240,8 +1327,18 @@ function renderProfilePage(renderFunc, params) {
                 };
 
                 const displayPlanDetails = (planIndex) => {
+                    // Make sure planIndex is a valid number
+                    planIndex = parseInt(planIndex, 10);
+                    if (isNaN(planIndex) || planIndex < 0 || planIndex >= data.activePlans.length) {
+                        planIndex = 0; // Default to the first plan if index is invalid
+                    }
+                    
                     const plan = data.activePlans[planIndex];
-                    if (!plan) return;
+                    if (!plan) {
+                        console.error("Could not display plan details: Invalid plan index or no active plans.");
+                        planDetailsContainer.innerHTML = `<div class="card-glass p-8 rounded-xl text-center"><p class="text-amber-400">Could not load plan details. Please refresh.</p></div>`;
+                        return;
+                    };
     
                     const connectionName = dynamicConnections.find(c => c.name === plan.connId)?.name || plan.connId || 'N/A';
                     const planName = appData.plans[plan.planId]?.name || plan.planId;
@@ -1261,20 +1358,17 @@ function renderProfilePage(renderFunc, params) {
                     
                     const qrContainer = document.getElementById("qrcode-container");
                     qrContainer.innerHTML = "";
-                    // --- START: QR CODE FIX ---
                     try {
                         new QRCode(qrContainer, {
                             text: plan.v2rayLink,
                             width: 140,
                             height: 140,
-                            correctLevel: QRCode.CorrectLevel.L // Use Low error correction to fit more data
+                            correctLevel: QRCode.CorrectLevel.L
                         });
                     } catch (error) {
                         console.error("QR Code generation failed:", error);
-                        qrContainer.innerHTML = `<p class="text-xs text-red-500 text-center p-4">QR code could not be generated. The config link is likely too long for a standard QR code.</p>`;
-                        showToast({ title: "QR Code Error", message: "Config link is too long to generate a QR code.", type: "error" });
+                        qrContainer.innerHTML = `<p class="text-xs text-red-500 text-center p-4">QR code could not be generated. The config link is likely too long.</p>`;
                     }
-                    // --- END: QR CODE FIX ---
 
                     qrContainer.addEventListener('click', () => {
                         const img = qrContainer.querySelector('img');
@@ -1306,17 +1400,13 @@ function renderProfilePage(renderFunc, params) {
                             const res = await apiFetch("/api/user/orders");
                             if (!res.ok) throw new Error("Failed to fetch orders");
                             const { orders } = await res.json();
-                            const currentHtml = ordersContainer.innerHTML;
                             const ordersHtml = (orders.length > 0) ? orders.map(order => {
                                 const statusColors = { pending: "text-amber-400", approved: "text-green-400", rejected: "text-red-400" };
                                 const statusIcons = { pending: "fa-solid fa-clock", approved: "fa-solid fa-check-circle", rejected: "fa-solid fa-times-circle" };
                                 return `<div class="card-glass p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"><div><p class="font-bold text-white">${appData.plans[order.plan_id]?.name || order.plan_id} <span class="text-gray-400 font-normal">for</span> ${dynamicConnections.find(c => c.name === order.conn_id)?.name || order.conn_id}</p><p class="text-xs text-gray-400 mt-1">Ordered on: ${new Date(order.created_at).toLocaleDateString()} ${order.status === 'approved' && order.final_username ? `| V2Ray User: <strong class="text-blue-300">${order.final_username}</strong>` : ''}</p></div><div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'}"><i class="${statusIcons[order.status] || 'fa-solid fa-question-circle'}"></i><span>${order.status}</span></div></div>`;
                             }).join('') : `<div class="card-glass p-8 rounded-xl text-center"><i class="fa-solid fa-box-open text-4xl text-gray-400 mb-4"></i><h3 class="font-bold text-white">No Orders Found</h3><p class="text-gray-400 text-sm mt-2">You have not placed any orders yet.</p></div>`;
                             
-                            const newHtml = `<div class="space-y-3">${ordersHtml}</div>`;
-                            if (currentHtml !== newHtml) {
-                                ordersContainer.innerHTML = newHtml;
-                            }
+                            ordersContainer.innerHTML = `<div class="space-y-3">${ordersHtml}</div>`;
                         } catch (err) {
                             if (!isSilent) {
                                 ordersContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-red-400"><p>Could not load your orders.</p></div>`;
@@ -1340,60 +1430,31 @@ function renderProfilePage(renderFunc, params) {
                     tabs.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') switchTab(e.target.dataset.tab); });
                     switchTab(params.get('tab') || 'config');
                     setupEventListeners();
-
-                    if (globalProfileReloader) clearInterval(globalProfileReloader);
-                    globalProfileReloader = setInterval(async () => {
-                        try {
-                            // 1. Fetch fresh user status silently
-                            const res = await apiFetch("/api/user/status");
-                            if (!res.ok) return;
-                            const freshData = await res.json();
-                            const newActivePlans = freshData.activePlans || [];
-                            data.activePlans = newActivePlans; // Update the data in the closure for other functions
-                    
-                            // 2. Compare and update plan selector if needed
-                            const currentPlanSelector = document.getElementById('plan-selector');
-                            if (currentPlanSelector) {
-                                const currentPlanUsernames = Array.from(currentPlanSelector.options).map(opt => opt.text);
-                                const newPlanUsernames = newActivePlans.map(plan => plan.v2rayUsername);
-                    
-                                const areDifferent = currentPlanUsernames.length !== newPlanUsernames.length ||
-                                    !currentPlanUsernames.every((u, i) => u === newPlanUsernames[i]);
-                    
-                                if (areDifferent) {
-                                    showToast({ title: "Plans Updated", message: "Your list of active plans has been refreshed.", type: "info" });
-                                    const selectedValue = currentPlanSelector.value;
-                                    currentPlanSelector.innerHTML = newActivePlans.map((plan, index) => `<option value="${index}">${plan.v2rayUsername}</option>`).join("");
-                                    currentPlanSelector.value = selectedValue < newActivePlans.length ? selectedValue : "0";
-                                    currentPlanSelector.dispatchEvent(new Event('change'));
-                                    return; // Return because the change event will handle other refreshes
-                                }
-                            }
-                    
-                            // 3. Continue with existing silent updates for the current tab
-                            const activeTabEl = document.querySelector('#profile-tabs .tab-btn.active');
-                            if (activeTabEl) {
-                                const activeTabId = activeTabEl.dataset.tab;
-                                const currentPlanIndex = currentPlanSelector ? parseInt(currentPlanSelector.value, 10) : 0;
-                                const currentPlan = newActivePlans[currentPlanIndex];
-                    
-                                if (currentPlan) {
-                                    if (activeTabId === 'config') {
-                                        updateRenewButton(currentPlan, true);
-                                    } else if (activeTabId === 'orders') {
-                                        loadMyOrders(true);
-                                    }
-                                }
-                            }
-                        } catch (error) {
-                            console.error("Error during profile auto-reload:", error);
-                        }
-                    }, 30000); 
-
                 };
                 
-                planSelector.addEventListener("change", (e) => displayPlanDetails(e.target.value));
-                displayPlanDetails(planSelector.value);
+                // Add event listener for plan selection
+                const floatingMenu = document.querySelector('#plan-menu .floating-menu');
+                if (floatingMenu) {
+                    floatingMenu.addEventListener('click', (e) => {
+                        const link = e.target.closest('a');
+                        if (link) {
+                            e.preventDefault();
+                            const planIndex = link.dataset.planIndex;
+                            if (planIndex !== undefined) {
+                                // Update trigger text
+                                const triggerText = document.querySelector('#plan-menu .trigger-menu .text');
+                                triggerText.textContent = data.activePlans[planIndex].v2rayUsername;
+                                // Call the main function to re-render details
+                                displayPlanDetails(planIndex);
+                                // Close the menu
+                                planMenuInstance.closeAll();
+                            }
+                        }
+                    });
+                }
+
+                // Initial display
+                displayPlanDetails(0);
     
             } else if (data.status === "pending") {
                 statusContainer.innerHTML = `<div class="card-glass p-8 rounded-xl text-center"><i class="fa-solid fa-clock text-4xl text-amber-400 mb-4 animate-pulse"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Order Pending Approval</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">Your order is currently being reviewed. Your profile will update here once approved.</p></div>`;
@@ -1812,3 +1873,5 @@ function renderProfilePage(renderFunc, params) {
 
     init();
 });
+
+
