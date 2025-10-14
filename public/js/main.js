@@ -1019,13 +1019,14 @@ function renderProfilePage(renderFunc, params) {
         .tab-panel { display: none; } 
         .tab-panel.active { display: block; animation: pageFadeIn 0.5s; }
         
-        /* New and improved styles for the plan selector */
+        /* New and improved responsive styles for the plan selector */
         .plan-selector-container {
             display: flex;
-            justify-content: space-between;
+            justify-content: space-between; /* On mobile, space out label and select */
             align-items: center;
             gap: 1rem;
             margin-bottom: 1.5rem;
+            flex-wrap: wrap; /* Allow wrapping on very small screens */
         }
         .plan-selector-label {
             font-size: 0.875rem;
@@ -1035,19 +1036,18 @@ function renderProfilePage(renderFunc, params) {
         }
         .plan-selector-wrapper { 
             position: relative;
-            flex-grow: 1; /* Allows the selector to take available space */
-            min-width: 150px; /* Ensures it doesn't get too small */
+            flex-grow: 1; /* On mobile, let it take up available space */
         }
         #plan-selector { 
             -webkit-appearance: none; 
             -moz-appearance: none; 
             appearance: none; 
-            width: 100%; /* Take the full width of its wrapper */
-            background-color: rgba(30, 41, 59, 0.5); /* slate-800 with opacity */
-            border: 1px solid rgba(71, 85, 105, 1); /* slate-600 */
+            width: 100%;
+            background-color: rgba(30, 41, 59, 0.5); 
+            border: 1px solid #475569; /* slate-600 */
             border-radius: 8px; 
-            padding: 0.5rem 2.5rem 0.5rem 0.75rem; /* py-2 pl-3 pr-10 */
-            color: #e5e7eb; /* gray-200 */
+            padding: 0.5rem 2.5rem 0.5rem 0.75rem; 
+            color: #e5e7eb; 
             font-weight: 500;
             font-size: 0.875rem;
             cursor: pointer; 
@@ -1055,25 +1055,34 @@ function renderProfilePage(renderFunc, params) {
         }
         #plan-selector:hover { 
             border-color: var(--brand-blue); 
-            background-color: rgba(59, 130, 246, 0.1); 
         }
         #plan-selector:focus { 
             outline: none; 
             border-color: var(--brand-blue); 
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
         }
+        #plan-selector option {
+            background-color: #1e293b; /* slate-800 */
+            color: #e2e8f0; /* slate-200 */
+        }
         .plan-selector-wrapper .icon { 
             position: absolute;
-            right: 0.75rem; /* right-3 */
+            right: 0.75rem; 
             top: 50%;
             transform: translateY(-50%);
-            color: #9ca3af; /* gray-400 */
-            font-size: 0.875rem; /* text-sm */
+            color: #9ca3af; 
             pointer-events: none; 
-            transition: color 0.3s ease;
         }
-        .plan-selector-wrapper:hover .icon { 
-            color: #ffffff; 
+        
+        /* PC View adjustments */
+        @media (min-width: 640px) { /* sm breakpoint */
+            .plan-selector-container {
+                justify-content: flex-start; /* On PC, align items to the start */
+            }
+            .plan-selector-wrapper {
+                flex-grow: 0; /* Stop the wrapper from growing */
+                width: 280px; /* Give it a fixed, appropriate width */
+            }
         }
     </style>`;
     // --- END: UPDATED AND FINAL CSS ---
