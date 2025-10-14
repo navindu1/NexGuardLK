@@ -1015,7 +1015,7 @@ function renderProfilePage(renderFunc, params) {
     background-color: rgba(0, 0, 0, 0.2); 
     border: 1px solid rgba(255, 255, 255, 0.15); 
     border-radius: 8px; 
-    padding: 0.375rem 2.5rem 0.375rem 0.75rem; /* <-- මෙයින් icon එකට ඉඩ වෙන් කරයි */
+    padding: 0.375rem 2.5rem 0.375rem 0.75rem; /* <-- This makes space for the icon */
     color: #e0e0e0; 
     font-weight: 500;
     font-size: 0.875rem;
@@ -1255,17 +1255,51 @@ function renderProfilePage(renderFunc, params) {
                     setupEventListeners();
 
                     if (globalProfileReloader) clearInterval(globalProfileReloader);
-                    globalProfileReloader = setInterval(() => {
-                        const activeTabEl = document.querySelector('#profile-tabs .tab-btn.active');
-                        if (activeTabEl) {
-                            const activeTabId = activeTabEl.dataset.tab;
-                            const currentPlanIndex = document.getElementById('plan-selector').value;
-                            const currentPlan = data.activePlans[currentPlanIndex];
-                            if (activeTabId === 'config') {
-                                updateRenewButton(currentPlan, true);
-                            } else if (activeTabId === 'orders') {
-                                loadMyOrders(true);
+                    globalProfileReloader = setInterval(async () => {
+                        try {
+                            // 1. Fetch fresh user status silently
+                            const res = await apiFetch("/api/user/status");
+                            if (!res.ok) return;
+                            const freshData = await res.json();
+                            const newActivePlans = freshData.activePlans || [];
+                            data.activePlans = newActivePlans; // Update the data in the closure for other functions
+                    
+                            // 2. Compare and update plan selector if needed
+                            const currentPlanSelector = document.getElementById('plan-selector');
+                            if (currentPlanSelector) {
+                                const currentPlanUsernames = Array.from(currentPlanSelector.options).map(opt => opt.text);
+                                const newPlanUsernames = newActivePlans.map(plan => plan.v2rayUsername);
+                    
+                                const areDifferent = currentPlanUsernames.length !== newPlanUsernames.length ||
+                                    !currentPlanUsernames.every((u, i) => u === newPlanUsernames[i]);
+                    
+                                if (areDifferent) {
+                                    showToast({ title: "Plans Updated", message: "Your list of active plans has been refreshed.", type: "info" });
+                                    const selectedValue = currentPlanSelector.value;
+                                    currentPlanSelector.innerHTML = newActivePlans.map((plan, index) => `<option value="${index}">${plan.v2rayUsername}</option>`).join("");
+                                    currentPlanSelector.value = selectedValue < newActivePlans.length ? selectedValue : "0";
+                                    currentPlanSelector.dispatchEvent(new Event('change'));
+                                    return; // Return because the change event will handle other refreshes
+                                }
                             }
+                    
+                            // 3. Continue with existing silent updates for the current tab
+                            const activeTabEl = document.querySelector('#profile-tabs .tab-btn.active');
+                            if (activeTabEl) {
+                                const activeTabId = activeTabEl.dataset.tab;
+                                const currentPlanIndex = currentPlanSelector ? parseInt(currentPlanSelector.value, 10) : 0;
+                                const currentPlan = newActivePlans[currentPlanIndex];
+                    
+                                if (currentPlan) {
+                                    if (activeTabId === 'config') {
+                                        updateRenewButton(currentPlan, true);
+                                    } else if (activeTabId === 'orders') {
+                                        loadMyOrders(true);
+                                    }
+                                }
+                            }
+                        } catch (error) {
+                            console.error("Error during profile auto-reload:", error);
                         }
                     }, 30000); 
 

@@ -106,11 +106,16 @@ body.modal-open {
   border-radius: 9999px; /* Fully rounded */
 }
 
-.nav-link.active,
-.nav-link:hover {
+.nav-link.active {
   color: #ffffff;
   background-color: rgba(255, 255, 255, 0.05);
 }
+
+.nav-link:hover {
+  color: #ffffff;
+  background-color: rgba(59, 130, 246, 0.15); /* A bit more visible background */
+}
+
 
 /* MODIFIED: Changed border-radius from 9999px to 1rem */
 .card {
@@ -277,22 +282,21 @@ body.modal-open {
 
 /* --- START: CLEANED UP AND UPDATED NAVBAR SCROLL ANIMATION --- */
 #main-header {
-    /* 1. මූලික තත්ත්වය (පිටුව උඩම ඇති විට) */
+    /* 1. Initial state (when at top of page) */
     background-color: transparent !important;
     border-color: transparent !important;
     box-shadow: none !important;
     backdrop-filter: blur(0px) !important;
 
-    /* 2. Animation එක (සියලුම දේ සුමටව වෙනස් වීමට) */
+    /* 2. Animation for smooth transition */
     transition: all 0.4s ease-in-out;
 }
 
 #main-header.scrolled {
-    /* 3. Scroll කළ විට ලැබෙන පෙනුම */
+    /* 3. Appearance when scrolled */
     backdrop-filter: blur(16px) !important;
 
-    /* 4. යාවත්කාලීන කරන ලද, වඩාත් මෘදු Shadow එක */
+    /* 4. Updated, softer shadow */
     box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25), 0 0 40px rgba(59, 130, 246, 0.2) !important;
 }
 /* --- END: CLEANED UP AND UPDATED NAVBAR SCROLL ANIMATION --- */
-
