@@ -74,37 +74,33 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                     return { success: false, message: `Renewal failed: User '${order.username}' not found in the panel. Cannot create a new user during renewal.` };
                 }
             } else { 
-                const existingClient = await v2rayService.findV2rayClient(order.username);
+                // --- START: REVISED AND CORRECTED LOGIC FOR NEW USERS ---
+                finalUsername = order.username;
+                const allPanelClients = await v2rayService.getAllClients();
 
-                if (existingClient && order.status === 'pending') {
-                    console.log(`[Adoption] Adopting existing V2Ray user "${order.username}" for pending order ${order.id}.`);
-                    finalUsername = order.username;
-                    createdV2rayClient = { settings: existingClient.client, inboundId: existingClient.inboundId, isAdopted: true };
-                    clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, existingClient.client);
-                } else {
-                    // --- START: NEW LOGIC FOR UNIQUE USERNAME GENERATION ---
-                    finalUsername = order.username;
-                    const allPanelClients = await v2rayService.getAllClients();
-
-                    // Check if the username already exists in the panel AND has not been finalized yet on the order
-                    if (allPanelClients.has(finalUsername.toLowerCase()) && !order.final_username) { 
-                        let counter = 1;
-                        let newUsername;
-                        do {
-                            newUsername = `${order.username}-${counter++}`;
-                        } while (allPanelClients.has(newUsername.toLowerCase()));
-                        finalUsername = newUsername;
-                        console.log(`[Username Conflict] Original username was taken. Generated new unique username: ${finalUsername}`);
-                    }
-                    // --- END: NEW LOGIC ---
-                    
-                    if (order.status === 'pending') {
-                        const clientSettings = { id: uuidv4(), email: finalUsername, total: totalGBValue, expiryTime, enable: true };
-                        await v2rayService.addClient(inboundId, clientSettings);
-                        createdV2rayClient = { settings: clientSettings, inboundId: inboundId };
-                        clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientSettings);
-                    }
+                // Check for username collision and generate a new unique name if needed.
+                if (allPanelClients.has(finalUsername.toLowerCase())) { 
+                    let counter = 1;
+                    let newUsername;
+                    do {
+                        newUsername = `${order.username}-${counter++}`;
+                    } while (allPanelClients.has(newUsername.toLowerCase()));
+                    finalUsername = newUsername;
+                    console.log(`[Username Conflict] Original username was taken. Generated new unique username: ${finalUsername}`);
                 }
+                
+                // Always create a new client for a new (non-renewal) order.
+                const clientSettings = { id: uuidv4(), email: finalUsername, total: totalGBValue, expiryTime, enable: true };
+                const addClientResult = await v2rayService.addClient(inboundId, clientSettings);
+
+                // IMPORTANT: Check if the V2Ray panel actually created the user successfully.
+                if (!addClientResult || !addClientResult.success) {
+                    throw new Error(`Failed to create V2Ray user in panel: ${addClientResult.msg || 'Client already exists or an unknown panel error occurred.'}`);
+                }
+
+                createdV2rayClient = { settings: clientSettings, inboundId: inboundId };
+                clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientSettings);
+                // --- END: REVISED LOGIC ---
             }
         
             if (finalUsername && !clientLink) {
