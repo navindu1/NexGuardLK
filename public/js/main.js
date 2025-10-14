@@ -1022,11 +1022,10 @@ function renderProfilePage(renderFunc, params) {
         /* New and improved responsive styles for the plan selector */
         .plan-selector-container {
             display: flex;
-            justify-content: space-between; /* On mobile, space out label and select */
             align-items: center;
             gap: 1rem;
             margin-bottom: 1.5rem;
-            flex-wrap: wrap; /* Allow wrapping on very small screens */
+            flex-wrap: wrap; 
         }
         .plan-selector-label {
             font-size: 0.875rem;
@@ -1036,7 +1035,7 @@ function renderProfilePage(renderFunc, params) {
         }
         .plan-selector-wrapper { 
             position: relative;
-            flex-grow: 1; /* On mobile, let it take up available space */
+            width: 100%; /* Default to full width for mobile */
         }
         #plan-selector { 
             -webkit-appearance: none; 
@@ -1077,11 +1076,11 @@ function renderProfilePage(renderFunc, params) {
         /* PC View adjustments */
         @media (min-width: 640px) { /* sm breakpoint */
             .plan-selector-container {
-                justify-content: flex-start; /* On PC, align items to the start */
+                justify-content: flex-start; 
+                flex-wrap: nowrap; /* Prevent wrapping on PC */
             }
             .plan-selector-wrapper {
-                flex-grow: 0; /* Stop the wrapper from growing */
-                width: 280px; /* Give it a fixed, appropriate width */
+                width: 280px; /* Give it a fixed, appropriate width on PC */
             }
         }
     </style>`;
