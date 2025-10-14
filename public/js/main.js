@@ -1168,7 +1168,7 @@ function renderProfilePage(renderFunc, params) {
             font-size: 0.875rem;
             text-decoration: none;
             display: block;
-            padding: 0.5rem 0.75rem; /* Compact padding */
+            padding: 0.4rem 0.75rem; /* CHANGED: Reduced padding to make options more compact */
             border-radius: 0.375rem; /* rounded-md */
             transition: all 0.2s ease;
         }
