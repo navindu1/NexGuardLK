@@ -113,7 +113,8 @@ body.modal-open {
 
 .nav-link:hover {
   color: #ffffff;
-  background-color: rgba(59, 130, 246, 0.15); /* A bit more visible background */
+  background-color: rgba(59, 130, 246, 0.1); /* Subtle blue background from theme */
+  text-shadow: 0 0 8px rgba(59, 130, 246, 0.5); /* Blue text glow */
 }
 
 
