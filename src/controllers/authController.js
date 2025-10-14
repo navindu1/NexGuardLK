@@ -1,3 +1,5 @@
+// File Path: src/controllers/authController.js (UPDATED AND CORRECTED)
+
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
@@ -50,8 +52,13 @@ exports.register = async (req, res) => {
                 generateOtpEmailContent(otp)
             ),
         };
-        await transporter.sendMail(mailOptions);
-        console.log(`OTP sent to ${email}: ${otp}`);
+
+        // --- FIX: Changed from await to non-blocking "fire-and-forget" ---
+        transporter.sendMail(mailOptions).catch(err => {
+            console.error(`FAILED to send OTP email to ${email}:`, err);
+        });
+
+        console.log(`OTP sending process initiated for ${email}: ${otp}`);
         res.status(200).json({
             success: true,
             message: `An OTP has been sent to ${email}. Please verify to complete registration.`,
@@ -186,18 +193,15 @@ exports.resellerLogin = async (req, res) => {
     }
 };
 
-// --- UPDATED forgotPassword FUNCTION ---
 exports.forgotPassword = async (req, res) => {
     const { email } = req.body;
     try {
-        // Use Supabase syntax to find the user
         const { data: user, error: userError } = await supabase
             .from("users")
             .select("*")
             .eq("email", email)
             .single();
 
-        // Always send a vague success message for security
         if (userError || !user) {
             return res.json({ message: 'If an account with that email exists, a password reset link has been sent.' });
         }
@@ -206,7 +210,6 @@ exports.forgotPassword = async (req, res) => {
         const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
         const resetExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-        // Use Supabase syntax to update the user record
         const { error: updateError } = await supabase
             .from("users")
             .update({
@@ -218,21 +221,18 @@ exports.forgotPassword = async (req, res) => {
         if (updateError) throw updateError;
         
         const resetURL = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
-        const title = 'Password Reset Request';
-        const preheader = 'Use the link inside to reset your password.';
-        
-        const content = generatePasswordResetEmailContent(user.username, resetURL);
-        const emailHtml = generateEmailTemplate(title, preheader, content);
-        const subject = 'Your Password Reset Link (Valid for 10 mins)';
-
         const mailOptions = {
             from: `NexGuard <${process.env.EMAIL_SENDER}>`,
             to: user.email,
-            subject: subject,
-            html: emailHtml,
+            subject: 'Your Password Reset Link (Valid for 10 mins)',
+            html: generateEmailTemplate('Password Reset Request', 'Use the link inside to reset your password.', generatePasswordResetEmailContent(user.username, resetURL)),
         };
 
-        await transporter.sendMail(mailOptions);
+        // --- FIX: Changed from await to non-blocking "fire-and-forget" ---
+        transporter.sendMail(mailOptions).catch(err => {
+            console.error(`FAILED to send password reset email to ${user.email}:`, err);
+        });
+
         res.json({ message: 'Password reset link has been sent to your email.' });
 
     } catch (error) {
@@ -241,7 +241,6 @@ exports.forgotPassword = async (req, res) => {
     }
 };
 
-// --- UPDATED resetPassword FUNCTION ---
 exports.resetPassword = async (req, res) => {
     const { token, newPassword } = req.body;
     if (!token || !newPassword || newPassword.length < 6) {
@@ -254,7 +253,6 @@ exports.resetPassword = async (req, res) => {
     try {
         const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
-        // Use Supabase syntax to find user by hashed token
         const { data: user, error } = await supabase
             .from("users")
             .select("*")
@@ -271,7 +269,6 @@ exports.resetPassword = async (req, res) => {
 
         const hashedPassword = bcrypt.hashSync(newPassword, 10);
         
-        // Use Supabase syntax to update password and clear tokens
         const { error: updateError } = await supabase
             .from("users")
             .update({ password: hashedPassword, password_reset_token: null, password_reset_expires: null })
