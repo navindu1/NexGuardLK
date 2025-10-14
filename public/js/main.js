@@ -32,7 +32,6 @@ class SikFloatingMenu {
         list.style.removeProperty("opacity");
     }
     closeAll() {
-        if (!this.menuEl) return;
         let opened = this.menuEl.querySelectorAll('.trigger-menu.open');
         for (const ele of opened) {
             this._close(ele);
@@ -65,7 +64,6 @@ class SikFloatingMenu {
 }
 // --- END: CUSTOM FLOATING MENU JAVASCRIPT CLASS ---
 
-
 document.addEventListener("DOMContentLoaded", () => {
     // Initialize Vanta.js animated background with FOG effect
     VANTA.FOG({
@@ -91,7 +89,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const sidebar = document.getElementById("mobile-sidebar");
     const overlay = document.getElementById("sidebar-overlay");
     let userSession = null;
-    let planMenuInstance = null; // To hold the menu instance
 
     const pageTitles = {
         home: 'Home - NexGuardLK STORE',
@@ -1074,7 +1071,7 @@ function renderProfilePage(renderFunc, params) {
             </div>
         </div>`;
     
-    // --- START: NEW CUSTOM DROPDOWN CSS ---
+    // --- START: UPDATED AND FINAL CSS FOR PROFILE PAGE ---
     const pageStyles = `<style>
         #page-profile .form-input { height: 56px; padding: 20px 12px 8px 12px; background-color: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.2); } 
         #page-profile .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; } 
@@ -1086,56 +1083,78 @@ function renderProfilePage(renderFunc, params) {
         .tab-btn.active { border-bottom-color: var(--brand-blue); color: #fff; } 
         .tab-panel { display: none; } 
         .tab-panel.active { display: block; animation: pageFadeIn 0.5s; }
-
-        /* Custom Floating Menu Styles */
+        
+        /* New and improved compact styles for the plan selector */
         .plan-selector-container {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 0.75rem; /* Reduced gap */
             margin-bottom: 1.5rem;
-            flex-wrap: wrap; 
         }
         .plan-selector-label {
             font-size: 0.875rem;
             font-weight: 600;
-            color: #d1d5db;
+            color: #d1d5db; /* gray-300 */
             flex-shrink: 0;
         }
-
-        ul.fmenu { display: inline-block; list-style: none; padding: 0; margin: 0; white-space: nowrap; flex-grow: 1;}
-        ul.fmenu > li.fmenu-item { display: inline-block; position: relative; width: 100%; }
+        ul.fmenu {
+            display: inline-block;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            white-space: nowrap;
+        }
+        ul.fmenu > li.fmenu-item {
+            position: relative;
+        }
         ul.fmenu .trigger-menu {
             display: flex;
             align-items: center;
             box-sizing: border-box;
-            width: 100%;
-            height: 2.25rem; /* Compact height */
-            padding: 0 0.75rem;
+            height: 2.25rem; /* Reduced height from 3rem */
+            padding: 0 0.75rem; /* Adjusted padding */
             border-radius: 0.375rem; /* rounded-md */
             overflow: hidden;
-            background-color: rgba(30, 41, 59, 0.7);
-            border: 1px solid #475569;
+            background-color: rgba(30, 41, 59, 0.7); /* slate-800 with opacity */
+            border: 1px solid #475569; /* slate-600 */
             cursor: pointer;
             transition: all ease 0.3s;
         }
-        ul.fmenu .trigger-menu:hover, ul.fmenu .trigger-menu.open { border-color: var(--brand-blue); }
-        ul.fmenu .trigger-menu i { color: #9ca3af; font-size: 0.875rem; transition: color ease 0.3s; }
-        ul.fmenu .trigger-menu:hover i, ul.fmenu .trigger-menu.open i { color: #60a5fa; }
-        ul.fmenu .trigger-menu .text { display: block; font-size: 0.875rem; color: #e5e7eb; padding: 0 0.5rem; flex-grow: 1; text-align: left;}
-        ul.fmenu .trigger-menu .arrow { font-size: 0.75rem; transition: transform ease 0.3s; }
-        ul.fmenu .trigger-menu.open .arrow { transform: rotate(180deg); }
-
+        ul.fmenu .trigger-menu:hover, ul.fmenu .trigger-menu.open {
+            border-color: var(--brand-blue);
+        }
+        ul.fmenu .trigger-menu i {
+            color: #9ca3af;
+            font-size: 0.875rem; /* Smaller icon */
+            transition: color ease 0.3s;
+        }
+        ul.fmenu .trigger-menu:hover i, ul.fmenu .trigger-menu.open i {
+            color: #60a5fa;
+        }
+        ul.fmenu .trigger-menu .text {
+            display: block;
+            font-size: 0.875rem;
+            color: #e5e7eb;
+            padding: 0 0.5rem; /* Reduced padding */
+        }
+        ul.fmenu .trigger-menu .arrow {
+            font-size: 0.75rem; /* Smaller arrow */
+            transition: transform ease 0.3s;
+        }
+        ul.fmenu .trigger-menu.open .arrow {
+            transform: rotate(180deg);
+        }
         ul.fmenu .floating-menu {
             display: block;
             position: absolute;
-            top: 2.5rem;
+            top: 2.5rem; /* Adjusted position */
             width: 100%;
             min-width: 200px;
             list-style: none;
             padding: 0.5rem;
             margin: 0;
-            background-color: #1e293b;
-            border: 1px solid #475569;
+            background-color: #1e293b; /* slate-800 */
+            border: 1px solid #475569; /* slate-600 */
             border-radius: 0.5rem;
             box-shadow: 0 10px 20px rgba(0,0,0,0.3);
             max-height: 0px;
@@ -1145,22 +1164,17 @@ function renderProfilePage(renderFunc, params) {
             transition: max-height ease 0.4s, opacity ease 0.3s;
         }
         ul.fmenu .floating-menu > li a {
-            color: #cbd5e1;
+            color: #cbd5e1; /* slate-300 */
             font-size: 0.875rem;
             text-decoration: none;
             display: block;
-            padding: 0.4rem 0.75rem; /* Compact padding */
-            border-radius: 0.375rem;
+            padding: 0.4rem 0.75rem; /* CHANGED: Reduced padding to make options more compact */
+            border-radius: 0.375rem; /* rounded-md */
             transition: all 0.2s ease;
         }
         ul.fmenu .floating-menu > li a:hover {
             background-color: rgba(59, 130, 246, 0.2);
             color: #ffffff;
-        }
-        
-        @media (min-width: 640px) { /* sm breakpoint */
-            .plan-selector-container { flex-wrap: nowrap; }
-            ul.fmenu { width: 280px; flex-grow: 0; }
         }
     </style>`;
     // --- END: NEW CUSTOM DROPDOWN CSS ---
@@ -1451,7 +1465,7 @@ function renderProfilePage(renderFunc, params) {
                                 // Call the main function to re-render details
                                 displayPlanDetails(planIndex);
                                 // Close the menu
-                                if (planMenuInstance) planMenuInstance.closeAll();
+                                planMenuInstance.closeAll();
                             }
                         }
                     });
@@ -1474,6 +1488,8 @@ function renderProfilePage(renderFunc, params) {
             statusContainer.innerHTML = `<div class="card-glass p-8 rounded-xl text-center"><p class="text-red-400">Could not load profile data. Please try logging in again.</p></div>`;
         });
 }
+
+
 
     function renderAuthPage(renderFunc, params, initialPanel = "signin") {
         const resetToken = params.get("token");
@@ -1875,4 +1891,5 @@ function renderProfilePage(renderFunc, params) {
 
     init();
 });
+
 
