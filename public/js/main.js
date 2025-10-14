@@ -763,8 +763,6 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>`);
 }
     
-// File Path: public/js/main.js
-
 function renderCheckoutPage(renderFunc, params) {
     const user = JSON.parse(localStorage.getItem("nexguard_user"));
     if (!user) {
@@ -1194,8 +1192,26 @@ function renderProfilePage(renderFunc, params) {
                     
                     const qrContainer = document.getElementById("qrcode-container");
                     qrContainer.innerHTML = "";
-                    new QRCode(qrContainer, { text: plan.v2rayLink, width: 140, height: 140 });
-                    qrContainer.addEventListener('click', () => showQrModal(qrContainer.querySelector('img').src, plan.v2rayUsername));
+                    // --- START: QR CODE FIX ---
+                    try {
+                        new QRCode(qrContainer, {
+                            text: plan.v2rayLink,
+                            width: 140,
+                            height: 140,
+                            correctLevel: QRCode.CorrectLevel.L // Use Low error correction to fit more data
+                        });
+                    } catch (error) {
+                        console.error("QR Code generation failed:", error);
+                        qrContainer.innerHTML = `<p class="text-xs text-red-500 text-center p-4">QR code could not be generated. The config link is likely too long for a standard QR code.</p>`;
+                        showToast({ title: "QR Code Error", message: "Config link is too long to generate a QR code.", type: "error" });
+                    }
+                    // --- END: QR CODE FIX ---
+
+                    qrContainer.addEventListener('click', () => {
+                        const img = qrContainer.querySelector('img');
+                        if (img) showQrModal(img.src, plan.v2rayUsername);
+                    });
+
                     document.getElementById('copy-config-btn').addEventListener('click', () => { navigator.clipboard.writeText(plan.v2rayLink); showToast({ title: 'Copied!', message: 'Config link copied to clipboard.', type: 'success' }); });
     
                     const tabs = document.getElementById('profile-tabs');
