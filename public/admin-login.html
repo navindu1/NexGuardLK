@@ -7,24 +7,38 @@
     <link rel="stylesheet" href="/css/output.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.fog.min.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #020010; color: #e0e0e0; }
-        .glass-panel { background: rgba(10, 8, 28, 0.75); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .form-input { font-size: 14px; color: #e0e0e0; width: 100%; height: 48px; border: 1px solid rgba(255, 255, 255, 0.2); background-color: rgba(0, 0, 0, 0.3); padding: 0 12px; transition: 0.4s; outline: none; border-radius: 6px; }
-        .ai-button { background: linear-gradient(90deg, #818cf8, #a78bfa, #f472b6); font-family: 'Orbitron', sans-serif; }
+        #vanta-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+        .glass-panel { 
+            background: rgba(15, 23, 42, 0.4); 
+            backdrop-filter: blur(16px); 
+            border: 1px solid rgba(71, 85, 105, 0.5); 
+        }
+        .form-input {
+            border-radius: 8px; /* rounded-lg */
+        }
+        .ai-button { 
+            background: linear-gradient(90deg, #3b82f6, #60a5fa); 
+            font-family: 'Orbitron', sans-serif;
+            border-radius: 8px; /* rounded-lg */
+        }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen">
+    <div id="vanta-bg"></div>
     <div class="w-full max-w-sm mx-auto glass-panel rounded-xl p-8">
-        <h1 class="text-3xl font-bold text-center mb-4 font-['Orbitron']">Admin Access</h1>
+        <h1 class="text-3xl font-bold text-center mb-4 font-['Orbitron'] text-white">Admin Access</h1>
         <form id="admin-login-form" class="space-y-6">
             <div>
                 <label for="username" class="sr-only">Username</label>
-                <input type="text" id="username" class="form-input" required placeholder="Admin Username">
+                <input type="text" id="username" class="form-input w-full bg-slate-800 border border-slate-700 px-3 py-2 text-sm" required placeholder="Admin Username">
             </div>
             <div class="relative">
                 <label for="password" class="sr-only">Password</label>
-                <input type="password" id="password" class="form-input pr-10" required placeholder="Admin Password">
+                <input type="password" id="password" class="form-input w-full bg-slate-800 border border-slate-700 px-3 py-2 text-sm pr-10" required placeholder="Admin Password">
                 <i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="password-toggle"></i>
             </div>
             
@@ -36,12 +50,28 @@
             </div>
 
             <div id="error-message" class="text-red-400 text-sm text-center min-h-[20px]"></div>
-            <button type="submit" class="w-full py-2.5 font-semibold text-white rounded-lg ai-button">Login</button>
+            <button type="submit" class="w-full py-2.5 font-semibold text-white ai-button">Login</button>
         </form>
     </div>
 
     <script>
-        // --- Password Toggle Logic ---
+        VANTA.FOG({
+            el: "#vanta-bg",
+            mouseControls: true,
+            touchControls: true,
+            gyroControls: false,
+            minHeight: 200.00,
+            minWidth: 200.00,
+            highlightColor: 0x0,
+            midtoneColor: 0x569e8, 
+            lowlightColor: 0x0,
+            baseColor: 0x0,
+            blurFactor: 0.90,
+            speed: 1.30,
+            zoom: 0.60
+        });
+
+        // Password Toggle Logic
         const passwordInput = document.getElementById('password');
         const passwordToggle = document.getElementById('password-toggle');
         passwordToggle.addEventListener('click', () => {
@@ -51,12 +81,12 @@
             passwordToggle.classList.toggle('fa-eye-slash');
         });
 
-        // --- Login Form Submit Logic ---
+        // Login Form Submit Logic
         document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-            const rememberMe = document.getElementById('remember-me').checked; // <-- Get checkbox value
+            const rememberMe = document.getElementById('remember-me').checked;
             const errorDiv = document.getElementById('error-message');
             const submitButton = e.target.querySelector('button');
             errorDiv.textContent = '';
@@ -67,7 +97,7 @@
                 const res = await fetch('/api/auth/admin/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password, rememberMe }) // <-- Send rememberMe value
+                    body: JSON.stringify({ username, password, rememberMe })
                 });
                 const result = await res.json();
                 if (res.ok) {
