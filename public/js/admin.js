@@ -1,20 +1,21 @@
 document.addEventListener("DOMContentLoaded", () => {
 
-    VANTA.FOG({
-      el: "#vanta-bg",
-      mouseControls: true,
-      touchControls: true,
-      gyroControls: false,
-      minHeight: 200.00,
-      minWidth: 200.00,
-      highlightColor: 0x7d159d,
-      midtoneColor: 0x1eff,
-      lowlightColor: 0x580093,
-      baseColor: 0x190128,
-      blurFactor: 0.69,
-      zoom: 0.90,
-      speed: 1.20 // Added for a subtle animation speed
-    });
+    VANTA.FOG({ 
+          el: "#vanta-bg",
+          mouseControls: true,
+          touchControls: true,
+          gyroControls: false,
+          minHeight: 200.00,
+          minWidth: 200.00, 
+          highlightColor: 0x0, 
+          midtoneColor: 0x569e8, 
+          lowlightColor: 0x0, 
+          baseColor: 0x0, 
+          blurFactor: 0.90, 
+          speed: 1.30, 
+          zoom: 0.60 
+        });
+
     
     const loginForm = document.getElementById('admin-login-form');
     if (loginForm) {
