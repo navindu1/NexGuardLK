@@ -46,7 +46,7 @@ const generateEmailTemplate = (title, preheader, content) => `
     <style>
         body, html { margin: 0; padding: 0; width: 100%; -webkit-font-smoothing: antialiased; }
         .main-table { background-image: url('${BACKGROUND_IMAGE_URL}'); background-size: cover; background-position: center; }
-        .content-box { background-color: rgba(10, 8, 28, 0.75); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; }
+        .content-box { background-color: rgba(10, 8, 28, 0.75); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 9999px; }
         @media (max-width: 600px) { .sm-w-full { width: 100% !important; } .sm-p-24 { padding: 24px !important; } }
     </style>
 </head>
@@ -68,12 +68,12 @@ const generateEmailTemplate = (title, preheader, content) => `
                 </table>
             </td>
         </tr>
+        </body>
     </table>
-</body>
 </html>`;
 
 // --- මෙතනින් පහළ කේතය වෙනස් කර ඇත ---
-const buttonStyle = `background: linear-gradient(to right, #007bff, #4da3ff); color: #ffffff; padding: 14px 24px; font-size: 16px; font-weight: bold; text-decoration: none; border-radius: 12px; display: inline-block; font-family: 'Orbitron', sans-serif;`;
+const buttonStyle = `background: linear-gradient(to right, #007bff, #4da3ff); color: #ffffff; padding: 14px 24px; font-size: 16px; font-weight: bold; text-decoration: none; border-radius: 9999px; display: inline-block; font-family: 'Orbitron', sans-serif;`;
 
 const generateOtpEmailContent = (otp) => `
 <p style="font-size: 16px; line-height: 1.5; margin: 0 0 16px; color: #c7d2fe;">Your One-Time Password (OTP) is below. Use this code to complete your verification.</p>
