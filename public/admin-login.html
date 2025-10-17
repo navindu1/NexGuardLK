@@ -18,19 +18,39 @@
             border: 1px solid rgba(71, 85, 105, 0.5); 
         }
         .ai-button { 
+            position: relative;
             background: linear-gradient(90deg, #3b82f6, #60a5fa); 
+            background-size: 200% 100%;
             font-family: 'Orbitron', sans-serif;
-            border-radius: 8px;
+            border-radius: 9999px;
+            transition: all 0.5s ease;
+            overflow: hidden;
+        }
+        .ai-button:hover:not(:disabled) {
+            box-shadow: 0 0 25px rgba(59, 130, 246, 0.5);
+            background-position: right center;
         }
         .auth-form-view { display: none; }
         .auth-form-view.active { display: block; animation: pageFadeIn 0.5s; }
         @keyframes pageFadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Floating Label Styles */
+        /* --- START: UPDATED FLOATING LABEL & BORDER ANIMATION STYLES --- */
         .form-group { position: relative; margin-top: 2.5rem; width: 100%; }
         .form-input { font-size: 14px; color: #e0e0e0; width: 100%; height: 56px; border: 1px solid rgba(255, 255, 255, 0.2); background-color: rgba(0, 0, 0, 0.3); padding: 20px 12px 8px 12px; transition: 0.4s; outline: none; border-radius: 8px; }
         .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; }
         .form-input:focus ~ .form-label, .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: #60a5fa; }
+        
+        .form-input ~ .focus-border:before,
+        .form-input ~ .focus-border:after { content: ""; position: absolute; top: 0; left: 50%; width: 0; height: 2px; background-color: #60a5fa; transition: 0.4s; border-radius: 8px; }
+        .form-input ~ .focus-border:after { top: auto; bottom: 0; }
+        .form-input ~ .focus-border i:before,
+        .form-input ~ .focus-border i:after { content: ""; position: absolute; top: 50%; left: 0; width: 2px; height: 0; background-color: #60a5fa; transition: 0.6s; }
+        .form-input ~ .focus-border i:after { left: auto; right: 0; }
+        .form-input:focus ~ .focus-border:before,
+        .form-input:focus ~ .focus-border:after { left: 0; width: 100%; transition: 0.4s; }
+        .form-input:focus ~ .focus-border i:before,
+        .form-input:focus ~ .focus-border i:after { top: 0; height: 100%; transition: 0.6s; }
+        /* --- END: UPDATED STYLES --- */
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen">
@@ -47,10 +67,12 @@
                 <div class="form-group">
                     <input type="text" id="username" class="form-input" required placeholder=" " />
                     <label for="username" class="form-label">Admin Username</label>
+                    <span class="focus-border"><i></i></span>
                 </div>
                 <div class="form-group relative">
                     <input type="password" id="password" class="form-input pr-10" required placeholder=" " />
                     <label for="password" class="form-label">Password</label>
+                    <span class="focus-border"><i></i></span>
                     <i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="password-toggle"></i>
                 </div>
                 
@@ -77,6 +99,7 @@
                  <div class="form-group">
                     <input type="email" id="forgot-email" class="form-input" required placeholder=" " />
                     <label for="forgot-email" class="form-label">Your Admin Email</label>
+                    <span class="focus-border"><i></i></span>
                 </div>
                 <div id="forgot-error-message" class="text-red-400 text-sm text-center min-h-[20px]"></div>
                 <button type="submit" class="w-full py-2.5 font-semibold text-white ai-button !mt-8">Send Reset Link</button>
