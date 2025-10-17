@@ -46,7 +46,7 @@ const generateEmailTemplate = (title, preheader, content) => `
     <style>
         body, html { margin: 0; padding: 0; width: 100%; -webkit-font-smoothing: antialiased; }
         .main-table { background-image: url('${BACKGROUND_IMAGE_URL}'); background-size: cover; background-position: center; }
-        .content-box { background-color: rgba(10, 8, 28, 0.75); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 9999px; }
+        .content-box { background-color: rgba(10, 8, 28, 0.75); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; }
         @media (max-width: 600px) { .sm-w-full { width: 100% !important; } .sm-p-24 { padding: 24px !important; } }
     </style>
 </head>
