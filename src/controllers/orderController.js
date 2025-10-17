@@ -128,7 +128,13 @@ exports.createOrder = async (req, res) => {
                     generateOrderPlacedEmailContent(websiteUser.username, planId)
                 ),
             };
-            transporter.sendMail(mailOptions).catch(err => console.error(`FAILED to send order placed email:`, err));
+            // --- FIX APPLIED: Awaiting the sendMail function ---
+            try {
+                await transporter.sendMail(mailOptions);
+                console.log(`Order placed email sent successfully to ${websiteUser.email}`);
+            } catch (err) {
+                console.error(`FAILED to send order placed email:`, err);
+            }
         }
 
         res.status(201).json({ success: true, message: "Order placed successfully! It is now pending approval." });

@@ -40,260 +40,109 @@
         -webkit-backdrop-filter: blur(16px);
         border: 1px solid rgba(255, 255, 255, 0.1);
       }
+      /* --- START: NEW MODERN BUTTON STYLES --- */
       .btn {
         padding: 8px 14px;
         border-radius: 6px;
         font-weight: 600;
-        transition: all 0.2s;
+        transition: all 0.2s ease-in-out;
         font-size: 13px;
         display: inline-flex;
         align-items: center;
+        justify-content: center; /* Center content */
         gap: 6px;
-      }
-      .btn-approve {
-        background-color: #166534;
-        color: #bbf7d0;
-      }
-      .btn-approve:hover:not(:disabled) {
-        background-color: #15803d;
-      }
-      .btn-reject {
-        background-color: #991b1b;
-        color: #fecaca;
-      }
-      .btn-reject:hover:not(:disabled) {
-        background-color: #b91c1c;
-      }
-      .btn-ban {
-        background-color: #9a3412;
-        color: #fdba74;
-      }
-      .btn-ban:hover:not(:disabled) {
-        background-color: #c2410c;
-      }
-      .btn-view {
-        background-color: #1e3a8a;
-        color: #bfdbfe;
-      }
-      .btn-view:hover:not(:disabled) {
-        background-color: #1e40af;
+        border: 1px solid transparent;
+        cursor: pointer;
       }
       .btn:disabled {
         opacity: 0.5;
         cursor: not-allowed;
-      }
-      .modal {
-        display: none;
-      }
-      .modal.active {
-        display: flex;
+        box-shadow: none;
       }
 
-      @media (max-width: 767px) {
-        .responsive-table thead {
-          display: none;
-        }
-        .responsive-table tr {
-          display: block;
-          margin-bottom: 1rem;
-          border-radius: 0.75rem;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          padding: 1rem;
-          background: rgba(255, 255, 255, 0.05);
-        }
-        .responsive-table td {
-          display: grid;
-          grid-template-columns: 120px 1fr;
-          gap: 1rem;
-          align-items: center;
-          padding: 0.6rem 0;
-          text-align: left;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        .responsive-table td:last-child {
-          border-bottom: none;
-        }
-        .responsive-table td::before {
-          content: attr(data-label);
-          font-weight: 600;
-          color: #9ca3af;
-        }
-        .responsive-table .actions-cell {
-          grid-template-columns: 1fr;
-        }
-        .responsive-table .actions-cell::before {
-          display: none;
-        }
+      /* Primary Button (Approve, Save, Add New) */
+      .btn-primary {
+        background: linear-gradient(90deg, #3b82f6, #60a5fa);
+        color: white;
       }
-      .toggle-checkbox:checked {
-        right: 0;
-        border-color: #a78bfa;
+      .btn-primary:hover:not(:disabled) {
+        box-shadow: 0 0 15px rgba(59, 130, 246, 0.6);
+        background: linear-gradient(90deg, #60a5fa, #3b82f6);
       }
-      .toggle-checkbox:checked + .toggle-label {
-        background-color: #a78bfa;
-      }
-      .connection-card {
-        background: rgba(10, 8, 28, 0.6);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        margin-bottom: 1.5rem;
-        overflow: hidden;
-      }
-      .connection-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1rem 1.5rem;
-        background: rgba(255, 255, 255, 0.05);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      }
-      .connection-title h3 {
-        font-size: 1.125rem;
-        font-weight: 700;
-        color: #ffffff;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-      }
-      .connection-title .type-badge {
-        font-size: 0.75rem;
-        font-weight: 500;
-        padding: 0.25rem 0.75rem;
-        border-radius: 9999px;
-        color: #e0e0e0;
-      }
-      .type-badge.single-package {
-        background-color: rgba(59, 130, 246, 0.2);
+
+      /* Secondary Button (View, Edit) */
+      .btn-secondary {
+        background-color: rgba(59, 130, 246, 0.15);
+        border-color: #3b82f6;
         color: #93c5fd;
       }
-      .type-badge.multi-package {
-        background-color: rgba(168, 85, 247, 0.2);
+      .btn-secondary:hover:not(:disabled) {
+        background-color: rgba(59, 130, 246, 0.3);
+        color: #ffffff;
+      }
+
+      /* Danger Button (Reject, Delete) */
+      .btn-danger {
+        background-color: rgba(239, 68, 68, 0.15);
+        border-color: #ef4444;
+        color: #fca5a5;
+      }
+      .btn-danger:hover:not(:disabled) {
+        background-color: rgba(239, 68, 68, 0.3);
+        color: #ffffff;
+      }
+
+      /* Special Accent Button (Add Package) */
+      .btn-special {
+        background-color: rgba(168, 85, 247, 0.15);
+        border-color: #a855f7;
         color: #d8b4fe;
       }
-      .details-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-      }
-      .detail-item {
-        background: rgba(0, 0, 0, 0.2);
-        padding: 0.75rem 1rem;
-        border-radius: 8px;
-      }
-      .detail-item .label {
-        font-size: 0.75rem;
-        color: #9ca3af;
-        margin-bottom: 0.25rem;
-      }
-      .detail-item .value {
-        font-size: 0.9rem;
-        font-weight: 600;
+      .btn-special:hover:not(:disabled) {
+        background-color: rgba(168, 85, 247, 0.3);
         color: #ffffff;
-        word-break: break-all;
       }
-      .package-list {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
+      /* --- END: NEW MODERN BUTTON STYLES --- */
+
+      .modal { display: none; }
+      .modal.active { display: flex; }
+
+      @media (max-width: 767px) {
+        .responsive-table thead { display: none; }
+        .responsive-table tr { display: block; margin-bottom: 1rem; border-radius: 0.75rem; border: 1px solid rgba(255, 255, 255, 0.1); padding: 1rem; background: rgba(255, 255, 255, 0.05); }
+        .responsive-table td { display: grid; grid-template-columns: 120px 1fr; gap: 1rem; align-items: center; padding: 0.6rem 0; text-align: left; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+        .responsive-table td:last-child { border-bottom: none; }
+        .responsive-table td::before { content: attr(data-label); font-weight: 600; color: #9ca3af; }
+        .responsive-table .actions-cell { grid-template-columns: 1fr; }
+        .responsive-table .actions-cell::before { display: none; }
       }
-      .connection-header {
-        cursor: pointer;
-      }
-      .connection-body {
-        max-height: 0;
-        overflow: hidden;
-        padding-top: 0;
-        padding-bottom: 0;
-        transition: max-height 0.5s cubic-bezier(0.25, 0.8, 0.25, 1),
-          padding 0.5s ease-in-out;
-      }
-      .connection-body.expanded {
-        max-height: 1000px; /* Increased to accommodate content */
-        padding: 1.5rem;
-      }
-      .collapse-icon {
-        transition: transform 0.4s ease;
-      }
-      .connection-header:not(.collapsed) .collapse-icon {
-        transform: rotate(90deg);
-      }
-      .package-item {
-        display: flex;
-        flex-wrap: wrap; /* Allow wrapping on small screens */
-        align-items: center;
-        gap: 1rem;
-        padding: 0.75rem 1.25rem;
-        background: rgba(0, 0, 0, 0.2);
-        border-radius: 8px;
-        transition: background-color 0.2s;
-      }
-      .package-item:hover {
-        background: rgba(0, 0, 0, 0.4);
-      }
-      .package-item .name {
-        flex-grow: 1;
-        font-weight: 600;
-        color: #ffffff;
-        min-width: 120px;
-      }
-      .package-item .inbound {
-        font-family: monospace;
-        color: #a5b4fc;
-        min-width: 100px;
-      }
-      .package-item .template-display {
-        flex-grow: 2;
-        min-width: 150px;
-      }
-      .package-item .actions {
-        display: flex;
-        gap: 0.5rem;
-        justify-content: flex-end;
-      }
-      .template-display .template-text {
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 6px;
-        padding: 0.3rem 0.5rem;
-        font-family: monospace;
-        font-size: 0.7rem;
-        color: #a5b4fc;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        display: block;
-      }
+      .toggle-checkbox:checked { right: 0; border-color: #a78bfa; }
+      .toggle-checkbox:checked + .toggle-label { background-color: #a78bfa; }
+      .connection-card { background: rgba(10, 8, 28, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; margin-bottom: 1.5rem; overflow: hidden; }
+      .connection-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; background: rgba(255, 255, 255, 0.05); border-bottom: 1px solid rgba(255, 255, 255, 0.1); cursor: pointer; }
+      .connection-title h3 { font-size: 1.125rem; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 0.75rem; }
+      .connection-title .type-badge { font-size: 0.75rem; font-weight: 500; padding: 0.25rem 0.75rem; border-radius: 9999px; color: #e0e0e0; }
+      .type-badge.single-package { background-color: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+      .type-badge.multi-package { background-color: rgba(168, 85, 247, 0.2); color: #d8b4fe; }
+      .details-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+      .detail-item { background: rgba(0, 0, 0, 0.2); padding: 0.75rem 1rem; border-radius: 8px; }
+      .detail-item .label { font-size: 0.75rem; color: #9ca3af; margin-bottom: 0.25rem; }
+      .detail-item .value { font-size: 0.9rem; font-weight: 600; color: #ffffff; word-break: break-all; }
+      .package-list { display: flex; flex-direction: column; gap: 0.75rem; }
+      .connection-body { max-height: 0; overflow: hidden; padding-top: 0; padding-bottom: 0; transition: max-height 0.5s cubic-bezier(0.25, 0.8, 0.25, 1), padding 0.5s ease-in-out; }
+      .connection-body.expanded { max-height: 1000px; padding: 1.5rem; }
+      .collapse-icon { transition: transform 0.4s ease; }
+      .connection-header:not(.collapsed) .collapse-icon { transform: rotate(90deg); }
+      .package-item { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; padding: 0.75rem 1.25rem; background: rgba(0, 0, 0, 0.2); border-radius: 8px; transition: background-color 0.2s; }
+      .package-item:hover { background: rgba(0, 0, 0, 0.4); }
+      .package-item .name { flex-grow: 1; font-weight: 600; color: #ffffff; min-width: 120px; }
+      .package-item .inbound { font-family: monospace; color: #a5b4fc; min-width: 100px; }
+      .package-item .template-display { flex-grow: 2; min-width: 150px; }
+      .package-item .actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+      .template-display .template-text { background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; padding: 0.3rem 0.5rem; font-family: monospace; font-size: 0.7rem; color: #a5b4fc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
       
-      /* **** START: NEW TOAST MESSAGE CSS **** */
-      #toast-container {
-        position: fixed;
-        top: 1.25rem;
-        right: 1.25rem;
-        z-index: 9999;
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-        width: 100%;
-        max-width: 350px;
-      }
-
-      .toast {
-        display: flex;
-        align-items: flex-start;
-        padding: 0.75rem;
-        border-radius: 8px;
-        background: rgba(30, 27, 75, 0.9);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        color: #e0e0e0;
-        position: relative;
-        overflow: hidden;
-        transform: translateX(120%);
-        opacity: 0;
-        transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease-out;
-      }
-
+      #toast-container { position: fixed; top: 1.25rem; right: 1.25rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.75rem; width: 100%; max-width: 350px; }
+      .toast { display: flex; align-items: flex-start; padding: 0.75rem; border-radius: 8px; background: rgba(30, 27, 75, 0.9); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); color: #e0e0e0; position: relative; overflow: hidden; transform: translateX(120%); opacity: 0; transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease-out; }
       .toast.show { transform: translateX(0); opacity: 1; }
       .toast::before { content: ""; position: absolute; top: 0; left: 0; bottom: 0; width: 4px; border-radius: 8px 0 0 8px; }
       .toast--success::before { background-color: #22c55e; }
@@ -310,8 +159,6 @@
       .toast-message { font-size: 0.8rem; line-height: 1.4; margin: 0; color: #d1d5db; }
       .toast-close-btn { flex-shrink: 0; margin-left: 0.75rem; background: transparent; border: none; color: #9ca3af; font-size: 1.25rem; line-height: 1; cursor: pointer; transition: color 0.2s ease; }
       .toast-close-btn:hover { color: #ffffff; }
-      /* **** END: NEW TOAST MESSAGE CSS **** */
-
     </style>
   </head>
   <body class="p-4 sm:p-6 lg:p-8">
@@ -501,7 +348,7 @@
                 placeholder="Search..."
               />
             </div>
-            <button id="add-new-btn" class="btn btn-approve hidden">
+            <button id="add-new-btn" class="btn btn-primary hidden">
               <i class="fa-solid fa-plus"></i> Add New
             </button>
           </div>
@@ -510,7 +357,6 @@
       </main>
     </div>
 
-    <!-- Modals -->
     <div
       id="image-modal"
       class="modal fixed inset-0 bg-black/80 justify-center items-center z-50 p-4"
@@ -549,7 +395,7 @@
         ></div>
         <button
           id="settings-modal-save-btn"
-          class="btn btn-approve w-full justify-center mt-6"
+          class="btn btn-primary w-full justify-center mt-6"
         >
           Save Settings
         </button>
@@ -576,32 +422,31 @@
         ></form>
         <button
           id="form-modal-save-btn"
-          class="btn btn-approve w-full justify-center mt-6"
+          class="btn btn-primary w-full justify-center mt-6"
         >
           Save Changes
         </button>
       </div>
     </div>
-    
-    <!-- Report Modal has been removed from here -->
 
     <script src="/js/admin.js"></script>
     <script>
-      VANTA.WAVES({
-        el: "#vanta-bg",
-        mouseControls: true,
-        touchControls: true,
-        gyroControls: false,
-        minHeight: 200.0,
-        minWidth: 200.0,
-        scale: 1.0,
-        scaleMobile: 1.0,
-        color: 0x20002f,
-        shininess: 25.0,
-        waveHeight: 15.0,
-        waveSpeed: 0.65,
-        zoom: 0.85,
-      });
+        // UPDATED: Changed VANTA effect from WAVES to FOG to match the main website
+        VANTA.FOG({
+            el: "#vanta-bg",
+            mouseControls: true,
+            touchControls: true,
+            gyroControls: false,
+            minHeight: 200.00,
+            minWidth: 200.00,
+            highlightColor: 0x0,
+            midtoneColor: 0x569e8, // Blue tone to match main site
+            lowlightColor: 0x0,
+            baseColor: 0x0,
+            blurFactor: 0.90,
+            speed: 1.30,
+            zoom: 0.60
+        });
     </script>
   </body>
 </html>

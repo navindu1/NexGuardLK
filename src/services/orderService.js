@@ -148,7 +148,14 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
 
         if (finalStatus === 'approved' && websiteUser.email) {
             const mailOptions = { from: `NexGuard Orders <${process.env.EMAIL_SENDER}>`, to: websiteUser.email, subject: `Your NexGuard Plan is ${order.is_renewal ? "Renewed" : "Activated"}!`, html: generateEmailTemplate( `Plan ${order.is_renewal ? "Renewed" : "Activated"}!`, `Your ${order.plan_id} plan is ready.`, generateApprovalEmailContent(websiteUser.username, order.plan_id, finalUsername))};
-            transporter.sendMail(mailOptions).catch(error => console.error(`FAILED to send approval email:`, error));
+            
+            // --- FIX APPLIED: Awaiting the sendMail function ---
+            try {
+                await transporter.sendMail(mailOptions);
+                console.log(`Approval email sent successfully to ${websiteUser.email}`);
+            } catch(error) {
+                console.error(`FAILED to send approval email:`, error);
+            }
         }
         
         result = { success: true, message: `Order for ${finalUsername} moved to ${finalStatus}.`, finalUsername };

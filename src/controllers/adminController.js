@@ -137,7 +137,13 @@ const rejectOrder = async (req, res) => {
                     generateRejectionEmailContent(websiteUser.username, orderToReject.plan_id, orderToReject.id)
                 ),
             };
-            transporter.sendMail(mailOptions).catch(err => console.error(`FAILED to send rejection email:`, err));
+            // --- FIX APPLIED: Awaiting the sendMail function ---
+            try {
+                await transporter.sendMail(mailOptions);
+                console.log(`Rejection email sent successfully to ${websiteUser.email}`);
+            } catch (err) {
+                console.error(`FAILED to send rejection email:`, err);
+            }
         }
 
         res.json({ success: true, message: 'Order rejected and associated V2Ray user/receipt deleted.' });

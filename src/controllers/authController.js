@@ -53,16 +53,19 @@ exports.register = async (req, res) => {
             ),
         };
 
-        // --- FIX: Changed from await to non-blocking "fire-and-forget" ---
-        transporter.sendMail(mailOptions).catch(err => {
-            console.error(`FAILED to send OTP email to ${email}:`, err);
-        });
+        // --- FIX APPLIED: Awaiting the sendMail function ---
+        try {
+            await transporter.sendMail(mailOptions);
+            console.log(`OTP email sent successfully to ${email}: ${otp}`);
+            res.status(200).json({
+                success: true,
+                message: `An OTP has been sent to ${email}. Please verify to complete registration.`,
+            });
+        } catch (emailError) {
+            console.error(`CRITICAL: FAILED to send OTP email to ${email}:`, emailError);
+            return res.status(500).json({ success: false, message: "Could not send verification email. Please try again later." });
+        }
 
-        console.log(`OTP sending process initiated for ${email}: ${otp}`);
-        res.status(200).json({
-            success: true,
-            message: `An OTP has been sent to ${email}. Please verify to complete registration.`,
-        });
     } catch (error) {
         console.error("Error in /api/auth/register:", error);
         return res.status(500).json({ success: false, message: "Database error during registration." });
@@ -203,6 +206,7 @@ exports.forgotPassword = async (req, res) => {
             .single();
 
         if (userError || !user) {
+            // Do not reveal if a user exists or not for security reasons
             return res.json({ message: 'If an account with that email exists, a password reset link has been sent.' });
         }
 
@@ -228,12 +232,16 @@ exports.forgotPassword = async (req, res) => {
             html: generateEmailTemplate('Password Reset Request', 'Use the link inside to reset your password.', generatePasswordResetEmailContent(user.username, resetURL)),
         };
 
-        // --- FIX: Changed from await to non-blocking "fire-and-forget" ---
-        transporter.sendMail(mailOptions).catch(err => {
-            console.error(`FAILED to send password reset email to ${user.email}:`, err);
-        });
-
-        res.json({ message: 'Password reset link has been sent to your email.' });
+        // --- FIX APPLIED: Awaiting the sendMail function ---
+        try {
+            await transporter.sendMail(mailOptions);
+            console.log(`Password reset email sent successfully to ${user.email}`);
+            res.json({ message: 'Password reset link has been sent to your email.' });
+        } catch (emailError) {
+            console.error(`CRITICAL: FAILED to send password reset email to ${user.email}:`, emailError);
+            // Even if email fails, send a generic success message for security.
+            res.json({ message: 'If an account with that email exists, a password reset link has been sent.' });
+        }
 
     } catch (error) {
         console.error("Forgot Password Error:", error);

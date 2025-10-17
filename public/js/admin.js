@@ -144,7 +144,6 @@ function renderOrders(status) {
             return;
         }
         contentContainer.innerHTML = orders.map(order => {
-            // START: NEW LOGIC FOR ORDER TYPE
             let orderType, typeColor;
             if (order.old_v2ray_username) {
                 orderType = 'Change';
@@ -156,8 +155,7 @@ function renderOrders(status) {
                 orderType = 'New';
                 typeColor = 'text-green-400';
             }
-            // END: NEW LOGIC FOR ORDER TYPE
-
+            
             const finalUsernameHtml = order.final_username 
                 ? `<div><span class="font-bold text-slate-400 text-xs">V2Ray User</span><p class="text-purple-300">${order.final_username}</p></div>`
                 : '';
@@ -169,12 +167,11 @@ function renderOrders(status) {
                     <div><span class="font-bold text-slate-400 text-xs">Connection</span><p>${order.conn_id || 'N/A'}</p></div>
                     <div><span class="font-bold text-slate-400 text-xs">Type</span><p class="font-bold ${typeColor}">${orderType}</p></div>
                     <div><span class="font-bold text-slate-400 text-xs">Submitted</span><p>${new Date(order.created_at).toLocaleString()}</p></div>
-                    <div class="flex gap-2"><button class="btn btn-view view-receipt-btn" data-url="${order.receipt_path}"><i class="fa-solid fa-receipt"></i> View</button></div>
+                    <div class="flex gap-2"><button class="btn btn-secondary view-receipt-btn" data-url="${order.receipt_path}"><i class="fa-solid fa-receipt"></i> View</button></div>
                     <div class="flex gap-2 items-center justify-end">
-    
                         ${status === 'pending' || status === 'unconfirmed' ? `
-                        <button class="btn btn-approve approve-btn" data-id="${order.id}">Approve</button>
-                        <button class="btn btn-reject reject-btn" data-id="${order.id}">Reject</button>` 
+                        <button class="btn btn-primary approve-btn" data-id="${order.id}">Approve</button>
+                        <button class="btn btn-danger reject-btn" data-id="${order.id}">Reject</button>` 
                         : `<span class="text-xs text-gray-500">Action Taken</span>`}
                     </div>
                 </div>`;
@@ -199,12 +196,12 @@ function renderOrders(status) {
             </tr></thead>
             <tbody>${filteredUsers.map(user => {
                 const roleSpecificData = role === 'user' ? `<td data-label="Active Plans">${(user.active_plans || []).length}</td>` : `<td data-label="Credit">LKR ${parseFloat(user.credit_balance || 0).toFixed(2)}</td>`;
-                const roleSpecificButtons = role === 'reseller' ? `<button class="btn btn-approve add-credit-btn" data-id="${user.id}" data-username="${user.username}"><i class="fa-solid fa-coins"></i></button>` : '';
+                const roleSpecificButtons = role === 'reseller' ? `<button class="btn btn-primary add-credit-btn" data-id="${user.id}" data-username="${user.username}"><i class="fa-solid fa-coins"></i></button>` : '';
                 return `<tr class="border-b border-slate-800 hover:bg-slate-800/50">
                     <td data-label="Username">${user.username}</td>
                     <td data-label="Contact"><div>${user.email}</div><div class="text-xs text-slate-400">${user.whatsapp || ''}</div></td>
                     ${roleSpecificData}
-                    <td data-label="Actions" class="actions-cell"><div class="flex justify-center gap-2">${roleSpecificButtons}<button class="btn btn-ban" data-id="${user.id}"><i class="fa-solid fa-user-slash"></i></button></div></td>
+                    <td data-label="Actions" class="actions-cell"><div class="flex justify-center gap-2">${roleSpecificButtons}<button class="btn btn-danger" data-id="${user.id}"><i class="fa-solid fa-user-slash"></i></button></div></td>
                 </tr>`}).join('')}
             </tbody></table></div>`;
     }
@@ -237,9 +234,9 @@ function renderOrders(status) {
                         </h3>
                     </div>
                     <div class="flex gap-2">
-                        <button class="btn btn-view edit-conn-btn" data-id="${conn.id}"><i class="fa-solid fa-pencil"></i> Edit</button>
-                        <button class="btn btn-reject delete-conn-btn" data-id="${conn.id}"><i class="fa-solid fa-trash"></i> Delete</button>
-                        ${isMultiPackage ? `<button class="btn btn-approve add-pkg-btn" data-id="${conn.id}"><i class="fa-solid fa-plus"></i> Add Package</button>` : ''}
+                        <button class="btn btn-secondary edit-conn-btn" data-id="${conn.id}"><i class="fa-solid fa-pencil"></i> Edit</button>
+                        <button class="btn btn-danger delete-conn-btn" data-id="${conn.id}"><i class="fa-solid fa-trash"></i> Delete</button>
+                        ${isMultiPackage ? `<button class="btn btn-special add-pkg-btn" data-id="${conn.id}"><i class="fa-solid fa-plus"></i> Add Package</button>` : ''}
                     </div>
                 </div>`;
 
@@ -253,9 +250,9 @@ function renderOrders(status) {
                             <div class="inbound">Inbound: <strong>${pkg.inbound_id}</strong></div>
                             <div class="template-display"><p class="template-text" title="${pkg.template || ''}">${pkg.template || ''}</p></div>
                             <div class="actions">
-                                <button class="btn btn-view !p-2" onclick="navigator.clipboard.writeText('${(pkg.template || '').replace(/'/g, "\\'")}')" title="Copy VLESS Link"><i class="fa-solid fa-copy"></i></button>
-                                <button class="btn btn-view edit-pkg-btn !p-2" data-id="${pkg.id}" data-conn-id="${conn.id}" title="Edit Package"><i class="fa-solid fa-pencil"></i></button>
-                                <button class="btn btn-reject delete-pkg-btn !p-2" data-id="${pkg.id}" title="Delete Package"><i class="fa-solid fa-trash"></i></button>
+                                <button class="btn btn-secondary !p-2" onclick="navigator.clipboard.writeText('${(pkg.template || '').replace(/'/g, "\\'")}')" title="Copy VLESS Link"><i class="fa-solid fa-copy"></i></button>
+                                <button class="btn btn-secondary edit-pkg-btn !p-2" data-id="${pkg.id}" data-conn-id="${conn.id}" title="Edit Package"><i class="fa-solid fa-pencil"></i></button>
+                                <button class="btn btn-danger delete-pkg-btn !p-2" data-id="${pkg.id}" title="Delete Package"><i class="fa-solid fa-trash"></i></button>
                             </div>
                         </div>`).join('')
                     : '<div class="text-center p-4 text-slate-400 text-sm">No packages added for this connection yet.</div>';
@@ -273,7 +270,7 @@ function renderOrders(status) {
                             <div class="label">Default Template</div>
                             <div class="relative">
                                 <textarea readonly class="w-full bg-slate-800/50 p-2 rounded h-20 text-xs font-mono pr-10">${templateValue}</textarea>
-                                <button class="absolute top-2 right-2 btn btn-view !p-2" onclick="navigator.clipboard.writeText('${templateValue.replace(/'/g, "\\'")}')" title="Copy VLESS Link"><i class="fa-solid fa-copy"></i></button>
+                                <button class="absolute top-2 right-2 btn btn-secondary !p-2" onclick="navigator.clipboard.writeText('${templateValue.replace(/'/g, "\\'")}')" title="Copy VLESS Link"><i class="fa-solid fa-copy"></i></button>
                             </div>
                         </div>
                     </div>`;
@@ -319,7 +316,7 @@ function renderOrders(status) {
                             <td data-label="Data" class="p-4">${plan.total_gb === 0 ? 'Unlimited' : `${plan.total_gb} GB`}</td>
                             <td data-label="Actions" class="actions-cell p-4">
                                 <div class="flex justify-center gap-2">
-                                    <button class="btn btn-reject delete-plan-btn" data-id="${plan.id}" title="Delete Plan"><i class="fa-solid fa-trash"></i></button>
+                                    <button class="btn btn-danger delete-plan-btn" data-id="${plan.id}" title="Delete Plan"><i class="fa-solid fa-trash"></i></button>
                                 </div>
                             </td>
                         </tr>
@@ -336,7 +333,7 @@ function renderOrders(status) {
 
         contentContainer.innerHTML = `
             <div class="flex justify-end mb-4">
-                <button id="download-csv-btn" class="btn btn-view">
+                <button id="download-csv-btn" class="btn btn-secondary">
                     <i class="fa-solid fa-download"></i> Download Full Report (CSV)
                 </button>
             </div>
@@ -467,7 +464,6 @@ function renderOrders(status) {
             renderLoading();
         }
         try {
-            // --- UPDATED to check for 'unconfirmed' ---
             if (['pending', 'unconfirmed', 'approved', 'rejected', 'users', 'resellers', 'connections', 'plans'].includes(view)) {
                  const statsResult = await apiFetch('/stats');
                  if (!statsResult) return;
@@ -478,7 +474,6 @@ function renderOrders(status) {
                 });
             }
 
-            // --- UPDATED to handle 'unconfirmed' view ---
             if (['pending', 'unconfirmed', 'approved', 'rejected'].includes(view)) {
                 const ordersResult = await apiFetch('/orders');
                 dataCache.orders = ordersResult.data;
@@ -542,26 +537,20 @@ function renderOrders(status) {
         const header = e.target.closest('.connection-header');
     
         if (button) {
-    const id = button.dataset.id;
-    const connId = button.dataset.connId;
+            const id = button.dataset.id;
+            const connId = button.dataset.connId;
 
-    // --- මෙතැන් සිට වෙනස සිදුකර ඇත ---
-    if (button.classList.contains('view-receipt-btn')) {
-        const receiptUrl = button.dataset.url;
-
-        // URL එකක් තිබේදැයි සහ එය වලංගු දැයි පරීක්ෂා කිරීම
-        if (receiptUrl) {
-            // URL එක .pdf වලින් (case-insensitive) අවසන් වේදැයි පරීක්ෂා කිරීම
-            if (receiptUrl.toLowerCase().endsWith('.pdf')) {
-                // PDF ගොනුවක් නම්, එය නව tab එකක විවෘත කිරීම
-                window.open(receiptUrl, '_blank');
-            } else {
-                // පින්තූරයක් නම්, පවතින modal එකේ පෙන්වීම
-                modalImage.src = receiptUrl;
-                imageModal.classList.add('active');
-            }
-        }
-    } else if (button.classList.contains('approve-btn')) {
+            if (button.classList.contains('view-receipt-btn')) {
+                const receiptUrl = button.dataset.url;
+                if (receiptUrl) {
+                    if (receiptUrl.toLowerCase().endsWith('.pdf')) {
+                        window.open(receiptUrl, '_blank');
+                    } else {
+                        modalImage.src = receiptUrl;
+                        imageModal.classList.add('active');
+                    }
+                }
+            } else if (button.classList.contains('approve-btn')) {
                 await handleAction(`/orders/approve`, { orderId: id }, 'Order Approved', 'POST', button);
             } else if (button.classList.contains('reject-btn')) {
                 if(confirm('Are you sure you want to reject this order? This will delete the V2Ray user if one was created.')) {
