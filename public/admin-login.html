@@ -12,11 +12,45 @@
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #020010; color: #e0e0e0; }
         #vanta-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
-        .glass-panel { 
-            background: rgba(15, 23, 42, 0.4); 
-            backdrop-filter: blur(16px); 
-            border: 1px solid rgba(71, 85, 105, 0.5); 
+        .glass-panel {  
+
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      }
+
+      .custom-checkbox {
+            appearance: none;
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            min-width: 16px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            cursor: pointer;
+            display: inline-block;
+            position: relative;
+            transition: all 0.2s ease;
         }
+        .custom-checkbox:checked {
+            background-color: #3b82f6;
+            border-color: #60a5fa;
+        }
+        .custom-checkbox:checked::after {
+            content: '';
+            position: absolute;
+            left: 5px;
+            top: 2px;
+            width: 4px;
+            height: 8px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+
+
         .ai-button { 
             position: relative;
             background: linear-gradient(90deg, #3b82f6, #60a5fa); 
@@ -57,7 +91,6 @@
     <div id="vanta-bg"></div>
     <div class="w-full max-w-sm mx-auto glass-panel rounded-xl p-8">
         
-        <!-- Login View -->
         <div id="login-view" class="auth-form-view active">
             <div class="text-center mb-6">
                 <h1 class="text-2xl font-bold text-white font-['Orbitron']">Welcome Back, Admin</h1>
@@ -78,18 +111,17 @@
                 
                 <div class="flex items-center justify-between !mt-4">
                     <div class="flex items-center">
-                        <input id="remember-me" name="remember-me" type="checkbox" class="h-4 w-4 rounded border-gray-500 bg-gray-700 text-purple-600 focus:ring-purple-600">
+                        <input id="remember-me" name="remember-me" type="checkbox" class="custom-checkbox">
                         <label for="remember-me" class="ml-2 block text-sm text-gray-300">Remember me</label>
                     </div>
                     <a href="#" id="forgot-password-link" class="text-sm text-blue-400 hover:underline">Forgot Password?</a>
                 </div>
 
                 <div id="error-message" class="text-red-400 text-sm text-center min-h-[20px]"></div>
-                <button type="submit" class="w-full py-2.5 font-semibold text-white ai-button !mt-8">Login</button>
+                <button type="submit" class="w-full py-2.5 font-semibold text-white ai-button !mt-6">Login</button>
             </form>
         </div>
 
-        <!-- Forgot Password View -->
         <div id="forgot-password-view" class="auth-form-view">
             <div class="text-center mb-6">
                 <h1 class="text-2xl font-bold text-white font-['Orbitron']">Reset Password</h1>
@@ -102,7 +134,7 @@
                     <span class="focus-border"><i></i></span>
                 </div>
                 <div id="forgot-error-message" class="text-red-400 text-sm text-center min-h-[20px]"></div>
-                <button type="submit" class="w-full py-2.5 font-semibold text-white ai-button !mt-8">Send Reset Link</button>
+                <button type="submit" class="w-full py-2.5 font-semibold text-white ai-button !mt-6">Send Reset Link</button>
                  <a href="#" id="back-to-login-link" class="block text-center text-sm text-blue-400 hover:underline mt-4">Back to Login</a>
             </form>
         </div>
@@ -206,5 +238,6 @@
         });
     </script>
 </body>
+</html>
 </html>
 
