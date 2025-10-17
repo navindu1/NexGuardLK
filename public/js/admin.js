@@ -1,21 +1,20 @@
 document.addEventListener("DOMContentLoaded", () => {
 
-    VANTA.FOG({ 
-          el: "#vanta-bg",
-          mouseControls: true,
-          touchControls: true,
-          gyroControls: false,
-          minHeight: 200.00,
-          minWidth: 200.00, 
-          highlightColor: 0x0, 
-          midtoneColor: 0x569e8, 
-          lowlightColor: 0x0, 
-          baseColor: 0x0, 
-          blurFactor: 0.90, 
-          speed: 1.30, 
-          zoom: 0.60 
-        });
-
+    VANTA.FOG({
+      el: "#vanta-bg",
+      mouseControls: true,
+      touchControls: true,
+      gyroControls: false,
+      minHeight: 200.00,
+      minWidth: 200.00,
+      highlightColor: 0x7d159d,
+      midtoneColor: 0x1eff,
+      lowlightColor: 0x580093,
+      baseColor: 0x190128,
+      blurFactor: 0.69,
+      zoom: 0.90,
+      speed: 1.20 // Added for a subtle animation speed
+    });
     
     const loginForm = document.getElementById('admin-login-form');
     if (loginForm) {
@@ -135,7 +134,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
-function renderOrders(status) {
+    // --- MODIFIED FUNCTION ---
+    function renderOrders(status) {
         contentTitle.textContent = `${status.charAt(0).toUpperCase() + status.slice(1)} Orders`;
         searchBarContainer.classList.add('hidden');
         addNewBtn.classList.add('hidden');
@@ -157,13 +157,11 @@ function renderOrders(status) {
                 typeColor = 'text-green-400';
             }
             
-            const finalUsernameHtml = order.final_username 
-                ? `<div><span class="font-bold text-slate-400 text-xs">V2Ray User</span><p class="text-purple-300">${order.final_username}</p></div>`
-                : '';
-
+            // Added final_username to the grid and changed grid columns to 8
             return `
-                <div class="glass-panel p-4 rounded-lg grid grid-cols-2 md:grid-cols-7 gap-4 items-center">
+                <div class="glass-panel p-4 rounded-lg grid grid-cols-2 md:grid-cols-8 gap-4 items-center">
                     <div><span class="font-bold text-slate-400 text-xs">User</span><p>${order.website_username}</p></div>
+                    <div><span class="font-bold text-slate-400 text-xs">V2Ray User</span><p class="text-purple-300 font-semibold">${order.final_username || 'N/A'}</p></div>
                     <div><span class="font-bold text-slate-400 text-xs">Plan</span><p>${order.plan_id}</p></div>
                     <div><span class="font-bold text-slate-400 text-xs">Connection</span><p>${order.conn_id || 'N/A'}</p></div>
                     <div><span class="font-bold text-slate-400 text-xs">Type</span><p class="font-bold ${typeColor}">${orderType}</p></div>
@@ -207,11 +205,11 @@ function renderOrders(status) {
             </tbody></table></div>`;
     }
 
+    // --- MODIFIED FUNCTION ---
     function renderConnections() {
         contentTitle.textContent = `Connections & Packages`;
         searchBarContainer.classList.add('hidden');
-        addNewBtn.classList.remove('hidden');
-        addNewBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Add Connection';
+        addNewBtn.classList.add('hidden'); // Hidden as per user request
         addNewBtn.dataset.type = 'connection';
 
         const connections = dataCache.connections || [];
