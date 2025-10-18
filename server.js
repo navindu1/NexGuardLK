@@ -12,9 +12,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Vercel Cron Job Endpoint
 const { processAutoConfirmableOrders } = require('./src/services/orderService');
-const { cleanupOldReceipts } = require('./src/services/cronService');
+const { cleanupOldReceipts, processRenewalQueue } = require('./src/services/cronService');
 const { sendExpiryReminders } = require('./src/services/notificationService');
 
 // අලුත් කේතය:
@@ -31,6 +30,9 @@ app.post('/api/cron', (req, res) => {
     console.log('External Cron Job triggered: Running scheduled tasks...');
     processAutoConfirmableOrders();
     cleanupOldReceipts();
+
+    // -- ADD THIS LINE: Call the new function every 5 minutes --
+    processRenewalQueue();
 
     res.status(200).send('Cron job executed successfully.');
 });
