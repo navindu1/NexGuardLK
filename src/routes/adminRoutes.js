@@ -1,34 +1,55 @@
-// File Path: src/routes/adminRoutes.js
-
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
-const { authMiddleware, adminOnly } = require('../middleware/authMiddleware');
-const upload = require('../config/uploads');
+const { authenticateToken, authenticateAdmin } = require('../middleware/authMiddleware');
 
-router.use(authMiddleware);
-router.use(adminOnly);
+// Middleware to protect all admin routes
+router.use(authenticateToken, authenticateAdmin);
 
-router.post('/create-user', adminController.createUser);
-router.post('/create-order', upload.single('receipt'), adminController.createOrder);
-router.post('/approve-order', adminController.approveOrder);
-router.post('/reject-order', adminController.rejectOrder);
-router.delete('/delete-order/:id', adminController.deleteOrder);
-router.post('/change-plan', upload.single('receipt'), adminController.changePlan);
-router.post('/logout', adminController.logoutAdmin);
-router.post('/reset-user-traffic', adminController.resetUserTraffic);
-router.post('/delete-v2ray-user', adminController.deleteV2rayUser);
-router.post('/update-user', adminController.updateUser);
-router.post('/settings/update', adminController.updateSettings);
+// Dashboard
+router.get('/stats', adminController.getDashboardStats);
 
+// Orders
 router.get('/orders', adminController.getOrders);
-router.get('/settings', adminController.getSettings);
-router.get('/users', adminController.getUsers);
-router.get('/stats', adminController.getStats);
-router.get('/plans', adminController.getPlans);
-router.get('/connections', adminController.getConnections);
+router.post('/orders/approve', adminController.approveOrder);
 
-// FIX: This route is now protected by the middleware applied at the top
-router.get('/users/all', adminController.getAllUsernames);
+router.post('/orders/reject', adminController.rejectOrder);
+
+// Users & Resellers
+router.get('/users', adminController.getUsers);
+router.post('/users/credit', adminController.updateUserCredit);
+router.get('/resellers', adminController.getResellers);
+
+// --- START: NEW AND UPDATED ROUTES FOR CONNECTIONS AND PACKAGES ---
+
+// Connections Routes
+router.get('/connections', adminController.getConnectionsAndPackages);
+router.post('/connections', adminController.createConnection);
+router.put('/connections/:id', adminController.updateConnection);
+router.delete('/connections/:id', adminController.deleteConnection);
+
+// Packages Routes
+router.post('/packages', adminController.createPackage);
+router.put('/packages/:id', adminController.updatePackage);
+router.delete('/packages/:id', adminController.deletePackage);
+router.get('/reports/chart-data', adminController.getChartData);
+router.get('/reports/download', adminController.downloadOrdersReport);
+router.get('/reports/summary', adminController.getReportSummary);
+
+// --- END: NEW AND UPDATED ROUTES ---
+
+
+// Plans Routes
+router.get('/plans', adminController.getPlans);
+router.post('/plans', adminController.createPlan);
+router.delete('/plans/:id', adminController.deletePlan);
+router.get('/settings', adminController.getSettings);
+router.post('/settings', adminController.updateSettings);
+
+router.get('/inbounds', adminController.getV2rayInbounds); 
+
 
 module.exports = router;
+
+
+
