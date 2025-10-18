@@ -303,4 +303,3 @@ exports.updatePassword = async (req, res) => {
     }
 };
 
-console.log("SUCCESS: userController.js file has finished loading.");

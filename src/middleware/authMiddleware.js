@@ -1,52 +1,55 @@
 // File Path: src/middleware/authMiddleware.js
 
-const jwt = require('jsonwebtoken');
-const supabase = require('../config/supabaseClient');
+const jwt = require("jsonwebtoken");
+const JWT_SECRET = process.env.JWT_SECRET;
 
-exports.authMiddleware = async (req, res, next) => {
-    const token = req.cookies.token;
+exports.authenticateToken = (req, res, next) => {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({ success: false, message: "Unauthorized: No token provided." });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ success: false, message: "Forbidden: Invalid or expired token." });
+    }
+    req.user = user;
+    next();
+  });
+};
+
+exports.authenticateAdmin = (req, res, next) => {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({ success: false, message: "Unauthorized: No token provided." });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err || user.role !== "admin") {
+      return res.status(403).json({ success: false, message: "Forbidden: Admin privileges required." });
+    }
+    req.user = user;
+    next();
+  });
+};
+
+exports.authenticateReseller = (req, res, next) => {
+    const authHeader = req.headers["authorization"];
+    const token = authHeader && authHeader.split(" ")[1];
+
     if (!token) {
-        if (req.method === 'GET') {
-            req.user = null;
-            return next();
-        }
-        return res.status(401).json({ message: 'No token, authorization denied' });
+        return res.status(401).json({ success: false, message: "Unauthorized: No token provided." });
     }
 
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const { data: user, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', decoded.id)
-            .single();
-
-        if (error || !user) {
-            return res.status(401).json({ message: 'User not found, authorization denied' });
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+        if (err || user.role !== "reseller") {
+            return res.status(403).json({ success: false, message: "Forbidden: Reseller privileges required." });
         }
         req.user = user;
         next();
-    } catch (err) {
-        res.status(401).json({ message: 'Token is not valid' });
-    }
+    });
 };
-
-exports.adminOnly = (req, res, next) => {
-    if (req.user && req.user.role === 'admin') {
-        next();
-    } else {
-        res.status(403).json({ message: 'Admin access required' });
-    }
-};
-
-// --- START: FIX FOR THE CRASH ---
-// This function was missing, causing the application to crash.
-exports.resellerOnly = (req, res, next) => {
-    if (req.user && (req.user.role === 'reseller' || req.user.role === 'admin')) {
-        next();
-    } else {
-        res.status(403).json({ message: 'Reseller access required' });
-    }
-};
-// --- END: FIX FOR THE CRASH ---
-
