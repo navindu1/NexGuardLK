@@ -590,6 +590,24 @@
         </button>
       </div>
     </div>
+
+    <div id="share-image-modal" class="modal fixed inset-0 bg-black/80 justify-center items-center z-50 p-4">
+        <div class="glass-panel w-full max-w-md p-6 rounded-lg relative text-center">
+            <button class="modal-close-btn absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
+            <h3 class="text-xl font-bold mb-4 font-['Orbitron']">Shareable Purchase Confirmation</h3>
+            <div id="share-image-container" class="mb-4 bg-slate-800/50 border border-slate-700 p-2 rounded flex justify-center items-center min-h-[350px]">
+                <p id="image-loading-text" class="text-slate-400 text-sm flex flex-col items-center">
+                    <i class="fa-solid fa-spinner fa-spin text-2xl mb-3 text-purple-400"></i>
+                    Generating image, please wait...
+                </p>
+                <img id="generated-share-image" src="" alt="Purchase Confirmation" class="max-w-full h-auto rounded hidden">
+            </div>
+            <a id="download-share-image-btn" href="#" download="nexguard_purchase.png" class="btn btn-primary hidden">
+                <i class="fa-solid fa-download mr-2"></i> Download Image
+            </a>
+        </div>
+    </div>
+
     
     <script src="/js/admin.js"></script>
     <script>

@@ -1,26 +1,26 @@
 document.addEventListener("DOMContentLoaded", () => {
 
-    VANTA.FOG({ 
+    VANTA.FOG({
           el: "#vanta-bg",
           mouseControls: true,
           touchControls: true,
           gyroControls: false,
           minHeight: 200.00,
-          minWidth: 200.00, 
-          highlightColor: 0x0, 
-          midtoneColor: 0x569e8, 
-          lowlightColor: 0x0, 
-          baseColor: 0x0, 
-          blurFactor: 0.90, 
-          speed: 1.30, 
-          zoom: 0.60 
+          minWidth: 200.00,
+          highlightColor: 0x0,
+          midtoneColor: 0x569e8,
+          lowlightColor: 0x0,
+          baseColor: 0x0,
+          blurFactor: 0.90,
+          speed: 1.30,
+          zoom: 0.60
         });
 
-    
+
     const loginForm = document.getElementById('admin-login-form');
     if (loginForm) {
         // This is the login page.
-        return; 
+        return;
     }
 
     // --- ADMIN DASHBOARD LOGIC ---
@@ -39,12 +39,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const imageModal = document.getElementById('image-modal');
     const modalImage = document.getElementById('modal-image');
     const formModal = document.getElementById('form-modal');
+    const shareImageModal = document.getElementById('share-image-modal'); // Add this
+    const shareImageContainer = document.getElementById('share-image-container'); // Add this
+    const generatedShareImage = document.getElementById('generated-share-image'); // Add this
+    const imageLoadingText = document.getElementById('image-loading-text'); // Add this
+    const downloadShareImageBtn = document.getElementById('download-share-image-btn'); // Add this
     const formModalTitle = document.getElementById('form-modal-title');
     const formModalContent = document.getElementById('form-modal-content');
     const formModalSaveBtn = document.getElementById('form-modal-save-btn');
     const settingsBtn = document.getElementById('settings-btn');
     const autoReloadCheckbox = document.getElementById('auto-reload-checkbox');
-    
+
     // --- State Management ---
     let currentView = 'pending';
     let dataCache = { orders: [], users: [], connections: [], plans: [], settings: {} };
@@ -102,7 +107,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const response = await fetch(`/api/admin${url}`, { ...defaultOptions, ...options });
          if (response.status === 401 || response.status === 403) {
             logout();
-            return Promise.reject(new Error("Unauthorized")); 
+            return Promise.reject(new Error("Unauthorized"));
         }
         const data = await response.json();
         if (!response.ok) throw new Error(data.message || 'An API error occurred');
@@ -112,7 +117,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function renderLoading() {
         contentContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin fa-3x text-purple-400"></i></div>`;
     }
-    
+
     function setActiveCard(cardElement) {
         document.querySelectorAll('#stats-section .glass-panel').forEach(c => c.classList.remove('border-purple-500', 'bg-slate-900/50'));
         if(cardElement) {
@@ -129,13 +134,152 @@ document.addEventListener("DOMContentLoaded", () => {
                 // --- UPDATED to include 'unconfirmed' ---
                 if (['pending', 'unconfirmed', 'approved', 'rejected'].includes(currentView)) {
                     showToast({ title: "Auto-Refresh", message: "Reloading data...", type: "info", duration: 2000 });
-                    loadDataAndRender(currentView, false); 
+                    loadDataAndRender(currentView, false);
                 }
             }, 30000);
         }
     };
 
-    // --- MODIFIED FUNCTION ---
+    // --- Helper to load images for Canvas ---
+    function loadImage(url) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = (err) => reject(new Error(`Failed to load image: ${url}. Error: ${err.message || err}`));
+            // Add crossOrigin attribute if loading from a different domain (like Supabase storage)
+            if (!url.startsWith('/') && !url.startsWith('data:')) {
+                img.crossOrigin = 'anonymous';
+            }
+            img.src = url;
+        });
+    }
+
+    // --- NEW FUNCTION: Generate Shareable Image ---
+    async function generateShareableImage(username, plan, dateStr) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const width = 1080; // Instagram square post size
+        const height = 1080;
+        canvas.width = width;
+        canvas.height = height;
+
+        // --- Design Elements ---
+        const backgroundColor = '#0F172A'; // Dark slate blue background
+        const primaryTextColor = '#FFFFFF';
+        const secondaryTextColor = '#94A3B8'; // slate-400
+        const accentColor = '#818CF8'; // indigo-400
+        const logoUrl = '/assets/logo.png'; // Make sure this path is correct
+        const brandName = "NexGuardLK";
+        const websiteUrl = "app.nexguardlk.store";
+
+        // --- Sanitize Username (Show first 3 chars + ***) ---
+        const sanitizedUsername = username.length > 3 ? `${username.substring(0, 3)}***` : `${username}***`;
+
+        // --- Format Date ---
+        let formattedDate = 'N/A';
+        try {
+            if (dateStr) {
+                formattedDate = new Date(dateStr).toLocaleDateString('en-GB', {
+                    day: '2-digit', month: 'short', year: 'numeric'
+                }); // e.g., 22 Oct 2025
+            }
+        } catch (e) { console.error("Error formatting date:", e); }
+
+        // --- Load Assets ---
+        let logoImg;
+        try {
+            logoImg = await loadImage(logoUrl);
+        } catch (error) {
+            console.error(error);
+            throw new Error("Could not load logo image for canvas.");
+            // Optionally, proceed without logo or use a placeholder
+        }
+
+        // --- Start Drawing ---
+        // Background
+        ctx.fillStyle = backgroundColor;
+        ctx.fillRect(0, 0, width, height);
+
+        // --- Add a subtle gradient/pattern (optional) ---
+        const gradient = ctx.createLinearGradient(0, 0, width, height);
+        gradient.addColorStop(0, 'rgba(30, 41, 59, 0.5)'); // slate-800 subtle
+        gradient.addColorStop(1, 'rgba(15, 23, 42, 0.5)'); // slate-900 subtle
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+
+
+        // --- Logo ---
+        if (logoImg) {
+            const logoHeight = 100;
+            const logoWidth = (logoImg.width / logoImg.height) * logoHeight;
+            const logoX = (width - logoWidth) / 2;
+            const logoY = 80;
+            ctx.drawImage(logoImg, logoX, logoY, logoWidth, logoHeight);
+        }
+
+        // --- Main Text ---
+        ctx.fillStyle = primaryTextColor;
+        ctx.textAlign = 'center';
+
+        // Username
+        ctx.font = 'bold 72px sans-serif'; // Use bold for username
+        ctx.fillText(sanitizedUsername, width / 2, 350);
+
+        // Subtitle text
+        ctx.font = '48px sans-serif';
+        ctx.fillStyle = secondaryTextColor;
+        ctx.fillText("successfully purchased", width / 2, 430);
+
+        // Plan Name
+        ctx.font = 'bold 80px sans-serif'; // Bigger font for plan
+        ctx.fillStyle = accentColor; // Accent color for plan
+        ctx.fillText(plan, width / 2, 550);
+
+        // "Plan from" text
+        ctx.font = '48px sans-serif';
+        ctx.fillStyle = secondaryTextColor;
+        ctx.fillText(`Plan from ${brandName}`, width / 2, 630);
+
+        // --- Verified Purchase Badge ---
+        const badgeY = height - 200;
+        ctx.fillStyle = 'rgba(74, 222, 128, 0.1)'; // green-400 subtle background
+        ctx.strokeStyle = 'rgba(74, 222, 128, 0.5)'; // green-400 border
+        ctx.lineWidth = 2;
+        const badgeWidth = 450;
+        const badgeHeight = 70;
+        const badgeX = (width - badgeWidth) / 2;
+        // Rounded rectangle for badge
+        ctx.beginPath();
+        ctx.moveTo(badgeX + 10, badgeY);
+        ctx.lineTo(badgeX + badgeWidth - 10, badgeY);
+        ctx.quadraticCurveTo(badgeX + badgeWidth, badgeY, badgeX + badgeWidth, badgeY + 10);
+        ctx.lineTo(badgeX + badgeWidth, badgeY + badgeHeight - 10);
+        ctx.quadraticCurveTo(badgeX + badgeWidth, badgeY + badgeHeight, badgeX + badgeWidth - 10, badgeY + badgeHeight);
+        ctx.lineTo(badgeX + 10, badgeY + badgeHeight);
+        ctx.quadraticCurveTo(badgeX, badgeY + badgeHeight, badgeX, badgeY + badgeHeight - 10);
+        ctx.lineTo(badgeX, badgeY + 10);
+        ctx.quadraticCurveTo(badgeX, badgeY, badgeX + 10, badgeY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#A3E635'; // Brighter green for text
+        ctx.font = 'bold 36px sans-serif';
+        ctx.fillText('✔ Verified Purchase', width / 2, badgeY + 45);
+
+        // --- Date & Website ---
+        ctx.font = '30px sans-serif';
+        ctx.fillStyle = secondaryTextColor;
+        ctx.fillText(`Date: ${formattedDate}`, width / 2, height - 100);
+        ctx.fillText(websiteUrl, width / 2, height - 60);
+
+        // --- Return Image Data URL ---
+        return canvas.toDataURL('image/png');
+    }
+    // --- END: Generate Shareable Image Function ---
+
+
+    // --- MODIFIED FUNCTION: renderOrders ---
     function renderOrders(status) {
         contentTitle.textContent = `${status.charAt(0).toUpperCase() + status.slice(1)} Orders`;
         searchBarContainer.classList.add('hidden');
@@ -147,32 +291,40 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         contentContainer.innerHTML = orders.map(order => {
             let orderType, typeColor;
-            if (order.old_v2ray_username) {
-                orderType = 'Change';
-                typeColor = 'text-orange-400';
-            } else if (order.is_renewal) {
-                orderType = 'Renew';
-                typeColor = 'text-blue-400';
-            } else {
-                orderType = 'New';
-                typeColor = 'text-green-400';
+            // ... (existing orderType logic) ...
+            if (order.old_v2ray_username) { orderType = 'Change'; typeColor = 'text-orange-400'; }
+            else if (order.is_renewal) { orderType = 'Renew'; typeColor = 'text-blue-400'; }
+            else { orderType = 'New'; typeColor = 'text-green-400'; }
+
+            // --- Determine buttons based on status ---
+            let actionButtonsHtml = '';
+            if (status === 'pending' || status === 'unconfirmed') {
+                actionButtonsHtml = `
+                <button class="btn btn-primary approve-btn" data-id="${order.id}">Approve</button>
+                <button class="btn btn-danger reject-btn" data-id="${order.id}">Reject</button>`;
+            } else if (status === 'approved') {
+                 // ** NEW: Added Share Button for Approved Orders **
+                 actionButtonsHtml = `
+                 <button class="btn btn-special generate-share-img-btn" data-order-id="${order.id}" data-username="${order.final_username || order.website_username}" data-plan="${order.plan_id}" data-date="${order.approved_at || order.created_at}" title="Generate Share Image">
+                     <i class="fa-solid fa-share-alt"></i>
+                 </button>`;
+            } else { // Rejected or other statuses
+                 actionButtonsHtml = `<span class="text-xs text-gray-500">Action Taken</span>`;
             }
-            
-            // Added final_username to the grid and changed grid columns to 8
+
             return `
-                <div class="glass-panel p-4 rounded-lg grid grid-cols-2 md:grid-cols-8 gap-4 items-center">
-                    <div><span class="font-bold text-slate-400 text-xs">User</span><p>${order.website_username}</p></div>
-                    <div><span class="font-bold text-slate-400 text-xs">V2Ray User</span><p class="text-purple-300 font-semibold">${order.final_username || 'N/A'}</p></div>
-                    <div><span class="font-bold text-slate-400 text-xs">Plan</span><p>${order.plan_id}</p></div>
-                    <div><span class="font-bold text-slate-400 text-xs">Connection</span><p>${order.conn_id || 'N/A'}</p></div>
-                    <div><span class="font-bold text-slate-400 text-xs">Type</span><p class="font-bold ${typeColor}">${orderType}</p></div>
-                    <div><span class="font-bold text-slate-400 text-xs">Submitted</span><p>${new Date(order.created_at).toLocaleString()}</p></div>
-                    <div class="flex gap-2"><button class="btn btn-secondary view-receipt-btn" data-url="${order.receipt_path}"><i class="fa-solid fa-receipt"></i> View</button></div>
-                    <div class="flex gap-2 items-center justify-end">
-                        ${status === 'pending' || status === 'unconfirmed' ? `
-                        <button class="btn btn-primary approve-btn" data-id="${order.id}">Approve</button>
-                        <button class="btn btn-danger reject-btn" data-id="${order.id}">Reject</button>` 
-                        : `<span class="text-xs text-gray-500">Action Taken</span>`}
+                <div class="glass-panel p-4 rounded-lg grid grid-cols-2 md:grid-cols-8 gap-4 items-center text-xs sm:text-sm">
+                    <div><span class="font-bold text-slate-400 text-xs block mb-1">User</span><p class="truncate" title="${order.website_username}">${order.website_username}</p></div>
+                    <div><span class="font-bold text-slate-400 text-xs block mb-1">V2Ray User</span><p class="text-purple-300 font-semibold truncate" title="${order.final_username || 'N/A'}">${order.final_username || 'N/A'}</p></div>
+                    <div><span class="font-bold text-slate-400 text-xs block mb-1">Plan</span><p class="truncate" title="${order.plan_id}">${order.plan_id}</p></div>
+                    <div><span class="font-bold text-slate-400 text-xs block mb-1">Connection</span><p class="truncate" title="${order.conn_id || 'N/A'}">${order.conn_id || 'N/A'}</p></div>
+                    <div><span class="font-bold text-slate-400 text-xs block mb-1">Type</span><p class="font-bold ${typeColor}">${orderType}</p></div>
+                    <div><span class="font-bold text-slate-400 text-xs block mb-1">Submitted</span><p>${new Date(order.created_at).toLocaleString()}</p></div>
+                    <div class="flex gap-2">
+                        ${order.receipt_path !== 'created_by_reseller' ? `<button class="btn btn-secondary view-receipt-btn" data-url="${order.receipt_path}"><i class="fa-solid fa-receipt"></i> View</button>` : '<span class="text-xs text-gray-500">By Reseller</span>'}
+                    </div>
+                    <div class="flex flex-wrap gap-2 items-center justify-end">
+                        ${actionButtonsHtml}
                     </div>
                 </div>`;
         }).join('');
@@ -256,7 +408,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             </div>
                         </div>`).join('')
                     : '<div class="text-center p-4 text-slate-400 text-sm">No packages added for this connection yet.</div>';
-                
+
                 bodyHtml = `<div class="package-list">${packageListHtml}</div>`;
             } else {
                 const templateValue = conn.default_vless_template || '';
@@ -275,14 +427,14 @@ document.addEventListener("DOMContentLoaded", () => {
                         </div>
                     </div>`;
             }
-            
+
             return `<div class="connection-card">
                         ${headerHtml}
                         <div class="connection-body" id="conn-body-${conn.id}">${bodyHtml}</div>
                     </div>`;
         }).join('');
     }
-    
+
     function renderPlans() {
         currentView = 'plans';
         contentTitle.textContent = `Plan Management`;
@@ -362,7 +514,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 apiFetch('/reports/summary'),
                 apiFetch('/reports/chart-data')
             ]);
-            
+
             const summary = summaryResult.data;
             const chartData = chartResult.data;
             const summaryContainer = document.getElementById('summary-container');
@@ -381,7 +533,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         </div>
                     </div>
                 </div>`;
-            
+
             summaryContainer.innerHTML = `
                 ${formatSummary('daily', summary.daily)}
                 ${formatSummary('weekly', summary.weekly)}
@@ -413,7 +565,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function showConnectionForm(conn = {}) {
         const isEditing = !!conn.id;
         formModalTitle.textContent = isEditing ? 'Edit Connection' : 'Create New Connection';
-        
+
         formModalContent.innerHTML = `
             <input type="hidden" name="id" value="${conn.id || ''}">
             <input type="text" name="name" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" placeholder="Connection Name (e.g., Dialog 4G)" value="${conn.name || ''}" required>
@@ -430,7 +582,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <input type="number" name="default_inbound_id" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" placeholder="Default Inbound ID" value="${conn.default_inbound_id || ''}">
                 <textarea name="default_vless_template" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" rows="3" placeholder="Default VLESS Template">${conn.default_vless_template || ''}</textarea>
             </div>`;
-            
+
         formModal.dataset.formType = 'connection';
         formModal.classList.add('active');
         document.getElementById('requires_package_choice').addEventListener('change', e => document.getElementById('single-package-fields').classList.toggle('hidden', e.target.checked));
@@ -525,7 +677,7 @@ document.addEventListener("DOMContentLoaded", () => {
         setActiveCard(card);
         loadDataAndRender(view);
     });
-    
+
     addNewBtn.addEventListener('click', () => {
         const type = addNewBtn.dataset.type;
         if (type === 'connection') showConnectionForm();
@@ -535,7 +687,7 @@ document.addEventListener("DOMContentLoaded", () => {
     contentContainer.addEventListener('click', async e => {
         const button = e.target.closest('button');
         const header = e.target.closest('.connection-header');
-    
+
         if (button) {
             const id = button.dataset.id;
             const connId = button.dataset.connId;
@@ -583,34 +735,66 @@ document.addEventListener("DOMContentLoaded", () => {
                     await handleAction(`/users/credit`, { userId: id, amount: parseFloat(amount) }, 'Credit Added', 'POST', button);
                 }
             }
+            // --- NEW: Handler for Generate Share Image Button ---
+            else if (button.classList.contains('generate-share-img-btn')) {
+                const orderId = button.dataset.orderId;
+                const username = button.dataset.username;
+                const plan = button.dataset.plan;
+                const dateStr = button.dataset.date;
+
+                // Show the modal immediately with loading text
+                generatedShareImage.src = ''; // Clear previous image
+                generatedShareImage.classList.add('hidden');
+                imageLoadingText.classList.remove('hidden');
+                imageLoadingText.querySelector('p')?.remove(); // Remove potential previous error message
+                imageLoadingText.insertAdjacentHTML('beforeend', '<p>Generating image, please wait...</p>'); // Reset text
+                downloadShareImageBtn.style.display = 'none'; // Hide download button initially
+                shareImageModal.classList.add('active');
+
+                // Call the generation function (handle errors)
+                try {
+                    const imageDataUrl = await generateShareableImage(username, plan, dateStr);
+                    generatedShareImage.src = imageDataUrl;
+                    generatedShareImage.classList.remove('hidden');
+                    imageLoadingText.classList.add('hidden');
+                    downloadShareImageBtn.href = imageDataUrl;
+                    downloadShareImageBtn.style.display = 'inline-block'; // Show download button
+                } catch (error) {
+                    console.error("Error generating shareable image:", error);
+                    imageLoadingText.querySelector('p')?.remove();
+                    imageLoadingText.insertAdjacentHTML('beforeend', '<p class="text-red-400">Error generating image.</p>');
+                    showToast({ title: "Error", message: "Could not generate shareable image.", type: "error" });
+                }
+            }
+            // --- End of New Handler ---
         }
-    
+
         if (header) {
             header.classList.toggle('collapsed');
             const targetBody = document.getElementById(header.dataset.collapsibleTarget);
             if (targetBody) targetBody.classList.toggle('expanded');
         }
     });
-    
+
     formModalSaveBtn.addEventListener('click', (e) => {
         const form = formModalContent;
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
         if(form.querySelector('#requires_package_choice')) { data.requires_package_choice = form.querySelector('#requires_package_choice').checked; }
-        
+
         const type = formModal.dataset.formType;
         let endpoint, method, successMessage;
-        
-        if (type === 'package') { 
-            endpoint = data.id ? `/packages/${data.id}` : '/packages'; 
+
+        if (type === 'package') {
+            endpoint = data.id ? `/packages/${data.id}` : '/packages';
             method = data.id ? 'PUT' : 'POST';
             successMessage = data.id ? 'Package Updated' : 'Package Created';
-        } else if (type === 'connection') { 
-            endpoint = data.id ? `/connections/${data.id}` : '/connections'; 
+        } else if (type === 'connection') {
+            endpoint = data.id ? `/connections/${data.id}` : '/connections';
             method = data.id ? 'PUT' : 'POST';
             successMessage = data.id ? 'Connection Updated' : 'Connection Created';
-        } else if (type === 'plan') { 
-            endpoint = '/plans'; 
+        } else if (type === 'plan') {
+            endpoint = '/plans';
             method = 'POST';
             successMessage = 'Plan Created';
         }
@@ -651,7 +835,7 @@ document.addEventListener("DOMContentLoaded", () => {
         await handleAction('/settings', settingsToSave, 'Settings Saved!', 'POST', button);
         document.getElementById('settings-modal').classList.remove('active');
     });
-    
+
     document.querySelectorAll('.modal-close-btn').forEach(btn => btn.addEventListener('click', (e) => e.target.closest('.modal').classList.remove('active')));
     document.getElementById('logout-btn').addEventListener('click', logout);
     document.getElementById('manual-reload-btn').addEventListener('click', () => loadDataAndRender(currentView));
@@ -674,4 +858,4 @@ document.addEventListener("DOMContentLoaded", () => {
     setActiveCard(document.getElementById(`card-${currentView}`));
     loadDataAndRender(currentView);
     setupAutoReload();
-});
+}); // End of DOMContentLoaded
