@@ -152,7 +152,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // --- UPDATED FUNCTION: Generate Shareable Image with Glass Effect ---
     async function generateShareableImage(username, plan, dateStr) {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
@@ -162,17 +161,18 @@ document.addEventListener("DOMContentLoaded", () => {
         canvas.height = height;
 
         // --- Design Elements ---
-        const backgroundImageUrl = '/assets/email-blurimage.jpg'; // Path to your background image
-        const glassBgColor = 'rgba(15, 23, 42, 0.7)'; // Semi-transparent dark blue (like card-glass)
-        const glassBorderColor = 'rgba(71, 85, 105, 0.5)'; // Subtle border (like card-glass)
+        const bgColor = '#05081A'; // Very dark blue/black base
         const primaryTextColor = '#FFFFFF';
-        const secondaryTextColor = '#CBD5E1'; // slate-300
-        const accentColor = '#60A5FA'; // blue-400 (Accent color from theme)
-        const logoUrl = '/assets/logo.png'; // Make sure this path is correct
+        const secondaryTextColor = '#A0AEC0'; // Lighter gray
+        // Vibrant brand colors from logo
+        const accentBlue = '#3B82F6';
+        const accentCyan = '#06B6D4';
+        const accentPurple = '#A855F7';
+        const glowColor = accentCyan; // Color for glow effects
+
+        const logoUrl = '/assets/logobox.png'; // Orb logo
         const brandName = "NexGuardLK";
         const websiteUrl = "app.nexguardlk.store";
-        const borderRadius = 30; // Rounded corners for the glass panel
-        const padding = 60; // Padding inside the glass panel
 
         // --- Sanitize Username ---
         const sanitizedUsername = username.length > 5 ? `${username.substring(0, 5)}***` : `${username}***`;
@@ -184,127 +184,218 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (e) { console.error("Error formatting date:", e); }
 
         // --- Load Assets ---
-        let backgroundImg, logoImg;
+        let logoImg;
         try {
-            [backgroundImg, logoImg] = await Promise.all([
-                loadImage(backgroundImageUrl),
-                loadImage(logoUrl)
-            ]);
+            logoImg = await loadImage(logoUrl);
         } catch (error) {
             console.error(error);
-            throw new Error("Could not load assets for canvas.");
+            throw new Error("Could not load logo image for canvas.");
         }
 
         // --- Start Drawing ---
-        // 1. Draw Background Image
-        ctx.drawImage(backgroundImg, 0, 0, width, height);
+        // 1. Background
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(0, 0, width, height);
 
-        // 2. Draw the "Glass" Panel
-        const glassX = padding;
-        const glassY = padding;
-        const glassWidth = width - (padding * 2);
-        const glassHeight = height - (padding * 2);
+        // 2. Abstract Background Elements (Diagonal Lines/Shards)
+        ctx.save(); // Save context state before clipping/transforming
+        ctx.lineWidth = 8;
+        ctx.lineCap = 'round';
 
-        ctx.fillStyle = glassBgColor;
-        ctx.strokeStyle = glassBorderColor;
-        ctx.lineWidth = 2;
-
+        // Cyan shard
+        ctx.strokeStyle = accentCyan;
+        ctx.shadowColor = accentCyan;
+        ctx.shadowBlur = 20;
         ctx.beginPath();
-        ctx.moveTo(glassX + borderRadius, glassY);
-        ctx.lineTo(glassX + glassWidth - borderRadius, glassY);
-        ctx.quadraticCurveTo(glassX + glassWidth, glassY, glassX + glassWidth, glassY + borderRadius);
-        ctx.lineTo(glassX + glassWidth, glassY + glassHeight - borderRadius);
-        ctx.quadraticCurveTo(glassX + glassWidth, glassY + glassHeight, glassX + glassWidth - borderRadius, glassY + glassHeight);
-        ctx.lineTo(glassX + borderRadius, glassY + glassHeight);
-        ctx.quadraticCurveTo(glassX, glassY + glassHeight, glassX, glassY + glassHeight - borderRadius);
-        ctx.lineTo(glassX, glassY + borderRadius);
-        ctx.quadraticCurveTo(glassX, glassY, glassX + borderRadius, glassY);
-        ctx.closePath();
-        ctx.fill();
+        ctx.moveTo(-100, height * 0.4);
+        ctx.lineTo(width * 0.6, -100);
         ctx.stroke();
 
-        // Add subtle radial gradients inside glass (like card-glass)
-        const gradient1 = ctx.createRadialGradient(glassX + glassWidth * 0.1, glassY + glassHeight * 0.1, 0, glassX + glassWidth * 0.1, glassY + glassHeight * 0.1, glassWidth * 0.5);
-        gradient1.addColorStop(0, 'hsla(222, 33%, 15%, 0.3)');
-        gradient1.addColorStop(1, 'transparent');
-        ctx.fillStyle = gradient1;
-        ctx.fillRect(glassX, glassY, glassWidth, glassHeight);
+        // Purple shard
+        ctx.strokeStyle = accentPurple;
+        ctx.shadowColor = accentPurple;
+        ctx.beginPath();
+        ctx.moveTo(width * 0.4, height + 100);
+        ctx.lineTo(width + 100, height * 0.3);
+        ctx.stroke();
 
-        const gradient2 = ctx.createRadialGradient(glassX + glassWidth * 0.9, glassY + glassHeight * 0.9, 0, glassX + glassWidth * 0.9, glassY + glassHeight * 0.9, glassWidth * 0.5);
-        gradient2.addColorStop(0, 'hsla(240, 30%, 15%, 0.3)');
-        gradient2.addColorStop(1, 'transparent');
-        ctx.fillStyle = gradient2;
-        ctx.fillRect(glassX, glassY, glassWidth, glassHeight);
+         // Blue subtle lines (no glow)
+         ctx.strokeStyle = accentBlue;
+         ctx.shadowBlur = 0; // Turn off glow for these
+         ctx.lineWidth = 4;
+         ctx.beginPath();
+         ctx.moveTo(width * 0.8, -50);
+         ctx.lineTo(width * 0.2, height + 50);
+         ctx.stroke();
+         ctx.beginPath();
+         ctx.moveTo(-50, height * 0.1);
+         ctx.lineTo(width + 50, height * 0.9);
+         ctx.stroke();
+
+        ctx.restore(); // Restore context state (removes shadow settings etc.)
 
 
-        // --- Draw Content INSIDE Glass Panel ---
-        ctx.textAlign = 'center';
-
-        // 3. Logo (Inside Glass)
+        // 3. Logo (Larger, maybe bottom corner or side)
         if (logoImg) {
-            const logoMaxHeight = 80;
-            const logoScale = logoMaxHeight / logoImg.height;
-            const logoWidth = logoImg.width * logoScale;
-            const logoX = (width - logoWidth) / 2; // Centered horizontally
-            const logoY = glassY + 50; // Positioned near the top of the glass panel
-            ctx.drawImage(logoImg, logoX, logoY, logoWidth, logoMaxHeight);
+            const logoSize = 250;
+            // Position bottom right with some padding
+            const logoX = width - logoSize - 60;
+            const logoY = height - logoSize - 60;
+
+             // Add a subtle glow behind logo
+             ctx.shadowColor = accentBlue;
+             ctx.shadowBlur = 30;
+             ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
+             ctx.shadowBlur = 0; // Turn off glow
         }
 
-        // --- Text Elements (Adjust Y positions to be inside glass) ---
-        const contentStartY = glassY + 200; // Start content below logo
+        // --- Text Elements ---
+        ctx.textAlign = 'left'; // Align text to the left for a more modern feel
+
+        const textStartX = 100; // Starting X position for most text
 
         // Username
         ctx.fillStyle = primaryTextColor;
-        ctx.font = 'bold 64px Orbitron, sans-serif'; // Use Orbitron
-        ctx.fillText(sanitizedUsername, width / 2, contentStartY);
+        ctx.font = 'bold 90px Orbitron, sans-serif'; // Larger, bolder Orbitron
+        // Add glow to username
+        ctx.shadowColor = glowColor;
+        ctx.shadowBlur = 15;
+        ctx.fillText(sanitizedUsername, textStartX, 250);
+        ctx.shadowBlur = 0; // Turn off glow
 
         // Subtitle text
-        ctx.font = '40px Inter, sans-serif'; // Use Inter
+        ctx.font = '45px Inter, sans-serif'; // Inter font
         ctx.fillStyle = secondaryTextColor;
-        ctx.fillText("successfully purchased", width / 2, contentStartY + 70);
+        ctx.fillText("successfully purchased", textStartX, 320);
 
-        // Plan Name
-        ctx.font = 'bold 70px Orbitron, sans-serif'; // Use Orbitron
-        ctx.fillStyle = accentColor;
-        ctx.fillText(plan, width / 2, contentStartY + 170);
+        // Plan Name (Positioned below subtitle, standout color)
+        ctx.font = 'bold 90px Orbitron, sans-serif'; // Orbitron
+        ctx.fillStyle = accentCyan; // Use a bright accent color
+        ctx.fillText(plan, textStartX, 450);
 
         // "Plan from" text
-        ctx.font = '40px Inter, sans-serif'; // Use Inter
+        ctx.font = '45px Inter, sans-serif'; // Inter
         ctx.fillStyle = secondaryTextColor;
-        ctx.fillText(`Plan from ${brandName}`, width / 2, contentStartY + 240);
+        ctx.fillText(`Plan from ${brandName}`, textStartX, 520);
 
-        // --- Verified Purchase Badge (Inside Glass) ---
-        const badgeWidth = 400;
+        // --- Verified Purchase Badge (Redesigned) ---
+        const badgeY = height - 150;
         const badgeHeight = 60;
-        const badgeX = (width - badgeWidth) / 2;
-        const badgeY = glassY + glassHeight - 200; // Positioned near bottom of glass panel
+        const checkmark = '✔';
+        const badgeText = 'Verified Purchase';
 
-        // Re-draw badge using similar style but maybe slightly different colors
+        ctx.font = 'bold 36px Inter, sans-serif'; // Inter
+        const textWidth = ctx.measureText(badgeText).width;
+        const checkWidth = ctx.measureText(checkmark).width;
+        const badgePadding = 25;
+        const totalBadgeWidth = textWidth + checkWidth + badgePadding * 2 + 10; // Extra space for checkmark
+
         ctx.fillStyle = 'rgba(34, 197, 94, 0.2)'; // Green background
         ctx.strokeStyle = 'rgba(34, 197, 94, 0.6)'; // Green border
         ctx.lineWidth = 2;
-        // Rounded Rect Path (simplified)
+
+        // Draw rounded rect for badge - starting from textStartX
         ctx.beginPath();
-        ctx.roundRect(badgeX, badgeY, badgeWidth, badgeHeight, 10); // Use roundRect if supported, otherwise draw manually
+        ctx.roundRect(textStartX, badgeY, totalBadgeWidth, badgeHeight, 10);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
 
+        // Draw text inside badge
         ctx.fillStyle = '#86EFAC'; // Lighter green text
-        ctx.font = 'bold 32px Inter, sans-serif'; // Use Inter
-        ctx.fillText('✔ Verified Purchase', width / 2, badgeY + 40);
+        ctx.fillText(`${checkmark} ${badgeText}`, textStartX + badgePadding, badgeY + 41); // Adjust Y position for vertical centering
 
-        // --- Date & Website (Inside Glass, at the bottom) ---
-        ctx.font = '24px Inter, sans-serif'; // Use Inter
+        // --- Date & Website URL (Small, at the bottom left) ---
+        ctx.font = '24px Inter, sans-serif'; // Inter
         ctx.fillStyle = secondaryTextColor;
-        const bottomTextY = glassY + glassHeight - 40;
-        ctx.fillText(`Date: ${formattedDate}  •  ${websiteUrl}`, width / 2, bottomTextY);
+        ctx.textAlign = 'left';
+        ctx.fillText(`Date: ${formattedDate}  •  ${websiteUrl}`, textStartX, height - 60);
 
         // --- Return Image Data URL ---
         return canvas.toDataURL('image/png');
     }
     // --- END: Updated Generate Shareable Image Function ---
 
+
+    // --- MODIFIED FUNCTION: renderOrders ---
+    // (This function needs the updated button text and data attributes as shown in the PREVIOUS response)
+    function renderOrders(status) {
+        contentTitle.textContent = `${status.charAt(0).toUpperCase() + status.slice(1)} Orders`;
+        searchBarContainer.classList.add('hidden');
+        addNewBtn.classList.add('hidden');
+        const orders = (dataCache.orders || []).filter(o => o.status === status);
+        if (orders.length === 0) {
+            contentContainer.innerHTML = `<div class="glass-panel p-6 text-center rounded-lg">No ${status} orders found.</div>`;
+            return;
+        }
+        contentContainer.innerHTML = orders.map(order => {
+            let orderType, typeColor;
+            if (order.old_v2ray_username) { orderType = 'Change'; typeColor = 'text-orange-400'; }
+            else if (order.is_renewal) { orderType = 'Renew'; typeColor = 'text-blue-400'; }
+            else { orderType = 'New'; typeColor = 'text-green-400'; }
+
+            let actionButtonsHtml = '';
+            if (status === 'pending' || status === 'unconfirmed') {
+                actionButtonsHtml = `
+                <button class="btn btn-primary approve-btn" data-id="${order.id}">Approve</button>
+                <button class="btn btn-danger reject-btn" data-id="${order.id}">Reject</button>`;
+            } else if (status === 'approved') {
+                 actionButtonsHtml = `
+                 <button class="btn btn-special generate-share-img-btn" data-order-id="${order.id}" data-username="${order.final_username || order.website_username}" data-plan="${order.plan_id}" data-date="${order.approved_at || order.created_at}" title="Generate Share Image">
+                     <i class="fa-solid fa-share-alt"></i> Share
+                 </button>`; // Button added here
+            } else {
+                 actionButtonsHtml = `<span class="text-xs text-gray-500">Action Taken</span>`;
+            }
+
+            return `
+                <div class="glass-panel p-4 rounded-lg grid grid-cols-2 md:grid-cols-8 gap-4 items-center text-xs sm:text-sm">
+                    <div><span class="font-bold text-slate-400 text-xs block mb-1">User</span><p class="truncate" title="${order.website_username}">${order.website_username}</p></div>
+                    <div><span class="font-bold text-slate-400 text-xs block mb-1">V2Ray User</span><p class="text-purple-300 font-semibold truncate" title="${order.final_username || 'N/A'}">${order.final_username || 'N/A'}</p></div>
+                    <div><span class="font-bold text-slate-400 text-xs block mb-1">Plan</span><p class="truncate" title="${order.plan_id}">${order.plan_id}</p></div>
+                    <div><span class="font-bold text-slate-400 text-xs block mb-1">Connection</span><p class="truncate" title="${order.conn_id || 'N/A'}">${order.conn_id || 'N/A'}</p></div>
+                    <div><span class="font-bold text-slate-400 text-xs block mb-1">Type</span><p class="font-bold ${typeColor}">${orderType}</p></div>
+                    <div><span class="font-bold text-slate-400 text-xs block mb-1">Submitted</span><p>${new Date(order.created_at).toLocaleString()}</p></div>
+                    <div class="flex gap-2">
+                        ${order.receipt_path !== 'created_by_reseller' ? `<button class="btn btn-secondary view-receipt-btn" data-url="${order.receipt_path}"><i class="fa-solid fa-receipt"></i> View</button>` : '<span class="text-xs text-gray-500">By Reseller</span>'}
+                    </div>
+                    <div class="flex flex-wrap gap-2 items-center justify-end">
+                        ${actionButtonsHtml}
+                    </div>
+                </div>`;
+        }).join('');
+    }
+
+    // --- (Keep the rest of the functions: renderUsers, renderConnections, renderPlans, renderReportsPage, showConnectionForm, showPackageForm, showPlanForm) ---
+    // Make sure they are identical to the previous version provided.
+
+    function renderUsers(users, role = 'user') {
+        const title = role === 'user' ? 'User' : 'Reseller';
+        contentTitle.textContent = `${title} Management`;
+        searchBarContainer.classList.remove('hidden');
+        searchInput.placeholder = `Search ${title}s...`;
+        addNewBtn.classList.add('hidden');
+        const filteredUsers = (users || []).filter(u => u.role === role && (u.username.toLowerCase().includes(searchInput.value.toLowerCase()) || (u.email || '').toLowerCase().includes(searchInput.value.toLowerCase())));
+        if (filteredUsers.length === 0) {
+            contentContainer.innerHTML = `<div class="glass-panel p-6 text-center rounded-lg">No ${title.toLowerCase()}s found.</div>`;
+            return;
+        }
+        const tableHeaders = role === 'user' ? `<th class="p-3 text-left font-semibold">Active Plans</th>` : `<th class="p-3 text-left font-semibold">Credit Balance</th>`;
+        contentContainer.innerHTML = `<div class="glass-panel rounded-xl overflow-hidden"><table class="min-w-full text-sm responsive-table">
+            <thead class="border-b border-slate-700 bg-slate-900/50"><tr>
+                <th class="p-3 text-left font-semibold">Username</th><th class="p-3 text-left font-semibold">Contact</th>${tableHeaders}<th class="p-3 text-center font-semibold">Actions</th>
+            </tr></thead>
+            <tbody>${filteredUsers.map(user => {
+                const roleSpecificData = role === 'user' ? `<td data-label="Active Plans">${(user.active_plans || []).length}</td>` : `<td data-label="Credit">LKR ${parseFloat(user.credit_balance || 0).toFixed(2)}</td>`;
+                const roleSpecificButtons = role === 'reseller' ? `<button class="btn btn-primary add-credit-btn" data-id="${user.id}" data-username="${user.username}"><i class="fa-solid fa-coins"></i></button>` : '';
+                return `<tr class="border-b border-slate-800 hover:bg-slate-800/50">
+                    <td data-label="Username">${user.username}</td>
+                    <td data-label="Contact"><div>${user.email}</div><div class="text-xs text-slate-400">${user.whatsapp || ''}</div></td>
+                    ${roleSpecificData}
+                    <td data-label="Actions" class="actions-cell"><div class="flex justify-center gap-2">${roleSpecificButtons}<button class="btn btn-danger" data-id="${user.id}"><i class="fa-solid fa-user-slash"></i></button></div></td>
+                </tr>`}).join('')}
+            </tbody></table></div>`;
+    }
 
     // --- MODIFIED FUNCTION: renderOrders ---
     function renderOrders(status) {
