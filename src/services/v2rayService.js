@@ -132,7 +132,9 @@ exports.addClient = async (inboundId, clientSettings) => {
         id: parseInt(inboundId),
         settings: JSON.stringify({ clients: [clientSettings] })
     };
-    const { data } = await axios.post(ADD_CLIENT_URL, payload, { headers: { Cookie: cookie } });
+    // Inside v2rayService.addClient, before axios.post
+console.log('[DEBUG V2Ray Payload] Sending payload:', JSON.stringify(payload, null, 2)); // <--- මේ line එක එකතු කරන්න
+const { data } = await axios.post(ADD_CLIENT_URL, payload, { headers: { Cookie: cookie } });
     return data;
 };
 
