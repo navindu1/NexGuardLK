@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
           minHeight: 200.00,
           minWidth: 200.00,
           highlightColor: 0x0,
-          midtoneColor: 0x569e8,
+          midtoneColor: 0x569e8, // Blue tone
           lowlightColor: 0x0,
           baseColor: 0x0,
           blurFactor: 0.90,
@@ -39,11 +39,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const imageModal = document.getElementById('image-modal');
     const modalImage = document.getElementById('modal-image');
     const formModal = document.getElementById('form-modal');
-    const shareImageModal = document.getElementById('share-image-modal'); // Add this
-    const shareImageContainer = document.getElementById('share-image-container'); // Add this
-    const generatedShareImage = document.getElementById('generated-share-image'); // Add this
-    const imageLoadingText = document.getElementById('image-loading-text'); // Add this
-    const downloadShareImageBtn = document.getElementById('download-share-image-btn'); // Add this
+    const shareImageModal = document.getElementById('share-image-modal');
+    const shareImageContainer = document.getElementById('share-image-container');
+    const generatedShareImage = document.getElementById('generated-share-image');
+    const imageLoadingText = document.getElementById('image-loading-text');
+    const downloadShareImageBtn = document.getElementById('download-share-image-btn');
     const formModalTitle = document.getElementById('form-modal-title');
     const formModalContent = document.getElementById('form-modal-content');
     const formModalSaveBtn = document.getElementById('form-modal-save-btn');
@@ -131,7 +131,6 @@ document.addEventListener("DOMContentLoaded", () => {
         clearInterval(autoReloadInterval);
         if (isEnabled) {
             autoReloadInterval = setInterval(() => {
-                // --- UPDATED to include 'unconfirmed' ---
                 if (['pending', 'unconfirmed', 'approved', 'rejected'].includes(currentView)) {
                     showToast({ title: "Auto-Refresh", message: "Reloading data...", type: "info", duration: 2000 });
                     loadDataAndRender(currentView, false);
@@ -146,7 +145,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const img = new Image();
             img.onload = () => resolve(img);
             img.onerror = (err) => reject(new Error(`Failed to load image: ${url}. Error: ${err.message || err}`));
-            // Add crossOrigin attribute if loading from a different domain (like Supabase storage)
             if (!url.startsWith('/') && !url.startsWith('data:')) {
                 img.crossOrigin = 'anonymous';
             }
@@ -154,129 +152,158 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // --- NEW FUNCTION: Generate Shareable Image ---
+    // --- UPDATED FUNCTION: Generate Shareable Image with Glass Effect ---
     async function generateShareableImage(username, plan, dateStr) {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        const width = 1080; // Instagram square post size
+        const width = 1080;
         const height = 1080;
         canvas.width = width;
         canvas.height = height;
 
         // --- Design Elements ---
-        const backgroundColor = '#0F172A'; // Dark slate blue background
+        const backgroundImageUrl = '/assets/email-blurimage.jpg'; // Path to your background image
+        const glassBgColor = 'rgba(15, 23, 42, 0.7)'; // Semi-transparent dark blue (like card-glass)
+        const glassBorderColor = 'rgba(71, 85, 105, 0.5)'; // Subtle border (like card-glass)
         const primaryTextColor = '#FFFFFF';
-        const secondaryTextColor = '#94A3B8'; // slate-400
-        const accentColor = '#818CF8'; // indigo-400
+        const secondaryTextColor = '#CBD5E1'; // slate-300
+        const accentColor = '#60A5FA'; // blue-400 (Accent color from theme)
         const logoUrl = '/assets/logo.png'; // Make sure this path is correct
         const brandName = "NexGuardLK";
         const websiteUrl = "app.nexguardlk.store";
+        const borderRadius = 30; // Rounded corners for the glass panel
+        const padding = 60; // Padding inside the glass panel
 
-        // --- Sanitize Username (Show first 3 chars + ***) ---
-        const sanitizedUsername = username.length > 3 ? `${username.substring(0, 3)}***` : `${username}***`;
+        // --- Sanitize Username ---
+        const sanitizedUsername = username.length > 5 ? `${username.substring(0, 5)}***` : `${username}***`;
 
         // --- Format Date ---
         let formattedDate = 'N/A';
         try {
-            if (dateStr) {
-                formattedDate = new Date(dateStr).toLocaleDateString('en-GB', {
-                    day: '2-digit', month: 'short', year: 'numeric'
-                }); // e.g., 22 Oct 2025
-            }
+            if (dateStr) formattedDate = new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
         } catch (e) { console.error("Error formatting date:", e); }
 
         // --- Load Assets ---
-        let logoImg;
+        let backgroundImg, logoImg;
         try {
-            logoImg = await loadImage(logoUrl);
+            [backgroundImg, logoImg] = await Promise.all([
+                loadImage(backgroundImageUrl),
+                loadImage(logoUrl)
+            ]);
         } catch (error) {
             console.error(error);
-            throw new Error("Could not load logo image for canvas.");
-            // Optionally, proceed without logo or use a placeholder
+            throw new Error("Could not load assets for canvas.");
         }
 
         // --- Start Drawing ---
-        // Background
-        ctx.fillStyle = backgroundColor;
-        ctx.fillRect(0, 0, width, height);
+        // 1. Draw Background Image
+        ctx.drawImage(backgroundImg, 0, 0, width, height);
 
-        // --- Add a subtle gradient/pattern (optional) ---
-        const gradient = ctx.createLinearGradient(0, 0, width, height);
-        gradient.addColorStop(0, 'rgba(30, 41, 59, 0.5)'); // slate-800 subtle
-        gradient.addColorStop(1, 'rgba(15, 23, 42, 0.5)'); // slate-900 subtle
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, width, height);
+        // 2. Draw the "Glass" Panel
+        const glassX = padding;
+        const glassY = padding;
+        const glassWidth = width - (padding * 2);
+        const glassHeight = height - (padding * 2);
 
-
-        // --- Logo ---
-        if (logoImg) {
-            const logoHeight = 100;
-            const logoWidth = (logoImg.width / logoImg.height) * logoHeight;
-            const logoX = (width - logoWidth) / 2;
-            const logoY = 80;
-            ctx.drawImage(logoImg, logoX, logoY, logoWidth, logoHeight);
-        }
-
-        // --- Main Text ---
-        ctx.fillStyle = primaryTextColor;
-        ctx.textAlign = 'center';
-
-        // Username
-        ctx.font = 'bold 72px sans-serif'; // Use bold for username
-        ctx.fillText(sanitizedUsername, width / 2, 350);
-
-        // Subtitle text
-        ctx.font = '48px sans-serif';
-        ctx.fillStyle = secondaryTextColor;
-        ctx.fillText("successfully purchased", width / 2, 430);
-
-        // Plan Name
-        ctx.font = 'bold 80px sans-serif'; // Bigger font for plan
-        ctx.fillStyle = accentColor; // Accent color for plan
-        ctx.fillText(plan, width / 2, 550);
-
-        // "Plan from" text
-        ctx.font = '48px sans-serif';
-        ctx.fillStyle = secondaryTextColor;
-        ctx.fillText(`Plan from ${brandName}`, width / 2, 630);
-
-        // --- Verified Purchase Badge ---
-        const badgeY = height - 200;
-        ctx.fillStyle = 'rgba(74, 222, 128, 0.1)'; // green-400 subtle background
-        ctx.strokeStyle = 'rgba(74, 222, 128, 0.5)'; // green-400 border
+        ctx.fillStyle = glassBgColor;
+        ctx.strokeStyle = glassBorderColor;
         ctx.lineWidth = 2;
-        const badgeWidth = 450;
-        const badgeHeight = 70;
-        const badgeX = (width - badgeWidth) / 2;
-        // Rounded rectangle for badge
+
         ctx.beginPath();
-        ctx.moveTo(badgeX + 10, badgeY);
-        ctx.lineTo(badgeX + badgeWidth - 10, badgeY);
-        ctx.quadraticCurveTo(badgeX + badgeWidth, badgeY, badgeX + badgeWidth, badgeY + 10);
-        ctx.lineTo(badgeX + badgeWidth, badgeY + badgeHeight - 10);
-        ctx.quadraticCurveTo(badgeX + badgeWidth, badgeY + badgeHeight, badgeX + badgeWidth - 10, badgeY + badgeHeight);
-        ctx.lineTo(badgeX + 10, badgeY + badgeHeight);
-        ctx.quadraticCurveTo(badgeX, badgeY + badgeHeight, badgeX, badgeY + badgeHeight - 10);
-        ctx.lineTo(badgeX, badgeY + 10);
-        ctx.quadraticCurveTo(badgeX, badgeY, badgeX + 10, badgeY);
+        ctx.moveTo(glassX + borderRadius, glassY);
+        ctx.lineTo(glassX + glassWidth - borderRadius, glassY);
+        ctx.quadraticCurveTo(glassX + glassWidth, glassY, glassX + glassWidth, glassY + borderRadius);
+        ctx.lineTo(glassX + glassWidth, glassY + glassHeight - borderRadius);
+        ctx.quadraticCurveTo(glassX + glassWidth, glassY + glassHeight, glassX + glassWidth - borderRadius, glassY + glassHeight);
+        ctx.lineTo(glassX + borderRadius, glassY + glassHeight);
+        ctx.quadraticCurveTo(glassX, glassY + glassHeight, glassX, glassY + glassHeight - borderRadius);
+        ctx.lineTo(glassX, glassY + borderRadius);
+        ctx.quadraticCurveTo(glassX, glassY, glassX + borderRadius, glassY);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
 
-        ctx.fillStyle = '#A3E635'; // Brighter green for text
-        ctx.font = 'bold 36px sans-serif';
-        ctx.fillText('✔ Verified Purchase', width / 2, badgeY + 45);
+        // Add subtle radial gradients inside glass (like card-glass)
+        const gradient1 = ctx.createRadialGradient(glassX + glassWidth * 0.1, glassY + glassHeight * 0.1, 0, glassX + glassWidth * 0.1, glassY + glassHeight * 0.1, glassWidth * 0.5);
+        gradient1.addColorStop(0, 'hsla(222, 33%, 15%, 0.3)');
+        gradient1.addColorStop(1, 'transparent');
+        ctx.fillStyle = gradient1;
+        ctx.fillRect(glassX, glassY, glassWidth, glassHeight);
 
-        // --- Date & Website ---
-        ctx.font = '30px sans-serif';
+        const gradient2 = ctx.createRadialGradient(glassX + glassWidth * 0.9, glassY + glassHeight * 0.9, 0, glassX + glassWidth * 0.9, glassY + glassHeight * 0.9, glassWidth * 0.5);
+        gradient2.addColorStop(0, 'hsla(240, 30%, 15%, 0.3)');
+        gradient2.addColorStop(1, 'transparent');
+        ctx.fillStyle = gradient2;
+        ctx.fillRect(glassX, glassY, glassWidth, glassHeight);
+
+
+        // --- Draw Content INSIDE Glass Panel ---
+        ctx.textAlign = 'center';
+
+        // 3. Logo (Inside Glass)
+        if (logoImg) {
+            const logoMaxHeight = 80;
+            const logoScale = logoMaxHeight / logoImg.height;
+            const logoWidth = logoImg.width * logoScale;
+            const logoX = (width - logoWidth) / 2; // Centered horizontally
+            const logoY = glassY + 50; // Positioned near the top of the glass panel
+            ctx.drawImage(logoImg, logoX, logoY, logoWidth, logoMaxHeight);
+        }
+
+        // --- Text Elements (Adjust Y positions to be inside glass) ---
+        const contentStartY = glassY + 200; // Start content below logo
+
+        // Username
+        ctx.fillStyle = primaryTextColor;
+        ctx.font = 'bold 64px Orbitron, sans-serif'; // Use Orbitron
+        ctx.fillText(sanitizedUsername, width / 2, contentStartY);
+
+        // Subtitle text
+        ctx.font = '40px Inter, sans-serif'; // Use Inter
         ctx.fillStyle = secondaryTextColor;
-        ctx.fillText(`Date: ${formattedDate}`, width / 2, height - 100);
-        ctx.fillText(websiteUrl, width / 2, height - 60);
+        ctx.fillText("successfully purchased", width / 2, contentStartY + 70);
+
+        // Plan Name
+        ctx.font = 'bold 70px Orbitron, sans-serif'; // Use Orbitron
+        ctx.fillStyle = accentColor;
+        ctx.fillText(plan, width / 2, contentStartY + 170);
+
+        // "Plan from" text
+        ctx.font = '40px Inter, sans-serif'; // Use Inter
+        ctx.fillStyle = secondaryTextColor;
+        ctx.fillText(`Plan from ${brandName}`, width / 2, contentStartY + 240);
+
+        // --- Verified Purchase Badge (Inside Glass) ---
+        const badgeWidth = 400;
+        const badgeHeight = 60;
+        const badgeX = (width - badgeWidth) / 2;
+        const badgeY = glassY + glassHeight - 200; // Positioned near bottom of glass panel
+
+        // Re-draw badge using similar style but maybe slightly different colors
+        ctx.fillStyle = 'rgba(34, 197, 94, 0.2)'; // Green background
+        ctx.strokeStyle = 'rgba(34, 197, 94, 0.6)'; // Green border
+        ctx.lineWidth = 2;
+        // Rounded Rect Path (simplified)
+        ctx.beginPath();
+        ctx.roundRect(badgeX, badgeY, badgeWidth, badgeHeight, 10); // Use roundRect if supported, otherwise draw manually
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#86EFAC'; // Lighter green text
+        ctx.font = 'bold 32px Inter, sans-serif'; // Use Inter
+        ctx.fillText('✔ Verified Purchase', width / 2, badgeY + 40);
+
+        // --- Date & Website (Inside Glass, at the bottom) ---
+        ctx.font = '24px Inter, sans-serif'; // Use Inter
+        ctx.fillStyle = secondaryTextColor;
+        const bottomTextY = glassY + glassHeight - 40;
+        ctx.fillText(`Date: ${formattedDate}  •  ${websiteUrl}`, width / 2, bottomTextY);
 
         // --- Return Image Data URL ---
         return canvas.toDataURL('image/png');
     }
-    // --- END: Generate Shareable Image Function ---
+    // --- END: Updated Generate Shareable Image Function ---
 
 
     // --- MODIFIED FUNCTION: renderOrders ---
@@ -291,24 +318,21 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         contentContainer.innerHTML = orders.map(order => {
             let orderType, typeColor;
-            // ... (existing orderType logic) ...
             if (order.old_v2ray_username) { orderType = 'Change'; typeColor = 'text-orange-400'; }
             else if (order.is_renewal) { orderType = 'Renew'; typeColor = 'text-blue-400'; }
             else { orderType = 'New'; typeColor = 'text-green-400'; }
 
-            // --- Determine buttons based on status ---
             let actionButtonsHtml = '';
             if (status === 'pending' || status === 'unconfirmed') {
                 actionButtonsHtml = `
                 <button class="btn btn-primary approve-btn" data-id="${order.id}">Approve</button>
                 <button class="btn btn-danger reject-btn" data-id="${order.id}">Reject</button>`;
             } else if (status === 'approved') {
-                 // ** NEW: Added Share Button for Approved Orders **
                  actionButtonsHtml = `
                  <button class="btn btn-special generate-share-img-btn" data-order-id="${order.id}" data-username="${order.final_username || order.website_username}" data-plan="${order.plan_id}" data-date="${order.approved_at || order.created_at}" title="Generate Share Image">
-                     <i class="fa-solid fa-share-alt"></i>
-                 </button>`;
-            } else { // Rejected or other statuses
+                     <i class="fa-solid fa-share-alt"></i> Share
+                 </button>`; // Added text to button
+            } else {
                  actionButtonsHtml = `<span class="text-xs text-gray-500">Action Taken</span>`;
             }
 
@@ -358,11 +382,10 @@ document.addEventListener("DOMContentLoaded", () => {
             </tbody></table></div>`;
     }
 
-    // --- MODIFIED FUNCTION ---
     function renderConnections() {
         contentTitle.textContent = `Connections & Packages`;
         searchBarContainer.classList.add('hidden');
-        addNewBtn.classList.add('hidden'); // Hidden as per user request
+        addNewBtn.classList.add('hidden');
         addNewBtn.dataset.type = 'connection';
 
         const connections = dataCache.connections || [];
@@ -746,13 +769,28 @@ document.addEventListener("DOMContentLoaded", () => {
                 generatedShareImage.src = ''; // Clear previous image
                 generatedShareImage.classList.add('hidden');
                 imageLoadingText.classList.remove('hidden');
-                imageLoadingText.querySelector('p')?.remove(); // Remove potential previous error message
-                imageLoadingText.insertAdjacentHTML('beforeend', '<p>Generating image, please wait...</p>'); // Reset text
+                // Ensure there's only one paragraph for status
+                let statusPara = imageLoadingText.querySelector('p');
+                if (!statusPara) {
+                     statusPara = document.createElement('p');
+                     imageLoadingText.appendChild(statusPara);
+                }
+                statusPara.className = 'text-slate-400 text-sm'; // Reset classes if needed
+                statusPara.textContent = 'Generating image, please wait...';
+
                 downloadShareImageBtn.style.display = 'none'; // Hide download button initially
                 shareImageModal.classList.add('active');
 
                 // Call the generation function (handle errors)
                 try {
+                    // Preload fonts (optional but good for consistency)
+                    // You might need to adjust paths or use web fonts if Orbitron/Inter aren't system fonts
+                    await document.fonts.load('bold 64px Orbitron');
+                    await document.fonts.load('40px Inter');
+                    await document.fonts.load('bold 70px Orbitron');
+                    await document.fonts.load('bold 32px Inter');
+                    await document.fonts.load('24px Inter');
+
                     const imageDataUrl = await generateShareableImage(username, plan, dateStr);
                     generatedShareImage.src = imageDataUrl;
                     generatedShareImage.classList.remove('hidden');
@@ -761,9 +799,16 @@ document.addEventListener("DOMContentLoaded", () => {
                     downloadShareImageBtn.style.display = 'inline-block'; // Show download button
                 } catch (error) {
                     console.error("Error generating shareable image:", error);
-                    imageLoadingText.querySelector('p')?.remove();
-                    imageLoadingText.insertAdjacentHTML('beforeend', '<p class="text-red-400">Error generating image.</p>');
-                    showToast({ title: "Error", message: "Could not generate shareable image.", type: "error" });
+                    let statusPara = imageLoadingText.querySelector('p');
+                     if (!statusPara) {
+                         statusPara = document.createElement('p');
+                         imageLoadingText.appendChild(statusPara);
+                     }
+                    statusPara.className = 'text-red-400 text-sm';
+                    statusPara.textContent = `Error generating image: ${error.message || 'Unknown error'}`;
+                    imageLoadingText.classList.remove('hidden'); // Ensure loading text area is visible for error
+                    generatedShareImage.classList.add('hidden'); // Hide potentially broken image
+                    showToast({ title: "Error", message: `Could not generate shareable image. ${error.message || ''}`, type: "error" });
                 }
             }
             // --- End of New Handler ---
