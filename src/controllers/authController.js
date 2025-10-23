@@ -197,24 +197,34 @@ exports.resellerLogin = async (req, res) => {
 };
 
 exports.forgotPassword = async (req, res) => {
-    console.log(`--- forgotPassword Function Started for: ${req.body.email} ---`);
+    console.log(`--- forgotPassword Function Started for: ${req.body.email} ---`); // මේක ඔයාට දැනටමත් පේනවා
     const { email } = req.body;
     try {
+        console.log(`[1] Attempting to find user with email: ${email}`); // <--- අලුතින් දාන්න
         const { data: user, error: userError } = await supabase
             .from("users")
             .select("*")
             .eq("email", email)
             .single();
+        console.log(`[2] Supabase user query completed. User found: ${!!user}, Error: ${userError ? userError.message : 'No error'}`); // <--- අලුතින් දාන්න
 
-        if (userError || !user) {
+        if (userError && userError.code !== 'PGRST116') { // PGRST116 means 'No rows found', which is not a fatal error here
+            console.error('[2a] Supabase user query returned an unexpected error:', userError);
+            // Optionally throw error here if needed, but the generic response below handles it for security
+        }
+
+        if (!user) {
+            console.log('[3] User not found or query error occurred. Sending generic response.'); // <--- අලුතින් දාන්න
             // Do not reveal if a user exists or not for security reasons
             return res.json({ message: 'If an account with that email exists, a password reset link has been sent.' });
         }
 
+        console.log(`[4] User ${user.username} found. Generating reset token...`); // <--- අලුතින් දාන්න
         const resetToken = crypto.randomBytes(32).toString('hex');
         const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
         const resetExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
+        console.log(`[5] Token generated. Attempting to update user record in Supabase for user ID: ${user.id}`); // <--- අලුතින් දාන්න
         const { error: updateError } = await supabase
             .from("users")
             .update({
@@ -222,30 +232,51 @@ exports.forgotPassword = async (req, res) => {
                 password_reset_expires: resetExpiry.toISOString(),
             })
             .eq("id", user.id);
-        
-        if (updateError) throw updateError;
-        
+        console.log(`[6] Supabase user update completed. Error: ${updateError ? updateError.message : 'No error'}`); // <--- අලුතින් දාන්න
+
+        if (updateError) {
+             console.error('[6a] CRITICAL: Failed to update user record with reset token:', updateError); // Log the specific update error
+             // Even if DB update fails, send generic response for security, but log the failure.
+             return res.json({ message: 'If an account with that email exists, a password reset link has been sent.' });
+             // Consider: maybe throw error here instead? throw updateError;
+        }
+
+        console.log(`[7] User record updated. Preparing to send email.`); // <--- අලුතින් දාන්න
         const resetURL = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
         const mailOptions = {
-            from: `NexGuard <${process.env.EMAIL_SENDER}>`,
-            to: user.email,
-            subject: 'Your Password Reset Link (Valid for 10 mins)',
-            html: generateEmailTemplate('Password Reset Request', 'Use the link inside to reset your password.', generatePasswordResetEmailContent(user.username, resetURL)),
+            // ... (your existing mailOptions)
+             from: `NexGuard <${process.env.EMAIL_SENDER}>`,
+             to: user.email,
+             subject: 'Your Password Reset Link (Valid for 10 mins)',
+             html: generateEmailTemplate('Password Reset Request', 'Use the link inside to reset your password.', generatePasswordResetEmailContent(user.username, resetURL)),
         };
 
-        // --- FIX APPLIED: Awaiting the sendMail function ---
+        // --- Transporter Verification (Optional but Recommended) ---
         try {
-            await transporter.sendMail(mailOptions);
-            console.log(`Password reset email sent successfully to ${user.email}`);
+            console.log('[8] Verifying transporter config...');
+            await transporter.verify();
+            console.log('[9] Transporter configuration OK.');
+        } catch (verifyError) {
+            console.error('[9a] !!! Transporter Verification FAILED:', verifyError);
+            // Don't stop execution, just log the error. The sendMail attempt might still provide info.
+        }
+        // --- End Transporter Verification ---
+
+        console.log(`[10] Attempting to send password reset email to: ${user.email}`);
+        console.log('Mail Options:', JSON.stringify(mailOptions, null, 2));
+
+        try {
+            const info = await transporter.sendMail(mailOptions);
+            console.log(`[11] Password reset email sent successfully to ${user.email}. Message ID: ${info.messageId}`);
             res.json({ message: 'Password reset link has been sent to your email.' });
         } catch (emailError) {
-            console.error(`CRITICAL: FAILED to send password reset email to ${user.email}:`, emailError);
-            // Even if email fails, send a generic success message for security.
+            console.error(`[11a] CRITICAL: FAILED to send password reset email to ${user.email}:`, emailError);
             res.json({ message: 'If an account with that email exists, a password reset link has been sent.' });
         }
 
     } catch (error) {
-        console.error("Forgot Password Error:", error);
+        // This outer catch block might catch errors from Supabase client setup or other unexpected issues
+        console.error("[Outer Catch] Forgot Password Error:", error);
         res.status(500).json({ message: 'Server error occurred during forgot password process.' });
     }
 };
