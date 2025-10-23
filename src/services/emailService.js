@@ -147,10 +147,10 @@ const generateEmailTemplate = (title, preheader, content) => `
 
                         <p style="margin: 25px 0 0; font-size: 13px; color: ${SECONDARY_TEXT_COLOR}; text-align: center;">Thank you,<br><strong style="color: ${TEXT_COLOR};">The NexGuard Team</strong></p> </td>
                 </tr>
-                 <tr>
+                <tr>
                     <td class="footer" style="padding: 28px 0 20px; text-align: center; font-size: 11px; color: ${SECONDARY_TEXT_COLOR};">
                         <p class="social-icons" style="margin-bottom: 14px;">
-                            <a href="${FACEBOOK_URL}" target="_blank"><img src="https://img.icons8.com/glyph-neue/64/244ed9/facebook-new.png" alt="Facebook"></a> <a href="${WHATSAPP_URL}" target="_blank"><img src="https://img.icons8.com/glyph-neue/64/244ed9/whatsapp.png" alt="WhatsApp"></a> <a href="${TELEGRAM_URL}" target="_blank"><img src="https://img.icons8.com/glyph-neue/64/244ed9/telegram-app.png" alt="Telegram"></a> </p>
+                            <a href="${FACEBOOK_URL}" target="_blank"><img src="https://img.icons8.com/ios-filled/64/244ed9/facebook-new.png" alt="Facebook"></a> <a href="${WHATSAPP_URL}" target="_blank"><img src="https://img.icons8.com/ios-filled/64/244ed9/whatsapp.png" alt="WhatsApp"></a> <a href="${TELEGRAM_URL}" target="_blank"><img src="https://img.icons8.com/ios-filled/64/244ed9/telegram-app.png" alt="Telegram"></a> </p>
                         <p style="margin: 0;">Copyright &copy; ${new Date().getFullYear()} NexGuard LK. All rights reserved.</p>
                     </td>
                 </tr>
