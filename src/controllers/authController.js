@@ -49,7 +49,7 @@ exports.register = async (req, res) => {
             html: generateEmailTemplate(
                 "Verify Your Email",
                 "Your OTP is inside.",
-                generateOtpEmailContent(otp)
+                generateOtpEmailContent(username, otp)
             ),
         };
 

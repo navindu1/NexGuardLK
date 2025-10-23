@@ -1,4 +1,4 @@
-// File Path: NexGuardLK/src/services/emailService.js (Fully Updated - v3)
+// File Path: NexGuardLK/src/services/emailService.js (Fully Updated - v2)
 
 const transporter = require('../config/mailer');
 
@@ -16,24 +16,24 @@ const sendEmail = async (to, subject, html) => {
             subject,
             html,
         });
-        console.log('Email sent successfully via Brevo.');
+        console.log(`Email sent successfully to ${to} via Brevo.`);
     } catch (error) {
-        console.error('Error sending email via Brevo:', error);
+        console.error(`Error sending email via Brevo to ${to}:`, error);
         throw new Error('Failed to send email.');
     }
 };
 
-// --- Configuration ---
+// --- Configuration Variables ---
 const FRONTEND_URL = process.env.FRONTEND_URL || "https://app.nexguardlk.store";
 const LOGO_URL = process.env.LOGO_PUBLIC_URL || `${FRONTEND_URL}/assets/logo.png`;
-const HELP_CENTER_URL = process.env.HELP_CENTER_URL || `${FRONTEND_URL}/about`; // Example: Link to your About page or a dedicated help section
-const CONTACT_EMAIL = process.env.CONTACT_EMAIL || "support@nexguardlk.store"; // Example: Your support email
+const HELP_CENTER_URL = process.env.HELP_CENTER_URL || `${FRONTEND_URL}/about?scroll=faq-section`; // Example link
+const CONTACT_EMAIL = process.env.CONTACT_EMAIL || "support@nexguardlk.store"; // Example email
+const FACEBOOK_URL = process.env.FACEBOOK_URL || "https://facebook.com/nexguardlk"; // Example
+const WHATSAPP_URL = process.env.WHATSAPP_URL || "https://wa.me/94770492554"; // Example
+const TELEGRAM_URL = process.env.TELEGRAM_URL || "https://t.me/nexguardusagebot"; // Example
 
-/**
- * නව Minimal, Classic Email Template එක (Brevo style layout).
- * සම්පූර්ණ email එකට සැහැල්ලු කොළ background එකක් සහ නිල් අකුරු සහිතයි.
- */
-const generateEmailTemplate = (title, preheader, content, username = "User") => `
+// --- Main Email Template Generator (Updated) ---
+const generateEmailTemplate = (title, preheader, content) => `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -44,200 +44,217 @@ const generateEmailTemplate = (title, preheader, content, username = "User") => 
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; -webkit-font-smoothing: antialiased; background-color: #f0fdf4; /* Light Mint Green Background */ font-family: 'Inter', sans-serif; color: #334155; /* Default text color */ }
-        .email-container { max-width: 600px; margin: 0 auto; padding: 24px 16px; }
-        .email-header { text-align: center; padding-bottom: 24px; }
-        .email-body { background-color: transparent; /* No white box */ padding: 24px 0; } /* Padding around content */
-        .email-title {
+        /* Basic Reset */
+        body, html { margin: 0; padding: 0; width: 100%; -webkit-font-smoothing: antialiased; background-color: #f0fdf4; /* Light Mint Green Background */ font-family: 'Inter', sans-serif; }
+        table { border-collapse: collapse; }
+        img { border: 0; max-width: 100%; height: auto; vertical-align: middle; }
+        a { color: #2563eb; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        p { margin: 0 0 16px; font-size: 16px; line-height: 1.6; color: #334155; }
+        strong { color: #1e293b; font-weight: 700;}
+
+        /* Layout */
+        .wrapper { width: 100%; table-layout: fixed; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        .webkit { max-width: 600px; margin: 0 auto; } /* Centering container */
+        .outer { margin: 0 auto; width: 100%; max-width: 600px; }
+        .inner { padding: 32px; }
+
+        /* Header */
+        .header { padding: 24px 0; text-align: center; }
+        .logo { max-width: 150px; }
+
+        /* Content Area */
+        .content-title {
             font-family: 'Orbitron', sans-serif;
-            font-size: 24px; /* Slightly larger title */
+            font-size: 24px; /* Increased size */
             font-weight: 700;
-            margin: 0 0 20px;
+            margin: 0 0 24px;
             color: #1d4ed8; /* Stronger Blue title */
-            text-align: center; /* Centered headline */
+            text-align: center; /* Centered title */
         }
-        .greeting {
-            font-size: 16px;
-            line-height: 1.6;
-            margin: 0 0 20px;
-            color: #1e293b; /* Darker text for greeting */
-        }
-        .email-content p {
-            font-size: 15px; /* Slightly smaller body text */
-            line-height: 1.6;
-            margin: 0 0 16px;
-            color: #334155; /* Medium Slate text */
-        }
-        .email-content strong {
-            color: #1e293b; /* Darker bold text */
-        }
-        .signature {
-            margin: 30px 0 0;
-            font-size: 15px;
-            line-height: 1.6;
-            color: #334155;
-        }
-        .help-section {
-            margin-top: 32px;
-            padding-top: 24px;
-            border-top: 1px solid #d1fae5; /* Lighter border matching background tone */
+
+        /* OTP Specific Style */
+        .otp-code {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 36px; /* Larger OTP */
+            font-weight: 700;
+            letter-spacing: 5px; /* Increased spacing */
+            margin: 24px 0;
+            color: #1d4ed8; /* Blue OTP */
             text-align: center;
+            padding: 10px; /* Add some padding */
+        }
+        .validity-text {
             font-size: 14px;
-            color: #475569; /* Slightly darker gray for help section */
-        }
-        .help-section h3 {
-             font-size: 16px;
-             font-weight: 700;
-             color: #1e293b;
-             margin: 0 0 8px;
-        }
-        .help-section p { margin: 0 0 10px; line-height: 1.5; }
-        .copyright {
-            padding: 24px 0 0;
+            margin: 0 0 24px;
+            color: #64748b;
             text-align: center;
-            font-size: 12px;
-            color: #64748b; /* Gray copyright text */
         }
-        a {
-            color: #3b82f6; /* Standard Blue links */
-            text-decoration: none;
-        }
-        a:hover {
-            text-decoration: underline;
-        }
-        .button-link { /* Brevo style button */
-             background-color: #1e293b; /* Dark Slate background */
-             color: #ffffff !important; /* White text */
-             padding: 12px 28px; /* Brevo padding */
-             font-size: 15px;
-             font-weight: 500; /* Medium weight */
+
+        /* Button Style */
+        .button-link {
+             background-color: #2563eb; /* Primary button blue */
+             color: #ffffff !important;
+             padding: 14px 28px; /* Slightly larger padding */
+             font-size: 16px;
+             font-weight: 600;
              text-decoration: none !important;
-             border-radius: 4px; /* Brevo border radius */
+             border-radius: 6px;
              display: inline-block;
              font-family: 'Inter', sans-serif;
              border: none;
              cursor: pointer;
              text-align: center;
-             transition: background-color 0.2s ease;
+             mso-padding-alt: 0; /* Outlook padding fix */
+             text-underline-color: #2563eb; /* Hide underline in Outlook */
         }
-        .button-link:hover {
-             background-color: #334155; /* Slightly lighter on hover */
-             text-decoration: none !important;
-        }
+         .button-link:hover { background-color: #1d4ed8; } /* Darker blue on hover */
 
-        /* Responsive Styles */
+        /* Help Section */
+        .help-section {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+        }
+        .help-section p { margin-bottom: 8px; font-size: 14px; color: #475569; }
+
+        /* Footer */
+        .footer {
+            padding: 32px 0 24px;
+            text-align: center;
+            font-size: 12px;
+            color: #64748b;
+        }
+        .social-icons img {
+            width: 24px;
+            height: 24px;
+            margin: 0 8px;
+            vertical-align: middle;
+        }
+        .social-icons a { text-decoration: none; }
+
+        /* Responsive */
         @media (max-width: 600px) {
-            .email-container { padding: 16px 8px; }
-            .email-title { font-size: 20px; }
-            .greeting, .email-content p, .signature { font-size: 14px; }
-            .help-section { font-size: 13px; }
-            .help-section h3 { font-size: 15px; }
+            .webkit { width: 100% !important; max-width: 100% !important; }
+            .outer { width: 100% !important; max-width: 100% !important; }
+            .inner { padding: 20px !important; }
+            .content-title { font-size: 20px; }
+            .otp-code { font-size: 30px; letter-spacing: 4px; }
+            p { font-size: 15px; }
         }
     </style>
 </head>
 <body style="margin: 0; padding: 0; width: 100%; background-color: #f0fdf4;">
     <div style="display: none; font-size: 1px; color: #f0fdf4; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">${preheader}</div>
-    <table class="email-container" width="100%" cellpadding="0" cellspacing="0" role="presentation">
-        <tr>
-            <td>
-                <div class="email-header">
-                    <a href="${FRONTEND_URL}" target="_blank">
-                        <img src="${LOGO_URL}" width="150" alt="NexGuard Logo" style="max-width: 150px; height: auto; border: 0;">
-                    </a>
-                </div>
 
-                <div class="email-body">
-                    <p class="email-title">${title}</p>
-                    <p class="greeting">Hello ${username},</p>
-                    <div class="email-content">
-                        ${content} </div>
-                    <p class="signature">Best regards,<br>The NexGuard Team</p>
-                </div>
+    <center class="wrapper" style="width: 100%; table-layout: fixed; background-color: #f0fdf4; padding-top: 20px; padding-bottom: 20px;">
+        <div class="webkit" style="max-width: 600px; margin: 0 auto; background-color: #f0fdf4;">
+            <table class="outer" align="center" style="margin: 0 auto; width: 100%; max-width: 600px; border-collapse: collapse;">
+                <tr>
+                    <td class="header" style="padding: 24px 0; text-align: center;">
+                        <img src="${LOGO_URL}" width="150" alt="NexGuard Logo" class="logo">
+                    </td>
+                </tr>
+                <tr>
+                    <td class="inner" style="padding: 32px;">
+                        <p class="content-title">${title}</p>
+                        ${content} <div class="help-section" style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e2e8f0; text-align: center;">
+                            <p style="margin-bottom: 8px; font-size: 14px; color: #475569; font-weight: 700;">We are here to help you</p>
+                            <p style="margin-bottom: 8px; font-size: 14px; color: #475569;">Visit our <a href="${HELP_CENTER_URL}" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: 500;">Help Center</a> to explore our handy tutorials and FAQs.</p>
+                            <p style="margin-bottom: 8px; font-size: 14px; color: #475569;">Can't find what you're looking for?</p>
+                            <p style="margin-bottom: 8px; font-size: 14px; color: #475569;">Email us at <a href="mailto:${CONTACT_EMAIL}" style="color: #2563eb; text-decoration: none; font-weight: 500;">${CONTACT_EMAIL}</a>.</p>
+                        </div>
 
-                <div class="help-section">
-                   <h3>We are here to help you</h3>
-                   <p>Visit our <a href="${HELP_CENTER_URL}" target="_blank">Help Center</a> to explore our handy tutorials and FAQs.</p>
-                   <p>Can't find what you're looking for?<br>Email us at <a href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a>.</p>
-                </div>
-
-                <div class="copyright">
-                    <p style="margin: 0;">Copyright &copy; ${new Date().getFullYear()} NexGuard LK.</p>
-                    </div>
-            </td>
-        </tr>
-    </table>
+                        <p style="margin: 30px 0 0; font-size: 14px; color: #475569; text-align: center;">Thank you,<br><strong>The NexGuard Team</strong></p>
+                    </td>
+                </tr>
+                 <tr>
+                    <td class="footer" style="padding: 32px 0 24px; text-align: center; font-size: 12px; color: #64748b;">
+                         <p class="social-icons" style="margin-bottom: 16px;">
+                            <a href="${FACEBOOK_URL}" target="_blank" style="text-decoration: none;"><img src="https://img.icons8.com/ios-glyphs/30/64748b/facebook-new.png" alt="Facebook" width="24" height="24" style="margin: 0 8px;"></a>
+                            <a href="${WHATSAPP_URL}" target="_blank" style="text-decoration: none;"><img src="https://img.icons8.com/ios-glyphs/30/64748b/whatsapp.png" alt="WhatsApp" width="24" height="24" style="margin: 0 8px;"></a>
+                            <a href="${TELEGRAM_URL}" target="_blank" style="text-decoration: none;"><img src="https://img.icons8.com/ios-glyphs/30/64748b/telegram-app.png" alt="Telegram" width="24" height="24" style="margin: 0 8px;"></a>
+                            </p>
+                        <p style="margin: 0;">Copyright &copy; ${new Date().getFullYear()} NexGuard LK. All rights reserved.</p>
+                        </td>
+                </tr>
+            </table>
+            </div>
+    </center>
 </body>
 </html>`;
 
-// --- Button Style (Variable for easier use in content functions) ---
-// Brevo style button (dark background)
-const buttonStyle = `background-color: #1e293b; color: #ffffff; padding: 12px 28px; font-size: 15px; font-weight: 500; text-decoration: none; border-radius: 4px; display: inline-block; font-family: 'Inter', sans-serif; border: none;`;
-const buttonHtml = (url, text) => `<a href="${url}" target="_blank" style="${buttonStyle}">${text}</a>`; // Helper function
+// --- Button HTML Helper ---
+const buttonHtml = (url, text) => `<table border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin: 24px auto;"><tr><td align="center" bgcolor="#2563eb" style="border-radius: 6px;"><a href="${url}" target="_blank" class="button-link" style="background-color: #2563eb; color: #ffffff; padding: 14px 28px; font-size: 16px; font-weight: 600; text-decoration: none; border-radius: 6px; display: inline-block; font-family: 'Inter', sans-serif; border: none; mso-padding-alt: 0; text-underline-color: #2563eb;">${text}</a></td></tr></table>`;
 
-// --- Content Generation Functions ---
-// (Important: Remove "Hello username" and "Thank you" parts from these functions,
-// as they are now handled by the main generateEmailTemplate)
+// --- Content Generation Functions (Updated with username and refined content) ---
 
-const generateOtpEmailContent = (otp) => `
-<p>Your One-Time Password (OTP) is below. Use this code to complete your verification.</p>
-<div style="background-color: #e0e7ff; border: 1px solid #c7d2fe; border-radius: 8px; padding: 16px; text-align: center; margin: 24px 0;">
-    <p style="font-family: 'Orbitron', sans-serif; font-size: 32px; font-weight: 700; letter-spacing: 4px; margin: 0; color: #1d4ed8;">${otp}</p>
-</div>
-<p style="font-size: 14px; margin: 0; color: #64748b;">This code is valid for 10 minutes.</p>`;
+// **වැදගත්:** මේ function එක call කරන තැනින් (authController.js > register) username එක pass කරන්න.
+const generateOtpEmailContent = (username, otp) => `
+<p>Hello, <strong>${username}</strong>!</p>
+<p>Welcome to NexGuard! To complete your email verification, please use the One-Time Password (OTP) below.</p>
+<p class="otp-code" style="font-family: 'Orbitron', sans-serif; font-size: 36px; font-weight: 700; letter-spacing: 5px; margin: 24px 0; color: #1d4ed8; text-align: center; padding: 10px;">${otp}</p>
+<p class="validity-text" style="font-size: 14px; margin: 0 0 24px; color: #64748b; text-align: center;">This code is valid for 10 minutes. If you didn't request this, you can safely ignore this email.</p>`;
 
-const generatePasswordResetEmailContent = (resetLink) => `
-<p>We received a request to reset your password. Click the button below to continue.</p>
-<div style="text-align: center; margin: 24px 0;">
-    ${buttonHtml(resetLink, 'Reset Password')}
-</div>
-<p style="font-size: 14px; margin: 24px 0 0; color: #64748b;">This link is valid for 10 minutes. If you didn't request this, please ignore this email.</p>`;
+const generatePasswordResetEmailContent = (username, resetLink) => `
+<p>Hello, <strong>${username}</strong>!</p>
+<p>We received a request to reset the password for your NexGuard account. If this was you, click the button below to set a new password:</p>
+${buttonHtml(resetLink, 'Reset Your Password')}
+<p style="font-size: 14px; margin: 24px 0 0; color: #64748b; text-align: center;">This password reset link is only valid for the next 10 minutes.</p>
+<p style="font-size: 14px; margin: 8px 0 0; color: #64748b; text-align: center;">If you did not request a password reset, please ignore this email or contact support if you have concerns.</p>`;
 
-const generateApprovalEmailContent = (planId, finalUsername) => `
-<p>Congratulations! Your NexGuard plan has been approved.</p>
+// **වැදගත්:** මේ function එක call කරන තැනින් (orderService.js > approveOrder) username එක pass කරන්න.
+const generateApprovalEmailContent = (username, planId, finalUsername) => `
+<p>Hello, <strong>${username}</strong>!</p>
+<p>Great news! Your NexGuard order for the <strong>${planId}</strong> plan has been successfully approved and activated.</p>
 <div style="background-color: #f0fdf4; border-left: 4px solid #22c55e; border-radius: 4px; padding: 16px; margin: 24px 0;">
-    <p style="margin: 0 0 8px 0; font-size: 14px; color: #475569;">PLAN: <strong>${planId}</strong></p>
-    <p style="margin: 0; font-size: 14px; color: #475569;">V2RAY USERNAME: <strong>${finalUsername}</strong></p>
+    <p style="margin: 0 0 8px 0; font-size: 14px; color: #64748b;">Activated Plan: <strong>${planId}</strong></p>
+    <p style="margin: 0; font-size: 14px; color: #64748b;">Your V2Ray Username: <strong>${finalUsername}</strong></p>
 </div>
-<p>Log in to your profile to get your connection link.</p>
-<div style="text-align: center; margin-top: 24px;">
-    ${buttonHtml(`${FRONTEND_URL}/profile`, 'Go to My Profile')}
-</div>`;
+<p>You can now log in to your profile to find your unique V2Ray connection link and start enjoying true internet freedom!</p>
+${buttonHtml(`${FRONTEND_URL}/profile`, 'Go to My Profile')}
+<p style="font-size: 14px; margin: 24px 0 0; color: #64748b;">If you have any questions, visit our Help Center or contact support.</p>`;
 
-const generateOrderPlacedEmailContent = (planId) => `
-<p>We've received your order for the <strong>${planId}</strong> plan. It's now pending approval.</p>
+// **වැදගත්:** මේ function එක call කරන තැනින් (orderController.js > createOrder) username එක pass කරන්න.
+const generateOrderPlacedEmailContent = (username, planId) => `
+<p>Hello, <strong>${username}</strong>!</p>
+<p>Thank you for your order! We've received your request for the <strong>${planId}</strong> plan and it's now pending review and approval.</p>
 <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 4px; padding: 16px; margin: 24px 0;">
-    <p style="margin: 0; font-size: 15px; color: #475569;">You'll get another email once your plan is active. You can check your order status on your profile.</p>
+    <p style="margin: 0; font-size: 16px; color: #334155;">We'll notify you via email as soon as your plan is activated. This usually takes a few hours during business times. You can check the latest status of your order anytime in your profile.</p>
 </div>
-<div style="text-align: center; margin-top: 24px;">
-    ${buttonHtml(`${FRONTEND_URL}/profile?tab=orders`, 'Check Order Status')}
-</div>`;
+${buttonHtml(`${FRONTEND_URL}/profile?tab=orders`, 'Check Order Status')}
+<p style="font-size: 14px; margin: 24px 0 0; color: #64748b;">We appreciate your patience!</p>`;
 
-const generateRejectionEmailContent = (planId, orderId) => `
-<p>We regret to inform you that your order (ID: ${orderId}) for the <strong>${planId}</strong> plan has been rejected.</p>
+// **වැදගත්:** මේ function එක call කරන තැනින් (adminController.js > rejectOrder) username එක pass කරන්න.
+const generateRejectionEmailContent = (username, planId, orderId) => `
+<p>Hello, <strong>${username}</strong>.</p>
+<p>We're writing to inform you about your recent NexGuard order (ID: ${orderId}) for the <strong>${planId}</strong> plan.</p>
 <div style="background-color: #fee2e2; border-left: 4px solid #ef4444; border-radius: 4px; padding: 16px; margin: 24px 0;">
-    <p style="margin: 0; font-size: 15px; color: #475569;">This could be due to an issue with the payment receipt. Please contact our support team on WhatsApp for clarification.</p>
-</div>`;
-
-const generateExpiryReminderEmailContent = (v2rayUsername, expiryDate) => `
-<p>This is a reminder that your plan for user <strong>${v2rayUsername}</strong> will expire in less than 24 hours.</p>
-<div style="background-color: #fff7ed; border-left: 4px solid #f97316; border-radius: 4px; padding: 16px; margin: 24px 0;">
-    <p style="margin: 0; font-size: 15px; color: #475569;"><strong>Expires on:</strong> ${expiryDate.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}</p>
+    <p style="margin: 0; font-size: 16px; color: #334155; font-weight: 500;">Unfortunately, we were unable to approve your order at this time.</p>
+    <p style="margin: 10px 0 0; font-size: 14px; color: #334155;">This is often due to an issue verifying the payment receipt. Please double-check the image you uploaded or contact our support team via WhatsApp for assistance.</p>
 </div>
-<p>To avoid service interruption, please renew your plan from your profile.</p>
-<div style="text-align: center; margin-top: 24px;">
-    ${buttonHtml(`${FRONTEND_URL}/profile`, 'Renew Your Plan')}
-</div>`;
+<p style="font-size: 14px; margin: 24px 0 0; color: #64748b;">We apologize for any inconvenience.</p>`;
 
-// අනෙකුත් files වලට මෙම functions භාවිතා කිරීමට export කිරීම
+// **වැදගත්:** මේ function එක call කරන තැනින් (notificationService.js > sendExpiryReminders) username එක pass කරන්න.
+const generateExpiryReminderEmailContent = (username, v2rayUsername, expiryDate) => `
+<p>Hello, <strong>${username}</strong>!</p>
+<p>Just a friendly reminder that your NexGuard plan associated with the username <strong>${v2rayUsername}</strong> is set to expire soon.</p>
+<div style="background-color: #fff7ed; border-left: 4px solid #f97316; border-radius: 4px; padding: 16px; margin: 24px 0;">
+    <p style="margin: 0; font-size: 16px; color: #334155;"><strong>Expires on:</strong> ${expiryDate.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })} (less than 24 hours)</p>
+</div>
+<p>To ensure uninterrupted service, please renew your plan through your profile before the expiry time.</p>
+${buttonHtml(`${FRONTEND_URL}/profile`, 'Renew Your Plan Now')}
+<p style="font-size: 14px; margin: 24px 0 0; color: #64748b;">If you've already renewed, please disregard this message.</p>`;
+
+// Export functions
 module.exports = {
     sendEmail,
     generateEmailTemplate,
-    // Content functions (Ensure these only return the body content, not full HTML)
     generateOtpEmailContent,
     generatePasswordResetEmailContent,
     generateApprovalEmailContent,
     generateOrderPlacedEmailContent,
     generateRejectionEmailContent,
     generateExpiryReminderEmailContent,
-    buttonHtml // Exporting the button helper function
 };
