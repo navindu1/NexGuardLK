@@ -31,8 +31,9 @@ const CONTACT_EMAIL = process.env.CONTACT_EMAIL || "support@nexguardlk.store";
 const FACEBOOK_URL = process.env.FACEBOOK_URL || "https://facebook.com/nexguardlk";
 const WHATSAPP_URL = process.env.WHATSAPP_URL || "https://wa.me/94770492554";
 const TELEGRAM_URL = process.env.TELEGRAM_URL || "https://t.me/nexguardusagebot";
-const NEW_BLUE_COLOR = "#1d4ed8"; // Site Blue Color
-const NEW_BG_COLOR = "#f0fcf5";   // Main Background Color
+const SITE_BLUE_COLOR = "#1d4ed8";   // Site Blue Color
+const MAIN_BG_COLOR = "#f0fcf5";     // Main Background Color
+const TEXT_COLOR = "#474747";        // Main Text Color (Dark Gray)
 
 // --- Main Email Template Generator (Updated Styles) ---
 const generateEmailTemplate = (title, preheader, content) => `
@@ -44,68 +45,91 @@ const generateEmailTemplate = (title, preheader, content) => `
     <title>${title}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
     <style>
         /* Basic Reset */
-        body, html { margin: 0; padding: 0; width: 100%; -webkit-font-smoothing: antialiased; background-color: ${NEW_BG_COLOR}; font-family: 'Inter', sans-serif; } /* Updated BG */
+        body, html { margin: 0; padding: 0; width: 100%; -webkit-font-smoothing: antialiased; background-color: ${MAIN_BG_COLOR}; font-family: Inter, arial, sans-serif; } /* Updated Font & BG */
         table { border-collapse: collapse; }
         img { border: 0; max-width: 100%; height: auto; vertical-align: middle; }
-        a { color: ${NEW_BLUE_COLOR}; text-decoration: underline; } /* Updated Blue */
+        a { color: ${SITE_BLUE_COLOR}; text-decoration: underline; font-weight: 600; } /* Updated Blue & Font Weight */
         a:hover { text-decoration: underline; }
-        p { margin: 0 0 14px; font-size: 15px; line-height: 1.55; color: #334155; } /* Compact */
+        p { margin: 0 0 14px; font-size: 15px; line-height: 24px; color: ${TEXT_COLOR}; } /* Updated Color & Line Height */
         strong { font-weight: 700;}
-        .username-highlight { color: ${NEW_BLUE_COLOR}; font-weight: 700; } /* Style for username */
+        .username-highlight { color: ${SITE_BLUE_COLOR}; font-weight: 700; } /* Style for username */
 
         /* Layout */
         .wrapper { width: 100%; table-layout: fixed; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
-        .webkit { max-width: 580px; margin: 0 auto; background-color: ${NEW_BG_COLOR}; } /* Updated BG, slightly narrower */
+        .webkit { max-width: 580px; margin: 0 auto; background-color: ${MAIN_BG_COLOR}; } /* Updated BG */
         .outer { margin: 0 auto; width: 100%; max-width: 580px; }
-        .inner { padding: 28px; } /* Compact */
+        .inner { padding: 28px; }
 
         /* Header */
-        .header { padding: 20px 0; text-align: center; } /* Compact */
-        .logo { max-width: 140px; } /* Slightly smaller logo */
+        .header { padding: 20px 0; text-align: center; }
+        .logo { max-width: 140px; }
 
         /* Content Area */
-        .content-title { font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 700; margin: 0 0 20px; color: ${NEW_BLUE_COLOR}; text-align: center; } /* Compact, Updated Blue */
+        .content-title { font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 700; margin: 0 0 20px; color: ${SITE_BLUE_COLOR}; text-align: center; } /* Updated Blue */
 
         /* OTP Specific Style */
-        .otp-code { font-family: 'Orbitron', sans-serif; font-size: 32px; font-weight: 700; letter-spacing: 4px; margin: 20px 0; color: ${NEW_BLUE_COLOR}; text-align: center; padding: 8px; } /* Compact, Updated Blue */
-        .validity-text { font-size: 13px; margin: 0 0 20px; color: #64748b; text-align: center; } /* Compact */
+        .otp-box { /* New style for the box */
+            background-color: #e0f2fe; /* Light blue background */
+            border: 1px solid #bae6fd; /* Lighter blue border */
+            border-radius: 6px;
+            padding: 10px 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .otp-code {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: 4px;
+            color: ${SITE_BLUE_COLOR}; /* Updated Blue */
+            margin: 0; /* Remove margin from code itself */
+        }
+        .validity-text { font-size: 13px; margin: 10px 0 20px; color: #64748b; text-align: center; } /* Moved margin here */
 
         /* Button Style */
-        .button-link { background-color: ${NEW_BLUE_COLOR}; color: #ffffff !important; padding: 12px 24px; font-size: 15px; font-weight: 600; text-decoration: none !important; border-radius: 6px; display: inline-block; font-family: 'Inter', sans-serif; border: none; cursor: pointer; text-align: center; mso-padding-alt: 0; text-underline-color: ${NEW_BLUE_COLOR}; } /* Updated Blue, Compact */
-        .button-link:hover { background-color: #1e3a8a; } /* Darker shade of new blue */
+        .button-link { background-color: ${SITE_BLUE_COLOR}; color: #ffffff !important; padding: 12px 24px; font-size: 15px; font-weight: 600; text-decoration: none !important; border-radius: 6px; display: inline-block; font-family: 'Inter', sans-serif; border: none; cursor: pointer; text-align: center; mso-padding-alt: 0; text-underline-color: ${SITE_BLUE_COLOR}; } /* Updated Blue */
+        .button-link:hover { background-color: #1e3a8a; }
 
         /* Help Section */
-        .help-section { margin-top: 28px; padding-top: 20px; border-top: 1px solid #e2e8f0; text-align: center; } /* Compact */
-        .help-section p { margin-bottom: 6px; font-size: 13px; color: #475569; } /* Compact */
-        .help-section a { color: ${NEW_BLUE_COLOR}; text-decoration: underline; font-weight: 500; } /* Updated Blue */
+        .help-section { margin-top: 28px; padding-top: 20px; border-top: 1px solid #e2e8f0; text-align: center; }
+        .help-section p { margin-bottom: 6px; font-size: 13px; color: #475569; line-height: 1.5; } /* Adjusted line-height */
+        .help-section a { color: ${SITE_BLUE_COLOR}; text-decoration: underline; font-weight: 600; } /* Updated Blue & Font Weight */
 
         /* Footer */
-        .footer { padding: 28px 0 20px; text-align: center; font-size: 11px; color: #64748b; } /* Compact */
-        .social-icons img { width: 28px; height: 28px; vertical-align: middle; } /* Slightly smaller icons */
-        .social-icons a { text-decoration: none; display: inline-block; margin: 0 6px; } /* Compact */
+        .footer { padding: 28px 0 20px; text-align: center; font-size: 11px; color: #64748b; }
+        .social-icons img {
+            width: 28px; height: 28px; vertical-align: middle;
+            border-radius: 50%; /* Make it round */
+            border: 2px solid ${SITE_BLUE_COLOR}; /* Add blue border */
+            padding: 2px; /* Small padding inside border */
+            box-sizing: border-box; /* Include border in size */
+        }
+        .social-icons a { text-decoration: none; display: inline-block; margin: 0 6px; }
 
         /* Responsive */
         @media (max-width: 600px) {
             .webkit { width: 100% !important; max-width: 100% !important; }
             .outer { width: 100% !important; max-width: 100% !important; }
-            .inner { padding: 18px !important; } /* Compact */
-            .content-title { font-size: 19px; } /* Compact */
-            .otp-code { font-size: 28px; letter-spacing: 3px; } /* Compact */
-            p { font-size: 14px; } /* Compact */
-            .button-link { padding: 10px 20px; font-size: 14px; } /* Compact */
-            .social-icons img { width: 26px; height: 26px; } /* Compact */
-            .social-icons a { margin: 0 4px; } /* Compact */
+            .inner { padding: 18px !important; }
+            .content-title { font-size: 19px; }
+            .otp-code { font-size: 28px; letter-spacing: 3px; }
+            p { font-size: 14px; line-height: 22px; } /* Updated Line Height */
+            .button-link { padding: 10px 20px; font-size: 14px; }
+            .social-icons img { width: 26px; height: 26px; }
+            .social-icons a { margin: 0 4px; }
         }
     </style>
 </head>
-<body style="margin: 0; padding: 0; width: 100%; background-color: ${NEW_BG_COLOR};">
-    <div style="display: none; font-size: 1px; color: ${NEW_BG_COLOR}; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">${preheader}</div>
+<body style="margin: 0; padding: 0; width: 100%; background-color: ${MAIN_BG_COLOR};">
+    <div style="display: none; font-size: 1px; color: ${MAIN_BG_COLOR}; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">${preheader}</div>
 
-    <center class="wrapper" style="width: 100%; table-layout: fixed; background-color: ${NEW_BG_COLOR}; padding-top: 20px; padding-bottom: 20px;">
-        <div class="webkit" style="max-width: 580px; margin: 0 auto; background-color: ${NEW_BG_COLOR}; border-radius: 8px;"> <table class="outer" align="center" style="margin: 0 auto; width: 100%; max-width: 580px; border-collapse: collapse; background-color: ${NEW_BG_COLOR}; border-radius: 8px;"> <tr>
+    <center class="wrapper" style="width: 100%; table-layout: fixed; background-color: ${MAIN_BG_COLOR}; padding-top: 20px; padding-bottom: 20px;">
+        <div class="webkit" style="max-width: 580px; margin: 0 auto; background-color: ${MAIN_BG_COLOR}; border-radius: 8px;">
+            <table class="outer" align="center" style="margin: 0 auto; width: 100%; max-width: 580px; border-collapse: collapse; background-color: ${MAIN_BG_COLOR}; border-radius: 8px;">
+                <tr>
                     <td class="header" style="padding: 20px 0; text-align: center;">
                         <img src="${LOGO_URL}" width="140" alt="NexGuard Logo" class="logo">
                     </td>
@@ -121,7 +145,8 @@ const generateEmailTemplate = (title, preheader, content) => `
                             <p style="margin-bottom: 6px; font-size: 13px; color: #475569;">Email us at <a href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a>.</p>
                         </div>
 
-                        <p style="margin: 25px 0 0; font-size: 13px; color: #475569; text-align: center;">Thank you,<br><strong style="color: #334155;">The NexGuard Team</strong></p> </td>
+                        <p style="margin: 25px 0 0; font-size: 13px; color: #475569; text-align: center;">Thank you,<br><strong style="color: #334155;">The NexGuard Team</strong></p>
+                    </td>
                 </tr>
                  <tr>
                     <td class="footer" style="padding: 28px 0 20px; text-align: center; font-size: 11px; color: #64748b;">
@@ -139,16 +164,19 @@ const generateEmailTemplate = (title, preheader, content) => `
 </body>
 </html>`;
 
-// --- Button HTML Helper (No changes needed here) ---
-const buttonHtml = (url, text) => `<table border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin: 20px auto;"><tr><td align="center" bgcolor="${NEW_BLUE_COLOR}" style="border-radius: 6px;"><a href="${url}" target="_blank" class="button-link">${text}</a></td></tr></table>`; // Updated BG Color
+// --- Button HTML Helper (Updated Button Color) ---
+const buttonHtml = (url, text) => `<table border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin: 20px auto;"><tr><td align="center" bgcolor="${SITE_BLUE_COLOR}" style="border-radius: 6px;"><a href="${url}" target="_blank" class="button-link">${text}</a></td></tr></table>`;
 
-// --- Content Generation Functions (Added username styling and slight content changes) ---
+// --- Content Generation Functions ---
 
+// Updated to use the .otp-box div
 const generateOtpEmailContent = (username, otp) => `
 <p>Hello, <strong class="username-highlight">${username}</strong>!</p>
 <p>Welcome to NexGuard! To complete your email verification, please use the One-Time Password (OTP) below.</p>
-<p class="otp-code">${otp}</p>
-<p class="validity-text">This code is valid for 10 minutes. For your security, please do not share this code with anyone.</p>`; // Added security note
+<div class="otp-box">
+    <p class="otp-code">${otp}</p>
+</div>
+<p class="validity-text">This code is valid for 10 minutes. For your security, please do not share this code with anyone.</p>`;
 
 const generatePasswordResetEmailContent = (username, resetLink) => `
 <p>Hello, <strong class="username-highlight">${username}</strong>!</p>
@@ -160,8 +188,10 @@ ${buttonHtml(resetLink, 'Reset Your Password')}
 const generateApprovalEmailContent = (username, planId, finalUsername) => `
 <p>Hello, <strong class="username-highlight">${username}</strong>!</p>
 <p>Great news! Your NexGuard order for the <strong>${planId}</strong> plan has been successfully approved and activated.</p>
-<div style="background-color: #dcfce7; border-left: 4px solid #22c55e; border-radius: 4px; padding: 14px; margin: 20px 0;"> <p style="margin: 0 0 6px 0; font-size: 14px; color: #475569;">Activated Plan: <strong>${planId}</strong></p>
-    <p style="margin: 0; font-size: 14px; color: #475569;">Your V2Ray Username: <strong style="color:${NEW_BLUE_COLOR}">${finalUsername}</strong></p> </div>
+<div style="background-color: #dcfce7; border-left: 4px solid #22c55e; border-radius: 4px; padding: 14px; margin: 20px 0;">
+    <p style="margin: 0 0 6px 0; font-size: 14px; color: #475569;">Activated Plan: <strong>${planId}</strong></p>
+    <p style="margin: 0; font-size: 14px; color: #475569;">Your V2Ray Username: <strong style="color:${SITE_BLUE_COLOR}">${finalUsername}</strong></p>
+</div>
 <p>You can now log in to your profile to find your unique V2Ray connection link and start enjoying true internet freedom!</p>
 ${buttonHtml(`${FRONTEND_URL}/profile`, 'Go to My Profile')}
 <p style="font-size: 13px; margin: 20px 0 0; color: #64748b;">If you have any questions, visit our Help Center or contact support.</p>`;
@@ -169,26 +199,35 @@ ${buttonHtml(`${FRONTEND_URL}/profile`, 'Go to My Profile')}
 const generateOrderPlacedEmailContent = (username, planId) => `
 <p>Hello, <strong class="username-highlight">${username}</strong>!</p>
 <p>Thank you for your order! We've received your request for the <strong>${planId}</strong> plan and it's now pending review and approval.</p>
-<div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 4px; padding: 14px; margin: 20px 0;"> <p style="margin: 0; font-size: 15px; color: #334155;">We'll notify you via email as soon as your plan is activated. This usually takes a few hours during business times. You can check the latest status of your order anytime in your profile.</p>
-</div>
+<div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 4px; padding: 14px; margin: 20px 0;">
+    <p style="margin: 0; font-size: 15px; color: #474747; line-height: 24px;">We'll notify you via email as soon as your plan is activated. This usually takes a few hours during business times. You can check the latest status of your order anytime in your profile.</p> </div>
 ${buttonHtml(`${FRONTEND_URL}/profile?tab=orders`, 'Check Order Status')}
 <p style="font-size: 13px; margin: 20px 0 0; color: #64748b;">We appreciate your patience!</p>`;
 
 const generateRejectionEmailContent = (username, planId, orderId) => `
 <p>Hello, <strong class="username-highlight">${username}</strong>.</p>
 <p>We're writing to inform you about your recent NexGuard order (ID: ${orderId}) for the <strong>${planId}</strong> plan.</p>
-<div style="background-color: #fee2e2; border-left: 4px solid #ef4444; border-radius: 4px; padding: 14px; margin: 20px 0;"> <p style="margin: 0; font-size: 15px; color: #334155; font-weight: 500;">Unfortunately, we were unable to approve your order at this time.</p>
-    <p style="margin: 8px 0 0; font-size: 14px; color: #334155;">This is often due to an issue verifying the payment receipt. Please double-check the image you uploaded or contact our support team via WhatsApp for assistance.</p>
-</div>
+<div style="background-color: #fee2e2; border-left: 4px solid #ef4444; border-radius: 4px; padding: 14px; margin: 20px 0;">
+    <p style="margin: 0; font-size: 15px; color: #474747; line-height: 24px; font-weight: 500;">Unfortunately, we were unable to approve your order at this time.</p> <p style="margin: 8px 0 0; font-size: 14px; color: #474747; line-height: 24px;">This is often due to an issue verifying the payment receipt. Please double-check the image you uploaded or contact our support team via WhatsApp for assistance.</p> </div>
 <p style="font-size: 13px; margin: 20px 0 0; color: #64748b;">We apologize for any inconvenience.</p>`;
 
 const generateExpiryReminderEmailContent = (username, v2rayUsername, expiryDate) => `
 <p>Hello, <strong class="username-highlight">${username}</strong>!</p>
-<p>Just a friendly reminder that your NexGuard plan associated with the username <strong style="color:${NEW_BLUE_COLOR}">${v2rayUsername}</strong> is set to expire soon.</p> <div style="background-color: #fff7ed; border-left: 4px solid #f97316; border-radius: 4px; padding: 14px; margin: 20px 0;"> <p style="margin: 0; font-size: 15px; color: #334155;"><strong>Expires on:</strong> ${expiryDate.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })} (less than 24 hours)</p>
-</div>
+<p>Just a friendly reminder that your NexGuard plan associated with the username <strong style="color:${SITE_BLUE_COLOR}">${v2rayUsername}</strong> is set to expire soon.</p>
+<div style="background-color: #fff7ed; border-left: 4px solid #f97316; border-radius: 4px; padding: 14px; margin: 20px 0;">
+    <p style="margin: 0; font-size: 15px; color: #474747; line-height: 24px;"><strong>Expires on:</strong> ${expiryDate.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })} (less than 24 hours)</p> </div>
 <p>To ensure uninterrupted service, please renew your plan through your profile before the expiry time.</p>
 ${buttonHtml(`${FRONTEND_URL}/profile`, 'Renew Your Plan Now')}
 <p style="font-size: 13px; margin: 20px 0 0; color: #64748b;">If you've already renewed, please disregard this message.</p>`;
+
+// --- අලුතින් එකතු කළ function එක ---
+const generateUserNotFoundEmailContent = (triedEmail) => `
+<p>Hello,</p>
+<p>You recently requested a password reset for the email address: <strong>${triedEmail}</strong>.</p>
+<p>We couldn't find an account associated with this email address in our system.</p>
+<p style="font-size: 13px; margin: 15px 0 0; color: #64748b; text-align: center;">If you believe this is an error, please double-check the email address or contact support.</p>
+<p style="font-size: 13px; margin: 6px 0 0; color: #64748b; text-align: center;">If you didn't request this, you can safely ignore this email.</p>`;
+// --- අලුත් function එක ඉවරයි ---
 
 // Export functions
 module.exports = {
@@ -200,4 +239,5 @@ module.exports = {
     generateOrderPlacedEmailContent,
     generateRejectionEmailContent,
     generateExpiryReminderEmailContent,
+    generateUserNotFoundEmailContent, // අලුතින් එකතු කළ function එක export කරන්න
 };
