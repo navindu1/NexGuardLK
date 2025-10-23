@@ -100,9 +100,9 @@ const generateEmailTemplate = (title, preheader, content) => `
         /* Footer */
         .footer { padding: 28px 0 20px; text-align: center; font-size: 11px; color: ${SECONDARY_TEXT_COLOR}; } /* Updated Text Color */
         .social-icons img {
-            width: 32px; height: 32px; /* Increased size */
+            width: 38px; height: 38px; /* Updated size */
             vertical-align: middle;
-            border-radius: 0; /* Updated */
+            border-radius: 50%; /* Updated to round */
             border: 2px solid ${SITE_BLUE_COLOR}; /* Blue border */
             padding: 2px;
             box-sizing: border-box;
@@ -118,7 +118,7 @@ const generateEmailTemplate = (title, preheader, content) => `
             .otp-code { font-size: 28px; letter-spacing: 3px; }
             p { font-size: 14px; line-height: 22px; }
             .button-link { padding: 10px 20px; font-size: 14px; }
-            .social-icons img { width: 30px; height: 30px; } /* Slightly smaller on mobile */
+            .social-icons img { width: 34px; height: 34px; } /* Slightly smaller on mobile */
             .social-icons a { margin: 0 4px; }
         }
     </style>
@@ -150,7 +150,7 @@ const generateEmailTemplate = (title, preheader, content) => `
                  <tr>
                     <td class="footer" style="padding: 28px 0 20px; text-align: center; font-size: 11px; color: ${SECONDARY_TEXT_COLOR};">
                         <p class="social-icons" style="margin-bottom: 14px;">
-                            <a href="${FACEBOOK_URL}" target="_blank"><img src="https://img.icons8.com/fluency/48/facebook-new.png" alt="Facebook"></a> <a href="${WHATSAPP_URL}" target="_blank"><img src="https://img.icons8.com/fluency/48/whatsapp.png" alt="WhatsApp"></a> <a href="${TELEGRAM_URL}" target="_blank"><img src="https://img.icons8.com/fluency/48/telegram-app.png" alt="Telegram"></a> </p>
+                            <a href="${FACEBOOK_URL}" target="_blank"><img src="https://img.icons8.com/glyph-neue/64/244ed9/facebook-new.png" alt="Facebook"></a> <a href="${WHATSAPP_URL}" target="_blank"><img src="https://img.icons8.com/glyph-neue/64/244ed9/whatsapp.png" alt="WhatsApp"></a> <a href="${TELEGRAM_URL}" target="_blank"><img src="https://img.icons8.com/glyph-neue/64/244ed9/telegram-app.png" alt="Telegram"></a> </p>
                         <p style="margin: 0;">Copyright &copy; ${new Date().getFullYear()} NexGuard LK. All rights reserved.</p>
                     </td>
                 </tr>
@@ -229,3 +229,4 @@ module.exports = {
     generateExpiryReminderEmailContent,
     generateUserNotFoundEmailContent,
 };
+
