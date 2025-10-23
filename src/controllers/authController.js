@@ -197,6 +197,7 @@ exports.resellerLogin = async (req, res) => {
 };
 
 exports.forgotPassword = async (req, res) => {
+    console.log(`--- forgotPassword Function Started for: ${req.body.email} ---`);
     const { email } = req.body;
     try {
         const { data: user, error: userError } = await supabase
