@@ -1,5 +1,3 @@
-// File Path: NexGuardLK/src/services/emailService.js (යාවත්කාලීන කළ කේතය - 2)
-
 const transporter = require('../config/mailer');
 
 /**
@@ -28,11 +26,13 @@ const CONTACT_EMAIL = process.env.CONTACT_EMAIL || "support@nexguardlk.store";
 const FACEBOOK_URL = process.env.FACEBOOK_URL || "https://facebook.com/nexguardlk";
 const WHATSAPP_URL = process.env.WHATSAPP_URL || "https://wa.me/94770492554";
 const TELEGRAM_URL = process.env.TELEGRAM_URL || "https://t.me/nexguardusagebot";
-const SITE_BLUE_COLOR = "#1d4ed8";   // Site Blue Color
-const MAIN_BG_COLOR = "#474747";     // Main Background Color (Dark Gray)
-const TEXT_COLOR = "#CBD5E1";        // Main Text Color (Light Gray/Slate 300)
-const SECONDARY_TEXT_COLOR = "#94A3B8"; // Secondary Text Color (Gray/Slate 400)
-const BORDER_COLOR = "#475569";      // Border Color (Slate 600)
+
+// --- Style Definitions (User Requested Changes) ---
+const SITE_BLUE_COLOR = "#244ed9";      // Site Blue Color (Updated)
+const MAIN_BG_COLOR = "#f8fef6";        // Main Background Color (Updated)
+const TEXT_COLOR = "#333333";          // Main Text Color (Updated for light BG)
+const SECONDARY_TEXT_COLOR = "#555555"; // Secondary Text Color (Updated for light BG)
+const BORDER_COLOR = "#244ed9";        // Border Color (Updated)
 
 // --- Main Email Template Generator (Updated Styles) ---
 const generateEmailTemplate = (title, preheader, content) => `
@@ -50,9 +50,9 @@ const generateEmailTemplate = (title, preheader, content) => `
         body, html { margin: 0; padding: 0; width: 100%; -webkit-font-smoothing: antialiased; background-color: ${MAIN_BG_COLOR}; font-family: Inter, arial, sans-serif; } /* Updated Font & BG */
         table { border-collapse: collapse; }
         img { border: 0; max-width: 100%; height: auto; vertical-align: middle; }
-        a { color: ${SITE_BLUE_COLOR}; text-decoration: underline; font-weight: 600; } /* Updated Blue & Font Weight */
+        a { color: ${SITE_BLUE_COLOR}; text-decoration: underline; font-weight: 600; text-decoration-thickness: 1.5px; } /* Updated Blue, Font Weight & Underline */
         a:hover { text-decoration: underline; }
-        p { margin: 0 0 14px; font-size: 15px; line-height: 24px; color: ${TEXT_COLOR}; } /* Updated Text Color & Line Height */
+        p { margin: 0 0 14px; font-size: 15px; line-height: 24px; color: ${TEXT_COLOR}; font-weight: 500; } /* Updated Text Color, Line Height & Font Weight */
         strong { font-weight: 700;}
         .username-highlight { color: ${SITE_BLUE_COLOR}; font-weight: 700; }
 
@@ -67,14 +67,14 @@ const generateEmailTemplate = (title, preheader, content) => `
         .logo { max-width: 140px; }
 
         /* Content Area */
-        .content-title { font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 700; margin: 0 0 20px; color: #FFFFFF; text-align: center; } /* Title Color to White */
+        .content-title { font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 700; margin: 0 0 20px; color: ${SITE_BLUE_COLOR}; text-align: center; } /* Title Color to Site Blue */
 
         /* OTP Specific Style */
         .otp-box {
             /* background-color: #e0f2fe; Removed background */
             border: 2px solid ${SITE_BLUE_COLOR}; /* Use Site Blue for border */
-            border-radius: 6px;
-            padding: 10px 15px;
+            border-radius: 0; /* Updated */
+            padding: 10px 8px; /* Updated */
             margin: 20px 0;
             text-align: center;
         }
@@ -89,7 +89,7 @@ const generateEmailTemplate = (title, preheader, content) => `
         .validity-text { font-size: 13px; margin: 10px 0 20px; color: ${SECONDARY_TEXT_COLOR}; text-align: center; } /* Updated Text Color */
 
         /* Button Style */
-        .button-link { background-color: ${SITE_BLUE_COLOR}; color: #ffffff !important; padding: 12px 24px; font-size: 15px; font-weight: 600; text-decoration: none !important; border-radius: 6px; display: inline-block; font-family: 'Inter', sans-serif; border: none; cursor: pointer; text-align: center; mso-padding-alt: 0; text-underline-color: ${SITE_BLUE_COLOR}; }
+        .button-link { background-color: ${SITE_BLUE_COLOR}; color: #ffffff !important; padding: 12px 24px; font-size: 15px; font-weight: 600; text-decoration: none !important; border-radius: 0; display: inline-block; font-family: 'Inter', sans-serif; border: none; cursor: pointer; text-align: center; mso-padding-alt: 0; text-underline-color: ${SITE_BLUE_COLOR}; } /* Updated Radius */
         .button-link:hover { background-color: #1e3a8a; }
 
         /* Help Section */
@@ -102,7 +102,7 @@ const generateEmailTemplate = (title, preheader, content) => `
         .social-icons img {
             width: 32px; height: 32px; /* Increased size */
             vertical-align: middle;
-            border-radius: 50%;
+            border-radius: 0; /* Updated */
             border: 2px solid ${SITE_BLUE_COLOR}; /* Blue border */
             padding: 2px;
             box-sizing: border-box;
@@ -127,8 +127,8 @@ const generateEmailTemplate = (title, preheader, content) => `
     <div style="display: none; font-size: 1px; color: ${MAIN_BG_COLOR}; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">${preheader}</div>
 
     <center class="wrapper" style="width: 100%; table-layout: fixed; background-color: ${MAIN_BG_COLOR}; padding-top: 20px; padding-bottom: 20px;">
-        <div class="webkit" style="max-width: 580px; margin: 0 auto; background-color: ${MAIN_BG_COLOR}; border-radius: 8px;">
-            <table class="outer" align="center" style="margin: 0 auto; width: 100%; max-width: 580px; border-collapse: collapse; background-color: ${MAIN_BG_COLOR}; border-radius: 8px;">
+        <div class="webkit" style="max-width: 580px; margin: 0 auto; background-color: ${MAIN_BG_COLOR}; border-radius: 0;">
+            <table class="outer" align="center" style="margin: 0 auto; width: 100%; max-width: 580px; border-collapse: collapse; background-color: ${MAIN_BG_COLOR}; border-radius: 0;">
                 <tr>
                     <td class="header" style="padding: 20px 0; text-align: center;">
                         <img src="${LOGO_URL}" width="140" alt="NexGuard Logo" class="logo">
@@ -161,7 +161,7 @@ const generateEmailTemplate = (title, preheader, content) => `
 </html>`;
 
 // --- Button HTML Helper ---
-const buttonHtml = (url, text) => `<table border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin: 20px auto;"><tr><td align="center" bgcolor="${SITE_BLUE_COLOR}" style="border-radius: 6px;"><a href="${url}" target="_blank" class="button-link">${text}</a></td></tr></table>`;
+const buttonHtml = (url, text) => `<table border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin: 20px auto;"><tr><td align="center" bgcolor="${SITE_BLUE_COLOR}" style="border-radius: 0;"><a href="${url}" target="_blank" class="button-link">${text}</a></td></tr></table>`;
 
 // --- Content Generation Functions (Adjusted Text Colors) ---
 
@@ -183,7 +183,7 @@ ${buttonHtml(resetLink, 'Reset Your Password')}
 const generateApprovalEmailContent = (username, planId, finalUsername) => `
 <p>Hello, <strong class="username-highlight">${username}</strong>!</p>
 <p>Great news! Your NexGuard order for the <strong>${planId}</strong> plan has been successfully approved and activated.</p>
-<div style="background-color: rgba(34, 197, 94, 0.1); border-left: 4px solid #22c55e; border-radius: 4px; padding: 14px; margin: 20px 0;"> <p style="margin: 0 0 6px 0; font-size: 14px; color: ${SECONDARY_TEXT_COLOR};">Activated Plan: <strong style="color: ${TEXT_COLOR};">${planId}</strong></p> <p style="margin: 0; font-size: 14px; color: ${SECONDARY_TEXT_COLOR};">Your V2Ray Username: <strong style="color:${SITE_BLUE_COLOR}">${finalUsername}</strong></p>
+<div style="background-color: rgba(34, 197, 94, 0.1); border-left: 4px solid #22c55e; border-radius: 0; padding: 14px; margin: 20px 0;"> <p style="margin: 0 0 6px 0; font-size: 14px; color: ${SECONDARY_TEXT_COLOR};">Activated Plan: <strong style="color: ${TEXT_COLOR};">${planId}</strong></p> <p style="margin: 0; font-size: 14px; color: ${SECONDARY_TEXT_COLOR};">Your V2Ray Username: <strong style="color:${SITE_BLUE_COLOR}">${finalUsername}</strong></p>
 </div>
 <p>You can now log in to your profile to find your unique V2Ray connection link and start enjoying true internet freedom!</p>
 ${buttonHtml(`${FRONTEND_URL}/profile`, 'Go to My Profile')}
@@ -192,20 +192,20 @@ ${buttonHtml(`${FRONTEND_URL}/profile`, 'Go to My Profile')}
 const generateOrderPlacedEmailContent = (username, planId) => `
 <p>Hello, <strong class="username-highlight">${username}</strong>!</p>
 <p>Thank you for your order! We've received your request for the <strong>${planId}</strong> plan and it's now pending review and approval.</p>
-<div style="background-color: rgba(245, 158, 11, 0.1); border-left: 4px solid #f59e0b; border-radius: 4px; padding: 14px; margin: 20px 0;"> <p style="margin: 0; font-size: 15px; color: ${TEXT_COLOR}; line-height: 24px;">We'll notify you via email as soon as your plan is activated. This usually takes a few hours during business times. You can check the latest status of your order anytime in your profile.</p> </div>
+<div style="background-color: rgba(245, 158, 11, 0.1); border-left: 4px solid #f59e0b; border-radius: 0; padding: 14px; margin: 20px 0;"> <p style="margin: 0; font-size: 15px; color: ${TEXT_COLOR}; line-height: 24px;">We'll notify you via email as soon as your plan is activated. This usually takes a few hours during business times. You can check the latest status of your order anytime in your profile.</p> </div>
 ${buttonHtml(`${FRONTEND_URL}/profile?tab=orders`, 'Check Order Status')}
 <p style="font-size: 13px; margin: 20px 0 0; color: ${SECONDARY_TEXT_COLOR};">We appreciate your patience!</p>`;
 
 const generateRejectionEmailContent = (username, planId, orderId) => `
 <p>Hello, <strong class="username-highlight">${username}</strong>.</p>
 <p>We're writing to inform you about your recent NexGuard order (ID: ${orderId}) for the <strong>${planId}</strong> plan.</p>
-<div style="background-color: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444; border-radius: 4px; padding: 14px; margin: 20px 0;"> <p style="margin: 0; font-size: 15px; color: ${TEXT_COLOR}; line-height: 24px; font-weight: 500;">Unfortunately, we were unable to approve your order at this time.</p> <p style="margin: 8px 0 0; font-size: 14px; color: ${TEXT_COLOR}; line-height: 24px;">This is often due to an issue verifying the payment receipt. Please double-check the image you uploaded or contact our support team via WhatsApp for assistance.</p> </div>
+<div style="background-color: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444; border-radius: 0; padding: 14px; margin: 20px 0;"> <p style="margin: 0; font-size: 15px; color: ${TEXT_COLOR}; line-height: 24px; font-weight: 500;">Unfortunately, we were unable to approve your order at this time.</p> <p style="margin: 8px 0 0; font-size: 14px; color: ${TEXT_COLOR}; line-height: 24px;">This is often due to an issue verifying the payment receipt. Please double-check the image you uploaded or contact our support team via WhatsApp for assistance.</p> </div>
 <p style="font-size: 13px; margin: 20px 0 0; color: ${SECONDARY_TEXT_COLOR};">We apologize for any inconvenience.</p>`;
 
 const generateExpiryReminderEmailContent = (username, v2rayUsername, expiryDate) => `
 <p>Hello, <strong class="username-highlight">${username}</strong>!</p>
 <p>Just a friendly reminder that your NexGuard plan associated with the username <strong style="color:${SITE_BLUE_COLOR}">${v2rayUsername}</strong> is set to expire soon.</p>
-<div style="background-color: rgba(249, 115, 22, 0.1); border-left: 4px solid #f97316; border-radius: 4px; padding: 14px; margin: 20px 0;"> <p style="margin: 0; font-size: 15px; color: ${TEXT_COLOR}; line-height: 24px;"><strong>Expires on:</strong> ${expiryDate.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })} (less than 24 hours)</p> </div>
+<div style="background-color: rgba(249, 115, 22, 0.1); border-left: 4px solid #f97316; border-radius: 0; padding: 14px; margin: 20px 0;"> <p style="margin: 0; font-size: 15px; color: ${TEXT_COLOR}; line-height: 24px;"><strong>Expires on:</strong> ${expiryDate.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })} (less than 24 hours)</p> </div>
 <p>To ensure uninterrupted service, please renew your plan through your profile before the expiry time.</p>
 ${buttonHtml(`${FRONTEND_URL}/profile`, 'Renew Your Plan Now')}
 <p style="font-size: 13px; margin: 20px 0 0; color: ${SECONDARY_TEXT_COLOR};">If you've already renewed, please disregard this message.</p>`;
@@ -219,7 +219,7 @@ const generateUserNotFoundEmailContent = (triedEmail) => `
 
 // Export functions
 module.exports = {
-    // sendEmail,
+    // sendEmail, // Assuming this is commented out intentionally
     generateEmailTemplate,
     generateOtpEmailContent,
     generatePasswordResetEmailContent,
