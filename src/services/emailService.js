@@ -1,4 +1,4 @@
-// File Path: NexGuardLK/src/services/emailService.js (Fully Updated - v2)
+// File Path: NexGuardLK/src/services/emailService.js (සම්පූර්ණ යාවත්කාලීන කළ කේතය)
 
 const transporter = require('../config/mailer');
 
@@ -23,16 +23,16 @@ const sendEmail = async (to, subject, html) => {
     }
 };
 
-// --- Configuration Variables ---
+// --- Configuration Variables --- (මේවා ඔබේ .env file එකෙන් හෝ hosting settings වලින් ගන්න)
 const FRONTEND_URL = process.env.FRONTEND_URL || "https://app.nexguardlk.store";
-const LOGO_URL = process.env.LOGO_PUBLIC_URL || `${FRONTEND_URL}/assets/logo.png`;
-const HELP_CENTER_URL = process.env.HELP_CENTER_URL || `${FRONTEND_URL}/about?scroll=faq-section`; // Example link
-const CONTACT_EMAIL = process.env.CONTACT_EMAIL || "support@nexguardlk.store"; // Example email
-const FACEBOOK_URL = process.env.FACEBOOK_URL || "https://facebook.com/nexguardlk"; // Example
-const WHATSAPP_URL = process.env.WHATSAPP_URL || "https://wa.me/94770492554"; // Example
-const TELEGRAM_URL = process.env.TELEGRAM_URL || "https://t.me/nexguardusagebot"; // Example
+const LOGO_URL = process.env.LOGO_PUBLIC_URL || `${FRONTEND_URL}/assets/logo.png`; //
+const HELP_CENTER_URL = process.env.HELP_CENTER_URL || `${FRONTEND_URL}/about?scroll=faq-section`;
+const CONTACT_EMAIL = process.env.CONTACT_EMAIL || "support@nexguardlk.store";
+const FACEBOOK_URL = process.env.FACEBOOK_URL || "https://facebook.com/nexguardlk";
+const WHATSAPP_URL = process.env.WHATSAPP_URL || "https://wa.me/94770492554";
+const TELEGRAM_URL = process.env.TELEGRAM_URL || "https://t.me/nexguardusagebot";
 
-// --- Main Email Template Generator (Updated) ---
+// --- Main Email Template Generator (Updated for Icons and Underlines) ---
 const generateEmailTemplate = (title, preheader, content) => `
 <!DOCTYPE html>
 <html lang="en">
@@ -45,17 +45,18 @@ const generateEmailTemplate = (title, preheader, content) => `
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
     <style>
         /* Basic Reset */
-        body, html { margin: 0; padding: 0; width: 100%; -webkit-font-smoothing: antialiased; background-color: #f0fdf4; /* Light Mint Green Background */ font-family: 'Inter', sans-serif; }
+        body, html { margin: 0; padding: 0; width: 100%; -webkit-font-smoothing: antialiased; background-color: #f0fdf4; font-family: 'Inter', sans-serif; }
         table { border-collapse: collapse; }
         img { border: 0; max-width: 100%; height: auto; vertical-align: middle; }
-        a { color: #2563eb; text-decoration: none; }
-        a:hover { text-decoration: underline; }
+        /* Changed Link Style: Added underline */
+        a { color: #2563eb; text-decoration: underline; /* Added underline */ }
+        a:hover { text-decoration: underline; /* Keep underline on hover */ }
         p { margin: 0 0 16px; font-size: 16px; line-height: 1.6; color: #334155; }
         strong { color: #1e293b; font-weight: 700;}
 
         /* Layout */
         .wrapper { width: 100%; table-layout: fixed; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
-        .webkit { max-width: 600px; margin: 0 auto; } /* Centering container */
+        .webkit { max-width: 600px; margin: 0 auto; }
         .outer { margin: 0 auto; width: 100%; max-width: 600px; }
         .inner { padding: 32px; }
 
@@ -64,75 +65,27 @@ const generateEmailTemplate = (title, preheader, content) => `
         .logo { max-width: 150px; }
 
         /* Content Area */
-        .content-title {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 24px; /* Increased size */
-            font-weight: 700;
-            margin: 0 0 24px;
-            color: #1d4ed8; /* Stronger Blue title */
-            text-align: center; /* Centered title */
-        }
+        .content-title { font-family: 'Orbitron', sans-serif; font-size: 24px; font-weight: 700; margin: 0 0 24px; color: #1d4ed8; text-align: center; }
 
         /* OTP Specific Style */
-        .otp-code {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 36px; /* Larger OTP */
-            font-weight: 700;
-            letter-spacing: 5px; /* Increased spacing */
-            margin: 24px 0;
-            color: #1d4ed8; /* Blue OTP */
-            text-align: center;
-            padding: 10px; /* Add some padding */
-        }
-        .validity-text {
-            font-size: 14px;
-            margin: 0 0 24px;
-            color: #64748b;
-            text-align: center;
-        }
+        .otp-code { font-family: 'Orbitron', sans-serif; font-size: 36px; font-weight: 700; letter-spacing: 5px; margin: 24px 0; color: #1d4ed8; text-align: center; padding: 10px; }
+        .validity-text { font-size: 14px; margin: 0 0 24px; color: #64748b; text-align: center; }
 
         /* Button Style */
-        .button-link {
-             background-color: #2563eb; /* Primary button blue */
-             color: #ffffff !important;
-             padding: 14px 28px; /* Slightly larger padding */
-             font-size: 16px;
-             font-weight: 600;
-             text-decoration: none !important;
-             border-radius: 6px;
-             display: inline-block;
-             font-family: 'Inter', sans-serif;
-             border: none;
-             cursor: pointer;
-             text-align: center;
-             mso-padding-alt: 0; /* Outlook padding fix */
-             text-underline-color: #2563eb; /* Hide underline in Outlook */
-        }
-         .button-link:hover { background-color: #1d4ed8; } /* Darker blue on hover */
+        .button-link { background-color: #2563eb; color: #ffffff !important; padding: 14px 28px; font-size: 16px; font-weight: 600; text-decoration: none !important; /* Removed underline from button */ border-radius: 6px; display: inline-block; font-family: 'Inter', sans-serif; border: none; cursor: pointer; text-align: center; mso-padding-alt: 0; text-underline-color: #2563eb; }
+        .button-link:hover { background-color: #1d4ed8; }
 
         /* Help Section */
-        .help-section {
-            margin-top: 32px;
-            padding-top: 24px;
-            border-top: 1px solid #e2e8f0;
-            text-align: center;
-        }
+        .help-section { margin-top: 32px; padding-top: 24px; border-top: 1px solid #e2e8f0; text-align: center; }
         .help-section p { margin-bottom: 8px; font-size: 14px; color: #475569; }
+        /* Added underline specifically for help links */
+        .help-section a { color: #2563eb; text-decoration: underline; font-weight: 500; }
 
         /* Footer */
-        .footer {
-            padding: 32px 0 24px;
-            text-align: center;
-            font-size: 12px;
-            color: #64748b;
-        }
-        .social-icons img {
-            width: 24px;
-            height: 24px;
-            margin: 0 8px;
-            vertical-align: middle;
-        }
-        .social-icons a { text-decoration: none; }
+        .footer { padding: 32px 0 24px; text-align: center; font-size: 12px; color: #64748b; }
+        /* Changed Icon Size and removed margin for better alignment control */
+        .social-icons img { width: 32px; height: 32px; vertical-align: middle; }
+        .social-icons a { text-decoration: none; display: inline-block; /* Helps with spacing */ margin: 0 8px; /* Added margin back here */ }
 
         /* Responsive */
         @media (max-width: 600px) {
@@ -142,6 +95,8 @@ const generateEmailTemplate = (title, preheader, content) => `
             .content-title { font-size: 20px; }
             .otp-code { font-size: 30px; letter-spacing: 4px; }
             p { font-size: 15px; }
+            .social-icons img { width: 28px; height: 28px; } /* Slightly smaller on mobile */
+            .social-icons a { margin: 0 5px; }
         }
     </style>
 </head>
@@ -149,9 +104,7 @@ const generateEmailTemplate = (title, preheader, content) => `
     <div style="display: none; font-size: 1px; color: #f0fdf4; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">${preheader}</div>
 
     <center class="wrapper" style="width: 100%; table-layout: fixed; background-color: #f0fdf4; padding-top: 20px; padding-bottom: 20px;">
-        <div class="webkit" style="max-width: 600px; margin: 0 auto; background-color: #f0fdf4;">
-            <table class="outer" align="center" style="margin: 0 auto; width: 100%; max-width: 600px; border-collapse: collapse;">
-                <tr>
+        <div class="webkit" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);"> <table class="outer" align="center" style="margin: 0 auto; width: 100%; max-width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 8px;"> <tr>
                     <td class="header" style="padding: 24px 0; text-align: center;">
                         <img src="${LOGO_URL}" width="150" alt="NexGuard Logo" class="logo">
                     </td>
@@ -159,11 +112,12 @@ const generateEmailTemplate = (title, preheader, content) => `
                 <tr>
                     <td class="inner" style="padding: 32px;">
                         <p class="content-title">${title}</p>
-                        ${content} <div class="help-section" style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e2e8f0; text-align: center;">
+                        ${content}
+                        <div class="help-section" style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e2e8f0; text-align: center;">
                             <p style="margin-bottom: 8px; font-size: 14px; color: #475569; font-weight: 700;">We are here to help you</p>
-                            <p style="margin-bottom: 8px; font-size: 14px; color: #475569;">Visit our <a href="${HELP_CENTER_URL}" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: 500;">Help Center</a> to explore our handy tutorials and FAQs.</p>
+                            <p style="margin-bottom: 8px; font-size: 14px; color: #475569;">Visit our <a href="${HELP_CENTER_URL}" target="_blank">Help Center</a> to explore our handy tutorials and FAQs.</p>
                             <p style="margin-bottom: 8px; font-size: 14px; color: #475569;">Can't find what you're looking for?</p>
-                            <p style="margin-bottom: 8px; font-size: 14px; color: #475569;">Email us at <a href="mailto:${CONTACT_EMAIL}" style="color: #2563eb; text-decoration: none; font-weight: 500;">${CONTACT_EMAIL}</a>.</p>
+                            <p style="margin-bottom: 8px; font-size: 14px; color: #475569;">Email us at <a href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a>.</p>
                         </div>
 
                         <p style="margin: 30px 0 0; font-size: 14px; color: #475569; text-align: center;">Thank you,<br><strong>The NexGuard Team</strong></p>
@@ -171,24 +125,24 @@ const generateEmailTemplate = (title, preheader, content) => `
                 </tr>
                  <tr>
                     <td class="footer" style="padding: 32px 0 24px; text-align: center; font-size: 12px; color: #64748b;">
-                         <p class="social-icons" style="margin-bottom: 16px;">
-                            <a href="${FACEBOOK_URL}" target="_blank" style="text-decoration: none;"><img src="https://img.icons8.com/ios-glyphs/30/64748b/facebook-new.png" alt="Facebook" width="24" height="24" style="margin: 0 8px;"></a>
-                            <a href="${WHATSAPP_URL}" target="_blank" style="text-decoration: none;"><img src="https://img.icons8.com/ios-glyphs/30/64748b/whatsapp.png" alt="WhatsApp" width="24" height="24" style="margin: 0 8px;"></a>
-                            <a href="${TELEGRAM_URL}" target="_blank" style="text-decoration: none;"><img src="https://img.icons8.com/ios-glyphs/30/64748b/telegram-app.png" alt="Telegram" width="24" height="24" style="margin: 0 8px;"></a>
-                            </p>
+                        <p class="social-icons" style="margin-bottom: 16px;">
+                            <a href="${FACEBOOK_URL}" target="_blank"><img src="https://img.icons8.com/fluency/32/facebook-new.png" alt="Facebook"></a>
+                            <a href="${WHATSAPP_URL}" target="_blank"><img src="https://img.icons8.com/fluency/32/whatsapp.png" alt="WhatsApp"></a>
+                            <a href="${TELEGRAM_URL}" target="_blank"><img src="https://img.icons8.com/fluency/32/telegram-app.png" alt="Telegram"></a>
+                        </p>
                         <p style="margin: 0;">Copyright &copy; ${new Date().getFullYear()} NexGuard LK. All rights reserved.</p>
-                        </td>
+                    </td>
                 </tr>
             </table>
-            </div>
+        </div>
     </center>
 </body>
 </html>`;
 
-// --- Button HTML Helper ---
-const buttonHtml = (url, text) => `<table border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin: 24px auto;"><tr><td align="center" bgcolor="#2563eb" style="border-radius: 6px;"><a href="${url}" target="_blank" class="button-link" style="background-color: #2563eb; color: #ffffff; padding: 14px 28px; font-size: 16px; font-weight: 600; text-decoration: none; border-radius: 6px; display: inline-block; font-family: 'Inter', sans-serif; border: none; mso-padding-alt: 0; text-underline-color: #2563eb;">${text}</a></td></tr></table>`;
+// --- Button HTML Helper (No changes needed here) ---
+const buttonHtml = (url, text) => `<table border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin: 24px auto;"><tr><td align="center" bgcolor="#2563eb" style="border-radius: 6px;"><a href="${url}" target="_blank" class="button-link">${text}</a></td></tr></table>`;
 
-// --- Content Generation Functions (Updated with username and refined content) ---
+// --- Content Generation Functions (Ensure username is passed when calling these) ---
 
 // **වැදගත්:** මේ function එක call කරන තැනින් (authController.js > register) username එක pass කරන්න.
 const generateOtpEmailContent = (username, otp) => `
@@ -197,6 +151,7 @@ const generateOtpEmailContent = (username, otp) => `
 <p class="otp-code" style="font-family: 'Orbitron', sans-serif; font-size: 36px; font-weight: 700; letter-spacing: 5px; margin: 24px 0; color: #1d4ed8; text-align: center; padding: 10px;">${otp}</p>
 <p class="validity-text" style="font-size: 14px; margin: 0 0 24px; color: #64748b; text-align: center;">This code is valid for 10 minutes. If you didn't request this, you can safely ignore this email.</p>`;
 
+// **වැදගත්:** මේ function එක call කරන තැනින් (authController.js > forgotPassword) username එක pass කරන්න.
 const generatePasswordResetEmailContent = (username, resetLink) => `
 <p>Hello, <strong>${username}</strong>!</p>
 <p>We received a request to reset the password for your NexGuard account. If this was you, click the button below to set a new password:</p>
@@ -249,7 +204,7 @@ ${buttonHtml(`${FRONTEND_URL}/profile`, 'Renew Your Plan Now')}
 
 // Export functions
 module.exports = {
-    sendEmail,
+    // sendEmail, // If you need this function, uncomment it and ensure it's defined above
     generateEmailTemplate,
     generateOtpEmailContent,
     generatePasswordResetEmailContent,
