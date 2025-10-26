@@ -358,49 +358,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // NEW FUNCTION to show a modal for selecting a package
-    function showPackageSelectorModal(packageOptions, connectionName) {
-        return new Promise((resolve) => {
-            const modalId = `pkg-selector-modal-${Date.now()}`;
-            // Create option elements for the select dropdown
-            const optionsHtml = packageOptions.map((opt, index) =>
-                `<option value="${index}">${opt.name}</option>`
-            ).join('');
-
-            const modalHtml = `
-                <div id="${modalId}" class="fixed inset-0 bg-black/80 justify-center items-center z-[101] flex p-4" style="display: flex;">
-                    <div class="card-glass p-6 rounded-lg max-w-sm w-full text-center reveal is-visible relative">
-                        <button id="${modalId}-close" class="absolute top-3 right-4 text-gray-400 hover:text-white text-3xl">&times;</button>
-                        <h3 class="text-xl font-bold text-white font-['Orbitron'] mb-2">Select Package</h3>
-                        <p class="text-sm text-gray-400 mb-4">Which package are you currently using for the <strong class="text-blue-300">${connectionName}</strong> connection?</p>
-                        <div class="mb-6">
-                            <select id="multi-pkg-selector" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
-                                ${optionsHtml}
-                            </select>
-                        </div>
-                        <div class="flex items-center justify-center gap-3">
-                            <button id="${modalId}-confirm" class="ai-button rounded-lg">Confirm Package</button>
-                        </div>
-                    </div>
-                </div>`;
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-            const modalElement = document.getElementById(modalId);
-
-            const closeModal = (selectedPackageData = null) => {
-                modalElement.remove();
-                resolve(selectedPackageData); // Resolve with the selected package object or null
-            };
-
-            document.getElementById(`${modalId}-confirm`).addEventListener('click', () => {
-                const selectedIndex = document.getElementById('multi-pkg-selector').value;
-                const selectedPkg = packageOptions[selectedIndex];
-                closeModal(selectedPkg); // Pass the whole selected package object
-            });
-
-            document.getElementById(`${modalId}-close`).addEventListener('click', () => closeModal(null)); // Pass null if closed
-        });
-    }
-
     // --- START: FULLY INLINE PLAN MANAGEMENT FLOW ---
 
     function renderPlanChoicePage(renderFunc, activePlans) {
@@ -464,75 +421,11 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="text-center mt-8 reveal"><a href="/plans" class="nav-link-internal text-blue-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back</a></div>
         </div>`);
 
-    // Inside renderRenewOrChangePage function in public/js/main.js
-
-// Inside renderRenewOrChangePage function - REPLACE the existing renew-current-card listener with this:
-    document.getElementById('renew-current-card')?.addEventListener('click', async () => { // Make the function async
-        try {
-            const connectionDetails = dynamicConnections.find(c => c.name === planToManage.connId);
-            if (!connectionDetails) {
-                showToast({ title: "Error", message: "Connection details not found for this plan.", type: "error" });
-                return;
-            }
-
-            let selectedPackageDetails = null; // Variable to hold the final package info
-            const packageOptions = connectionDetails.package_options || [];
-
-            if (connectionDetails.requires_package_choice) {
-                // 1. Try to find the package using planToManage.pkg (for newer plans)
-                const storedPackage = packageOptions.find(p => planToManage.pkg && p.name === planToManage.pkg);
-
-                if (storedPackage) {
-                    selectedPackageDetails = storedPackage; // Found it directly
-                } else if (packageOptions.length > 0) {
-                    // 2. pkg missing or invalid, ASK the user if multiple options exist
-                    console.warn(`Package info missing/invalid for ${planToManage.v2rayUsername}. Prompting user selection.`);
-                    // Show the new package selection modal
-                    const chosenPackage = await showPackageSelectorModal(packageOptions, connectionDetails.name);
-
-                    if (!chosenPackage) {
-                        // User cancelled the modal
-                        showToast({ title: "Cancelled", message: "Package selection cancelled.", type: "info" });
-                        return; // Stop execution
-                    }
-                    selectedPackageDetails = chosenPackage; // User selected a package
-                } else {
-                    // No package options available for a multi-package connection (Configuration error)
-                    showToast({ title: "Configuration Error", message: `No packages found for the multi-package connection '${connectionDetails.name}'. Contact support.`, type: "error" });
-                    return;
-                }
-            } else {
-                // For single-package connections, create a temporary object with default details
-                selectedPackageDetails = {
-                    name: connectionDetails.default_package || '',
-                    inbound_id: connectionDetails.default_inbound_id,
-                    template: connectionDetails.default_vless_template
-                };
-            }
-
-            // 3. Validate that we have the necessary package details
-            if (!selectedPackageDetails || !selectedPackageDetails.inbound_id || !selectedPackageDetails.template) {
-                 showToast({ title: "Configuration Error", message: `Connection/Package configuration is incomplete for '${planToManage.connId}'. Contact support.`, type: "error" });
-                 return;
-            }
-
-            // 4. Construct the checkout URL using the confirmed/selected package details
-            const checkoutUrl = `/checkout?planId=${planToManage.planId}` +
-                                `&connId=${encodeURIComponent(planToManage.connId)}` +
-                                `&pkg=${encodeURIComponent(selectedPackageDetails.name)}` + // Use selected/default name
-                                `&inboundId=${selectedPackageDetails.inbound_id}` +       // Use selected/default inbound_id
-                                `&vlessTemplate=${encodeURIComponent(selectedPackageDetails.template)}` + // Use selected/default template
-                                `&renew=${encodeURIComponent(planToManage.v2rayUsername)}`;
-
-            navigateTo(checkoutUrl);
-
-        } catch (error) {
-            console.error("Error preparing renewal checkout:", error);
-            showToast({ title: "Unexpected Error", message: "Could not prepare renewal checkout. Please try again.", type: "error" });
-        }
+    document.getElementById('renew-current-card')?.addEventListener('click', () => {
+        const checkoutUrl = `/checkout?planId=${planToManage.planId}&connId=${encodeURIComponent(planToManage.connId)}&renew=${encodeURIComponent(planToManage.v2rayUsername)}`;
+        navigateTo(checkoutUrl);
     });
 
-    // The 'change-plan-card' listener remains the same
     document.getElementById('change-plan-card')?.addEventListener('click', () => {
         navigateTo(`/plans?change=${encodeURIComponent(planToManage.v2rayUsername)}`);
     });

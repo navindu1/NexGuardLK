@@ -202,7 +202,6 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                 v2rayLink: clientLink,
                 planId: order.plan_id,
                 connId: order.conn_id,
-                pkg: order.pkg,
                 activatedAt: new Date().toISOString(),
                 orderId: order.id, // Link plan to this specific order
             };
