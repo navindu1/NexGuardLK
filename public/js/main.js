@@ -421,9 +421,68 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="text-center mt-8 reveal"><a href="/plans" class="nav-link-internal text-blue-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back</a></div>
         </div>`);
 
-    document.getElementById('renew-current-card')?.addEventListener('click', () => {
-        const checkoutUrl = `/checkout?planId=${planToManage.planId}&connId=${encodeURIComponent(planToManage.connId)}&renew=${encodeURIComponent(planToManage.v2rayUsername)}`;
-        navigateTo(checkoutUrl);
+    // Inside renderRenewOrChangePage function
+
+    document.getElementById('renew-current-card')?.addEventListener('click', async () => { // Make the function async
+        try {
+            // Find the connection details from the already loaded dynamicConnections array
+            const connectionDetails = dynamicConnections.find(c => c.name === planToManage.connId);
+            if (!connectionDetails) {
+                showToast({ title: "Error", message: "Connection details not found for this plan.", type: "error" });
+                return;
+            }
+
+            let pkg = '';
+            let inboundId = '';
+            let vlessTemplate = '';
+
+            if (connectionDetails.requires_package_choice) {
+                // For multi-package connections, we need the specific package name ('pkg')
+                // This relies on 'pkg' being stored in the planToManage object (requires backend update)
+                if (planToManage.pkg) {
+                    const packageOptions = connectionDetails.package_options || [];
+                    const selectedPackage = packageOptions.find(p => p.name === planToManage.pkg);
+
+                    if (selectedPackage) {
+                        pkg = selectedPackage.name;
+                        inboundId = selectedPackage.inbound_id;
+                        vlessTemplate = selectedPackage.template;
+                    } else {
+                        // If the stored package name doesn't match any current options
+                        showToast({ title: "Configuration Error", message: `Package '${planToManage.pkg}' not found for connection '${planToManage.connId}'. Please contact support or try 'Change Plan'.`, type: "error" });
+                        return;
+                    }
+                } else {
+                    // If 'pkg' is missing from planToManage for a multi-package connection
+                    showToast({ title: "Information Missing", message: "Cannot determine the specific package for renewal. Please try 'Change Plan' or contact support.", type: "error" });
+                    // Optionally, you could try to guess if there's only one package, but it's safer to require the info
+                    // const packageOptions = connectionDetails.package_options || [];
+                    // if (packageOptions.length === 1) { ... } else { return; }
+                    return; // Stop execution
+                }
+            } else {
+                // For single-package connections, use the default values stored in the connection
+                pkg = connectionDetails.default_package || '';
+                inboundId = connectionDetails.default_inbound_id;
+                vlessTemplate = connectionDetails.default_vless_template;
+            }
+
+            // Validate that we found the necessary details
+            if (!inboundId || !vlessTemplate) {
+                 showToast({ title: "Configuration Error", message: `Connection configuration is incomplete for '${planToManage.connId}'. Missing Inbound ID or Template. Contact support.`, type: "error" });
+                 return;
+            }
+
+            // Construct the checkout URL *including* all necessary parameters
+            const checkoutUrl = `/checkout?planId=${planToManage.planId}&connId=${encodeURIComponent(planToManage.connId)}&pkg=${encodeURIComponent(pkg)}&inboundId=${inboundId}&vlessTemplate=${encodeURIComponent(vlessTemplate)}&renew=${encodeURIComponent(planToManage.v2rayUsername)}`;
+
+            // Navigate to the checkout page with the complete URL
+            navigateTo(checkoutUrl);
+
+        } catch (error) {
+            console.error("Error preparing renewal checkout:", error);
+            showToast({ title: "Unexpected Error", message: "Could not prepare renewal checkout process. Please try again.", type: "error" });
+        }
     });
 
     document.getElementById('change-plan-card')?.addEventListener('click', () => {
