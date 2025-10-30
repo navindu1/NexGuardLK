@@ -198,13 +198,14 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
             } // For new users, planIndex remains -1
 
             const newPlanDetails = {
-                v2rayUsername: finalUsername,
-                v2rayLink: clientLink,
-                planId: order.plan_id,
-                connId: order.conn_id,
-                activatedAt: new Date().toISOString(),
-                orderId: order.id, // Link plan to this specific order
-            };
+    v2rayUsername: finalUsername,
+    v2rayLink: clientLink,
+    planId: order.plan_id,
+    connId: order.conn_id,
+    pkg: order.pkg || null, // <--- ADD THIS LINE to store the package name
+    activatedAt: new Date().toISOString(),
+    orderId: order.id, // Link plan to this specific order
+};
 
             if (planIndex !== -1) {
                 // Update existing plan entry (renewal or change)

@@ -933,33 +933,57 @@ function renderCheckoutPage(renderFunc, params) {
             </div>
         </div>`);
 
-    document.getElementById("checkout-form")?.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const formData = new FormData(e.target);
-        formData.append("planId", params.get("planId"));
-        formData.append("connId", params.get("connId"));
-        if (params.get("pkg")) formData.append("pkg", params.get("pkg"));
-        if (params.get("inboundId")) formData.append("inboundId", params.get("inboundId"));
-        if (params.get("vlessTemplate")) formData.append("vlessTemplate", params.get("vlessTemplate"));
+    // File Path: public/js/main.js (~ Line 945, inside the #checkout-form submit listener)
+
+document.getElementById("checkout-form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const params = new URLSearchParams(window.location.search); // Ensure params is defined here
+
+    // Append planId and connId (already done)
+    formData.append("planId", params.get("planId"));
+    formData.append("connId", params.get("connId"));
+
+    // ---> ADD THIS CHECK <---
+    // Read 'pkg' from URL params and add it to FormData if it exists
+    if (params.get("pkg")) {
+        formData.append("pkg", params.get("pkg"));
+    }
+    // ---> END ADDITION <---
+
+    // Append inboundId and vlessTemplate if they exist (already done)
+    if (params.get("inboundId")) formData.append("inboundId", params.get("inboundId"));
+    if (params.get("vlessTemplate")) formData.append("vlessTemplate", params.get("vlessTemplate"));
+
+    // Add isRenewal flag if present (already done)
+    if (params.get("renew")) formData.append("isRenewal", "true");
+
+    // Add old_v2ray_username if present (already done)
+    if (params.get("change")) formData.append("old_v2ray_username", params.get("change"));
 
 
-        document.querySelector('#checkout-view button[type="submit"]').disabled = true;
-        document.querySelector('#checkout-view button[type="submit"]').textContent = "SUBMITTING...";
+    // Disable button and show submitting text (already done)
+    document.querySelector('#checkout-view button[type="submit"]').disabled = true;
+    document.querySelector('#checkout-view button[type="submit"]').textContent = "SUBMITTING...";
 
-        const res = await apiFetch("/api/create-order", {
-            method: "POST",
-            body: formData,
-        });
-        if (res.ok) {
-            document.getElementById("checkout-view").style.display = "none";
-            document.getElementById("success-view").classList.remove("hidden");
-        } else {
-            const result = await res.json();
-            alert(`Error: ${result.message}`);
-            document.querySelector('#checkout-view button[type="submit"]').disabled = false;
-            document.querySelector('#checkout-view button[type="submit"]').textContent = "SUBMIT FOR APPROVAL";
-        }
+    // API Fetch call (already done)
+    const res = await apiFetch("/api/create-order", {
+        method: "POST",
+        body: formData, // No change needed here, FormData now includes 'pkg' if added above
     });
+
+    // Handle response (already done)
+    if (res.ok) {
+        document.getElementById("checkout-view").style.display = "none";
+        document.getElementById("success-view").classList.remove("hidden");
+    } else {
+        const result = await res.json();
+        // Use showToast for errors instead of alert
+        showToast({ title: "Error", message: result.message, type: "error" });
+        document.querySelector('#checkout-view button[type="submit"]').disabled = false;
+        document.querySelector('#checkout-view button[type="submit"]').textContent = "SUBMIT FOR APPROVAL";
+    }
+});
 }
 
     function renderAboutPage(renderFunc) {

@@ -260,14 +260,15 @@ exports.linkV2rayAccount = async (req, res) => {
         }
 
         const newPlan = {
-            v2rayUsername: clientData.client.email || trimmedUsername,
-            v2rayLink,
-            planId: detectedPlanId,
-            connId: detectedConnId,
-            activatedAt: new Date().toISOString(),
-            orderId: "linked-" + uuidv4(),
-        };
-
+        v2rayUsername: clientData.client.email || trimmedUsername,
+        v2rayLink,
+        planId: detectedPlanId,
+        connId: detectedConnId,
+        pkg: finalPackage ? finalPackage.name : null, // <--- ADD THIS LINE
+        activatedAt: new Date().toISOString(),
+        orderId: "linked-" + uuidv4(),
+    };
+    
         const updatedPlans = [...currentPlans, newPlan];
 
         await supabase.from("users").update({ active_plans: updatedPlans }).eq("id", req.user.id);
