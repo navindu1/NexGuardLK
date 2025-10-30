@@ -1,5 +1,5 @@
 // File Path: src/controllers/orderController.js
-// --- START: COMPLETE UPDATED CODE ---
+// --- START: COMPLETE FIXED CODE ---
 
 const supabase = require('../config/supabaseClient');
 const transporter = require('../config/mailer');
@@ -54,31 +54,24 @@ exports.createOrder = async (req, res) => {
                     return res.status(500).json({ success: false, message: 'Could not fetch packages to deduce renewal.' });
                 }
 
-                // Try to find a matching package based on username prefix (same logic as linkV2rayAccount)
-                let foundPackage = null;
-                const clientUsernameLower = clientInPanel.client.email.toLowerCase();
+                // --- ⭐️ START: THIS IS THE CORRECT FIX ⭐️ ---
+                //
+                // We will deduce the package by matching the user's *actual* Inbound ID
+                // from the V2Ray panel with the Inbound ID stored in our packages database.
+                //
+                const clientInboundId = clientInPanel.inboundId;
+                const foundPackage = packages.find(p => p.inbound_id === clientInboundId);
                 
-                for (const p of packages) {
-                    if (p.template) {
-                        const remark = p.template.split('#')[1];
-                        if (remark) {
-                            const prefix = remark.split('{remark}')[0];
-                            if (prefix && clientUsernameLower.startsWith(prefix.toLowerCase())) {
-                                foundPackage = p;
-                                break;
-                            }
-                        }
-                    }
-                }
+                // --- ⭐️ END: THIS IS THE CORRECT FIX ⭐️ ---
 
                 if (foundPackage) {
                     finalPkg = foundPackage.name; // We found it!
-                    console.log(`[Order] Deduced package: ${finalPkg}`);
+                    console.log(`[Order] Deduced package by Inbound ID (${clientInboundId}): ${finalPkg}`);
                     inboundId = foundPackage.inbound_id;
                     vlessTemplate = foundPackage.template;
                 } else {
                     // Could not deduce package, so we must fail
-                    console.warn(`[Order] Could not deduce package for ${username}.`);
+                    console.warn(`[Order] Could not deduce package for ${username}. No package matched Inbound ID: ${clientInboundId}`);
                     return res.status(400).json({ success: false, message: 'Could not determine your current package. Please use the "Change Plan" option instead of "Renew" to manually select a package.' });
                 }
             }
@@ -214,4 +207,4 @@ exports.createOrder = async (req, res) => {
     }
 };
 
-// --- END: COMPLETE UPDATED CODE ---
+// --- END: COMPLETE FIXED CODE ---
