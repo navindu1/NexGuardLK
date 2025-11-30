@@ -170,8 +170,6 @@ exports.getClient = async (inboundId, email) => {
 exports.addClient = async (inboundId, clientSettings) => {
     const cookie = await getPanelCookie();
     // Ensure clientSettings has the correct structure for your panel
-    // Sometimes panels expect specific fields. 
-    // If you pass raw settings, make sure it matches what the panel expects.
     const payload = {
         id: parseInt(inboundId),
         settings: JSON.stringify({ clients: [clientSettings] })
@@ -181,7 +179,7 @@ exports.addClient = async (inboundId, clientSettings) => {
         headers: { Cookie: cookie },
         httpsAgent: agent 
     });
-    return data;
+    return data && data.success;
 };
 
 exports.deleteClient = async (inboundId, clientUuid) => {
@@ -191,7 +189,7 @@ exports.deleteClient = async (inboundId, clientUuid) => {
         headers: { Cookie: cookie },
         httpsAgent: agent 
     });
-    return data;
+    return data && data.success;
 };
 
 exports.updateClient = async (inboundId, email, data) => {
@@ -234,14 +232,21 @@ exports.updateClient = async (inboundId, email, data) => {
     return false;
 };
 
+// --- FIX: Reset Client Traffic Function ---
 exports.resetClientTraffic = async (inboundId, clientEmail) => {
     const cookie = await getPanelCookie();
     const url = RESET_TRAFFIC_URL(inboundId, clientEmail);
-    const { data } = await axios.post(url, {}, { 
-        headers: { Cookie: cookie },
-        httpsAgent: agent 
-    });
-    return data;
+    try {
+        const { data } = await axios.post(url, {}, { 
+            headers: { Cookie: cookie },
+            httpsAgent: agent 
+        });
+        console.log(`[V2Ray] Reset traffic for ${clientEmail}: ${data.success}`);
+        return data && data.success;
+    } catch (error) {
+        console.error(`Error resetting traffic for ${clientEmail}:`, error.message);
+        return false;
+    }
 };
 
 exports.getAllClients = async () => {
@@ -252,7 +257,7 @@ exports.getAllClients = async () => {
             httpsAgent: agent
         });
 
-        if (!inboundsData?.success) return [];
+        if (!inboundsData?.success) return new Set();
 
         const allClients = new Set();
         for (const inbound of inboundsData.obj) {
@@ -303,7 +308,7 @@ exports.generateV2rayConfigLink = (linkTemplate, client) => {
     const remark = encodeURIComponent(client.email);
     
     if (!linkTemplate.includes("{uuid}") || !linkTemplate.includes("{remark}")) {
-        console.error(`VLESS template is invalid. It must contain {uuid} and {remark} placeholders.`);
+        // console.error(`VLESS template is invalid...`); // Optional logging
         return null;
     }
     
