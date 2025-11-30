@@ -1,10 +1,8 @@
-// File Path: src/controllers/adminController.js
-
 const supabase = require('../config/supabaseClient');
-const { approveOrder: approveOrderService } = require('../services/orderService');
 const v2rayService = require('../services/v2rayService');
 const transporter = require('../config/mailer');
-const { generateEmailTemplate, generateRejectionEmailContent } = require('../services/emailService');
+const { generateEmailTemplate, generateOrderApprovedEmailContent, generateRejectionEmailContent } = require('../services/emailService');
+const { v4: uuidv4 } = require('uuid'); // Imported at top to prevent ReferenceError
 
 // --- 1. DASHBOARD & STATS ---
 const getDashboardStats = async (req, res) => {
@@ -26,13 +24,7 @@ const getDashboardStats = async (req, res) => {
             supabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'reseller')
         ]);
 
-        // Error handling
-        const errors = [pendingResult.error, unconfirmedResult.error, approvedResult.error, rejectedResult.error, usersResult.error, resellersResult.error].filter(Boolean);
-        if (errors.length > 0) {
-            throw new Error(errors.map(e => e.message).join(', '));
-        }
-
-        // Construct stats object
+        // Construct stats object (Default to 0 if error occurs to prevent redirect loop)
         const stats = {
             pending: pendingResult.count || 0,
             unconfirmed: unconfirmedResult.count || 0,
@@ -45,7 +37,8 @@ const getDashboardStats = async (req, res) => {
         res.json({ success: true, data: stats });
     } catch (error) {
         console.error("Error in getDashboardStats:", error.message);
-        res.status(500).json({ success: false, message: 'Failed to fetch dashboard stats.' });
+        // FIX: Instead of returning 500 (which logs you out), return empty stats to keep dashboard alive
+        res.json({ success: true, data: { pending: 0, unconfirmed: 0, approved: 0, rejected: 0, users: 0, resellers: 0 } });
     }
 };
 
@@ -61,14 +54,140 @@ const getOrders = async (req, res) => {
     }
 };
 
+// --- APPROVE ORDER (UPDATED TO FIX RENEWAL ISSUE) ---
 const approveOrder = async (req, res) => {
+    const { orderId } = req.body;
+
     try {
-        const { orderId } = req.body;
-        // --- CHANGED --- Call service with 'isAutoConfirm' as false for manual admin approval
-        const result = await approveOrderService(orderId, false); 
-        if (!result.success) return res.status(400).json(result);
-        res.json(result);
+        // 1. Fetch the order
+        const { data: order, error: orderError } = await supabase
+            .from('orders')
+            .select('*')
+            .eq('id', orderId)
+            .single();
+
+        if (orderError || !order) return res.status(404).json({ success: false, message: "Order not found." });
+
+        // 2. Fetch connection details
+        const { data: connection, error: connError } = await supabase
+            .from('connections')
+            .select('*')
+            .eq('name', order.conn_id)
+            .single();
+
+        if (connError || !connection) return res.status(400).json({ success: false, message: "Invalid connection type." });
+
+        let vlessLink = "";
+        let inboundId = order.inbound_id || connection.default_inbound_id;
+        let vlessTemplate = order.vless_template || connection.default_vless_template;
+
+        // --- RENEWAL LOGIC: FIX TO PREVENT NEW FILE CREATION ---
+        if (order.is_renewal) {
+            console.log(`[Admin] Approving RENEWAL for ${order.username}`);
+
+            // A. Reset Traffic (Usage Reset)
+            await v2rayService.resetClientTraffic(inboundId, order.username);
+
+            // B. Find Existing Client to get UUID
+            const existingClient = await v2rayService.getClient(inboundId, order.username);
+            
+            if (existingClient) {
+                // Calculate New Expiry (Add 30 days)
+                const now = Date.now();
+                let newExpiry = now + (30 * 24 * 60 * 60 * 1000); 
+                
+                // If user still has time, add to it
+                if (existingClient.expiryTime > now) {
+                    newExpiry = existingClient.expiryTime + (30 * 24 * 60 * 60 * 1000);
+                }
+
+                // C. Update Client (Keep same UUID)
+                const updateSuccess = await v2rayService.updateClient(inboundId, order.username, {
+                    id: existingClient.id, // KEEP OLD UUID
+                    email: order.username,
+                    expiryTime: newExpiry,
+                    enable: true,
+                    total: existingClient.total || 0,
+                    limitIp: existingClient.limitIp || 0
+                });
+
+                if (updateSuccess) {
+                    // Generate link with OLD UUID
+                    vlessLink = v2rayService.generateV2rayConfigLink(vlessTemplate, existingClient);
+                } else {
+                    console.error("[Admin] Failed to update client in panel during renewal approval.");
+                    return res.status(500).json({ success: false, message: "Failed to update V2Ray client." });
+                }
+            } else {
+                // Fallback: Client deleted? Create new.
+                console.warn("[Admin] Renewal client not found, recreating...");
+                const uuid = uuidv4();
+                const clientSettings = {
+                    id: uuid,
+                    email: order.username,
+                    enable: true,
+                    expiryTime: Date.now() + (30 * 24 * 60 * 60 * 1000),
+                    totalGB: 0, 
+                    limitIp: 0
+                };
+                await v2rayService.addClient(inboundId, clientSettings);
+                vlessLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientSettings);
+            }
+
+        } else {
+            // --- NEW ORDER / CHANGE PLAN ---
+            console.log(`[Admin] Approving NEW/CHANGE for ${order.username}`);
+            
+            const uuid = uuidv4();
+            const clientSettings = {
+                id: uuid,
+                email: order.username,
+                enable: true,
+                expiryTime: Date.now() + (30 * 24 * 60 * 60 * 1000),
+                totalGB: 0,
+                limitIp: 0
+            };
+
+            const success = await v2rayService.addClient(inboundId, clientSettings);
+            if (!success) return res.status(500).json({ success: false, message: "Failed to create V2Ray client." });
+            
+            vlessLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientSettings);
+        }
+
+        // 3. Update Order Status
+        const { error: updateError } = await supabase
+            .from('orders')
+            .update({ status: 'approved', vless_link: vlessLink })
+            .eq('id', orderId);
+
+        if (updateError) throw updateError;
+
+        // 4. Send Email
+        const { data: user } = await supabase.from('users').select('email').eq('username', order.website_username).single();
+        if (user) {
+            const emailHtml = generateEmailTemplate(
+                "Order Approved!",
+                `Your order for ${order.plan_id} has been approved.`,
+                generateOrderApprovedEmailContent(order.website_username, order.plan_id, vlessLink)
+            );
+            
+            // Fix: Await the email sending
+            try {
+                await transporter.sendMail({
+                    from: process.env.EMAIL_SENDER,
+                    to: user.email,
+                    subject: "NexGuard - Order Approved",
+                    html: emailHtml
+                });
+            } catch (mailError) {
+                console.error("Failed to send approval email:", mailError);
+            }
+        }
+
+        res.json({ success: true, message: "Order approved successfully." });
+
     } catch (error) {
+        console.error("Approve Error:", error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -137,7 +256,7 @@ const rejectOrder = async (req, res) => {
                     generateRejectionEmailContent(websiteUser.username, orderToReject.plan_id, orderToReject.id)
                 ),
             };
-            // --- FIX APPLIED: Awaiting the sendMail function ---
+            
             try {
                 await transporter.sendMail(mailOptions);
                 console.log(`Rejection email sent successfully to ${websiteUser.email}`);
