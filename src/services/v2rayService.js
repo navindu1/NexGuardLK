@@ -2,6 +2,13 @@
 
 const axios = require("axios");
 const { v4: uuidv4 } = require("uuid");
+const https = require('https'); // 1. HTTPS library එක import කරගන්න
+
+// --- SSL Certificate Validation Bypass (වැදගත්ම කොටස) ---
+// Panel එකේ SSL අවුලක් තිබුනත් වැඩ කරන්න මේක දාන්න ඕනේ.
+const agent = new https.Agent({  
+  rejectUnauthorized: false
+});
 
 // --- Environment Variables ---
 const PANEL_URL = process.env.PANEL_URL;
@@ -16,13 +23,12 @@ const DEL_CLIENT_BY_UUID_URL = (inboundId, uuid) => `${PANEL_URL}/panel/api/inbo
 const UPDATE_CLIENT_URL = (uuid) => `${PANEL_URL}/panel/api/inbounds/updateClient/${uuid}`;
 const RESET_TRAFFIC_URL = (inboundId, email) => `${PANEL_URL}/panel/api/inbounds/${inboundId}/resetClientTraffic/${email}`;
 
-
 // --- Session Management Object ---
 const panelSession = {
     cookie: null,
     lastLogin: 0,
     isValid: function() {
-        return this.cookie && (Date.now() - this.lastLogin < 3600000); // 1 hour validity
+        return this.cookie && (Date.now() - this.lastLogin < 3600000);
     }
 };
 
@@ -30,12 +36,13 @@ const panelSession = {
  * Logs into the panel and updates the session object.
  */
 async function loginAndGetCookie() {
-    console.log(`\n[Panel Login] Attempting to login to panel...`);
+    console.log(`\n[Panel Login] Attempting to login to panel... URL: ${LOGIN_URL}`);
     try {
         const response = await axios.post(
             LOGIN_URL,
             { username: ADMIN_USERNAME, password: ADMIN_PASSWORD },
             {
+                httpsAgent: agent, // HTTPS Agent එක මෙතනට දැම්මා
                 maxRedirects: 0,
                 validateStatus: (status) => status >= 200 && status < 500,
             }
@@ -78,10 +85,13 @@ exports.findV2rayClient = async (username) => {
     if (typeof username !== "string" || !username) {
         return null;
     }
-    const cookie = await getPanelCookie();
+    
     try {
+        const cookie = await getPanelCookie(); // Cookie එක try block එක ඇතුලට ගත්තා
+        
         const { data: inboundsData } = await axios.get(INBOUNDS_LIST_URL, {
             headers: { Cookie: cookie },
+            httpsAgent: agent // HTTPS Agent එක මෙතනටත්
         });
 
         if (!inboundsData?.success) return null;
@@ -95,7 +105,10 @@ exports.findV2rayClient = async (username) => {
                 let clientTraffics = {};
                 try {
                     const TRAFFIC_URL = `${PANEL_URL}/panel/api/inbounds/getClientTraffics/${foundClient.email}`;
-                    const { data: trafficData } = await axios.get(TRAFFIC_URL, { headers: { Cookie: cookie } });
+                    const { data: trafficData } = await axios.get(TRAFFIC_URL, { 
+                        headers: { Cookie: cookie },
+                        httpsAgent: agent // HTTPS Agent එක මෙතනටත්
+                    });
                     if (trafficData?.success && trafficData.obj) {
                         clientTraffics = trafficData.obj;
                     }
@@ -116,35 +129,34 @@ exports.findV2rayClient = async (username) => {
         if (error.response?.status === 401 || error.response?.status === 403) {
             console.log("[V2Ray Service] Session expired, attempting to re-authenticate and retry...");
             panelSession.cookie = null;
-            return this.findV2rayClient(username);
+            // Retry once logic could be added here, but keep simple for now to avoid infinite loops
         }
         console.error(`Error in findV2rayClient for ${username}:`, error.message);
         throw error;
     }
 };
 
-/**
- * Adds a new client to a specified inbound.
- */
 exports.addClient = async (inboundId, clientSettings) => {
     const cookie = await getPanelCookie();
     const payload = {
         id: parseInt(inboundId),
         settings: JSON.stringify({ clients: [clientSettings] })
     };
-    // Inside v2rayService.addClient, before axios.post
-console.log('[DEBUG V2Ray Payload] Sending payload:', JSON.stringify(payload, null, 2)); // <--- මේ line එක එකතු කරන්න
-const { data } = await axios.post(ADD_CLIENT_URL, payload, { headers: { Cookie: cookie } });
+    console.log('[DEBUG V2Ray Payload] Sending payload:', JSON.stringify(payload, null, 2));
+    const { data } = await axios.post(ADD_CLIENT_URL, payload, { 
+        headers: { Cookie: cookie },
+        httpsAgent: agent 
+    });
     return data;
 };
 
-/**
- * Deletes a client from a specified inbound using their UUID.
- */
 exports.deleteClient = async (inboundId, clientUuid) => {
     const cookie = await getPanelCookie();
     const url = DEL_CLIENT_BY_UUID_URL(inboundId, clientUuid);
-    const { data } = await axios.post(url, {}, { headers: { Cookie: cookie } });
+    const { data } = await axios.post(url, {}, { 
+        headers: { Cookie: cookie },
+        httpsAgent: agent 
+    });
     return data;
 };
 
@@ -155,27 +167,34 @@ exports.updateClient = async (inboundId, clientUuid, clientSettings) => {
         settings: JSON.stringify({ clients: [clientSettings] })
     };
     const url = UPDATE_CLIENT_URL(clientUuid);
-    const { data } = await axios.post(url, payload, { headers: { Cookie: cookie } });
+    const { data } = await axios.post(url, payload, { 
+        headers: { Cookie: cookie },
+        httpsAgent: agent 
+    });
     return data;
 };
 
 exports.resetClientTraffic = async (inboundId, clientEmail) => {
     const cookie = await getPanelCookie();
     const url = RESET_TRAFFIC_URL(inboundId, clientEmail);
-    const { data } = await axios.post(url, {}, { headers: { Cookie: cookie }});
+    const { data } = await axios.post(url, {}, { 
+        headers: { Cookie: cookie },
+        httpsAgent: agent 
+    });
     return data;
 };
-// Add this new function for performance optimization
+
 exports.getAllClients = async () => {
     try {
         const cookie = await getPanelCookie();
         const { data: inboundsData } = await axios.get(INBOUNDS_LIST_URL, {
             headers: { Cookie: cookie },
+            httpsAgent: agent
         });
 
         if (!inboundsData?.success) return [];
 
-        const allClients = new Set(); // Use a Set for faster lookups
+        const allClients = new Set();
         for (const inbound of inboundsData.obj) {
             const clients = (inbound.settings && JSON.parse(inbound.settings).clients) || [];
             for (const client of clients) {
@@ -187,20 +206,16 @@ exports.getAllClients = async () => {
         return allClients;
     } catch (error) {
          console.error(`Error in getAllClients:`, error.message);
-         // In case of error, return an empty set to avoid breaking the caller function
          return new Set();
     }
 };
 
-/**
- * NEW FUNCTION: Fetches all clients and their full details from all inbounds.
- * Returns a Map for efficient lookups where: key = lowercase email, value = client object.
- */
 exports.getAllClientDetails = async () => {
     try {
         const cookie = await getPanelCookie();
         const { data: inboundsData } = await axios.get(INBOUNDS_LIST_URL, {
             headers: { Cookie: cookie },
+            httpsAgent: agent
         });
 
         if (!inboundsData?.success) return new Map();
@@ -217,7 +232,6 @@ exports.getAllClientDetails = async () => {
         return allClientsMap;
     } catch (error) {
          console.error(`Error in getAllClientDetails:`, error.message);
-         // In case of error, return an empty Map to avoid breaking the caller function
          return new Map();
     }
 };
