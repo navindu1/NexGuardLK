@@ -4,7 +4,7 @@ const adminController = require('../controllers/adminController');
 const { authenticateToken, authenticateAdmin } = require('../middleware/authMiddleware');
 
 // Middleware to protect all admin routes
-router.use(authenticateAdmin);
+router.use(authenticateToken, authenticateAdmin);
 
 // Dashboard
 router.get('/stats', adminController.getDashboardStats);
