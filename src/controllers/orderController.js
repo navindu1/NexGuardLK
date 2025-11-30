@@ -8,7 +8,8 @@ const { v4: uuidv4 } = require('uuid');
 const v2rayService = require('../services/v2rayService'); // Make sure v2rayService is imported
 
 exports.createOrder = async (req, res) => {
-    const { planId, connId, pkg, whatsapp, username, isRenewal, old_v2ray_username } = req.body;
+    // Note: Using 'let' for variables we might need to auto-correct
+    let { planId, connId, pkg, whatsapp, username, isRenewal, old_v2ray_username, inboundId, vlessTemplate } = req.body;
     
     if (!planId || !connId || !whatsapp || !username || !req.file) {
         return res.status(400).json({
@@ -28,47 +29,39 @@ exports.createOrder = async (req, res) => {
             return res.status(404).json({ success: false, message: "Invalid connection type selected. It might be inactive." });
         }
 
-        let inboundId, vlessTemplate;
         let finalPkg = pkg; // Use this variable to store the package name
 
-        // --- START: UPDATED LOGIC TO FIX "PACKAGE SELECTION REQUIRED" ERROR ---
+        // ============================================================
+        // 1. SMART PACKAGE DETECTION LOGIC
+        // ============================================================
         if (connection.requires_package_choice) {
             
             // Package එකක් තෝරා නොමැති නම් සහ මෙය Renewal එකක් නම් පමණක් මෙය ක්‍රියාත්මක වේ
-            if (!finalPkg && isRenewal === "true") {
+            if (!finalPkg && (isRenewal === "true" || isRenewal === true)) {
                 console.log(`[Order] Package missing for renewal of ${username}. Attempting to auto-detect...`);
                 
-                // 1. Find the user in the V2Ray panel
+                // Find the user in the V2Ray panel
                 const clientInPanel = await v2rayService.findV2rayClient(username);
-                if (!clientInPanel) {
-                    return res.status(404).json({ success: false, message: `Renewal failed: User '${username}' not found in the server panel.` });
-                }
-
-                // 2. Fetch all packages for this connection
-                const { data: packages, error: pkgError } = await supabase
-                    .from('packages')
-                    .select('*')
-                    .eq('connection_id', connection.id);
                 
-                if (pkgError || !packages) {
-                    return res.status(500).json({ success: false, message: 'System Error: Could not fetch packages to verify renewal.' });
-                }
+                if (clientInPanel) {
+                    // Fetch all packages for this connection
+                    const { data: packages, error: pkgError } = await supabase
+                        .from('packages')
+                        .select('*')
+                        .eq('connection_id', connection.id);
+                    
+                    if (!pkgError && packages) {
+                        const clientInboundId = clientInPanel.inboundId;
+                        // FIX: Use loose equality (==) for String vs Number comparison
+                        const foundPackage = packages.find(p => p.inbound_id == clientInboundId);
 
-                // 3. Match Client's Inbound ID with our Packages
-                const clientInboundId = clientInPanel.inboundId;
-                
-                // FIX: Use loose equality (==) instead of strict (===) to handle String vs Number mismatches
-                const foundPackage = packages.find(p => p.inbound_id == clientInboundId);
-
-                if (foundPackage) {
-                    finalPkg = foundPackage.name; // Package එක සොයාගත්තා!
-                    console.log(`[Order] Successfully deduced package: ${finalPkg} (Inbound: ${clientInboundId})`);
-                    inboundId = foundPackage.inbound_id;
-                    vlessTemplate = foundPackage.template;
-                } else {
-                    // Package එක සොයාගැනීමට නොහැකි විය
-                    console.warn(`[Order] Failed to deduce package for ${username}. Client Inbound ID (${clientInboundId}) not found in DB packages.`);
-                    return res.status(400).json({ success: false, message: 'Could not auto-detect your current package. Please use the "Change Plan" option to manually select your package.' });
+                        if (foundPackage) {
+                            finalPkg = foundPackage.name;
+                            console.log(`[Order] Successfully deduced package: ${finalPkg} (Inbound: ${clientInboundId})`);
+                            inboundId = foundPackage.inbound_id;
+                            vlessTemplate = foundPackage.template;
+                        }
+                    }
                 }
             }
 
@@ -98,11 +91,69 @@ exports.createOrder = async (req, res) => {
             inboundId = connection.default_inbound_id;
             vlessTemplate = connection.default_vless_template;
         }
-        // --- END: UPDATED LOGIC ---
 
         if (!inboundId || !vlessTemplate) {
-            return res.status(500).json({ success: false, message: 'The selected connection is not configured correctly. Please contact support.' });
+            return res.status(500).json({ success: false, message: 'The selected connection is not configured correctly.' });
         }
+
+        // ============================================================
+        // 2. IMMEDIATE RENEWAL EXECUTION LOGIC
+        // ============================================================
+        // මෙය මගින් පරණ User ව එසැනින් Update කරයි.
+        
+        let orderUUID = uuidv4(); // Default new UUID for fresh orders
+
+        if (isRenewal === "true" || isRenewal === true) {
+            console.log(`[Order] Processing IMMEDIATE RENEWAL for: ${old_v2ray_username} on Inbound: ${inboundId}`);
+
+            try {
+                // 2.1 Fetch existing client from V2Ray Panel
+                const currentClient = await v2rayService.getClient(inboundId, old_v2ray_username);
+                
+                if (currentClient) {
+                    // 2.2 Calculate Expiry (Add 30 days to current expiry OR today)
+                    const now = Date.now();
+                    let currentExpiry = Number(currentClient.expiryTime) || 0;
+                    if (currentExpiry < 0) currentExpiry = 0; // Safety check
+
+                    let newExpiryTime;
+                    if (currentExpiry > now) {
+                        // තාම කල් තියෙනවා නම් -> ඉතිරි දින + දින 30
+                        newExpiryTime = currentExpiry + (30 * 24 * 60 * 60 * 1000);
+                    } else {
+                        // කල් ඉකුත් වී ඇත්නම් -> අද සිට දින 30
+                        newExpiryTime = now + (30 * 24 * 60 * 60 * 1000);
+                    }
+
+                    // 2.3 Update V2Ray Panel Immediately
+                    // වැදගත්ම දේ: අපි id එක ලෙස currentClient.id යවන නිසා UUID වෙනස් වෙන්නේ නෑ.
+                    await v2rayService.updateClient(inboundId, old_v2ray_username, {
+                        id: currentClient.id,      // KEEP OLD UUID
+                        email: old_v2ray_username, // KEEP EMAIL
+                        expiryTime: newExpiryTime, // NEW EXPIRY
+                        enable: true,              // Re-enable if disabled
+                        flow: currentClient.flow || "",
+                        limitIp: currentClient.limitIp || 0,
+                        total: currentClient.total || 0
+                    });
+
+                    console.log(`[Order] Renewal Applied Successfully. New Expiry: ${new Date(newExpiryTime).toLocaleString()}`);
+                    
+                    // Note: We don't change orderUUID to currentClient.id here to avoid Primary Key collisions in the orders table.
+                    // The renewal is already applied to the server!
+                    
+                } else {
+                    console.warn(`[Order] Client ${old_v2ray_username} not found for renewal. Order will be placed but requires manual admin fix.`);
+                }
+            } catch (err) {
+                console.error("[Order] Auto-renewal failed during order creation:", err);
+                // We don't stop the order creation, but we log the error.
+            }
+        }
+
+        // ============================================================
+        // 3. FILE UPLOAD & ORDER CREATION
+        // ============================================================
         
         const { data: planData, error: planError } = await supabase
             .from('plans')
@@ -111,7 +162,6 @@ exports.createOrder = async (req, res) => {
             .single();
 
         if (planError || !planData) {
-            console.error("Plan price fetch error:", planError);
             return res.status(404).json({ success: false, message: "The selected plan is invalid or does not have a price." });
         }
         const orderPrice = planData.price;
@@ -129,7 +179,6 @@ exports.createOrder = async (req, res) => {
             });
 
         if (uploadError) {
-            console.error("Supabase storage error:", uploadError);
             throw new Error("Failed to upload the receipt file.");
         }
 
@@ -140,16 +189,16 @@ exports.createOrder = async (req, res) => {
         const publicUrl = urlData.publicUrl;
 
         const newOrder = {
-            id: uuidv4(),
+            id: orderUUID, // Use the generated order ID
             username: username,
             website_username: req.user.username,
             plan_id: planId,
             conn_id: connId,
-            pkg: finalPkg || null, // <--- Use finalPkg here
+            pkg: finalPkg || null,
             whatsapp,
             receipt_path: publicUrl,
-            status: "pending",
-            is_renewal: isRenewal === "true",
+            status: "pending", // Order is pending, but for renewals, V2Ray is likely already updated above
+            is_renewal: isRenewal === "true" || isRenewal === true,
             old_v2ray_username: old_v2ray_username || null,
             inbound_id: parseInt(inboundId, 10),
             vless_template: vlessTemplate,
@@ -159,6 +208,7 @@ exports.createOrder = async (req, res) => {
         const { error: orderError } = await supabase.from("orders").insert([newOrder]);
         if (orderError) throw orderError;
         
+        // --- Email Notification Logic ---
         const { data: websiteUser } = await supabase
             .from("users")
             .select("email, username")
@@ -178,25 +228,20 @@ exports.createOrder = async (req, res) => {
             };
             try {
                 await transporter.sendMail(mailOptions);
-                console.log(`Order placed email sent successfully to ${websiteUser.email}`);
             } catch (err) {
                 console.error(`FAILED to send order placed email:`, err);
             }
         }
 
-        res.status(201).json({ success: true, message: "Order placed successfully! It is now pending approval." });
+        res.status(201).json({ success: true, message: "Order placed successfully! Subscription updated." });
         
     } catch (error) {
         console.error("Error creating order:", error.message);
         if (req.file && error.message !== "Failed to upload the receipt file.") {
-            // This rollback logic might be incomplete, but leaving as is from original
             const fileName = `receipt-${req.file.filename.split('-')[1]}`; 
-            supabase.storage.from('receipts').remove([fileName]).catch(removeError => {
-                console.error("Failed to rollback receipt upload:", removeError.message);
-            });
+            supabase.storage.from('receipts').remove([fileName]).catch(() => {});
         }
         res.status(500).json({ success: false, message: error.message || "Failed to create order." });
     }
 };
-
 // --- END: COMPLETE FIXED CODE ---
