@@ -1,18 +1,19 @@
+// File Path: src/services/v2rayService.js
+
 const axios = require("axios");
 const { v4: uuidv4 } = require("uuid");
-const https = require('https'); 
+const https = require('https'); // 1. HTTPS library එක import කරගන්න
 
-// --- SSL Certificate Validation Bypass ---
+// --- SSL Certificate Validation Bypass (වැදගත්ම කොටස) ---
 // Panel එකේ SSL අවුලක් තිබුනත් වැඩ කරන්න මේක දාන්න ඕනේ.
 const agent = new https.Agent({  
   rejectUnauthorized: false
 });
 
 // --- Environment Variables ---
-// (Fallback to V2RAY_ prefix if PANEL_URL is not set, just in case)
-const PANEL_URL = process.env.PANEL_URL || process.env.V2RAY_PANEL_URL;
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || process.env.V2RAY_USERNAME;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || process.env.V2RAY_PASSWORD;
+const PANEL_URL = process.env.PANEL_URL;
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 // --- API Endpoint URLs ---
 const LOGIN_URL = `${PANEL_URL}/login`;
@@ -21,7 +22,6 @@ const INBOUNDS_LIST_URL = `${PANEL_URL}/panel/api/inbounds/list`;
 const DEL_CLIENT_BY_UUID_URL = (inboundId, uuid) => `${PANEL_URL}/panel/api/inbounds/${inboundId}/delClient/${uuid}`;
 const UPDATE_CLIENT_URL = (uuid) => `${PANEL_URL}/panel/api/inbounds/updateClient/${uuid}`;
 const RESET_TRAFFIC_URL = (inboundId, email) => `${PANEL_URL}/panel/api/inbounds/${inboundId}/resetClientTraffic/${email}`;
-const GET_INBOUND_URL = (inboundId) => `${PANEL_URL}/panel/api/inbounds/get/${inboundId}`;
 
 // --- Session Management Object ---
 const panelSession = {
@@ -42,7 +42,7 @@ async function loginAndGetCookie() {
             LOGIN_URL,
             { username: ADMIN_USERNAME, password: ADMIN_PASSWORD },
             {
-                httpsAgent: agent, 
+                httpsAgent: agent, // HTTPS Agent එක මෙතනට දැම්මා
                 maxRedirects: 0,
                 validateStatus: (status) => status >= 200 && status < 500,
             }
@@ -87,11 +87,11 @@ exports.findV2rayClient = async (username) => {
     }
     
     try {
-        const cookie = await getPanelCookie(); 
+        const cookie = await getPanelCookie(); // Cookie එක try block එක ඇතුලට ගත්තා
         
         const { data: inboundsData } = await axios.get(INBOUNDS_LIST_URL, {
             headers: { Cookie: cookie },
-            httpsAgent: agent 
+            httpsAgent: agent // HTTPS Agent එක මෙතනටත්
         });
 
         if (!inboundsData?.success) return null;
@@ -107,7 +107,7 @@ exports.findV2rayClient = async (username) => {
                     const TRAFFIC_URL = `${PANEL_URL}/panel/api/inbounds/getClientTraffics/${foundClient.email}`;
                     const { data: trafficData } = await axios.get(TRAFFIC_URL, { 
                         headers: { Cookie: cookie },
-                        httpsAgent: agent 
+                        httpsAgent: agent // HTTPS Agent එක මෙතනටත්
                     });
                     if (trafficData?.success && trafficData.obj) {
                         clientTraffics = trafficData.obj;
@@ -129,47 +129,15 @@ exports.findV2rayClient = async (username) => {
         if (error.response?.status === 401 || error.response?.status === 403) {
             console.log("[V2Ray Service] Session expired, attempting to re-authenticate and retry...");
             panelSession.cookie = null;
+            // Retry once logic could be added here, but keep simple for now to avoid infinite loops
         }
         console.error(`Error in findV2rayClient for ${username}:`, error.message);
         throw error;
     }
 };
 
-/**
- * Get a specific client by Inbound ID and Email.
- * (This is REQUIRED for the Renewal Logic in orderController)
- */
-exports.getClient = async (inboundId, email) => {
-    try {
-        const cookie = await getPanelCookie();
-        const url = GET_INBOUND_URL(inboundId);
-
-        const { data } = await axios.get(url, { 
-            headers: { Cookie: cookie },
-            httpsAgent: agent 
-        });
-
-        if (data && data.success) {
-            const inbound = data.obj;
-            const settings = JSON.parse(inbound.settings);
-            
-            if (settings.clients) {
-                const client = settings.clients.find(c => c.email === email);
-                if (client) {
-                    return client;
-                }
-            }
-        }
-        return null;
-    } catch (error) {
-        console.error(`Error in getClient (Inbound: ${inboundId}, Email: ${email}):`, error.message);
-        return null;
-    }
-};
-
 exports.addClient = async (inboundId, clientSettings) => {
     const cookie = await getPanelCookie();
-    // Ensure clientSettings has the correct structure for your panel
     const payload = {
         id: parseInt(inboundId),
         settings: JSON.stringify({ clients: [clientSettings] })
@@ -179,7 +147,7 @@ exports.addClient = async (inboundId, clientSettings) => {
         headers: { Cookie: cookie },
         httpsAgent: agent 
     });
-    return data && data.success;
+    return data;
 };
 
 exports.deleteClient = async (inboundId, clientUuid) => {
@@ -189,85 +157,31 @@ exports.deleteClient = async (inboundId, clientUuid) => {
         headers: { Cookie: cookie },
         httpsAgent: agent 
     });
-    return data && data.success;
+    return data;
 };
 
-exports.updateClient = async (inboundId, email, data) => {
-    // Note: The 'data' parameter here comes from orderController.
-    // It contains the updated client object (including new expiry).
+exports.updateClient = async (inboundId, clientUuid, clientSettings) => {
     const cookie = await getPanelCookie();
-    
-    // We construct a client object that matches what the panel expects inside 'settings'
-    const clientSettings = {
-        id: data.id,           
-        email: data.email,     
-        enable: data.enable,
-        expiryTime: data.expiryTime,
-        flow: data.flow || "",
-        limitIp: data.limitIp || 0,
-        totalGB: data.total || 0
+    const payload = {
+        id: parseInt(inboundId),
+        settings: JSON.stringify({ clients: [clientSettings] })
     };
-
-    // Attempt to update via the direct client update endpoint (preferred for X-UI)
-    try {
-        const url = UPDATE_CLIENT_URL(data.id); // Using UUID to update
-        
-        // Some panels require the full settings object structure
-        const payload = {
-            id: parseInt(inboundId),
-            settings: JSON.stringify({ clients: [clientSettings] })
-        };
-
-        const { data: responseData } = await axios.post(url, payload, { 
-            headers: { Cookie: cookie },
-            httpsAgent: agent 
-        });
-        
-        if (responseData && responseData.success) return true;
-        
-    } catch (error) {
-        console.warn(`Direct client update failed for ${email}, checking error: ${error.message}`);
-    }
-    
-    return false;
+    const url = UPDATE_CLIENT_URL(clientUuid);
+    const { data } = await axios.post(url, payload, { 
+        headers: { Cookie: cookie },
+        httpsAgent: agent 
+    });
+    return data;
 };
 
-// --- FIX: Reset Client Traffic Function ---
 exports.resetClientTraffic = async (inboundId, clientEmail) => {
     const cookie = await getPanelCookie();
     const url = RESET_TRAFFIC_URL(inboundId, clientEmail);
-    try {
-        const { data } = await axios.post(url, {}, { 
-            headers: { Cookie: cookie },
-            httpsAgent: agent 
-        });
-        console.log(`[V2Ray] Reset traffic for ${clientEmail}: ${data.success}`);
-        return data && data.success;
-    } catch (error) {
-        console.error(`Error resetting traffic for ${clientEmail}:`, error.message);
-        return false;
-    }
-};
-
-// --- FIX: THIS FUNCTION WAS MISSING AND CAUSED THE ADMIN REDIRECT LOOP ---
-exports.getInboundsWithClients = async () => {
-    try {
-        const cookie = await getPanelCookie();
-        const { data: inboundsData } = await axios.get(INBOUNDS_LIST_URL, {
-            headers: { Cookie: cookie },
-            httpsAgent: agent 
-        });
-
-        if (inboundsData && inboundsData.success) {
-            return inboundsData.obj;
-        } else {
-            return [];
-        }
-    } catch (error) {
-        console.error("Error fetching inbounds with clients:", error.message);
-        // Do NOT throw error here to avoid 500 on admin panel
-        return []; 
-    }
+    const { data } = await axios.post(url, {}, { 
+        headers: { Cookie: cookie },
+        httpsAgent: agent 
+    });
+    return data;
 };
 
 exports.getAllClients = async () => {
@@ -278,7 +192,7 @@ exports.getAllClients = async () => {
             httpsAgent: agent
         });
 
-        if (!inboundsData?.success) return new Set();
+        if (!inboundsData?.success) return [];
 
         const allClients = new Set();
         for (const inbound of inboundsData.obj) {
@@ -329,7 +243,7 @@ exports.generateV2rayConfigLink = (linkTemplate, client) => {
     const remark = encodeURIComponent(client.email);
     
     if (!linkTemplate.includes("{uuid}") || !linkTemplate.includes("{remark}")) {
-        // console.error(`VLESS template is invalid...`); // Optional logging
+        console.error(`VLESS template is invalid. It must contain {uuid} and {remark} placeholders.`);
         return null;
     }
     
