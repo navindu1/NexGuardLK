@@ -415,7 +415,7 @@ function showPlanSelectorModal(plansToShow) {
     document.getElementById('buy-new-choice-card')?.addEventListener('click', () => navigateTo('/plans?new=true'));
 }
 
-    function renderRenewOrChangePage(renderFunc, planToManage) {
+function renderRenewOrChangePage(renderFunc, planToManage) {
     const currentPlanName = appData.plans[planToManage.planId]?.name || planToManage.planId;
     const currentPlanPrice = appData.plans[planToManage.planId]?.price || 'N/A';
 
@@ -433,6 +433,7 @@ function showPlanSelectorModal(plansToShow) {
                         <div class="text-sm mt-2 bg-black/20 px-3 py-2 rounded-lg">
                             <p class="font-semibold text-blue-300">${currentPlanName}</p>
                             <p class="text-xs text-gray-400">LKR ${currentPlanPrice}/month</p>
+                            ${planToManage.pkg ? `<p class="text-[10px] text-green-400 mt-1">Pkg: ${planToManage.pkg}</p>` : ''}
                         </div>
                     </div>
                 </div>
@@ -448,7 +449,9 @@ function showPlanSelectorModal(plansToShow) {
         </div>`);
 
     document.getElementById('renew-current-card')?.addEventListener('click', () => {
-        const checkoutUrl = `/checkout?planId=${planToManage.planId}&connId=${encodeURIComponent(planToManage.connId)}&renew=${encodeURIComponent(planToManage.v2rayUsername)}`;
+        // FIX: Package එක තිබේ නම් එය URL එකට එකතු කරන්න
+        const pkgParam = planToManage.pkg ? `&pkg=${encodeURIComponent(planToManage.pkg)}` : '';
+        const checkoutUrl = `/checkout?planId=${planToManage.planId}&connId=${encodeURIComponent(planToManage.connId)}&renew=${encodeURIComponent(planToManage.v2rayUsername)}${pkgParam}`;
         navigateTo(checkoutUrl);
     });
 

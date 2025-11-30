@@ -31,61 +31,54 @@ exports.createOrder = async (req, res) => {
         let inboundId, vlessTemplate;
         let finalPkg = pkg; // Use this variable to store the package name
 
-        // --- START: MODIFIED LOGIC TO HANDLE MISSING PACKAGE ON RENEWAL ---
+        // --- START: UPDATED LOGIC TO FIX "PACKAGE SELECTION REQUIRED" ERROR ---
         if (connection.requires_package_choice) {
             
-            // Check if package is missing BUT it's a renewal
+            // Package එකක් තෝරා නොමැති නම් සහ මෙය Renewal එකක් නම් පමණක් මෙය ක්‍රියාත්මක වේ
             if (!finalPkg && isRenewal === "true") {
-                console.log(`[Order] Package missing for renewal of ${username}. Deducing...`);
+                console.log(`[Order] Package missing for renewal of ${username}. Attempting to auto-detect...`);
                 
-                // Find the user in the V2Ray panel
+                // 1. Find the user in the V2Ray panel
                 const clientInPanel = await v2rayService.findV2rayClient(username);
                 if (!clientInPanel) {
-                    return res.status(404).json({ success: false, message: `Renewal failed: User '${username}' not found in panel.` });
+                    return res.status(404).json({ success: false, message: `Renewal failed: User '${username}' not found in the server panel.` });
                 }
 
-                // Fetch all packages for this connection
+                // 2. Fetch all packages for this connection
                 const { data: packages, error: pkgError } = await supabase
                     .from('packages')
                     .select('*')
                     .eq('connection_id', connection.id);
                 
                 if (pkgError || !packages) {
-                    return res.status(500).json({ success: false, message: 'Could not fetch packages to deduce renewal.' });
+                    return res.status(500).json({ success: false, message: 'System Error: Could not fetch packages to verify renewal.' });
                 }
 
-                // --- ⭐️ START: THIS IS THE CORRECT FIX ⭐️ ---
-                //
-                // We will deduce the package by matching the user's *actual* Inbound ID
-                // from the V2Ray panel with the Inbound ID stored in our packages database.
-                //
+                // 3. Match Client's Inbound ID with our Packages
                 const clientInboundId = clientInPanel.inboundId;
-                const foundPackage = packages.find(p => p.inbound_id === clientInboundId);
                 
-                // --- ⭐️ END: THIS IS THE CORRECT FIX ⭐️ ---
+                // FIX: Use loose equality (==) instead of strict (===) to handle String vs Number mismatches
+                const foundPackage = packages.find(p => p.inbound_id == clientInboundId);
 
                 if (foundPackage) {
-                    finalPkg = foundPackage.name; // We found it!
-                    console.log(`[Order] Deduced package by Inbound ID (${clientInboundId}): ${finalPkg}`);
+                    finalPkg = foundPackage.name; // Package එක සොයාගත්තා!
+                    console.log(`[Order] Successfully deduced package: ${finalPkg} (Inbound: ${clientInboundId})`);
                     inboundId = foundPackage.inbound_id;
                     vlessTemplate = foundPackage.template;
                 } else {
-                    // Could not deduce package, so we must fail
-                    console.warn(`[Order] Could not deduce package for ${username}. No package matched Inbound ID: ${clientInboundId}`);
-                    return res.status(400).json({ success: false, message: 'Could not determine your current package. Please use the "Change Plan" option instead of "Renew" to manually select a package.' });
+                    // Package එක සොයාගැනීමට නොහැකි විය
+                    console.warn(`[Order] Failed to deduce package for ${username}. Client Inbound ID (${clientInboundId}) not found in DB packages.`);
+                    return res.status(400).json({ success: false, message: 'Could not auto-detect your current package. Please use the "Change Plan" option to manually select your package.' });
                 }
             }
 
-            // This block now runs if:
-            // 1. A package was provided (new user OR new renewal flow)
-            // 2. The package was deduced (old renewal flow)
-            // It will fail if it's a new user and no package was provided.
-            if (!inboundId) { // If inboundId wasn't set by the deduction logic...
-                if (!finalPkg) { // Check if package is still missing
+            // තවමත් Package එක සොයාගැනීමට නොහැකි නම් Error එක පෙන්වන්න
+            if (!inboundId) { 
+                if (!finalPkg) { 
                     return res.status(400).json({ success: false, message: 'A package selection is required for this connection type.' });
                 }
                 
-                // Package was provided, so get its details
+                // Package නම තිබේ නම්, එහි විස්තර DB එකෙන් ගන්න
                 const { data: selectedPackage, error: pkgError } = await supabase
                     .from('packages')
                     .select('inbound_id, template')
@@ -94,19 +87,18 @@ exports.createOrder = async (req, res) => {
                     .single();
 
                 if (pkgError || !selectedPackage) {
-                    return res.status(400).json({ success: false, message: 'Invalid package selected for this connection.' });
+                    return res.status(400).json({ success: false, message: 'Invalid package selected.' });
                 }
 
                 inboundId = selectedPackage.inbound_id;
                 vlessTemplate = selectedPackage.template;
             }
         } else {
-            // This is a single-package connection, logic is unchanged
+            // Single Package Connection
             inboundId = connection.default_inbound_id;
             vlessTemplate = connection.default_vless_template;
         }
-        // --- END: MODIFIED LOGIC ---
-
+        // --- END: UPDATED LOGIC ---
 
         if (!inboundId || !vlessTemplate) {
             return res.status(500).json({ success: false, message: 'The selected connection is not configured correctly. Please contact support.' });
