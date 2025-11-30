@@ -1008,48 +1008,68 @@ function renderCheckoutPage(renderFunc, params) {
 
     // File Path: public/js/main.js (~ Line 945, inside the #checkout-form submit listener)
 
+// public/js/main.js ගොනුවේ පහළම ඇති checkout-form submit event එක සොයා මෙය ආදේශ කරන්න:
+
 document.getElementById("checkout-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const params = new URLSearchParams(window.location.search); 
 
-    // --- FIX: Only append fields that are NOT in the HTML form ---
+    // 1. URL එකෙන් අත්‍යවශ්‍ය දත්ත ලබාගෙන Form Data එකට එකතු කිරීම
     
-    // planId සහ connId HTML එකේ නැති නිසා මෙතැනින් එකතු කරයි
-    formData.append("planId", params.get("planId"));
-    formData.append("connId", params.get("connId"));
+    // Plan ID & Connection ID
+    if(params.get("planId")) formData.append("planId", params.get("planId"));
+    if(params.get("connId")) formData.append("connId", params.get("connId"));
 
-    // pkg එක URL එකේ තිබේ නම් එකතු කරයි
+    // Package Name (තිබේ නම්)
     if (params.get("pkg")) {
         formData.append("pkg", params.get("pkg"));
     }
 
-    // inboundId සහ vlessTemplate තිබේ නම් එකතු කරයි
+    // Inbound ID & Template (තිබේ නම්)
     if (params.get("inboundId")) formData.append("inboundId", params.get("inboundId"));
     if (params.get("vlessTemplate")) formData.append("vlessTemplate", params.get("vlessTemplate"));
 
-    // --- IMPORTANT FIX ---
-    // isRenewal සහ old_v2ray_username HTML form එකේ hidden inputs ලෙස දැනටමත් ඇත.
-    // ඒවා නැවත මෙතැනින් append කිරීමෙන් වළකින්න. (එසේ කළහොත් array එකක් ලෙස ගොස් දෝෂ ඇතිවේ).
+    // --- FIX: RENEWAL LOGIC (වැදගත්ම කොටස) ---
+    // URL එකේ 'renew' කියලා param එකක් තියෙනවා නම්, ඒක 'old_v2ray_username' විදිහට යවන්න ඕනේ.
+    const renewUser = params.get("renew");
+    if (renewUser) {
+        formData.append("isRenewal", "true");
+        formData.append("old_v2ray_username", renewUser);
+        
+        // Renew කරනකොට Username එක User Type කරේ නැත්තම්, පරණ නමම යවන්න
+        if (!formData.get("username")) {
+            formData.append("username", renewUser);
+        }
+    }
 
-    // Disable button
+    // Button Disable කිරීම (Double submit වැළැක්වීමට)
     const submitBtn = document.querySelector('#checkout-view button[type="submit"]');
     if(submitBtn) {
         submitBtn.disabled = true;
         submitBtn.textContent = "SUBMITTING...";
     }
 
-    const res = await apiFetch("/api/create-order", {
-        method: "POST",
-        body: formData, 
-    });
+    try {
+        const res = await apiFetch("/api/create-order", {
+            method: "POST",
+            body: formData, 
+        });
 
-    if (res.ok) {
-        document.getElementById("checkout-view").style.display = "none";
-        document.getElementById("success-view").classList.remove("hidden");
-    } else {
-        const result = await res.json();
-        showToast({ title: "Error", message: result.message, type: "error" });
+        if (res.ok) {
+            document.getElementById("checkout-view").style.display = "none";
+            document.getElementById("success-view").classList.remove("hidden");
+        } else {
+            const result = await res.json();
+            showToast({ title: "Error", message: result.message || "Order failed", type: "error" });
+            if(submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = "SUBMIT FOR APPROVAL";
+            }
+        }
+    } catch (error) {
+        console.error("Checkout Error:", error);
+        showToast({ title: "Error", message: "Something went wrong. Please try again.", type: "error" });
         if(submitBtn) {
             submitBtn.disabled = false;
             submitBtn.textContent = "SUBMIT FOR APPROVAL";
