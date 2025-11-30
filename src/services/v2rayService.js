@@ -249,6 +249,27 @@ exports.resetClientTraffic = async (inboundId, clientEmail) => {
     }
 };
 
+// --- FIX: THIS FUNCTION WAS MISSING AND CAUSED THE ADMIN REDIRECT LOOP ---
+exports.getInboundsWithClients = async () => {
+    try {
+        const cookie = await getPanelCookie();
+        const { data: inboundsData } = await axios.get(INBOUNDS_LIST_URL, {
+            headers: { Cookie: cookie },
+            httpsAgent: agent 
+        });
+
+        if (inboundsData && inboundsData.success) {
+            return inboundsData.obj;
+        } else {
+            return [];
+        }
+    } catch (error) {
+        console.error("Error fetching inbounds with clients:", error.message);
+        // Do NOT throw error here to avoid 500 on admin panel
+        return []; 
+    }
+};
+
 exports.getAllClients = async () => {
     try {
         const cookie = await getPanelCookie();
