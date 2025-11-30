@@ -330,33 +330,59 @@ document.addEventListener("DOMContentLoaded", () => {
         toast.querySelector(".toast-close-btn").addEventListener("click", removeToast);
     }
 
-    function showPlanSelectorModal(activePlans) {
-        return new Promise((resolve) => {
-            const modalId = `plan-selector-modal-${Date.now()}`;
-            const options = activePlans.map((p, index) => `<option value="${index}">${p.v2rayUsername}</option>`).join('');
-            const modalHtml = `
-                <div id="${modalId}" class="fixed inset-0 bg-black/80 justify-center items-center z-[101] flex p-4" style="display: flex;">
-                    <div class="card-glass p-6 rounded-lg max-w-sm w-full text-center reveal is-visible relative">
-                        <button id="${modalId}-close" class="absolute top-3 right-4 text-gray-400 hover:text-white text-3xl">&times;</button>
-                        <h3 class="text-xl font-bold text-white font-['Orbitron'] mb-3">Select a Plan to Manage</h3>
-                        <div class="mb-8"><select id="multi-plan-selector" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">${options}</select></div>
-                        <div class="flex items-center justify-center gap-3"><button id="${modalId}-opt1" class="ai-button rounded-lg">Continue</button></div>
+    // public/js/main.js ගොනුවේ showPlanSelectorModal ශ්‍රිතය සොයා මෙය ආදේශ කරන්න:
+
+function showPlanSelectorModal(plansToShow) {
+    return new Promise((resolve) => {
+        const modalId = `plan-selector-modal-${Date.now()}`;
+        
+        // Options සෑදීම: Expired වී ඇත්නම් එය නම අගට එකතු කරයි
+        const options = plansToShow.map((p, index) => {
+            let statusText = "";
+            const now = new Date();
+            const expiryDate = new Date(p.expiryTime || 0);
+            
+            // දින 1කට අඩු හෝ කල් ඉකුත් වී ඇත්නම්
+            if (p.expiryTime > 0 && now >= new Date(expiryDate.getTime() - 24 * 60 * 60 * 1000)) {
+                statusText = now > expiryDate ? " (Expired)" : " (Expiring Soon)";
+            }
+            
+            return `<option value="${index}">${p.v2rayUsername}${statusText}</option>`;
+        }).join('');
+
+        const modalHtml = `
+            <div id="${modalId}" class="fixed inset-0 bg-black/80 justify-center items-center z-[101] flex p-4" style="display: flex;">
+                <div class="card-glass p-6 rounded-lg max-w-sm w-full text-center reveal is-visible relative">
+                    <button id="${modalId}-close" class="absolute top-3 right-4 text-gray-400 hover:text-white text-3xl">&times;</button>
+                    <h3 class="text-xl font-bold text-white font-['Orbitron'] mb-3">Select a Plan</h3>
+                    <p class="text-xs text-gray-400 mb-4">Please choose which account you want to manage.</p>
+                    <div class="mb-8">
+                        <select id="multi-plan-selector" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none">
+                            ${options}
+                        </select>
                     </div>
-                </div>`;
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-            const modalElement = document.getElementById(modalId);
-            const closeModal = (choice) => {
-                let selectedPlan = null;
-                if (choice === 'option1') {
-                    selectedPlan = activePlans[document.getElementById('multi-plan-selector').value];
-                }
-                modalElement.remove();
-                resolve(selectedPlan);
-            };
-            document.getElementById(`${modalId}-opt1`).addEventListener('click', () => closeModal('option1'));
-            document.getElementById(`${modalId}-close`).addEventListener('click', () => closeModal(null));
-        });
-    }
+                    <div class="flex items-center justify-center gap-3">
+                        <button id="${modalId}-opt1" class="ai-button rounded-lg w-full">Continue</button>
+                    </div>
+                </div>
+            </div>`;
+            
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modalElement = document.getElementById(modalId);
+        
+        const closeModal = (choice) => {
+            let selectedPlan = null;
+            if (choice === 'option1') {
+                selectedPlan = plansToShow[document.getElementById('multi-plan-selector').value];
+            }
+            modalElement.remove();
+            resolve(selectedPlan);
+        };
+        
+        document.getElementById(`${modalId}-opt1`).addEventListener('click', () => closeModal('option1'));
+        document.getElementById(`${modalId}-close`).addEventListener('click', () => closeModal(null));
+    });
+}
 
     // --- START: FULLY INLINE PLAN MANAGEMENT FLOW ---
 
@@ -431,26 +457,71 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 }
 
-    async function handleRenewalChoice(activePlans, specificPlan = null) {
-        let planToManage = specificPlan;
+// public/js/main.js ගොනුවේ handleRenewalChoice ශ්‍රිතය සොයා මෙය ආදේශ කරන්න:
 
-        if (!specificPlan) {
+async function handleRenewalChoice(activePlans, specificPlan = null) {
+    let planToManage = specificPlan;
+
+    if (!specificPlan) {
+        const now = new Date();
+        const renewalWindowMs = 24 * 60 * 60 * 1000; // පැය 24 (Renew කිරීමට හැකි කාලය)
+
+        // 1. Expire වී ඇති හෝ Expire වීමට ආසන්න Plans ෆිල්ටර් කරගැනීම
+        const expiredOrExpiringPlans = activePlans.filter(plan => {
+            if (!plan.expiryTime || plan.expiryTime === 0) return false; 
+            const expiryDate = new Date(plan.expiryTime);
+            // දැනට වෙලාව >= (කල් ඉකුත් වීමේ දිනය - පැය 24)
+            return now >= new Date(expiryDate.getTime() - renewalWindowMs);
+        });
+
+        // --- Logic: Auto-Detect vs Selection ---
+        
+        if (expiredOrExpiringPlans.length === 1) {
+            // Scenario 1: එක Plan එකක් පමණක් Expire වී ඇත.
+            // කෙලින්ම එය තෝරාගෙන ඉදිරියට යන්න (Auto-detect).
+            console.log("Auto-detected single expired plan:", expiredOrExpiringPlans[0].v2rayUsername);
+            planToManage = expiredOrExpiringPlans[0];
+            
+        } else if (expiredOrExpiringPlans.length > 1) {
+            // Scenario 2: Plans එකකට වඩා Expire වී ඇත.
+            // Expire වූ ඒවා පමණක් ලිස්ට් එකේ පෙන්වා තෝරාගැනීමට දෙන්න.
+            const chosenPlan = await showPlanSelectorModal(expiredOrExpiringPlans);
+            if (!chosenPlan) return;
+            planToManage = chosenPlan;
+            
+        } else {
+            // Scenario 3: කිසිදු Plan එකක් Expire වී නැත (නමුත් User 'Renew/Change' ක්ලික් කර ඇත).
+            // මෙය 'Change Plan' අවශ්‍යතාවයක් විය හැක. සියලුම Plans පෙන්වන්න.
             if (activePlans.length > 1) {
                 const chosenPlan = await showPlanSelectorModal(activePlans);
                 if (!chosenPlan) return;
                 planToManage = chosenPlan;
-            } else if (activePlans.length === 1) {
+            } else {
                 planToManage = activePlans[0];
             }
         }
-
-        if (planToManage) {
-            renderRenewOrChangePage((html) => {
-                mainContentArea.innerHTML = html;
-                initAnimations();
-            }, planToManage);
-        }
     }
+
+    // Plan එක තේරී ඇත්නම් ඉදිරියට යන්න
+    if (planToManage) {
+        renderRenewOrChangePage((html) => {
+            const mainContentArea = document.getElementById("app-router"); // Ensure variable scope
+            mainContentArea.innerHTML = html;
+            
+            // Re-initialize animations since we injected new HTML
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add("is-visible");
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.2 });
+            document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
+            
+        }, planToManage);
+    }
+}
 
     // --- END: FULLY INLINE PLAN MANAGEMENT FLOW ---
     
