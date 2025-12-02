@@ -304,7 +304,7 @@ export function renderProfilePage(renderFunc, params) {
     
                         const result = await res.json();
                         if (result.success && result.data.expiryTime > 0) {
-                            const renewalPeriodDays = 1;
+                            const renewalPeriodDays = 5;
                             const expiryDate = new Date(result.data.expiryTime);
                             const now = new Date();
                             const renewalActivationDate = new Date(expiryDate.getTime() - renewalPeriodDays * 24 * 60 * 60 * 1000);

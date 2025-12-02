@@ -90,6 +90,8 @@ exports.createOrder = async (req, res) => {
             // Single Package Connection
             inboundId = connection.default_inbound_id;
             vlessTemplate = connection.default_vless_template;
+            // FIX: Ensure finalPkg has a value for single-package connections
+            finalPkg = connection.default_package || connection.name; 
         }
 
         if (!inboundId || !vlessTemplate) {

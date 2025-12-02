@@ -249,14 +249,30 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             }
         });
 
-        // WhatsApp number helper
+        // WhatsApp number helper - IMPROVED
         const whatsappInput = document.getElementById("signup-whatsapp");
         if (whatsappInput) {
             whatsappInput.addEventListener("input", () => {
-                if (!whatsappInput.value.startsWith("94")) whatsappInput.value = "94";
+                let val = whatsappInput.value.replace(/\D/g, ''); // අංක නොවන දේවල් ඉවත් කරන්න
+                
+                // 94න් පටන් ගන්නේ නැත්නම් 94 දාන්න
+                if (!val.startsWith("94")) {
+                    val = "94" + val;
+                }
+                
+                // Copy-Paste නිසා 94 දෙපාරක් වැදුනොත් (9494...) එය හදන්න
+                if (val.startsWith("9494")) {
+                    val = val.substring(2);
+                }
+
+                whatsappInput.value = val;
             });
+
             whatsappInput.addEventListener("keydown", (e) => {
-                if (e.key === "Backspace" && whatsappInput.value.length <= 2) e.preventDefault();
+                // 94 මකන්න බැරි වෙන්න හදන්න
+                if (e.key === "Backspace" && whatsappInput.value.length <= 2) {
+                    e.preventDefault();
+                }
             });
         }
 
