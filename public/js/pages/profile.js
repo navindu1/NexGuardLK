@@ -39,7 +39,7 @@ export function renderProfilePage(renderFunc, params) {
             </div>
         </div>`;
     
-    // --- START: UPDATED AND FINAL CSS FOR PROFILE PAGE ---
+    // --- START: UPDATED CSS FOR PROFILE PAGE & MODAL FIX ---
     const pageStyles = `<style>
         #page-profile .form-input { height: 56px; padding: 20px 12px 8px 12px; background-color: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.2); } 
         #page-profile .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; } 
@@ -52,17 +52,29 @@ export function renderProfilePage(renderFunc, params) {
         .tab-panel { display: none; } 
         .tab-panel.active { display: block; animation: pageFadeIn 0.5s; }
         
-        /* New and improved compact styles for the plan selector */
+        /* --- Modal Animation Fix --- */
+        .help-modal-content {
+            opacity: 0;
+            transform: scale(0.95);
+            transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .help-modal-overlay.visible .help-modal-content {
+            opacity: 1;
+            transform: scale(1);
+        }
+        /* --------------------------- */
+
+        /* Plan selector styles */
         .plan-selector-container {
             display: flex;
             align-items: center;
-            gap: 0.75rem; /* Reduced gap */
+            gap: 0.75rem; 
             margin-bottom: 1.5rem;
         }
         .plan-selector-label {
             font-size: 0.875rem;
             font-weight: 600;
-            color: #d1d5db; /* gray-300 */
+            color: #d1d5db;
             flex-shrink: 0;
         }
         ul.fmenu {
@@ -79,12 +91,12 @@ export function renderProfilePage(renderFunc, params) {
             display: flex;
             align-items: center;
             box-sizing: border-box;
-            height: 2.25rem; /* Reduced height from 3rem */
-            padding: 0 0.75rem; /* Adjusted padding */
-            border-radius: 0.375rem; /* rounded-md */
+            height: 2.25rem; 
+            padding: 0 0.75rem;
+            border-radius: 0.375rem;
             overflow: hidden;
-            background-color: rgba(30, 41, 59, 0.7); /* slate-800 with opacity */
-            border: 1px solid #475569; /* slate-600 */
+            background-color: rgba(30, 41, 59, 0.7);
+            border: 1px solid #475569;
             cursor: pointer;
             transition: all ease 0.3s;
         }
@@ -93,7 +105,7 @@ export function renderProfilePage(renderFunc, params) {
         }
         ul.fmenu .trigger-menu i {
             color: #9ca3af;
-            font-size: 0.875rem; /* Smaller icon */
+            font-size: 0.875rem; 
             transition: color ease 0.3s;
         }
         ul.fmenu .trigger-menu:hover i, ul.fmenu .trigger-menu.open i {
@@ -103,10 +115,10 @@ export function renderProfilePage(renderFunc, params) {
             display: block;
             font-size: 0.875rem;
             color: #e5e7eb;
-            padding: 0 0.5rem; /* Reduced padding */
+            padding: 0 0.5rem;
         }
         ul.fmenu .trigger-menu .arrow {
-            font-size: 0.75rem; /* Smaller arrow */
+            font-size: 0.75rem;
             transition: transform ease 0.3s;
         }
         ul.fmenu .trigger-menu.open .arrow {
@@ -115,14 +127,14 @@ export function renderProfilePage(renderFunc, params) {
         ul.fmenu .floating-menu {
             display: block;
             position: absolute;
-            top: 2.5rem; /* Adjusted position */
+            top: 2.5rem;
             width: 100%;
             min-width: 200px;
             list-style: none;
             padding: 0.5rem;
             margin: 0;
-            background-color: #1e293b; /* slate-800 */
-            border: 1px solid #475569; /* slate-600 */
+            background-color: #1e293b;
+            border: 1px solid #475569;
             border-radius: 0.5rem;
             box-shadow: 0 10px 20px rgba(0,0,0,0.3);
             max-height: 0px;
@@ -132,12 +144,12 @@ export function renderProfilePage(renderFunc, params) {
             transition: max-height ease 0.4s, opacity ease 0.3s;
         }
         ul.fmenu .floating-menu > li a {
-            color: #cbd5e1; /* slate-300 */
+            color: #cbd5e1;
             font-size: 0.875rem;
             text-decoration: none;
             display: block;
-            padding: 0.4rem 0.75rem; /* CHANGED: Reduced padding to make options more compact */
-            border-radius: 0.375rem; /* rounded-md */
+            padding: 0.4rem 0.75rem;
+            border-radius: 0.375rem;
             transition: all 0.2s ease;
         }
         ul.fmenu .floating-menu > li a:hover {
@@ -145,7 +157,7 @@ export function renderProfilePage(renderFunc, params) {
             color: #ffffff;
         }
     </style>`;
-    // --- END: NEW CUSTOM DROPDOWN CSS ---
+    // --- END: CSS ---
     
     let profilePictureUrl = (user.profilePicture || "/assets/profilePhoto.jpg").replace("public/", "");
     if (profilePictureUrl && !profilePictureUrl.startsWith('/')) {
