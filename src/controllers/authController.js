@@ -1,4 +1,4 @@
-// File Path: src/controllers/authController.js (UPDATED AND CORRECTED)
+// File Path: src/controllers/authController.js
 
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -7,6 +7,11 @@ const { v4: uuidv4 } = require("uuid");
 const supabase = require("../config/supabaseClient");
 const transporter = require("../config/mailer");
 const { generateEmailTemplate, generateOtpEmailContent, generatePasswordResetEmailContent } = require("../services/emailService");
+
+// උපරිම වැරදි උත්සාහයන් ගණන
+const MAX_OTP_ATTEMPTS = 5;
+// Lock කරන කාලය (විනාඩි 15)
+const LOCKOUT_TIME_MS = 15 * 60 * 1000; 
 
 exports.register = async (req, res) => {
     const { username, email, whatsapp, password } = req.body;
@@ -26,7 +31,7 @@ exports.register = async (req, res) => {
 
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const hashedPassword = bcrypt.hashSync(password, 10);
-        const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+        const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // විනාඩි 10 කින් කල් ඉකුත් වේ
 
         const userData = {
             username,
@@ -35,6 +40,9 @@ exports.register = async (req, res) => {
             password: hashedPassword,
             otp_code: otp,
             otp_expiry: otpExpiry.toISOString(),
+            // අලුත් OTP එකක් යවන විට පරණ වැරදි උත්සාහයන් (Attempts) ඉවත් කරන්න
+            otp_attempts: 0,
+            otp_lockout_until: null,
             profile_picture: "assets/profilePhoto.jpg",
             active_plans: [],
         };
@@ -53,10 +61,9 @@ exports.register = async (req, res) => {
             ),
         };
 
-        // --- FIX APPLIED: Awaiting the sendMail function ---
         try {
             await transporter.sendMail(mailOptions);
-            console.log(`OTP email sent successfully to ${email}: ${otp}`);
+            console.log(`OTP email sent successfully to ${email}`);
             res.status(200).json({
                 success: true,
                 message: `An OTP has been sent to ${email}. Please verify to complete registration.`,
@@ -74,27 +81,66 @@ exports.register = async (req, res) => {
 
 exports.verifyOtp = async (req, res) => {
     const { email, otp } = req.body;
+    
     try {
+        // 1. User දත්ත ලබා ගැනීම
         const { data: user, error } = await supabase
             .from("users")
             .select("*")
             .eq("email", email)
             .single();
         
-        if (error || !user || !user.otp_code) {
+        if (error || !user) {
+            // ආරක්ෂක හේතූන් මත User කෙනෙක් නැති වුනත් වැරදි පණිවිඩයක්ම යවන්න (User Enumeration වැලැක්වීමට)
             return res.status(400).json({ success: false, message: "Invalid request or user not found." });
         }
-        if (new Date() > new Date(user.otp_expiry)) {
-            return res.status(400).json({ success: false, message: "OTP has expired. Please register again." });
-        }
-        if (user.otp_code !== otp) {
-            return res.status(400).json({ success: false, message: "Invalid OTP." });
+
+        // 2. ගිණුම Lock වී ඇත්දැයි පරීක්ෂා කිරීම (Brute-force protection)
+        if (user.otp_lockout_until && new Date() < new Date(user.otp_lockout_until)) {
+            const waitMinutes = Math.ceil((new Date(user.otp_lockout_until) - new Date()) / 60000);
+            return res.status(429).json({ 
+                success: false, 
+                message: `Too many failed attempts. Please try again in ${waitMinutes} minutes.` 
+            });
         }
 
+        // 3. OTP කල් ඉකුත් වී ඇත්දැයි බැලීම
+        if (!user.otp_code || new Date() > new Date(user.otp_expiry)) {
+            return res.status(400).json({ success: false, message: "OTP has expired. Please register again." });
+        }
+
+        // 4. OTP එක වැරදි නම්
+        if (user.otp_code !== otp) {
+            const newAttempts = (user.otp_attempts || 0) + 1;
+            let updateData = { otp_attempts: newAttempts };
+            let message = "Invalid OTP code.";
+
+            // වැරදි වාර ගණන 5 පැනුවොත් Lock කරන්න
+            if (newAttempts >= MAX_OTP_ATTEMPTS) {
+                updateData.otp_lockout_until = new Date(Date.now() + LOCKOUT_TIME_MS).toISOString();
+                message = "Too many failed attempts. Account locked for 15 minutes.";
+            } else {
+                message = `Invalid OTP. You have ${MAX_OTP_ATTEMPTS - newAttempts} attempts remaining.`;
+            }
+
+            // DB Update (Attempts count)
+            await supabase.from("users").update(updateData).eq("id", user.id);
+            
+            return res.status(400).json({ success: false, message: message });
+        }
+
+        // 5. OTP නිවැරදි නම් (Success Path)
+        // සියලුම වැරදි උත්සාහයන් reset කරන්න
         const { error: updateError } = await supabase
             .from("users")
-            .update({ otp_code: null, otp_expiry: null })
+            .update({ 
+                otp_code: null, 
+                otp_expiry: null,
+                otp_attempts: 0,        // Reset attempts
+                otp_lockout_until: null // Remove lock
+            })
             .eq("id", user.id);
+
         if (updateError) throw updateError;
         
         const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, { expiresIn: "1d" });
@@ -106,6 +152,7 @@ exports.verifyOtp = async (req, res) => {
             profilePicture: user.profile_picture,
         };
         res.status(201).json({ success: true, message: "Account verified successfully!", token, user: userPayload });
+
     } catch (error) {
         console.error("Error in /api/auth/verify-otp:", error);
         return res.status(500).json({ success: false, message: "Database error during verification." });
@@ -197,34 +244,25 @@ exports.resellerLogin = async (req, res) => {
 };
 
 exports.forgotPassword = async (req, res) => {
-    console.log(`--- forgotPassword Function Started for: ${req.body.email} ---`); // මේක ඔයාට දැනටමත් පේනවා
     const { email } = req.body;
+    // Security: Do not reveal if the email exists or not to prevent user enumeration
+    const genericResponse = { message: 'If an account with that email exists, a password reset link has been sent.' };
+
     try {
-        console.log(`[1] Attempting to find user with email: ${email}`); // <--- අලුතින් දාන්න
         const { data: user, error: userError } = await supabase
             .from("users")
             .select("*")
             .eq("email", email)
             .single();
-        console.log(`[2] Supabase user query completed. User found: ${!!user}, Error: ${userError ? userError.message : 'No error'}`); // <--- අලුතින් දාන්න
 
-        if (userError && userError.code !== 'PGRST116') { // PGRST116 means 'No rows found', which is not a fatal error here
-            console.error('[2a] Supabase user query returned an unexpected error:', userError);
-            // Optionally throw error here if needed, but the generic response below handles it for security
+        if (!user || userError) {
+            return res.json(genericResponse);
         }
 
-        if (!user) {
-            console.log('[3] User not found or query error occurred. Sending generic response.'); // <--- අලුතින් දාන්න
-            // Do not reveal if a user exists or not for security reasons
-            return res.json({ message: 'If an account with that email exists, a password reset link has been sent.' });
-        }
-
-        console.log(`[4] User ${user.username} found. Generating reset token...`); // <--- අලුතින් දාන්න
         const resetToken = crypto.randomBytes(32).toString('hex');
         const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
         const resetExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-        console.log(`[5] Token generated. Attempting to update user record in Supabase for user ID: ${user.id}`); // <--- අලුතින් දාන්න
         const { error: updateError } = await supabase
             .from("users")
             .update({
@@ -232,51 +270,30 @@ exports.forgotPassword = async (req, res) => {
                 password_reset_expires: resetExpiry.toISOString(),
             })
             .eq("id", user.id);
-        console.log(`[6] Supabase user update completed. Error: ${updateError ? updateError.message : 'No error'}`); // <--- අලුතින් දාන්න
 
         if (updateError) {
-             console.error('[6a] CRITICAL: Failed to update user record with reset token:', updateError); // Log the specific update error
-             // Even if DB update fails, send generic response for security, but log the failure.
-             return res.json({ message: 'If an account with that email exists, a password reset link has been sent.' });
-             // Consider: maybe throw error here instead? throw updateError;
+             console.error('Failed to update user record with reset token:', updateError);
+             return res.json(genericResponse);
         }
 
-        console.log(`[7] User record updated. Preparing to send email.`); // <--- අලුතින් දාන්න
         const resetURL = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
         const mailOptions = {
-            // ... (your existing mailOptions)
              from: `NexGuard <${process.env.EMAIL_SENDER}>`,
              to: user.email,
              subject: 'Your Password Reset Link (Valid for 10 mins)',
              html: generateEmailTemplate('Password Reset Request', 'Use the link inside to reset your password.', generatePasswordResetEmailContent(user.username, resetURL)),
         };
 
-        // --- Transporter Verification (Optional but Recommended) ---
         try {
-            console.log('[8] Verifying transporter config...');
-            await transporter.verify();
-            console.log('[9] Transporter configuration OK.');
-        } catch (verifyError) {
-            console.error('[9a] !!! Transporter Verification FAILED:', verifyError);
-            // Don't stop execution, just log the error. The sendMail attempt might still provide info.
-        }
-        // --- End Transporter Verification ---
-
-        console.log(`[10] Attempting to send password reset email to: ${user.email}`);
-        console.log('Mail Options:', JSON.stringify(mailOptions, null, 2));
-
-        try {
-            const info = await transporter.sendMail(mailOptions);
-            console.log(`[11] Password reset email sent successfully to ${user.email}. Message ID: ${info.messageId}`);
-            res.json({ message: 'Password reset link has been sent to your email.' });
+            await transporter.sendMail(mailOptions);
+            res.json(genericResponse);
         } catch (emailError) {
-            console.error(`[11a] CRITICAL: FAILED to send password reset email to ${user.email}:`, emailError);
-            res.json({ message: 'If an account with that email exists, a password reset link has been sent.' });
+            console.error(`FAILED to send password reset email to ${user.email}:`, emailError);
+            res.json(genericResponse);
         }
 
     } catch (error) {
-        // This outer catch block might catch errors from Supabase client setup or other unexpected issues
-        console.error("[Outer Catch] Forgot Password Error:", error);
+        console.error("Forgot Password Error:", error);
         res.status(500).json({ message: 'Server error occurred during forgot password process.' });
     }
 };

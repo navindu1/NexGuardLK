@@ -2,12 +2,29 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
+const helmet = require('helmet'); // New Security Package
+const rateLimit = require('express-rate-limit'); // New Rate Limiter
 const allRoutes = require('./src/routes/index');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
+// --- Security Middleware ---
+app.use(helmet({
+    contentSecurityPolicy: false, // Frontend එකේ script අවුල් නොවෙන්න මෙය false කරන්න
+}));
+
+// Rate Limiter: විනාඩි 15ක් තුළ එක IP එකකින් එන උපරිම ඉල්ලීම් 100 කට සීමා කිරීම
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, 
+    max: 100, 
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, message: "Too many requests, please try again later." }
+});
+app.use('/api', limiter); // සියලුම API routes වලට මෙය යොදන්න
+
+// Standard Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
