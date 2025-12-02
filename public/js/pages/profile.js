@@ -39,7 +39,7 @@ export function renderProfilePage(renderFunc, params) {
             </div>
         </div>`;
 
-    // --- START: UPDATED PAGE STYLES (Includes Modal Fix) ---
+    // --- START: UPDATED PAGE STYLES (Glassy & Light Theme Fix) ---
     const pageStyles = `<style>
         /* Form & Tab Styles */
         #page-profile .form-input { height: 56px; padding: 20px 12px 8px 12px; background-color: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.2); } 
@@ -53,7 +53,7 @@ export function renderProfilePage(renderFunc, params) {
         .tab-panel { display: none; } 
         .tab-panel.active { display: block; animation: pageFadeIn 0.5s; }
         
-        /* === FIXED MODAL CSS (GLITCH FIX) === */
+        /* === FIXED MODAL CSS (Glassy Look) === */
         .help-modal-overlay {
             position: fixed;
             top: 0;
@@ -61,9 +61,10 @@ export function renderProfilePage(renderFunc, params) {
             width: 100%;
             height: 100%;
             z-index: 9999;
-            background-color: rgba(0, 0, 0, 0.6); /* Darker dim */
-            backdrop-filter: blur(5px); /* Background blur */
-            -webkit-backdrop-filter: blur(5px);
+            /* පසුබිම අඳුරු වීම ගොඩක් අඩු කරන ලදී (Light Dim) */
+            background-color: rgba(0, 0, 0, 0.2); 
+            backdrop-filter: blur(3px); /* පිටුපස බොඳ වීම (Blur) තරමක් අඩු කරන ලදී */
+            -webkit-backdrop-filter: blur(3px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -80,16 +81,21 @@ export function renderProfilePage(renderFunc, params) {
 
         .help-modal-content {
             position: relative;
-            transform: scale(0.95) translateZ(0); /* Hardware Acceleration fixes the glitch */
+            transform: scale(0.95) translateZ(0); /* Glitch එක නවත්වන කෝඩ් එක */
             transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
             z-index: 10000;
-            /* Stable Glass Effect */
-            background: rgba(30, 41, 59, 0.9); /* More solid to prevent transparency artifacts */
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            
+            /* --- Glass Effect එක නැවත සකසන ලදී --- */
+            /* Solid ගතිය අඩු කර Transparency වැඩි කරන ලදී (0.6) */
+            background: rgba(30, 41, 59, 0.6); 
+            
+            /* Blur එක වැඩි කරන ලදී, එවිට අකුරු පැහැදිලිව පෙනේ */
+            backdrop-filter: blur(16px); 
+            -webkit-backdrop-filter: blur(16px);
+            
+            border: 1px solid rgba(255, 255, 255, 0.15); /* Border එක කැපී පෙනෙන ලෙස */
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            will-change: transform, opacity; /* Performance optimization */
+            will-change: transform, opacity;
         }
 
         .help-modal-overlay.visible .help-modal-content {
