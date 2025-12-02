@@ -15,8 +15,8 @@ const transporter = nodemailer.createTransport({
     pass: process.env.ZOHO_PASS, 
   },
   // Timeout settings වැඩි කිරීම (Connection කැඩෙන එක අඩු කරන්න)
+  connectionTimeout: 10000, // අලුතින් එකතු කරන්න (තත්පර 10)
   socketTimeout: 30000,
-  dnsTimeout: 30000,
 });
 
 // Verify connection

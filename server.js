@@ -9,6 +9,9 @@ const allRoutes = require('./src/routes/index');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// --- පහත පේළිය අලුතින් එකතු කරන්න ---
+app.set('trust proxy', 1); 
+
 // --- Security Middleware ---
 app.use(helmet({
     contentSecurityPolicy: false, // Frontend එකේ script අවුල් නොවෙන්න මෙය false කරන්න
