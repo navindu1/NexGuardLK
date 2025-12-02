@@ -16,6 +16,10 @@ const DEL_CLIENT_BY_UUID_URL = (inboundId, uuid) => `${PANEL_URL}/panel/api/inbo
 const UPDATE_CLIENT_URL = (uuid) => `${PANEL_URL}/panel/api/inbounds/updateClient/${uuid}`;
 const RESET_TRAFFIC_URL = (inboundId, email) => `${PANEL_URL}/panel/api/inbounds/${inboundId}/resetClientTraffic/${email}`;
 
+// --- Caching Variables (New) ---
+let clientCacheMap = null; // දත්ත ගබඩා කර තබන Map එක
+let cacheLastUpdated = 0;  // අවසන් වරට update කළ වේලාව
+const CACHE_TTL = 5 * 60 * 1000; // Cache එකේ ආයු කාලය (විනාඩි 5)
 
 // --- Session Management Object ---
 const panelSession = {
@@ -25,6 +29,15 @@ const panelSession = {
         return this.cookie && (Date.now() - this.lastLogin < 3600000); // 1 hour validity
     }
 };
+
+/**
+ * Cache එක බලහත්කාරයෙන් ඉවත් කිරීම (අලුත් User කෙනෙක් හැදූ විට හෝ මැකූ විට භාවිතා වේ)
+ */
+function invalidateCache() {
+    clientCacheMap = null;
+    cacheLastUpdated = 0;
+    console.log("[Cache] Client cache invalidated.");
+}
 
 /**
  * Logs into the panel and updates the session object.
@@ -72,54 +85,96 @@ async function getPanelCookie() {
 exports.getPanelCookie = getPanelCookie;
 
 /**
- * Finds a V2Ray client by their username (email) across all inbounds.
+ * Internal function to fetch all clients and populate the cache.
+ * This is the heavy operation, now done only once every 5 minutes.
+ */
+async function refreshClientCache() {
+    try {
+        const cookie = await getPanelCookie();
+        console.log("[Cache] Fetching fresh data from V2Ray panel...");
+        const { data: inboundsData } = await axios.get(INBOUNDS_LIST_URL, {
+            headers: { Cookie: cookie },
+        });
+
+        if (!inboundsData?.success) {
+            console.error("[Cache] Failed to fetch data from panel.");
+            return new Map();
+        }
+
+        const newMap = new Map();
+        for (const inbound of inboundsData.obj) {
+            const clients = (inbound.settings && JSON.parse(inbound.settings).clients) || [];
+            for (const client of clients) {
+                if (client && client.email) {
+                    // Map එකට දත්ත ඇතුලත් කිරීම: key = lowercase email
+                    newMap.set(client.email.toLowerCase(), {
+                        client: client,
+                        inbound: inbound,
+                        inboundId: inbound.id
+                    });
+                }
+            }
+        }
+        
+        clientCacheMap = newMap;
+        cacheLastUpdated = Date.now();
+        console.log(`[Cache] Updated with ${newMap.size} clients.`);
+        return clientCacheMap;
+
+    } catch (error) {
+        console.error(`[Cache] Error refreshing cache:`, error.message);
+        return new Map(); // Error එකක් ආවොත් හිස් Map එකක් යවන්න
+    }
+}
+
+/**
+ * Finds a V2Ray client by their username (email) using the CACHE first.
  */
 exports.findV2rayClient = async (username) => {
     if (typeof username !== "string" || !username) {
         return null;
     }
-    const cookie = await getPanelCookie();
-    try {
-        const { data: inboundsData } = await axios.get(INBOUNDS_LIST_URL, {
-            headers: { Cookie: cookie },
-        });
 
-        if (!inboundsData?.success) return null;
+    // 1. Check if cache needs refresh
+    if (!clientCacheMap || (Date.now() - cacheLastUpdated > CACHE_TTL)) {
+        await refreshClientCache();
+    }
 
-        const lowerCaseUsername = username.toLowerCase();
-        for (const inbound of inboundsData.obj) {
-            const clients = (inbound.settings && JSON.parse(inbound.settings).clients) || [];
-            const foundClient = clients.find(c => c && c.email && c.email.toLowerCase() === lowerCaseUsername);
+    const lowerCaseUsername = username.toLowerCase();
+    const cachedData = clientCacheMap.get(lowerCaseUsername);
 
-            if (foundClient) {
-                let clientTraffics = {};
-                try {
-                    const TRAFFIC_URL = `${PANEL_URL}/panel/api/inbounds/getClientTraffics/${foundClient.email}`;
-                    const { data: trafficData } = await axios.get(TRAFFIC_URL, { headers: { Cookie: cookie } });
-                    if (trafficData?.success && trafficData.obj) {
-                        clientTraffics = trafficData.obj;
-                    }
-                } catch (trafficError) {
-                    console.warn(`Could not fetch client traffics for ${username}. Continuing without it.`);
-                }
-                
-                const finalClientData = { ...clientTraffics, ...foundClient };
-                return {
-                    client: finalClientData,
-                    inbound: inbound,
-                    inboundId: inbound.id,
-                };
-            }
-        }
+    if (!cachedData) {
         return null;
-    } catch (error) {
-        if (error.response?.status === 401 || error.response?.status === 403) {
-            console.log("[V2Ray Service] Session expired, attempting to re-authenticate and retry...");
-            panelSession.cookie = null;
-            return this.findV2rayClient(username);
+    }
+
+    // 2. Client found in cache. Now fetch LIVE traffic data separately.
+    // Traffic data changes constantly, so we don't cache it long-term here.
+    try {
+        const cookie = await getPanelCookie();
+        const TRAFFIC_URL = `${PANEL_URL}/panel/api/inbounds/getClientTraffics/${cachedData.client.email}`;
+        
+        const { data: trafficData } = await axios.get(TRAFFIC_URL, { headers: { Cookie: cookie } });
+        
+        let clientTraffics = {};
+        if (trafficData?.success && trafficData.obj) {
+            clientTraffics = trafficData.obj;
         }
-        console.error(`Error in findV2rayClient for ${username}:`, error.message);
-        throw error;
+
+        const finalClientData = { ...clientTraffics, ...cachedData.client };
+        
+        return {
+            client: finalClientData,
+            inbound: cachedData.inbound,
+            inboundId: cachedData.inboundId,
+        };
+
+    } catch (trafficError) {
+        console.warn(`Could not fetch client traffics for ${username}. Returning cached static data.`);
+        return {
+            client: cachedData.client, // Return without traffic stats if API fails
+            inbound: cachedData.inbound,
+            inboundId: cachedData.inboundId,
+        };
     }
 };
 
@@ -132,9 +187,12 @@ exports.addClient = async (inboundId, clientSettings) => {
         id: parseInt(inboundId),
         settings: JSON.stringify({ clients: [clientSettings] })
     };
-    // Inside v2rayService.addClient, before axios.post
-console.log('[DEBUG V2Ray Payload] Sending payload:', JSON.stringify(payload, null, 2)); // <--- මේ line එක එකතු කරන්න
-const { data } = await axios.post(ADD_CLIENT_URL, payload, { headers: { Cookie: cookie } });
+    console.log('[V2Ray Service] Adding client:', clientSettings.email);
+    const { data } = await axios.post(ADD_CLIENT_URL, payload, { headers: { Cookie: cookie } });
+    
+    if (data.success) {
+        invalidateCache(); // Cache එක පරණ නිසා එය ඉවත් කරන්න
+    }
     return data;
 };
 
@@ -145,6 +203,10 @@ exports.deleteClient = async (inboundId, clientUuid) => {
     const cookie = await getPanelCookie();
     const url = DEL_CLIENT_BY_UUID_URL(inboundId, clientUuid);
     const { data } = await axios.post(url, {}, { headers: { Cookie: cookie } });
+    
+    if (data.success) {
+        invalidateCache(); // Cache එක පරණ නිසා එය ඉවත් කරන්න
+    }
     return data;
 };
 
@@ -156,6 +218,10 @@ exports.updateClient = async (inboundId, clientUuid, clientSettings) => {
     };
     const url = UPDATE_CLIENT_URL(clientUuid);
     const { data } = await axios.post(url, payload, { headers: { Cookie: cookie } });
+    
+    if (data.success) {
+        invalidateCache(); // Cache එක පරණ නිසා එය ඉවත් කරන්න
+    }
     return data;
 };
 
@@ -165,61 +231,33 @@ exports.resetClientTraffic = async (inboundId, clientEmail) => {
     const { data } = await axios.post(url, {}, { headers: { Cookie: cookie }});
     return data;
 };
-// Add this new function for performance optimization
+
+// Optimized for performance using Cache
 exports.getAllClients = async () => {
-    try {
-        const cookie = await getPanelCookie();
-        const { data: inboundsData } = await axios.get(INBOUNDS_LIST_URL, {
-            headers: { Cookie: cookie },
-        });
-
-        if (!inboundsData?.success) return [];
-
-        const allClients = new Set(); // Use a Set for faster lookups
-        for (const inbound of inboundsData.obj) {
-            const clients = (inbound.settings && JSON.parse(inbound.settings).clients) || [];
-            for (const client of clients) {
-                if (client && client.email) {
-                    allClients.add(client.email.toLowerCase());
-                }
-            }
-        }
-        return allClients;
-    } catch (error) {
-         console.error(`Error in getAllClients:`, error.message);
-         // In case of error, return an empty set to avoid breaking the caller function
-         return new Set();
+    if (!clientCacheMap || (Date.now() - cacheLastUpdated > CACHE_TTL)) {
+        await refreshClientCache();
     }
+    // Return a Set of emails for fast checking
+    return new Set(clientCacheMap.keys());
 };
 
 /**
- * NEW FUNCTION: Fetches all clients and their full details from all inbounds.
+ * NEW FUNCTION: Fetches all clients from Cache.
  * Returns a Map for efficient lookups where: key = lowercase email, value = client object.
  */
 exports.getAllClientDetails = async () => {
-    try {
-        const cookie = await getPanelCookie();
-        const { data: inboundsData } = await axios.get(INBOUNDS_LIST_URL, {
-            headers: { Cookie: cookie },
-        });
-
-        if (!inboundsData?.success) return new Map();
-
-        const allClientsMap = new Map();
-        for (const inbound of inboundsData.obj) {
-            const clients = (inbound.settings && JSON.parse(inbound.settings).clients) || [];
-            for (const client of clients) {
-                if (client && client.email) {
-                    allClientsMap.set(client.email.toLowerCase(), client);
-                }
-            }
-        }
-        return allClientsMap;
-    } catch (error) {
-         console.error(`Error in getAllClientDetails:`, error.message);
-         // In case of error, return an empty Map to avoid breaking the caller function
-         return new Map();
+    if (!clientCacheMap || (Date.now() - cacheLastUpdated > CACHE_TTL)) {
+        await refreshClientCache();
     }
+    
+    // We need to return just the client object map to match previous logic logic
+    const simplifiedMap = new Map();
+    if(clientCacheMap) {
+        for (const [email, data] of clientCacheMap.entries()) {
+            simplifiedMap.set(email, data.client);
+        }
+    }
+    return simplifiedMap;
 };
 
 exports.generateV2rayConfigLink = (linkTemplate, client) => {
