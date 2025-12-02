@@ -71,7 +71,21 @@ function displayUserData(data, name, container) {
 
 // --- Main Render Function ---
 export function renderUsagePage(renderFunc) {
-    renderFunc(`
+    // --- START: MODAL ANIMATION FIX ---
+    const pageStyles = `<style>
+        .help-modal-content {
+            opacity: 0;
+            transform: scale(0.95);
+            transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .help-modal-overlay.visible .help-modal-content {
+            opacity: 1;
+            transform: scale(1);
+        }
+    </style>`;
+    // --- END: MODAL ANIMATION FIX ---
+
+    renderFunc(pageStyles + `
         <div class="page" id="page-usage">
             <main class="w-full max-w-sm space-y-4 z-10 mx-auto">
                 <header class="text-center space-y-1 reveal is-visible">
