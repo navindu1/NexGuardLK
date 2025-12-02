@@ -51,6 +51,48 @@ export function renderProfilePage(renderFunc, params) {
         .tab-btn.active { border-bottom-color: var(--brand-blue); color: #fff; } 
         .tab-panel { display: none; } 
         .tab-panel.active { display: block; animation: pageFadeIn 0.5s; }
+
+        .help-modal-overlay {
+            position: fixed;
+            top: 0; 
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+            background-color: rgba(0, 0, 0, 0.6); /* Dim background */
+            backdrop-filter: blur(5px); /* Blur the page behind overlay */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .help-modal-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .help-modal-content {
+            position: relative;
+            transform: scale(0.95) translateZ(0); /* Hardware Acceleration */
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 10000;
+            /* Fix for glitchy glass effect */
+            background: rgba(30, 41, 59, 0.85); /* Slightly more solid color */
+            backdrop-filter: blur(12px); /* Moderate blur */
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            will-change: transform, opacity; /* Performance optimization */
+        }
+
+        .help-modal-overlay.visible .help-modal-content {
+            transform: scale(1) translateZ(0);
+        }
+        /* ======================= */
         
         /* New and improved compact styles for the plan selector */
         .plan-selector-container {
