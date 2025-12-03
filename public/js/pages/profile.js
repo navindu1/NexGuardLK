@@ -135,7 +135,7 @@ export function renderProfilePage(renderFunc, params) {
             margin: 0;
             background-color: #1e293b;
             border: 1px solid #475569;
-            border-radius: 0.5rem;
+            border-radius: 35px;
             box-shadow: 0 10px 20px rgba(0,0,0,0.3);
             max-height: 0px;
             z-index: 100;
