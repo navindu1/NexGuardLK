@@ -10,7 +10,7 @@ function displayUserData(data, name, container) {
     const usagePercentage = totalQuota > 0 ? Math.min((totalUsed / totalQuota) * 100, 100) : 0;
     const status = data.enable ? `<span class="font-semibold text-green-400">ONLINE</span>` : `<span class="font-semibold text-red-400">OFFLINE</span>`;
     
-    // --- EXPIRY DATE LOGIC (Time Removed) ---
+    // --- EXPIRY DATE LOGIC ---
     let expiry = `<span class="text-blue-300">Unlimited ♾️</span>`; 
     const expiryTimestamp = parseInt(data.expiryTime, 10);
 
@@ -21,7 +21,7 @@ function displayUserData(data, name, container) {
         if (now > expDate) {
             expiry = `<span class="text-red-500">Expired ⚠️</span>`;
         } else {
-            // Shows only Date: YYYY-MM-DD
+            // Only Date shown
             expiry = expDate.toLocaleDateString('en-CA');
         }
     }
@@ -83,12 +83,12 @@ function displayUserData(data, name, container) {
 // --- Main Render Function ---
 export function renderUsagePage(renderFunc) {
     const pageStyles = `<style>
-        /* Overlay styles - Transparent */
+        /* Overlay styles - Transparent to show background */
         .help-modal-overlay {
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
-            background: transparent;
+            background: transparent; /* No dark overlay */
         }
         
         .help-modal-overlay.visible {
@@ -96,10 +96,10 @@ export function renderUsagePage(renderFunc) {
             visibility: visible;
         }
 
-        /* Modal Animation */
+        /* Modal Animation - Scale Up */
         .help-modal-content {
             opacity: 0;
-            transform: scale(0.95);
+            transform: scale(0.90);
             transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         
@@ -108,21 +108,25 @@ export function renderUsagePage(renderFunc) {
             transform: scale(1);
         }
 
-        /* NEW "SUPER SMOOTH" BLUR EFFECT (Similar to uploaded image) */
+        /* NEW STYLE: Brighter, Rounded, Background Highlight Effect */
         .grease-glass {
-            /* Dark semi-transparent background - Opacity lowered to 0.6 to let blur shine */
-            background: rgba(10, 10, 25, 0.6); 
+            /* 1. Brighter Background (Lighter Blue/Grey tint, Less Opacity) */
+            background: rgba(30, 40, 60, 0.4);
             
-            /* High Blur (60px) + Saturation Boost (180%) */
-            /* This creates the smooth, liquid/grease look */
-            backdrop-filter: blur(60px) saturate(180%);
-            -webkit-backdrop-filter: blur(60px) saturate(180%);
+            /* 2. Background Highlight Effect */
+            /* Lower blur (20px) makes background shapes visible */
+            /* High saturate (200%) makes background colors pop */
+            backdrop-filter: blur(20px) saturate(200%);
+            -webkit-backdrop-filter: blur(20px) saturate(200%);
             
-            /* Very subtle, almost invisible border */
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            /* 3. More Rounded Corners */
+            border-radius: 35px;
             
-            /* Deep, soft shadow */
-            box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.7);
+            /* 4. Brighter Border */
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            
+            /* Soft Shadow */
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
         }
     </style>`;
 
@@ -152,25 +156,25 @@ export function renderUsagePage(renderFunc) {
             
             <div id="help-modal" class="help-modal-overlay fixed inset-0 z-[100] flex justify-center items-center p-4">
                 
-                <div class="help-modal-content grease-glass rounded-3xl p-6 space-y-4 w-full max-w-md">
+                <div class="help-modal-content grease-glass p-6 space-y-4 w-full max-w-md">
                     
                     <div class="flex justify-between items-start">
                         <div>
                             <h2 class="text-xl font-bold text-white font-['Orbitron'] drop-shadow-md">Help & Support Matrix</h2>
                             <button id="lang-toggle-btn" class="text-xs text-blue-300 hover:text-white hover:underline mt-1 transition-colors">English / සිංහල</button>
                         </div>
-                        <button id="help-modal-close" class="text-white/70 hover:text-white text-3xl transition-all hover:rotate-90">&times;</button>
+                        <button id="help-modal-close" class="text-white/80 hover:text-white text-3xl transition-all hover:rotate-90">&times;</button>
                     </div>
                     <div class="lang-content lang-en">
                         <div>
                             <h3 class="text-lg font-semibold text-blue-300 mb-2 drop-shadow-sm">How to find your Username?</h3>
-                            <p class="text-gray-200 text-sm mb-4 font-medium leading-relaxed">Your username is the name assigned to your V2ray configuration. It's often visible in your V2ray client app, usually next to the server connection name.</p>
+                            <p class="text-gray-100 text-sm mb-4 font-medium leading-relaxed">Your username is the name assigned to your V2ray configuration. It's often visible in your V2ray client app, usually next to the server connection name.</p>
                         </div>
                     </div>
                     <div class="lang-content lang-si hidden">
                         <div>
                             <h3 class="text-lg font-semibold text-blue-300 mb-2 drop-shadow-sm">ඔබගේ Username එක සොයාගන්නේ කෙසේද?</h3>
-                            <p class="text-gray-200 text-sm mb-4 font-medium leading-relaxed">ඔබගේ username යනු V2ray config ගොනුවට ලබා දී ඇති නමයි. එය බොහෝවිට V2ray client ඇප් එකේ, server සම්බන්ධතාවය අසල දිස්වේ.</p>
+                            <p class="text-gray-100 text-sm mb-4 font-medium leading-relaxed">ඔබගේ username යනු V2ray config ගොනුවට ලබා දී ඇති නමයි. එය බොහෝවිට V2ray client ඇප් එකේ, server සම්බන්ධතාවය අසල දිස්වේ.</p>
                         </div>
                     </div>
                     <div class="bg-black/20 border border-white/10 rounded-xl p-2 shadow-inner">
