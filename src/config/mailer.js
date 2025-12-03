@@ -1,31 +1,28 @@
-// File Path: src/config/mailer.js (Optimized for Speed)
-
 const nodemailer = require("nodemailer");
 
+// Zoho Mail SMTP Configuration
+// වැදගත්: .env ගොනුවේ ZOHO_USER සහ ZOHO_PASS තිබිය යුතුය.
 const transporter = nodemailer.createTransport({
-  pool: true, // <--- 1. මේක තමයි වේගය වැඩි කරන රහස (Connection Pooling)
-  maxConnections: 5, // එකවර සම්බන්ධතා 5ක් තියාගන්නවා
-  maxMessages: 100, // එක Connection එකකින් යවන උපරිම මැසේජ් ගණන
-  
-  host: process.env.ZOHO_HOST || "smtp.zoho.com",
-  port: parseInt(process.env.ZOHO_PORT, 10) || 465,
-  secure: true, // SSL
-  auth: {
-    user: process.env.ZOHO_USER, 
-    pass: process.env.ZOHO_PASS, 
-  },
-  // Timeout settings වැඩි කිරීම (Connection කැඩෙන එක අඩු කරන්න)
-  connectionTimeout: 10000, // අලුතින් එකතු කරන්න (තත්පර 10)
-  socketTimeout: 30000,
+    host: "smtp.zoho.com",
+    port: 465, // 465 for SSL (Secure)
+    secure: true, // true for 465, false for other ports
+    auth: {
+        user: process.env.ZOHO_USER, // ඔබේ Zoho Email ලිපිනය
+        pass: process.env.ZOHO_PASS,   // ඔබේ Zoho Password හෝ App Password
+    },
+    tls: {
+        // Vercel එකේදී ඇතිවිය හැකි certificate ප්‍රශ්න මඟහරවා ගැනීමට
+        rejectUnauthorized: false
+    }
 });
 
-// Verify connection
-transporter.verify(function(error, success) {
-  if (error) {
-    console.error("❌ Zoho Mailer Error:", error);
-  } else {
-    console.log("✅ Zoho Mailer is ready (Pooled Connection).");
-  }
+// Connection එක වැඩදැයි පරීක්ෂා කිරීම (Optional - for debugging)
+transporter.verify(function (error, success) {
+    if (error) {
+        console.log("SMTP Connection Error:", error);
+    } else {
+        console.log("SMTP Server is ready to take our messages via Zoho Mail");
+    }
 });
 
 module.exports = transporter;
