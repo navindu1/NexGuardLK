@@ -10,10 +10,8 @@ function displayUserData(data, name, container) {
     const usagePercentage = totalQuota > 0 ? Math.min((totalUsed / totalQuota) * 100, 100) : 0;
     const status = data.enable ? `<span class="font-semibold text-green-400">ONLINE</span>` : `<span class="font-semibold text-red-400">OFFLINE</span>`;
     
-    // --- START: EXPIRY DATE FONT FIX ---
-    let expiry = `<span class="text-blue-300">Unlimited ♾️</span>`; // Default for 0 or null
-    
-    // Ensure expiryTime is treated as a number
+    // --- EXPIRY DATE LOGIC ---
+    let expiry = `<span class="text-blue-300">Unlimited ♾️</span>`; 
     const expiryTimestamp = parseInt(data.expiryTime, 10);
 
     if (expiryTimestamp > 0) {
@@ -23,11 +21,9 @@ function displayUserData(data, name, container) {
         if (now > expDate) {
             expiry = `<span class="text-red-500">Expired ⚠️</span>`;
         } else {
-            // FIXED: Removed 'font-mono' and 'span'. Just returning the string allows parent classes to apply font style.
             expiry = expDate.toLocaleDateString('en-CA');
         }
     }
-    // --- END: EXPIRY DATE FONT FIX ---
 
     const html = `
         <div class="result-card p-4 sm:p-6 card-glass rounded-xl space-y-5 reveal is-visible">
@@ -91,9 +87,8 @@ export function renderUsagePage(renderFunc) {
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
+            /* No background color for overlay, fully transparent */
+            background: transparent; 
         }
         
         .help-modal-overlay.visible {
@@ -113,13 +108,20 @@ export function renderUsagePage(renderFunc) {
             transform: scale(1);
         }
 
-        /* LIGHT GLASS EFFECT */
-        .light-glass {
-            background: rgba(255, 255, 255, 0.1); 
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2), inset 0 0 20px rgba(255, 255, 255, 0.05);
+        /* UPDATED: DARK GREASE / BLUR EFFECT */
+        .grease-glass {
+            /* Dark semi-transparent background (remove white) */
+            background: rgba(10, 10, 20, 0.75); 
+            
+            /* Strong Blur to hide background */
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            
+            /* Very subtle border (removed white box look) */
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            
+            /* Soft Shadow */
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
     </style>`;
 
@@ -148,27 +150,29 @@ export function renderUsagePage(renderFunc) {
             </main>
             
             <div id="help-modal" class="help-modal-overlay fixed inset-0 z-[100] flex justify-center items-center p-4">
-                <div class="help-modal-content light-glass rounded-2xl p-6 space-y-4 w-full max-w-md">
+                
+                <div class="help-modal-content grease-glass rounded-2xl p-6 space-y-4 w-full max-w-md">
+                    
                     <div class="flex justify-between items-start">
                         <div>
                             <h2 class="text-xl font-bold text-white font-['Orbitron'] drop-shadow-md">Help & Support Matrix</h2>
                             <button id="lang-toggle-btn" class="text-xs text-blue-300 hover:text-white hover:underline mt-1 transition-colors">English / සිංහල</button>
                         </div>
-                        <button id="help-modal-close" class="text-white/70 hover:text-white text-3xl transition-all hover:rotate-90">&times;</button>
+                        <button id="help-modal-close" class="text-gray-400 hover:text-white text-3xl transition-all hover:rotate-90">&times;</button>
                     </div>
                     <div class="lang-content lang-en">
                         <div>
                             <h3 class="text-lg font-semibold text-blue-300 mb-2 drop-shadow-sm">How to find your Username?</h3>
-                            <p class="text-gray-100 text-sm mb-4 font-medium leading-relaxed">Your username is the name assigned to your V2ray configuration. It's often visible in your V2ray client app, usually next to the server connection name.</p>
+                            <p class="text-gray-200 text-sm mb-4 font-medium leading-relaxed">Your username is the name assigned to your V2ray configuration. It's often visible in your V2ray client app, usually next to the server connection name.</p>
                         </div>
                     </div>
                     <div class="lang-content lang-si hidden">
                         <div>
                             <h3 class="text-lg font-semibold text-blue-300 mb-2 drop-shadow-sm">ඔබගේ Username එක සොයාගන්නේ කෙසේද?</h3>
-                            <p class="text-gray-100 text-sm mb-4 font-medium leading-relaxed">ඔබගේ username යනු V2ray config ගොනුවට ලබා දී ඇති නමයි. එය බොහෝවිට V2ray client ඇප් එකේ, server සම්බන්ධතාවය අසල දිස්වේ.</p>
+                            <p class="text-gray-200 text-sm mb-4 font-medium leading-relaxed">ඔබගේ username යනු V2ray config ගොනුවට ලබා දී ඇති නමයි. එය බොහෝවිට V2ray client ඇප් එකේ, server සම්බන්ධතාවය අසල දිස්වේ.</p>
                         </div>
                     </div>
-                    <div class="bg-black/30 border border-white/20 rounded-lg p-2 shadow-inner">
+                    <div class="bg-black/30 border border-white/10 rounded-lg p-2 shadow-inner">
                         <img src="/assets/help.jpg" alt="Example image of where to find the username" class="rounded w-full h-auto opacity-90 hover:opacity-100 transition-opacity">
                     </div>
                 </div>
