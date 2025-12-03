@@ -11,7 +11,7 @@ function displayUserData(data, name, container) {
     const status = data.enable ? `<span class="font-semibold text-green-400">ONLINE</span>` : `<span class="font-semibold text-red-400">OFFLINE</span>`;
     
     // --- EXPIRY DATE LOGIC ---
-    let expiry = `<span class="text-blue-300">Unlimited ♾️</span>`; 
+    let expiry = `<span class="text-300">Unlimited</span>`; 
     const expiryTimestamp = parseInt(data.expiryTime, 10);
 
     if (expiryTimestamp > 0) {
@@ -19,7 +19,7 @@ function displayUserData(data, name, container) {
         const now = new Date();
 
         if (now > expDate) {
-            expiry = `<span class="text-red-500">Expired ⚠️</span>`;
+            expiry = `<span class="text-500">Expired</span>`;
         } else {
             // Only Date shown
             expiry = expDate.toLocaleDateString('en-CA');
@@ -27,7 +27,7 @@ function displayUserData(data, name, container) {
     }
 
     const html = `
-        <div class="result-card p-4 sm:p-6 card-glass rounded-xl space-y-5 reveal is-visible">
+        <div class="result-card p-4 sm:p-6 card-glass custom-radius space-y-5 reveal is-visible">
             <div class="flex justify-between items-center pb-3 border-b border-white/10">
                 <h3 class="text-lg font-semibold text-white flex items-center min-w-0">
                     <i class="fa-solid fa-satellite-dish mr-3 text-blue-400 flex-shrink-0"></i>
