@@ -49,7 +49,7 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             #page-login .form-input:focus ~ .form-label, #page-login .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: var(--brand-blue); }
             #link-account-form .form-group { margin-top: 0; }
         </style>
-        <div id="auth-container" class="mx-auto my-12 card-glass rounded-xl p-8 sm:p-10">
+        <div id="auth-container" class="mx-auto my-12 card-glass custom-radius p-8 sm:p-10">
             <form class="auth-form space-y-6" id="signin-form">
                 <div class="text-center"><h1 class="text-2xl font-bold text-white font-['Orbitron']">Welcome Back</h1><p class="text-sm text-gray-400 mt-1">Sign in to access your dashboard.</p></div>
                 <div class="form-group"><input type="text" id="signin-username" class="form-input" required placeholder=" " /><label for="signin-username" class="form-label">Username</label><span class="focus-border"><i></i></span></div>
