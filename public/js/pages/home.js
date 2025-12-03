@@ -105,7 +105,7 @@ export function renderAboutPage(renderFunc) {
     renderFunc(`
         <div id="page-about" class="page">
             <div class="flex flex-col lg:flex-row gap-8">
-                <div class="flex-grow card-glass p-8 rounded-lg space-y-5 reveal">
+                <div class="flex-grow card-glass p-8 custom-radius space-y-5 reveal">
                     <h2 class="text-2xl font-bold">About NexGuard LK</h2>
                     <p class="text-gray-300 text-sm">NexGuard is dedicated to providing secure, fast, and reliable internet freedom in Sri Lanka. Our mission is to deliver top-tier V2Ray services that are both affordable and powerful.</p>
                     <div><h3 class="text-lg font-bold text-white mb-2"><i class="fa-solid fa-rocket text-blue-400 mr-2"></i> Our Mission</h3><p class="text-gray-300 text-sm">To democratize internet access by providing robust, uncensored, and private connectivity solutions to every Sri Lankan.</p></div>
@@ -119,7 +119,7 @@ export function renderAboutPage(renderFunc) {
                         </div>
                     </div>
                 </div>
-                <div class="lg:w-80 flex-shrink-0 reveal">
+                <div class="lg:w-80 flex-shrink-0 reveal custom-radius">
                     <div class="card-glass p-6 rounded-2xl text-center sticky top-28 shadow-xl">
                         <img src="/assets/ceo.jpg" alt="Nexguard Founder" class="w-24 h-24 rounded-full mx-auto border-4 border-blue-500 shadow-md">
                         <h3 class="text-xl font-bold mt-4 text-white">Navindu R.</h3>
@@ -141,9 +141,9 @@ export function renderAboutPage(renderFunc) {
             <div id="contact-section" class="mt-20">
                 <header class="text-center mb-10 reveal"><h2 class="text-2xl font-bold text-white">Get In Touch</h2></header>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-                    <a href="https://chat.whatsapp.com/DoErFmB8KSW6XLmjmJPWar" target="_blank" class="card reveal card-glass p-5 rounded-xl text-center flex flex-col items-center justify-center"><i class="fa-brands fa-whatsapp text-3xl text-green-400 mb-3"></i><h3 class="text-lg font-bold text-white">WhatsApp</h3><p class="text-gray-400 mt-1 text-xs">Tap to chat for quick support.</p></a>
-                    <a href="https://t.me/nexguardusagebot" target="_blank" class="card reveal card-glass p-5 rounded-xl text-center flex flex-col items-center justify-center"><i class="fa-brands fa-telegram text-3xl text-sky-400 mb-3"></i><h3 class="text-lg font-bold text-white">Telegram</h3><p class="text-gray-400 mt-1 text-xs">Join our channel or contact our bot.</p></a>
-                    <a href="mailto:navindu4000@gmail.com" class="card reveal card-glass p-5 rounded-xl text-center flex flex-col items-center justify-center"><i class="fa-solid fa-envelope-open-text text-3xl text-red-400 mb-3"></i><h3 class="text-lg font-bold text-white">Email</h3><p class="text-gray-400 mt-1 text-xs">Send us an email for detailed inquiries.</p></a>
+                    <a href="https://chat.whatsapp.com/DoErFmB8KSW6XLmjmJPWar" target="_blank" class="card reveal card-glass p-5 custom-radius text-center flex flex-col items-center justify-center"><i class="fa-brands fa-whatsapp text-3xl text-green-400 mb-3"></i><h3 class="text-lg font-bold text-white">WhatsApp</h3><p class="text-gray-400 mt-1 text-xs">Tap to chat for quick support.</p></a>
+                    <a href="https://t.me/nexguardusagebot" target="_blank" class="card reveal card-glass p-5 custom-radius text-center flex flex-col items-center justify-center"><i class="fa-brands fa-telegram text-3xl text-sky-400 mb-3"></i><h3 class="text-lg font-bold text-white">Telegram</h3><p class="text-gray-400 mt-1 text-xs">Join our channel or contact our bot.</p></a>
+                    <a href="mailto:navindu4000@gmail.com" class="card reveal card-glass p-5 custom-radius text-center flex flex-col items-center justify-center"><i class="fa-solid fa-envelope-open-text text-3xl text-red-400 mb-3"></i><h3 class="text-lg font-bold text-white">Email</h3><p class="text-gray-400 mt-1 text-xs">Send us an email for detailed inquiries.</p></a>
                 </div>
             </div>
         </div>`);
