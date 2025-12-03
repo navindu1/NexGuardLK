@@ -72,7 +72,13 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
                 <input type="hidden" id="otp-email"><div class="form-group"><input type="text" id="otp-code" class="form-input" required placeholder=" " maxlength="6" /><label for="otp-code" class="form-label">OTP Code</label><span class="focus-border"><i></i></span></div>
                 <button type="submit" class="ai-button w-full rounded-lg">Verify & Create Account</button>
                 <p class="text-center text-sm">Didn't get the code? <span id="show-signup-again" class="auth-toggle-link">Go Back</span></p>
-            </form>
+                
+                <div id="otp-spam-warning" class="hidden mt-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl text-center reveal is-visible">
+                    <p class="text-amber-400 font-bold text-sm mb-1"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Still waiting for the code?</p>
+                    <p class="text-gray-300 text-xs">Email delivery might be slow.</p>
+                    <p class="text-white font-semibold text-xs mt-2 border-t border-white/10 pt-2">Please check your <span class="text-amber-400">Spam / Junk Folder</span>.</p>
+                </div>
+                </form>
             <form class="auth-form space-y-6" id="forgot-password-form">
                 <div class="text-center"><h1 class="text-2xl font-bold text-white font-['Orbitron']">Reset Password</h1><p class="text-sm text-gray-400 mt-1">Enter your email to receive a reset link.</p></div>
                 <div class="form-group"><input type="email" id="forgot-email" class="form-input" required placeholder=" " /><label for="forgot-email" class="form-label">Your Account Email</label><span class="focus-border"><i></i></span></div>
@@ -175,7 +181,22 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             if (res.ok) {
                 showToast({ title: "OTP Sent!", message: result.message, type: "success" });
                 document.getElementById("otp-email").value = payload.email;
+                
+                // Hide warning initially (if it was shown previously)
+                const warningBox = document.getElementById("otp-spam-warning");
+                if(warningBox) warningBox.classList.add("hidden");
+
                 switchAuthView(otpForm);
+
+                // --- START: Timer to show Spam Warning after 15 Seconds ---
+                setTimeout(() => {
+                    // Check if user is still on the OTP form
+                    if (otpForm.classList.contains("active")) {
+                        if(warningBox) warningBox.classList.remove("hidden");
+                    }
+                }, 15000); // 15000ms = 15 Seconds
+                // --- END: Timer Logic ---
+
             } else {
                 showToast({ title: "Error", message: result.message || "An unknown error occurred.", type: "error" });
             }
