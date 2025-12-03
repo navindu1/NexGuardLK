@@ -23,7 +23,7 @@ export function renderHomePage(renderFunc) {
                 <div class="card reveal custom-radius card-glass p-5 rounded-xl text-center"><i class="fa-solid fa-headset text-2xl gradient-text mb-3"></i><h3 class="text-lg font-bold text-white">24/7 Support</h3><p class="text-gray-400 mt-2 text-sm">Dedicated support team available via WhatsApp and Telegram to assist you.</p></div>
             </div>
             <div class="mt-20 flex flex-col lg:flex-row items-center gap-8 lg:gap-12 reveal">
-                <div class="lg:w-1/2">
+                <div class="lg:w-1/2 custom-radius">
                     <img src="/assets/image.jpg" alt="V2Ray on a laptop" class="rounded-xl shadow-2xl shadow-blue-500/20 w-full h-auto object-cover">
                 </div>
                 <div class="w-full lg:w-1/2 text-center lg:text-left px-4">
