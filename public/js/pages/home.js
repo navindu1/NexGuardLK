@@ -18,9 +18,9 @@ export function renderHomePage(renderFunc) {
                 </div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                <div class="card reveal card-glass p-5 rounded-xl text-center"><i class="fa-solid fa-bolt text-2xl gradient-text mb-3"></i><h3 class="text-lg font-bold text-white">Unmatched Speed</h3><p class="text-gray-400 mt-2 text-sm">Optimized servers for Sri Lankan networks for the lowest latency and highest speeds.</p></div>
-                <div class="card reveal card-glass p-5 rounded-xl text-center"><i class="fa-solid fa-shield-halved text-2xl gradient-text mb-3"></i><h3 class="text-lg font-bold text-white">Rock-Solid Security</h3><p class="text-gray-400 mt-2 text-sm">Advanced V2Ray protocols to keep your online activities private and secure.</p></div>
-                <div class="card reveal card-glass p-5 rounded-xl text-center"><i class="fa-solid fa-headset text-2xl gradient-text mb-3"></i><h3 class="text-lg font-bold text-white">24/7 Support</h3><p class="text-gray-400 mt-2 text-sm">Dedicated support team available via WhatsApp and Telegram to assist you.</p></div>
+                <div class="card reveal card-glass p-5 rounded-[35px] text-center"><i class="fa-solid fa-bolt text-2xl gradient-text mb-3"></i><h3 class="text-lg font-bold text-white">Unmatched Speed</h3><p class="text-gray-400 mt-2 text-sm">Optimized servers for Sri Lankan networks for the lowest latency and highest speeds.</p></div>
+                <div class="card reveal card-glass p-5 rounded-[35px] text-center"><i class="fa-solid fa-shield-halved text-2xl gradient-text mb-3"></i><h3 class="text-lg font-bold text-white">Rock-Solid Security</h3><p class="text-gray-400 mt-2 text-sm">Advanced V2Ray protocols to keep your online activities private and secure.</p></div>
+                <div class="card reveal card-glass p-5 rounded-[35px] text-center"><i class="fa-solid fa-headset text-2xl gradient-text mb-3"></i><h3 class="text-lg font-bold text-white">24/7 Support</h3><p class="text-gray-400 mt-2 text-sm">Dedicated support team available via WhatsApp and Telegram to assist you.</p></div>
             </div>
             <div class="mt-20 flex flex-col lg:flex-row items-center gap-8 lg:gap-12 reveal">
                 <div class="lg:w-1/2">
@@ -60,7 +60,7 @@ export function renderHomePage(renderFunc) {
                     <p class="text-gray-400 mt-2">Answers to common questions about our service.</p>
                 </header>
                 <div class="space-y-4 max-w-3xl mx-auto">
-                    <details class="card-glass p-5 rounded-lg cursor-pointer">
+                    <details class="card-glass p-5 rounded-[35px] cursor-pointer">
                         <summary class="font-semibold text-white flex justify-between items-center">
                             <span>What exactly is V2Ray?</span>
                             <i class="fa-solid fa-chevron-down transition-transform duration-300"></i>
@@ -69,7 +69,7 @@ export function renderHomePage(renderFunc) {
                             V2Ray is a powerful and flexible networking tool used to secure your internet connection and bypass restrictions. It routes your internet traffic through an encrypted tunnel, protecting your data from being monitored and giving you access to the open internet.
                         </p>
                     </details>
-                    <details class="card-glass p-5 rounded-lg cursor-pointer">
+                    <details class="card-glass p-5 rounded-[35px] cursor-pointer">
                         <summary class="font-semibold text-white flex justify-between items-center">
                             <span>Which devices and apps are supported?</span>
                             <i class="fa-solid fa-chevron-down transition-transform duration-300"></i>
@@ -78,7 +78,7 @@ export function renderHomePage(renderFunc) {
                             Our service works on a wide range of devices. For Android, we recommend using 'v2rayNG'. For iOS, 'FoXray' or 'Shadowrocket' are great options. For Windows, you can use 'v2rayN'. We provide guides to help you set up the connection easily.
                         </p>
                     </details>
-                    <details class="card-glass p-5 rounded-lg cursor-pointer">
+                    <details class="card-glass p-5 rounded-[35px] cursor-pointer">
                         <summary class="font-semibold text-white flex justify-between items-center">
                             <span>What is your refund policy?</span>
                             <i class="fa-solid fa-chevron-down transition-transform duration-300"></i>
@@ -87,7 +87,7 @@ export function renderHomePage(renderFunc) {
                             You are eligible for a full refund if the request is made within <strong>48 hours</strong> of purchase and your total data usage is less than <strong>10 GB</strong>. If these conditions are not met, a refund will not be possible.
                         </p>
                     </details>
-                    <details class="card-glass p-5 rounded-lg cursor-pointer">
+                    <details class="card-glass p-5 rounded-[35px] cursor-pointer">
                         <summary class="font-semibold text-white flex justify-between items-center">
                             <span>How long does it take for an order to be approved?</span>
                             <i class="fa-solid fa-chevron-down transition-transform duration-300"></i>
