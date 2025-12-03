@@ -9,7 +9,7 @@ export function renderPlansPage(renderFunc, params) {
     const changeQuery = userToChange ? `&change=${encodeURIComponent(userToChange)}` : '';
 
     let plansHtml = Object.entries(appData.plans).map(([key, plan]) => `
-        <div class="card reveal card-glass p-5 rounded-xl text-center flex flex-col">
+        <div class="card reveal card-glass p-5 custom-radius text-center flex flex-col">
             <h3 class="text-xl font-bold gradient-text">${plan.name}</h3>
             <p class="text-3xl font-bold my-3">LKR. ${plan.price}<span class="text-base font-normal text-gray-400">/ month</span></p>
             <ul class="space-y-2 text-gray-300 text-sm text-left my-4 flex-grow">${plan.features.map(f => `<li><i class="fa-solid fa-check text-green-400 mr-2"></i>${f}</li>`).join("")}</ul>
@@ -46,7 +46,7 @@ export function renderConnectionsPage(renderFunc, params) {
             linkUrl = `/checkout?planId=${planId}&connId=${encodeURIComponent(conn.name)}&pkg=${encodeURIComponent(conn.default_package || '')}&inboundId=${conn.default_inbound_id}&vlessTemplate=${encodeURIComponent(conn.default_vless_template)}${changeQuery}`;
             packageInfoHtml = `<p class="text-xs text-blue-300 mt-2 font-semibold">${conn.default_package || 'Standard Connection'}</p>`;
         }
-        return `<a href="${linkUrl}" class="nav-link-internal card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-72">
+        return `<a href="${linkUrl}" class="nav-link-internal card reveal selectable card-glass p-6 custom-radius text-center flex flex-col items-center justify-center w-full sm:w-72">
                     <i class="${conn.icon || 'fa-solid fa-wifi'} text-3xl gradient-text mb-3"></i>
                     <h3 class="text-lg font-bold text-white mb-2">${conn.name}</h3>
                     ${packageInfoHtml}
@@ -79,7 +79,7 @@ export function renderPackageChoicePage(renderFunc, params) {
     let choiceHtml = conn.package_options.map((option) => {
         const encodedOptionName = encodeURIComponent(option.name);
         const encodedTemplate = encodeURIComponent(option.template);
-        return `<a href="/checkout?planId=${planId}&connId=${encodeURIComponent(connId)}&pkg=${encodedOptionName}&inboundId=${option.inbound_id}&vlessTemplate=${encodedTemplate}${changeQuery}" class="nav-link-internal card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col items-center justify-center w-full sm:w-72">
+        return `<a href="/checkout?planId=${planId}&connId=${encodeURIComponent(connId)}&pkg=${encodedOptionName}&inboundId=${option.inbound_id}&vlessTemplate=${encodedTemplate}${changeQuery}" class="nav-link-internal card reveal selectable card-glass p-6 custom-radius text-center flex flex-col items-center justify-center w-full sm:w-72">
             <i class="fa-solid fa-box-open text-3xl gradient-text mb-3"></i>
             <h3 class="text-lg font-bold text-white">${option.name}</h3>
         </a>`;
@@ -158,7 +158,7 @@ export function renderCheckoutPage(renderFunc, params) {
           .renewal-username-field[readonly]:focus ~ .form-label { color: #9ca3af; }
         </style>
         <div id="page-checkout" class="page">
-            <div class="w-full max-w-sm mx-auto card-glass rounded-xl p-6 reveal">
+            <div class="w-full max-w-sm mx-auto card-glass custom-radius p-6 reveal">
                 <div id="checkout-view">
                     <h2 class="text-xl font-bold text-center text-white mb-2">${formActionType}</h2>
                     <div id="checkout-summary" class="text-center mb-6 text-gray-300 text-sm space-y-2">${summaryHtml}</div>
@@ -265,14 +265,14 @@ export function renderPlanChoicePage(renderFunc, activePlans) {
                 <p class="text-gray-400 mt-2">You have an active plan. What would you like to do next?</p>
             </header>
             <div class="flex flex-col sm:flex-row items-stretch justify-center gap-6">
-                <div id="renew-choice-card" class="card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col w-full sm:w-72 cursor-pointer">
+                <div id="renew-choice-card" class="card reveal selectable card-glass p-6 custom-radius text-center flex flex-col w-full sm:w-72 cursor-pointer">
                     <i class="fa-solid fa-arrows-rotate text-3xl gradient-text mb-3"></i>
                     <div class="flex-grow flex flex-col justify-center">
                         <h3 class="text-lg font-bold text-white">Renew / Change Plan</h3>
                         <p class="text-gray-400 mt-1 text-xs">Manage your existing subscription(s).</p>
                     </div>
                 </div>
-                <div id="buy-new-choice-card" class="card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col w-full sm:w-72 cursor-pointer">
+                <div id="buy-new-choice-card" class="card reveal selectable card-glass p-6 custom-radius text-center flex flex-col w-full sm:w-72 cursor-pointer">
                     <i class="fa-solid fa-plus text-3xl gradient-text mb-3"></i>
                     <div class="flex-grow flex flex-col justify-center">
                         <h3 class="text-lg font-bold text-white">Buy a New Plan</h3>
@@ -297,7 +297,7 @@ export function renderRenewOrChangePage(renderFunc, planToManage) {
                 <p class="text-gray-400 mt-2">Would you like to renew your current plan or change to a different one?</p>
             </header>
             <div class="flex flex-col sm:flex-row items-stretch justify-center gap-6"> 
-                <div id="renew-current-card" class="card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col w-full sm:w-72 cursor-pointer">
+                <div id="renew-current-card" class="card reveal selectable card-glass p-6 custom-radius text-center flex flex-col w-full sm:w-72 cursor-pointer">
                     <i class="fa-solid fa-calendar-check text-3xl gradient-text mb-3"></i>
                     <div class="flex-grow flex flex-col justify-center">
                         <h3 class="text-lg font-bold text-white">Renew Current Plan</h3>
@@ -307,7 +307,7 @@ export function renderRenewOrChangePage(renderFunc, planToManage) {
                         </div>
                     </div>
                 </div>
-                <div id="change-plan-card" class="card reveal selectable card-glass p-6 rounded-xl text-center flex flex-col w-full sm:w-72 cursor-pointer">
+                <div id="change-plan-card" class="card reveal selectable card-glass p-6 custom-radius text-center flex flex-col w-full sm:w-72 cursor-pointer">
                     <i class="fa-solid fa-right-left text-3xl gradient-text mb-3"></i>
                     <div class="flex-grow flex flex-col justify-center">
                         <h3 class="text-lg font-bold text-white">Change to a New Plan</h3>
