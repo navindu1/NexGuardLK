@@ -10,8 +10,8 @@ function displayUserData(data, name, container) {
     const usagePercentage = totalQuota > 0 ? Math.min((totalUsed / totalQuota) * 100, 100) : 0;
     const status = data.enable ? `<span class="font-semibold text-green-400">ONLINE</span>` : `<span class="font-semibold text-red-400">OFFLINE</span>`;
     
-    // --- START: EXPIRY DATE FIX (Date Only) ---
-    let expiry = `<span class="font-bold text-blue-300 shadow-blue-500/50 drop-shadow-sm">Unlimited ♾️</span>`; // Default for 0 or null
+    // --- START: EXPIRY DATE FONT FIX ---
+    let expiry = `<span class="text-blue-300">Unlimited ♾️</span>`; // Default for 0 or null
     
     // Ensure expiryTime is treated as a number
     const expiryTimestamp = parseInt(data.expiryTime, 10);
@@ -21,13 +21,13 @@ function displayUserData(data, name, container) {
         const now = new Date();
 
         if (now > expDate) {
-            expiry = `<span class="font-bold text-red-500 animate-pulse">Expired ⚠️</span>`;
+            expiry = `<span class="text-red-500">Expired ⚠️</span>`;
         } else {
-            // UPDATED: Show ONLY Date (YYYY-MM-DD) - Time removed
-            expiry = `<span class="text-white font-mono tracking-wide">${expDate.toLocaleDateString('en-CA')}</span>`;
+            // FIXED: Removed 'font-mono' and 'span'. Just returning the string allows parent classes to apply font style.
+            expiry = expDate.toLocaleDateString('en-CA');
         }
     }
-    // --- END: EXPIRY DATE FIX ---
+    // --- END: EXPIRY DATE FONT FIX ---
 
     const html = `
         <div class="result-card p-4 sm:p-6 card-glass rounded-xl space-y-5 reveal is-visible">
@@ -43,13 +43,13 @@ function displayUserData(data, name, container) {
                 <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-circle-down text-sky-400 text-lg w-5 text-center"></i><span>Download</span></div><p id="download-value-mobile" class="font-semibold text-white text-base">0 B</p></div>
                 <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-circle-up text-violet-400 text-lg w-5 text-center"></i><span>Upload</span></div><p id="upload-value-mobile" class="font-semibold text-white text-base">0 B</p></div>
                 <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-database text-green-400 text-lg w-5 text-center"></i><span>Total Used</span></div><p id="total-usage-value-mobile" class="font-semibold text-white text-base">0 B</p></div>
-                <div class="flex justify-between items-center"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-calendar-xmark text-red-400 text-lg w-5 text-center"></i><span>Expires On</span></div><p class="font-medium text-white text-base">${expiry}</p></div>
+                <div class="flex justify-between items-center"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-calendar-xmark text-red-400 text-lg w-5 text-center"></i><span>Expires On</span></div><p class="font-semibold text-white text-base">${expiry}</p></div>
             </div>
             <div class="hidden sm:grid sm:grid-cols-2 gap-4 text-sm">
                 <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-circle-down text-sky-400 mr-2"></i><span>Download</span></div><p id="download-value-desktop" class="text-2xl font-bold text-white mt-1">0 B</p></div>
                 <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-circle-up text-violet-400 mr-2"></i><span>Upload</span></div><p id="upload-value-desktop" class="text-2xl font-bold text-white mt-1">0 B</p></div>
                 <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-database text-green-400 mr-2"></i><span>Total Used</span></div><p id="total-usage-value-desktop" class="text-2xl font-bold text-white mt-1">0 B</p></div>
-                <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-calendar-xmark text-red-400 mr-2"></i><span>Expires On</span></div><p class="text-xl font-medium text-white mt-1">${expiry}</p></div>
+                <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-calendar-xmark text-red-400 mr-2"></i><span>Expires On</span></div><p class="text-2xl font-bold text-white mt-1">${expiry}</p></div>
             </div>
         </div>`;
     container.innerHTML = html;
@@ -86,13 +86,13 @@ function displayUserData(data, name, container) {
 // --- Main Render Function ---
 export function renderUsagePage(renderFunc) {
     const pageStyles = `<style>
-        /* Overlay: Light blur, transparent white tint to make background highlight */
+        /* Overlay styles */
         .help-modal-overlay {
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
-            background: rgba(255, 255, 255, 0.05); /* Very light white tint */
-            backdrop-filter: blur(5px); /* Slight blur to background */
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(5px);
             -webkit-backdrop-filter: blur(5px);
         }
         
@@ -113,16 +113,12 @@ export function renderUsagePage(renderFunc) {
             transform: scale(1);
         }
 
-        /* NEW LIGHT GLASS EFFECT */
+        /* LIGHT GLASS EFFECT */
         .light-glass {
-            /* Lighter, transparent background */
             background: rgba(255, 255, 255, 0.1); 
-            /* Heavy blur for glass feel */
             backdrop-filter: blur(20px) saturate(180%);
             -webkit-backdrop-filter: blur(20px) saturate(180%);
-            /* Distinct white border */
             border: 1px solid rgba(255, 255, 255, 0.3);
-            /* Inner shine and outer shadow */
             box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2), inset 0 0 20px rgba(255, 255, 255, 0.05);
         }
     </style>`;
@@ -152,9 +148,7 @@ export function renderUsagePage(renderFunc) {
             </main>
             
             <div id="help-modal" class="help-modal-overlay fixed inset-0 z-[100] flex justify-center items-center p-4">
-                
                 <div class="help-modal-content light-glass rounded-2xl p-6 space-y-4 w-full max-w-md">
-                    
                     <div class="flex justify-between items-start">
                         <div>
                             <h2 class="text-xl font-bold text-white font-['Orbitron'] drop-shadow-md">Help & Support Matrix</h2>
