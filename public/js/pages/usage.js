@@ -104,7 +104,7 @@ export function renderUsagePage(renderFunc) {
                     </button>
                 </form>
                 <div id="result" class="mt-6"></div>
-                <div id="how-to-find-link-container" class="text-center pt-0 reveal is-visible hidden">
+                <div id="how-to-find-link-container" class="text-center pt-0 reveal is-visible">
                     <span id="open-help-modal-link" class="text-blue-400 text-sm cursor-pointer hover:underline ">How to find your username?</span>
                 </div>
             </main>
@@ -155,11 +155,7 @@ export function renderUsagePage(renderFunc) {
                 if (!res.ok) {
                     howToFindLinkContainer.classList.remove('hidden');
                     if (res.status === 404) {
-                        resultDiv.innerHTML = `
-    <div class="p-4 text-center text-amber-400 card-glass rounded-lg flex flex-col items-center gap-3">
-        <i class="fa-solid fa-user-slash text-2xl"></i>
-        <div><p class="font-semibold">This client name does not exist.</p></div>
-    </div>`;
+                        resultDiv.innerHTML = `<div class="p-4 text-center text-amber-400 card-glass rounded-lg flex flex-col items-center gap-3"><i class="fa-solid fa-user-slash text-2xl"></i><div><p class="font-semibold">This client name does not exist.`;
                     } else {
                         const errorResult = await res.json();
                         resultDiv.innerHTML = `<div class="p-4 text-center text-amber-400 card-glass rounded-lg">${errorResult.message || `Server error: ${res.status}`}</div>`;
