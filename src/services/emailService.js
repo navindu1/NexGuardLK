@@ -1,5 +1,23 @@
 const transporter = require('../config/mailer');
 
+/**
+ * Brevo Mail හරහා email යැවීම සඳහා වන ප්‍රධාන function එක.
+ */
+const sendEmail = async (to, subject, html) => {
+    try {
+        await transporter.sendMail({
+            from: `"NexGuard LK" <${process.env.EMAIL_SENDER}>`,
+            to,
+            subject,
+            html,
+        });
+        console.log(`Email sent successfully to ${to} via Brevo.`);
+    } catch (error) {
+        console.error(`Error sending email via Brevo to ${to}:`, error);
+        throw new Error('Failed to send email.');
+    }
+};
+
 // --- Configuration Variables ---
 const FRONTEND_URL = process.env.FRONTEND_URL || "https://app.nexguardlk.store";
 const LOGO_URL = process.env.LOGO_PUBLIC_URL || `${FRONTEND_URL}/assets/logo.png`;
@@ -10,37 +28,13 @@ const WHATSAPP_URL = process.env.WHATSAPP_URL || "https://wa.me/94770492554";
 const TELEGRAM_URL = process.env.TELEGRAM_URL || "https://t.me/nexguardusagebot";
 
 // --- Style Definitions (User Requested Changes) ---
-const SITE_BLUE_COLOR = "#244ed9";      // Site Blue Color
-const MAIN_BG_COLOR = "#f8fef6";        // Main Background Color
-const TEXT_COLOR = "#333333";           // Main Text Color
-const SECONDARY_TEXT_COLOR = "#555555"; // Secondary Text Color
-const BORDER_COLOR = "#244ed9";         // Border Color
+const SITE_BLUE_COLOR = "#244ed9";      // Site Blue Color (Updated)
+const MAIN_BG_COLOR = "#f8fef6";        // Main Background Color (Updated)
+const TEXT_COLOR = "#333333";          // Main Text Color (Updated for light BG)
+const SECONDARY_TEXT_COLOR = "#555555"; // Secondary Text Color (Updated for light BG)
+const BORDER_COLOR = "#244ed9";        // Border Color (Updated)
 
-/**
- * Main Email Sending Function
- * Zoho Mail හරහා email යැවීම සඳහා වන ප්‍රධාන function එක.
- */
-const sendEmail = async (to, subject, html) => {
-    try {
-        const mailOptions = {
-            // මෙතැන sender ලෙස ZOHO_USER භාවිතා කිරීම ආරක්ෂිතයි (Zoho ප්‍රතිපත්ති අනුව)
-            from: `"NexGuard LK" <${process.env.ZOHO_USER}>`, 
-            to: to,
-            subject: subject,
-            html: html,
-        };
-
-        const info = await transporter.sendMail(mailOptions);
-        console.log(`Email sent successfully to ${to}. MessageID: ${info.messageId}`);
-        return { success: true, messageId: info.messageId };
-    } catch (error) {
-        console.error(`Error sending email to ${to}:`, error);
-        throw new Error(`Failed to send email: ${error.message}`);
-    }
-};
-
-// --- Template Generators (Template Styles Preserved) ---
-
+// --- Main Email Template Generator (Updated Styles) ---
 const generateEmailTemplate = (title, preheader, content) => `
 <!DOCTYPE html>
 <html lang="en">
@@ -48,21 +42,23 @@ const generateEmailTemplate = (title, preheader, content) => `
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>${title}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
     <style>
         /* Basic Reset */
-        body, html { margin: 0; padding: 0; width: 100%; -webkit-font-smoothing: antialiased; background-color: ${MAIN_BG_COLOR}; font-family: Inter, arial, sans-serif; }
+        body, html { margin: 0; padding: 0; width: 100%; -webkit-font-smoothing: antialiased; background-color: ${MAIN_BG_COLOR}; font-family: Inter, arial, sans-serif; } /* Updated Font & BG */
         table { border-collapse: collapse; }
         img { border: 0; max-width: 100%; height: auto; vertical-align: middle; }
-        a { color: ${SITE_BLUE_COLOR}; text-decoration: underline; font-weight: 600; text-decoration-thickness: 1.5px; }
+        a { color: ${SITE_BLUE_COLOR}; text-decoration: underline; font-weight: 600; text-decoration-thickness: 1.5px; } /* Updated Blue, Font Weight & Underline */
         a:hover { text-decoration: underline; }
-        p { margin: 0 0 14px; font-size: 15px; line-height: 24px; color: ${TEXT_COLOR}; font-weight: 500; }
+        p { margin: 0 0 14px; font-size: 15px; line-height: 24px; color: ${TEXT_COLOR}; font-weight: 500; } /* Updated Text Color, Line Height & Font Weight */
         strong { font-weight: 700;}
         .username-highlight { color: ${SITE_BLUE_COLOR}; font-weight: 700; }
 
         /* Layout */
         .wrapper { width: 100%; table-layout: fixed; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
-        .webkit { max-width: 580px; margin: 0 auto; background-color: ${MAIN_BG_COLOR}; }
+        .webkit { max-width: 580px; margin: 0 auto; background-color: ${MAIN_BG_COLOR}; } /* Updated BG */
         .outer { margin: 0 auto; width: 100%; max-width: 580px; }
         .inner { padding: 28px; }
 
@@ -71,13 +67,14 @@ const generateEmailTemplate = (title, preheader, content) => `
         .logo { max-width: 140px; }
 
         /* Content Area */
-        .content-title { font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 700; margin: 0 0 20px; color: ${SITE_BLUE_COLOR}; text-align: center; }
+        .content-title { font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 700; margin: 0 0 20px; color: ${SITE_BLUE_COLOR}; text-align: center; } /* Title Color to Site Blue */
 
         /* OTP Specific Style */
         .otp-box {
-            border: 2px solid ${SITE_BLUE_COLOR};
-            border-radius: 0;
-            padding: 10px 8px;
+            /* background-color: #e0f2fe; Removed background */
+            border: 2px solid ${SITE_BLUE_COLOR}; /* Use Site Blue for border */
+            border-radius: 0; /* Updated */
+            padding: 10px 8px; /* Updated */
             margin: 20px 0;
             text-align: center;
         }
@@ -86,27 +83,27 @@ const generateEmailTemplate = (title, preheader, content) => `
             font-size: 32px;
             font-weight: 700;
             letter-spacing: 4px;
-            color: ${SITE_BLUE_COLOR};
+            color: ${SITE_BLUE_COLOR}; /* Updated Blue */
             margin: 0;
         }
-        .validity-text { font-size: 13px; margin: 10px 0 20px; color: ${SECONDARY_TEXT_COLOR}; text-align: center; }
+        .validity-text { font-size: 13px; margin: 10px 0 20px; color: ${SECONDARY_TEXT_COLOR}; text-align: center; } /* Updated Text Color */
 
         /* Button Style */
-        .button-link { background-color: ${SITE_BLUE_COLOR}; color: #ffffff !important; padding: 12px 24px; font-size: 15px; font-weight: 600; text-decoration: none !important; border-radius: 0; display: inline-block; font-family: 'Inter', sans-serif; border: none; cursor: pointer; text-align: center; mso-padding-alt: 0; text-underline-color: ${SITE_BLUE_COLOR}; }
+        .button-link { background-color: ${SITE_BLUE_COLOR}; color: #ffffff !important; padding: 12px 24px; font-size: 15px; font-weight: 600; text-decoration: none !important; border-radius: 0; display: inline-block; font-family: 'Inter', sans-serif; border: none; cursor: pointer; text-align: center; mso-padding-alt: 0; text-underline-color: ${SITE_BLUE_COLOR}; } /* Updated Radius */
         .button-link:hover { background-color: #1e3a8a; }
 
         /* Help Section */
-        .help-section { margin-top: 28px; padding-top: 20px; border-top: 1px solid ${BORDER_COLOR}; text-align: center; }
-        .help-section p { margin-bottom: 6px; font-size: 13px; color: ${SECONDARY_TEXT_COLOR}; line-height: 1.5; }
+        .help-section { margin-top: 28px; padding-top: 20px; border-top: 1px solid ${BORDER_COLOR}; text-align: center; } /* Updated Border Color */
+        .help-section p { margin-bottom: 6px; font-size: 13px; color: ${SECONDARY_TEXT_COLOR}; line-height: 1.5; } /* Updated Text Color */
         .help-section a { color: ${SITE_BLUE_COLOR}; text-decoration: underline; font-weight: 600; }
 
         /* Footer */
-        .footer { padding: 28px 0 20px; text-align: center; font-size: 11px; color: ${SECONDARY_TEXT_COLOR}; }
+        .footer { padding: 28px 0 20px; text-align: center; font-size: 11px; color: ${SECONDARY_TEXT_COLOR}; } /* Updated Text Color */
         .social-icons img {
-            width: 38px; height: 38px;
+            width: 38px; height: 38px; /* Updated size */
             vertical-align: middle;
-            border-radius: 50%;
-            border: 2px solid ${SITE_BLUE_COLOR};
+            border-radius: 50%; /* Updated to round */
+            border: 2px solid ${SITE_BLUE_COLOR}; /* Blue border */
             padding: 2px;
             box-sizing: border-box;
         }
@@ -121,7 +118,7 @@ const generateEmailTemplate = (title, preheader, content) => `
             .otp-code { font-size: 28px; letter-spacing: 3px; }
             p { font-size: 14px; line-height: 22px; }
             .button-link { padding: 10px 20px; font-size: 14px; }
-            .social-icons img { width: 34px; height: 34px; }
+            .social-icons img { width: 34px; height: 34px; } /* Slightly smaller on mobile */
             .social-icons a { margin: 0 4px; }
         }
     </style>
@@ -166,7 +163,7 @@ const generateEmailTemplate = (title, preheader, content) => `
 // --- Button HTML Helper ---
 const buttonHtml = (url, text) => `<table border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin: 20px auto;"><tr><td align="center" bgcolor="${SITE_BLUE_COLOR}" style="border-radius: 0;"><a href="${url}" target="_blank" class="button-link">${text}</a></td></tr></table>`;
 
-// --- Content Generation Functions ---
+// --- Content Generation Functions (Adjusted Text Colors) ---
 
 const generateOtpEmailContent = (username, otp) => `
 <p>Hello, <strong class="username-highlight">${username}</strong>!</p>
@@ -222,7 +219,7 @@ const generateUserNotFoundEmailContent = (triedEmail) => `
 
 // Export functions
 module.exports = {
-    sendEmail, // Uncommented and exported to be used in authController
+    // sendEmail, // Assuming this is commented out intentionally
     generateEmailTemplate,
     generateOtpEmailContent,
     generatePasswordResetEmailContent,
@@ -232,3 +229,4 @@ module.exports = {
     generateExpiryReminderEmailContent,
     generateUserNotFoundEmailContent,
 };
+

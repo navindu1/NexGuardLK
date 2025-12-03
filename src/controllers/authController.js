@@ -1,23 +1,24 @@
+// File Path: src/controllers/authController.js
+
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { v4: uuidv4 } = require("uuid");
 const supabase = require("../config/supabaseClient");
-// Transporter එක මෙතැනට Import කිරීම අවශ්‍ය නැත. Service එක හරහා යවමු.
-const { sendEmail, generateEmailTemplate, generateOtpEmailContent, generatePasswordResetEmailContent } = require("../services/emailService");
+const transporter = require("../config/mailer");
+const { generateEmailTemplate, generateOtpEmailContent, generatePasswordResetEmailContent } = require("../services/emailService");
 
+// උපරිම වැරදි උත්සාහයන් ගණන
 const MAX_OTP_ATTEMPTS = 5;
+// Lock කරන කාලය (විනාඩි 15)
 const LOCKOUT_TIME_MS = 15 * 60 * 1000; 
 
 exports.register = async (req, res) => {
     const { username, email, whatsapp, password } = req.body;
-    
-    // 1. Validation
     if (!username || !email || !whatsapp || !password)
         return res.status(400).json({ success: false, message: "All fields are required." });
 
     try {
-        // 2. Check Existing User
         const { data: existingUser } = await supabase
             .from("users")
             .select("id, otp_code")
@@ -28,10 +29,9 @@ exports.register = async (req, res) => {
             return res.status(409).json({ success: false, message: "Username or email is already taken." });
         }
 
-        // 3. Prepare User Data
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const hashedPassword = bcrypt.hashSync(password, 10);
-        const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+        const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // විනාඩි 10 කින් කල් ඉකුත් වේ
 
         const userData = {
             username,
@@ -40,40 +40,37 @@ exports.register = async (req, res) => {
             password: hashedPassword,
             otp_code: otp,
             otp_expiry: otpExpiry.toISOString(),
+            // අලුත් OTP එකක් යවන විට පරණ වැරදි උත්සාහයන් (Attempts) ඉවත් කරන්න
             otp_attempts: 0,
             otp_lockout_until: null,
             profile_picture: "assets/profilePhoto.jpg",
             active_plans: [],
         };
         
-        // 4. Save to Database
         const { error } = await supabase.from("users").upsert({ id: existingUser?.id || uuidv4(), ...userData }, { onConflict: 'email' });
         if (error) throw error;
 
-        // 5. Send Email (Using Service Function)
-        // මෙම ක්‍රමය Vercel මත වඩාත් ආරක්ෂිතයි
-        try {
-            const subject = "Your NexGuard Verification Code";
-            const htmlContent = generateEmailTemplate(
+        const mailOptions = {
+            from: `NexGuard <${process.env.EMAIL_SENDER}>`,
+            to: email,
+            subject: "Your NexGuard Verification Code",
+            html: generateEmailTemplate(
                 "Verify Your Email",
                 "Your OTP is inside.",
                 generateOtpEmailContent(username, otp)
-            );
+            ),
+        };
 
-            // sendEmail function එක await කර ප්‍රතිචාරය එනතුරු රැඳී සිටින්න
-            await sendEmail(email, subject, htmlContent);
-            
-            console.log(`OTP Process Complete for ${email}`);
-
-            return res.status(200).json({
+        try {
+            await transporter.sendMail(mailOptions);
+            console.log(`OTP email sent successfully to ${email}`);
+            res.status(200).json({
                 success: true,
-                message: `An OTP has been sent to ${email}. Please check your Inbox and Spam folder.`,
+                message: `An OTP has been sent to ${email}. Please verify to complete registration.`,
             });
-
         } catch (emailError) {
-            console.error(`CRITICAL: FAILED to send OTP to ${email}:`, emailError);
-            // Email යැවීම අසාර්ථක වුවහොත් User ට ඒ බව දන්වන්න
-            return res.status(500).json({ success: false, message: "Registration successful, but failed to send OTP email. Please try logging in or resending OTP." });
+            console.error(`CRITICAL: FAILED to send OTP email to ${email}:`, emailError);
+            return res.status(500).json({ success: false, message: "Could not send verification email. Please try again later." });
         }
 
     } catch (error) {
@@ -86,6 +83,7 @@ exports.verifyOtp = async (req, res) => {
     const { email, otp } = req.body;
     
     try {
+        // 1. User දත්ත ලබා ගැනීම
         const { data: user, error } = await supabase
             .from("users")
             .select("*")
@@ -93,23 +91,31 @@ exports.verifyOtp = async (req, res) => {
             .single();
         
         if (error || !user) {
+            // ආරක්ෂක හේතූන් මත User කෙනෙක් නැති වුනත් වැරදි පණිවිඩයක්ම යවන්න (User Enumeration වැලැක්වීමට)
             return res.status(400).json({ success: false, message: "Invalid request or user not found." });
         }
 
+        // 2. ගිණුම Lock වී ඇත්දැයි පරීක්ෂා කිරීම (Brute-force protection)
         if (user.otp_lockout_until && new Date() < new Date(user.otp_lockout_until)) {
             const waitMinutes = Math.ceil((new Date(user.otp_lockout_until) - new Date()) / 60000);
-            return res.status(429).json({ success: false, message: `Too many failed attempts. Please try again in ${waitMinutes} minutes.` });
+            return res.status(429).json({ 
+                success: false, 
+                message: `Too many failed attempts. Please try again in ${waitMinutes} minutes.` 
+            });
         }
 
+        // 3. OTP කල් ඉකුත් වී ඇත්දැයි බැලීම
         if (!user.otp_code || new Date() > new Date(user.otp_expiry)) {
             return res.status(400).json({ success: false, message: "OTP has expired. Please register again." });
         }
 
+        // 4. OTP එක වැරදි නම්
         if (user.otp_code !== otp) {
             const newAttempts = (user.otp_attempts || 0) + 1;
             let updateData = { otp_attempts: newAttempts };
             let message = "Invalid OTP code.";
 
+            // වැරදි වාර ගණන 5 පැනුවොත් Lock කරන්න
             if (newAttempts >= MAX_OTP_ATTEMPTS) {
                 updateData.otp_lockout_until = new Date(Date.now() + LOCKOUT_TIME_MS).toISOString();
                 message = "Too many failed attempts. Account locked for 15 minutes.";
@@ -117,17 +123,21 @@ exports.verifyOtp = async (req, res) => {
                 message = `Invalid OTP. You have ${MAX_OTP_ATTEMPTS - newAttempts} attempts remaining.`;
             }
 
+            // DB Update (Attempts count)
             await supabase.from("users").update(updateData).eq("id", user.id);
+            
             return res.status(400).json({ success: false, message: message });
         }
 
+        // 5. OTP නිවැරදි නම් (Success Path)
+        // සියලුම වැරදි උත්සාහයන් reset කරන්න
         const { error: updateError } = await supabase
             .from("users")
             .update({ 
                 otp_code: null, 
                 otp_expiry: null,
-                otp_attempts: 0,
-                otp_lockout_until: null 
+                otp_attempts: 0,        // Reset attempts
+                otp_lockout_until: null // Remove lock
             })
             .eq("id", user.id);
 
@@ -235,6 +245,7 @@ exports.resellerLogin = async (req, res) => {
 
 exports.forgotPassword = async (req, res) => {
     const { email } = req.body;
+    // Security: Do not reveal if the email exists or not to prevent user enumeration
     const genericResponse = { message: 'If an account with that email exists, a password reset link has been sent.' };
 
     try {
@@ -250,7 +261,7 @@ exports.forgotPassword = async (req, res) => {
 
         const resetToken = crypto.randomBytes(32).toString('hex');
         const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-        const resetExpiry = new Date(Date.now() + 10 * 60 * 1000);
+        const resetExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
         const { error: updateError } = await supabase
             .from("users")
@@ -266,12 +277,15 @@ exports.forgotPassword = async (req, res) => {
         }
 
         const resetURL = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
-        const subject = 'Your Password Reset Link (Valid for 10 mins)';
-        const html = generateEmailTemplate('Password Reset Request', 'Use the link inside to reset your password.', generatePasswordResetEmailContent(user.username, resetURL));
+        const mailOptions = {
+             from: `NexGuard <${process.env.EMAIL_SENDER}>`,
+             to: user.email,
+             subject: 'Your Password Reset Link (Valid for 10 mins)',
+             html: generateEmailTemplate('Password Reset Request', 'Use the link inside to reset your password.', generatePasswordResetEmailContent(user.username, resetURL)),
+        };
 
-        // Using sendEmail service
         try {
-            await sendEmail(user.email, subject, html);
+            await transporter.sendMail(mailOptions);
             res.json(genericResponse);
         } catch (emailError) {
             console.error(`FAILED to send password reset email to ${user.email}:`, emailError);
