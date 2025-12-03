@@ -152,7 +152,7 @@ export function renderAboutPage(renderFunc) {
 export function renderPrivacyPage(renderFunc) {
     renderFunc(`
         <div id="page-privacy" class="page space-y-8">
-            <div class="card-glass p-8 rounded-lg space-y-5 max-w-4xl mx-auto reveal">
+            <div class="card-glass p-8 custom-radius space-y-5 max-w-4xl mx-auto reveal">
                 <h2 class="text-2xl font-bold">Privacy & Refund Policy</h2>
                 <div>
                     <h3 class="text-lg font-bold text-white mb-2">Our Commitment to Privacy</h3>
@@ -173,26 +173,26 @@ export function renderPrivacyPage(renderFunc) {
                 </div>
             </div>
 
-            <div class="card-glass p-8 rounded-lg max-w-4xl mx-auto reveal">
+            <div class="card-glass p-8 custom-radius max-w-4xl mx-auto reveal">
                 <h2 class="text-2xl font-bold mb-6 text-center text-white">Downloadable Software</h2>
                 <p class="text-gray-400 text-center mb-8 text-sm">Download the recommended V2Ray client for your device to get started.</p>
                 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <a href="https://cyfuture.dl.sourceforge.net/project/netmodhttp/Setup/NetMod6.2.10_x86_beta.exe?viasf=1" target="_blank" class="card p-6 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition flex flex-col items-center justify-center text-center group cursor-pointer">
+                    <a href="https://cyfuture.dl.sourceforge.net/project/netmodhttp/Setup/NetMod6.2.10_x86_beta.exe?viasf=1" target="_blank" class="card p-6 custom-radius bg-white/5 border border-white/10 hover:bg-white/10 transition flex flex-col items-center justify-center text-center group cursor-pointer">
                         <i class="fa-brands fa-windows text-4xl text-blue-400 mb-3 group-hover:scale-110 transition-transform"></i>
                         <h3 class="font-bold text-white text-lg">PC Client</h3>
                         <p class="text-xs text-gray-400 mt-1">Netmod Syna</p>
                         <span class="mt-3 text-xs bg-blue-500/20 text-blue-300 px-3 py-1 rounded-full">Download .exe</span>
                     </a>
 
-                    <a href="https://apps.apple.com/us/app/v2box-v2ray-client/id6446814690" target="_blank" class="card p-6 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition flex flex-col items-center justify-center text-center group cursor-pointer">
+                    <a href="https://apps.apple.com/us/app/v2box-v2ray-client/id6446814690" target="_blank" class="card p-6 custom-radius bg-white/5 border border-white/10 hover:bg-white/10 transition flex flex-col items-center justify-center text-center group cursor-pointer">
                         <i class="fa-brands fa-app-store-ios text-4xl text-gray-200 mb-3 group-hover:scale-110 transition-transform"></i>
                         <h3 class="font-bold text-white text-lg">iOS Client</h3>
                         <p class="text-xs text-gray-400 mt-1">V2Box</p>
                         <span class="mt-3 text-xs bg-gray-500/20 text-gray-300 px-3 py-1 rounded-full">App Store</span>
                     </a>
 
-                    <a href="https://play.google.com/store/apps/details?id=com.netmod.syna&pcampaignid=web_share" target="_blank" class="card p-6 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition flex flex-col items-center justify-center text-center group cursor-pointer">
+                    <a href="https://play.google.com/store/apps/details?id=com.netmod.syna&pcampaignid=web_share" target="_blank" class="card p-6 custom-radius bg-white/5 border border-white/10 hover:bg-white/10 transition flex flex-col items-center justify-center text-center group cursor-pointer">
                         <i class="fa-brands fa-android text-4xl text-green-400 mb-3 group-hover:scale-110 transition-transform"></i>
                         <h3 class="font-bold text-white text-lg">Android Client</h3>
                         <p class="text-xs text-gray-400 mt-1">Netmod Syna</p>
