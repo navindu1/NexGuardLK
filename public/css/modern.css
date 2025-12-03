@@ -68,6 +68,11 @@ body.modal-open {
   }
 }
 
+.custom-radius {
+    border-radius: 35px !important;
+}
+
+
 .ai-button {
   position: relative;
   background: var(--brand-gradient);
