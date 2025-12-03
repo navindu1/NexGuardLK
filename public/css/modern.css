@@ -53,6 +53,11 @@ body.modal-open {
   -webkit-text-fill-color: transparent;
 }
 
+.rounded-lg {
+  border-radius: 35px !important;
+}
+
+
 .page {
   animation: pageFadeIn 0.5s ease-out forwards;
 }
