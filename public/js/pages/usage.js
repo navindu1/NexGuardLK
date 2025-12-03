@@ -95,6 +95,15 @@ export function renderUsagePage(renderFunc) {
             opacity: 1;
             transform: scale(1);
         }
+
+        /* NEW LIQUID GLASS EFFECT */
+        .liquid-glass {
+            background: rgba(5, 5, 20, 0.75); /* Darker background for better text readability */
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(40px) saturate(150%); /* Heavy blur + saturation for liquid effect */
+            -webkit-backdrop-filter: blur(40px) saturate(150%);
+            border: 1px solid rgba(255, 255, 255, 0.15); /* Sharper border */
+        }
     </style>`;
 
     renderFunc(pageStyles + `
@@ -123,7 +132,7 @@ export function renderUsagePage(renderFunc) {
             
             <div id="help-modal" class="help-modal-overlay fixed inset-0 bg-transparent z-[100] flex justify-center items-center p-4">
                 
-                <div class="help-modal-content bg-slate-950/90 backdrop-blur-3xl border border-white/10 rounded-2xl p-6 space-y-4 w-full max-w-md shadow-2xl">
+                <div class="help-modal-content liquid-glass rounded-2xl p-6 space-y-4 w-full max-w-md">
                     
                     <div class="flex justify-between items-start">
                         <div>
@@ -135,13 +144,13 @@ export function renderUsagePage(renderFunc) {
                     <div class="lang-content lang-en">
                         <div>
                             <h3 class="text-lg font-semibold text-blue-400 mb-2">How to find your Username?</h3>
-                            <p class="text-gray-300 text-sm mb-4">Your username is the name assigned to your V2ray configuration. It's often visible in your V2ray client app, usually next to the server connection name.</p>
+                            <p class="text-gray-200 text-sm mb-4 font-medium">Your username is the name assigned to your V2ray configuration. It's often visible in your V2ray client app, usually next to the server connection name.</p>
                         </div>
                     </div>
                     <div class="lang-content lang-si hidden">
                         <div>
                             <h3 class="text-lg font-semibold text-blue-400 mb-2">ඔබගේ Username එක සොයාගන්නේ කෙසේද?</h3>
-                            <p class="text-gray-300 text-sm mb-4">ඔබගේ username යනු V2ray config ගොනුවට ලබා දී ඇති නමයි. එය බොහෝවිට V2ray client ඇප් එකේ, server සම්බන්ධතාවය අසල දිස්වේ.</p>
+                            <p class="text-gray-200 text-sm mb-4 font-medium">ඔබගේ username යනු V2ray config ගොනුවට ලබා දී ඇති නමයි. එය බොහෝවිට V2ray client ඇප් එකේ, server සම්බන්ධතාවය අසල දිස්වේ.</p>
                         </div>
                     </div>
                     <div class="bg-black/50 border border-white/10 rounded-lg p-2">
