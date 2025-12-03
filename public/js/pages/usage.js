@@ -73,11 +73,26 @@ function displayUserData(data, name, container) {
 export function renderUsagePage(renderFunc) {
     // --- START: MODAL ANIMATION FIX ---
     const pageStyles = `<style>
+        /* Overlay styles - ensure background renders correctly */
+        .help-modal-overlay {
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
+        }
+        
+        .help-modal-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Content animation - slight scale up */
         .help-modal-content {
             opacity: 0;
             transform: scale(0.95);
             transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
+        
+        /* When visible, content becomes fully opaque and scaled */
         .help-modal-overlay.visible .help-modal-content {
             opacity: 1;
             transform: scale(1);
@@ -85,6 +100,7 @@ export function renderUsagePage(renderFunc) {
     </style>`;
     // --- END: MODAL ANIMATION FIX ---
 
+    // Added 'fixed inset-0 bg-black/80 backdrop-blur-sm z-[100]' to #help-modal div
     renderFunc(pageStyles + `
         <div class="page" id="page-usage">
             <main class="w-full max-w-sm space-y-4 z-10 mx-auto">
@@ -108,7 +124,8 @@ export function renderUsagePage(renderFunc) {
                     <span id="open-help-modal-link" class="text-blue-400 text-sm cursor-pointer hover:underline ">How to find your username?</span>
                 </div>
             </main>
-            <div id="help-modal" class="help-modal-overlay">
+            
+            <div id="help-modal" class="help-modal-overlay fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex justify-center items-center p-4">
                 <div class="help-modal-content card-glass rounded-lg p-6 space-y-4 w-full max-w-md">
                     <div class="flex justify-between items-start">
                         <div>
