@@ -72,11 +72,14 @@ function displayUserData(data, name, container) {
 // --- Main Render Function ---
 export function renderUsagePage(renderFunc) {
     const pageStyles = `<style>
-        /* Overlay styles - ensure click works but invisible */
+        /* Overlay: Light blur, transparent white tint to make background highlight */
         .help-modal-overlay {
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
+            background: rgba(255, 255, 255, 0.05); /* Very light white tint */
+            backdrop-filter: blur(5px); /* Slight blur to background */
+            -webkit-backdrop-filter: blur(5px);
         }
         
         .help-modal-overlay.visible {
@@ -84,7 +87,7 @@ export function renderUsagePage(renderFunc) {
             visibility: visible;
         }
 
-        /* Content animation - slight scale up */
+        /* Modal Animation */
         .help-modal-content {
             opacity: 0;
             transform: scale(0.95);
@@ -96,13 +99,17 @@ export function renderUsagePage(renderFunc) {
             transform: scale(1);
         }
 
-        /* NEW LIQUID GLASS EFFECT */
-        .liquid-glass {
-            background: rgba(5, 5, 20, 0.75); /* Darker background for better text readability */
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(40px) saturate(150%); /* Heavy blur + saturation for liquid effect */
-            -webkit-backdrop-filter: blur(40px) saturate(150%);
-            border: 1px solid rgba(255, 255, 255, 0.15); /* Sharper border */
+        /* NEW LIGHT GLASS EFFECT */
+        .light-glass {
+            /* Lighter, transparent background */
+            background: rgba(255, 255, 255, 0.1); 
+            /* Heavy blur for glass feel */
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            /* Distinct white border */
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            /* Inner shine and outer shadow */
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2), inset 0 0 20px rgba(255, 255, 255, 0.05);
         }
     </style>`;
 
@@ -130,31 +137,31 @@ export function renderUsagePage(renderFunc) {
                 </div>
             </main>
             
-            <div id="help-modal" class="help-modal-overlay fixed inset-0 bg-transparent z-[100] flex justify-center items-center p-4">
+            <div id="help-modal" class="help-modal-overlay fixed inset-0 z-[100] flex justify-center items-center p-4">
                 
-                <div class="help-modal-content liquid-glass rounded-2xl p-6 space-y-4 w-full max-w-md">
+                <div class="help-modal-content light-glass rounded-2xl p-6 space-y-4 w-full max-w-md">
                     
                     <div class="flex justify-between items-start">
                         <div>
-                            <h2 class="text-xl font-bold text-white font-['Orbitron']">Help & Support Matrix</h2>
-                            <button id="lang-toggle-btn" class="text-xs text-blue-400 hover:underline mt-1">English / සිංහල</button>
+                            <h2 class="text-xl font-bold text-white font-['Orbitron'] drop-shadow-md">Help & Support Matrix</h2>
+                            <button id="lang-toggle-btn" class="text-xs text-blue-300 hover:text-white hover:underline mt-1 transition-colors">English / සිංහල</button>
                         </div>
-                        <button id="help-modal-close" class="text-gray-400 hover:text-white text-3xl transition-colors hover:rotate-90">&times;</button>
+                        <button id="help-modal-close" class="text-white/70 hover:text-white text-3xl transition-all hover:rotate-90">&times;</button>
                     </div>
                     <div class="lang-content lang-en">
                         <div>
-                            <h3 class="text-lg font-semibold text-blue-400 mb-2">How to find your Username?</h3>
-                            <p class="text-gray-200 text-sm mb-4 font-medium">Your username is the name assigned to your V2ray configuration. It's often visible in your V2ray client app, usually next to the server connection name.</p>
+                            <h3 class="text-lg font-semibold text-blue-300 mb-2 drop-shadow-sm">How to find your Username?</h3>
+                            <p class="text-gray-100 text-sm mb-4 font-medium leading-relaxed">Your username is the name assigned to your V2ray configuration. It's often visible in your V2ray client app, usually next to the server connection name.</p>
                         </div>
                     </div>
                     <div class="lang-content lang-si hidden">
                         <div>
-                            <h3 class="text-lg font-semibold text-blue-400 mb-2">ඔබගේ Username එක සොයාගන්නේ කෙසේද?</h3>
-                            <p class="text-gray-200 text-sm mb-4 font-medium">ඔබගේ username යනු V2ray config ගොනුවට ලබා දී ඇති නමයි. එය බොහෝවිට V2ray client ඇප් එකේ, server සම්බන්ධතාවය අසල දිස්වේ.</p>
+                            <h3 class="text-lg font-semibold text-blue-300 mb-2 drop-shadow-sm">ඔබගේ Username එක සොයාගන්නේ කෙසේද?</h3>
+                            <p class="text-gray-100 text-sm mb-4 font-medium leading-relaxed">ඔබගේ username යනු V2ray config ගොනුවට ලබා දී ඇති නමයි. එය බොහෝවිට V2ray client ඇප් එකේ, server සම්බන්ධතාවය අසල දිස්වේ.</p>
                         </div>
                     </div>
-                    <div class="bg-black/50 border border-white/10 rounded-lg p-2">
-                        <img src="/assets/help.jpg" alt="Example image of where to find the username" class="rounded w-full h-auto">
+                    <div class="bg-black/30 border border-white/20 rounded-lg p-2 shadow-inner">
+                        <img src="/assets/help.jpg" alt="Example image of where to find the username" class="rounded w-full h-auto opacity-90 hover:opacity-100 transition-opacity">
                     </div>
                 </div>
             </div>
