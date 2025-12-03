@@ -72,7 +72,7 @@ function displayUserData(data, name, container) {
 // --- Main Render Function ---
 export function renderUsagePage(renderFunc) {
     const pageStyles = `<style>
-        /* Overlay styles */
+        /* Overlay styles - ensure click works but invisible */
         .help-modal-overlay {
             opacity: 0;
             visibility: hidden;
@@ -121,9 +121,9 @@ export function renderUsagePage(renderFunc) {
                 </div>
             </main>
             
-            <div id="help-modal" class="help-modal-overlay fixed inset-0 bg-black/20 backdrop-blur-sm z-[100] flex justify-center items-center p-4">
+            <div id="help-modal" class="help-modal-overlay fixed inset-0 bg-transparent z-[100] flex justify-center items-center p-4">
                 
-                <div class="help-modal-content bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-2xl p-6 space-y-4 w-full max-w-md shadow-2xl">
+                <div class="help-modal-content bg-slate-950/90 backdrop-blur-3xl border border-white/10 rounded-2xl p-6 space-y-4 w-full max-w-md shadow-2xl">
                     
                     <div class="flex justify-between items-start">
                         <div>
