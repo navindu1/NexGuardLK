@@ -1,7 +1,7 @@
 // File: public/js/pages/usage.js
 import { apiFetch } from '../api.js';
 
-// --- Helper Function: Display User Data (Extracted from main.js) ---
+// --- Helper Function: Display User Data ---
 function displayUserData(data, name, container) {
     const down = data.down || 0;
     const up = data.up || 0;
@@ -71,9 +71,8 @@ function displayUserData(data, name, container) {
 
 // --- Main Render Function ---
 export function renderUsagePage(renderFunc) {
-    // --- START: MODAL ANIMATION FIX ---
     const pageStyles = `<style>
-        /* Overlay styles - ensure background renders correctly */
+        /* Overlay styles */
         .help-modal-overlay {
             opacity: 0;
             visibility: hidden;
@@ -92,15 +91,12 @@ export function renderUsagePage(renderFunc) {
             transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         
-        /* When visible, content becomes fully opaque and scaled */
         .help-modal-overlay.visible .help-modal-content {
             opacity: 1;
             transform: scale(1);
         }
     </style>`;
-    // --- END: MODAL ANIMATION FIX ---
 
-    // Added 'fixed inset-0 bg-black/80 backdrop-blur-sm z-[100]' to #help-modal div
     renderFunc(pageStyles + `
         <div class="page" id="page-usage">
             <main class="w-full max-w-sm space-y-4 z-10 mx-auto">
@@ -125,14 +121,16 @@ export function renderUsagePage(renderFunc) {
                 </div>
             </main>
             
-            <div id="help-modal" class="help-modal-overlay fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex justify-center items-center p-4">
-                <div class="help-modal-content card-glass rounded-lg p-6 space-y-4 w-full max-w-md">
+            <div id="help-modal" class="help-modal-overlay fixed inset-0 bg-black/20 backdrop-blur-sm z-[100] flex justify-center items-center p-4">
+                
+                <div class="help-modal-content bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-2xl p-6 space-y-4 w-full max-w-md shadow-2xl">
+                    
                     <div class="flex justify-between items-start">
                         <div>
                             <h2 class="text-xl font-bold text-white font-['Orbitron']">Help & Support Matrix</h2>
                             <button id="lang-toggle-btn" class="text-xs text-blue-400 hover:underline mt-1">English / සිංහල</button>
                         </div>
-                        <button id="help-modal-close" class="text-gray-400 hover:text-white text-3xl">&times;</button>
+                        <button id="help-modal-close" class="text-gray-400 hover:text-white text-3xl transition-colors hover:rotate-90">&times;</button>
                     </div>
                     <div class="lang-content lang-en">
                         <div>
