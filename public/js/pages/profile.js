@@ -382,61 +382,103 @@ document.getElementById("avatar-upload")?.addEventListener("change", async(e) =>
                     const tabs = document.getElementById('profile-tabs');
                     const panels = planDetailsContainer.querySelectorAll('.tab-panel');
     
+                    // --- REAL-TIME USAGE STATS UPDATER ---
                     const loadUsageStats = () => {
                         const usageContainer = document.getElementById("tab-usage");
                         if (!usageContainer) return;
-                        usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
-                        apiFetch(`/api/check-usage/${plan.v2rayUsername}`).then(res => res.json()).then(result => {
-                            if (result.success) {
-                                // Inline displayUserData function for consistency with main.js block
-                                const data = result.data;
-                                const down = data.down || 0;
-                                const up = data.up || 0;
-                                const totalUsed = down + up;
-                                const totalQuota = data.total || 0;
-                                const usagePercentage = totalQuota > 0 ? Math.min((totalUsed / totalQuota) * 100, 100) : 0;
-                                const status = data.enable ? `<span class="font-semibold text-green-400">ONLINE</span>` : `<span class="font-semibold text-red-400">OFFLINE</span>`;
-                                let expiry = 'N/A';
-                                if (data.expiryTime && data.expiryTime > 0) {
-                                    const expDate = new Date(data.expiryTime);
-                                    expiry = new Date() > expDate ? `<span class="font-semibold text-red-400">Expired</span>` : expDate.toLocaleDateString('en-CA');
-                                }
+                        
+                        // Clear any existing interval to prevent duplicates
+                        if (window.usageUpdateInterval) clearInterval(window.usageUpdateInterval);
 
-                                const formatBytes = (b = 0, d = 2) => {
-                                    const k = 1024;
-                                    const s = ['B', 'KB', 'MB', 'GB', 'TB'];
-                                    if (b === 0) return '0 B';
-                                    const i = Math.floor(Math.log(b) / Math.log(k));
-                                    return `${parseFloat((b / k ** i).toFixed(d))} ${s[i]}`;
-                                };
-
-                                const html = `
-                                    <div class="result-card p-4 sm:p-6 card-glass custom-radius space-y-5 reveal is-visible">
-                                        <div class="flex justify-between items-center pb-3 border-b border-white/10">
-                                            <h3 class="text-lg font-semibold text-white flex items-center min-w-0">
-                                                <i class="fa-solid fa-satellite-dish mr-3 text-blue-400 flex-shrink-0"></i>
-                                                <span class="truncate" title="${plan.v2rayUsername}">Client: ${plan.v2rayUsername}</span>
-                                            </h3>
-                                            <div>${status}</div>
-                                        </div>
-                                        ${totalQuota > 0 ? `<div class="space-y-2"><div class="flex justify-between items-baseline text-sm"><span class="font-medium text-gray-300">Data Quota Usage</span><span id="usage-percentage" class="font-bold text-white">0%</span></div><div class="w-full bg-black/30 rounded-full h-2.5"><div class="progress-bar-inner bg-gradient-to-r from-sky-500 to-blue-500 h-2.5 rounded-full" style="width: ${usagePercentage}%"></div></div></div>` : ''}
-                                        <div class="space-y-4 text-sm sm:hidden">
-                                            <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-circle-down text-sky-400 text-lg w-5 text-center"></i><span>Download</span></div><p class="font-semibold text-white text-base">${formatBytes(down)}</p></div>
-                                            <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-circle-up text-violet-400 text-lg w-5 text-center"></i><span>Upload</span></div><p class="font-semibold text-white text-base">${formatBytes(up)}</p></div>
-                                            <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-database text-green-400 text-lg w-5 text-center"></i><span>Total Used</span></div><p class="font-semibold text-white text-base">${formatBytes(totalUsed)}</p></div>
-                                            <div class="flex justify-between items-center"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-calendar-xmark text-red-400 text-lg w-5 text-center"></i><span>Expires On</span></div><p class="font-medium text-white text-base">${expiry}</p></div>
-                                        </div>
-                                        <div class="hidden sm:grid sm:grid-cols-2 gap-4 text-sm">
-                                            <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-circle-down text-sky-400 mr-2"></i><span>Download</span></div><p class="text-2xl font-bold text-white mt-1">${formatBytes(down)}</p></div>
-                                            <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-circle-up text-violet-400 mr-2"></i><span>Upload</span></div><p class="text-2xl font-bold text-white mt-1">${formatBytes(up)}</p></div>
-                                            <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-database text-green-400 mr-2"></i><span>Total Used</span></div><p class="text-2xl font-bold text-white mt-1">${formatBytes(totalUsed)}</p></div>
-                                            <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-calendar-xmark text-red-400 mr-2"></i><span>Expires On</span></div><p class="text-xl font-medium text-white mt-1">${expiry}</p></div>
-                                        </div>
-                                    </div>`;
-                                usageContainer.innerHTML = html;
+                        const fetchAndRender = async (showLoading = false) => {
+                            // Check if element still exists and tab is active
+                            const container = document.getElementById("tab-usage");
+                            if (!container || !container.classList.contains('active')) {
+                                if (window.usageUpdateInterval) clearInterval(window.usageUpdateInterval);
+                                return;
                             }
-                            else usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-amber-400"><p>${result.message}</p></div>`;
-                        }).catch(() => usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-red-400"><p>Could not load usage statistics.</p></div>`);
+
+                            if (showLoading) {
+                                container.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i><p class="text-xs text-gray-500 mt-2">Loading live stats...</p></div>`;
+                            }
+
+                            try {
+                                const res = await apiFetch(`/api/check-usage/${plan.v2rayUsername}`);
+                                const result = await res.json();
+                                
+                                if (result.success) {
+                                    const data = result.data;
+                                    const down = data.down || 0;
+                                    const up = data.up || 0;
+                                    const totalUsed = down + up;
+                                    const totalQuota = data.total || 0;
+                                    const usagePercentage = totalQuota > 0 ? Math.min((totalUsed / totalQuota) * 100, 100) : 0;
+                                    const status = data.enable ? `<span class="font-semibold text-green-400"><i class="fa-solid fa-circle text-[10px] mr-1"></i>ONLINE</span>` : `<span class="font-semibold text-red-400">OFFLINE</span>`;
+                                    
+                                    let expiry = '<span class="text-gray-400">Unlimited</span>';
+                                    if (data.expiryTime && data.expiryTime > 0) {
+                                        const expDate = new Date(data.expiryTime);
+                                        expiry = new Date() > expDate ? `<span class="font-semibold text-red-400">Expired</span>` : expDate.toLocaleDateString('en-CA');
+                                    }
+
+                                    const formatBytes = (b = 0) => {
+                                        const k = 1024;
+                                        const s = ['B', 'KB', 'MB', 'GB', 'TB'];
+                                        if (b === 0) return '0 B';
+                                        const i = Math.floor(Math.log(b) / Math.log(k));
+                                        return `${parseFloat((b / k ** i).toFixed(2))} ${s[i]}`;
+                                    };
+
+                                    const html = `
+                                        <div class="result-card p-4 sm:p-6 card-glass custom-radius space-y-5 reveal is-visible border border-blue-500/20">
+                                            <div class="flex justify-between items-center pb-3 border-b border-white/10">
+                                                <h3 class="text-lg font-semibold text-white flex items-center min-w-0">
+                                                    <i class="fa-solid fa-satellite-dish mr-3 text-blue-400 flex-shrink-0 animate-pulse"></i>
+                                                    <span class="truncate" title="${plan.v2rayUsername}">Client: ${plan.v2rayUsername}</span>
+                                                </h3>
+                                                <div class="bg-black/30 px-3 py-1 rounded-full text-xs">${status}</div>
+                                            </div>
+                                            ${totalQuota > 0 ? `<div class="space-y-2"><div class="flex justify-between items-baseline text-sm"><span class="font-medium text-gray-300">Data Usage <span class="text-xs text-gray-500">(Updates Live)</span></span><span class="font-bold text-white">${usagePercentage.toFixed(1)}%</span></div><div class="w-full bg-black/30 rounded-full h-2.5 overflow-hidden"><div class="bg-gradient-to-r from-sky-500 to-blue-500 h-2.5 rounded-full transition-all duration-1000 ease-out" style="width: ${usagePercentage}%"></div></div></div>` : ''}
+                                            
+                                            <div class="grid grid-cols-2 gap-4 text-sm mt-4">
+                                                <div class="bg-black/20 rounded-lg p-3 text-center border border-white/5">
+                                                    <p class="text-gray-400 text-xs mb-1"><i class="fa-solid fa-arrow-down text-sky-400 mr-1"></i>Download</p>
+                                                    <p class="text-lg font-bold text-white">${formatBytes(down)}</p>
+                                                </div>
+                                                <div class="bg-black/20 rounded-lg p-3 text-center border border-white/5">
+                                                    <p class="text-gray-400 text-xs mb-1"><i class="fa-solid fa-arrow-up text-violet-400 mr-1"></i>Upload</p>
+                                                    <p class="text-lg font-bold text-white">${formatBytes(up)}</p>
+                                                </div>
+                                                <div class="bg-black/20 rounded-lg p-3 text-center border border-white/5">
+                                                    <p class="text-gray-400 text-xs mb-1"><i class="fa-solid fa-database text-green-400 mr-1"></i>Total Used</p>
+                                                    <p class="text-lg font-bold text-white">${formatBytes(totalUsed)}</p>
+                                                </div>
+                                                <div class="bg-black/20 rounded-lg p-3 text-center border border-white/5">
+                                                    <p class="text-gray-400 text-xs mb-1"><i class="fa-solid fa-box text-amber-400 mr-1"></i>Total Quota</p>
+                                                    <p class="text-lg font-bold text-white">${totalQuota ? formatBytes(totalQuota) : 'Unlimited'}</p>
+                                                </div>
+                                            </div>
+                                            <div class="text-center pt-2 border-t border-white/10">
+                                                <p class="text-xs text-gray-400">Expires: <span class="text-white font-medium">${expiry}</span></p>
+                                            </div>
+                                        </div>`;
+                                    
+                                    // Update content
+                                    container.innerHTML = html;
+                                } else {
+                                    container.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-amber-400"><p>${result.message}</p></div>`;
+                                }
+                            } catch (error) {
+                                // Silent fail on auto-refresh to avoid annoyance
+                                if(showLoading) container.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-red-400"><p>Connection Error.</p></div>`;
+                            }
+                        };
+
+                        // Initial Load
+                        fetchAndRender(true);
+                        
+                        // Set Interval for Real-time updates (Every 5 seconds)
+                        window.usageUpdateInterval = setInterval(() => fetchAndRender(false), 5000);
                     };
     
                     const loadMyOrders = async (isSilent = false) => {
@@ -464,7 +506,10 @@ document.getElementById("avatar-upload")?.addEventListener("change", async(e) =>
                     };
     
                     const switchTab = (tabId) => {
+                        if (window.usageUpdateInterval) clearInterval(window.usageUpdateInterval); // Stop live updates
+                        
                         tabs.querySelector('.active')?.classList.remove('active');
+                        // ... ඉතිරි කේතය ...
                         panels.forEach(p => p.classList.remove('active'));
                         tabs.querySelector(`[data-tab="${tabId}"]`)?.classList.add('active');
                         document.getElementById(`tab-${tabId}`)?.classList.add('active');
