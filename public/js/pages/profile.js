@@ -506,10 +506,7 @@ document.getElementById("avatar-upload")?.addEventListener("change", async(e) =>
                     };
     
                     const switchTab = (tabId) => {
-                        if (window.usageUpdateInterval) clearInterval(window.usageUpdateInterval); // Stop live updates
-                        
                         tabs.querySelector('.active')?.classList.remove('active');
-                        // ... ඉතිරි කේතය ...
                         panels.forEach(p => p.classList.remove('active'));
                         tabs.querySelector(`[data-tab="${tabId}"]`)?.classList.add('active');
                         document.getElementById(`tab-${tabId}`)?.classList.add('active');
