@@ -4,14 +4,16 @@ import { showToast, SikFloatingMenu, togglePassword, qrModalLogic } from '../uti
 import { navigateTo } from '../router.js';
 import { handleRenewalChoice } from './checkout.js';
 
-let profilePollingInterval = null; // Polling විචල්‍යය
+let profilePollingInterval = null;
+let lastKnownPlansStr = ""; 
 
 export function renderProfilePage(renderFunc, params) {
-    // පරණ interval එකක් තිබේ නම් එය නවත්වන්න (Safety check)
+    // 1. Clear existing intervals to prevent duplication
     if (profilePollingInterval) {
         clearInterval(profilePollingInterval);
         profilePollingInterval = null;
     }
+    lastKnownPlansStr = ""; 
 
     const user = JSON.parse(localStorage.getItem("nexguard_user"));
     if (!user) {
@@ -19,7 +21,7 @@ export function renderProfilePage(renderFunc, params) {
         return;
     }
 
-    // --- START: HELP MODAL HTML (Grease Glass) ---
+    // --- HELPER HTML & CSS (Expanded for readability) ---
     const modalHtml = `
         <div id="help-modal" class="help-modal-overlay">
             <div class="help-modal-content grease-glass p-6 space-y-4 w-full max-w-md">
@@ -47,40 +49,92 @@ export function renderProfilePage(renderFunc, params) {
                 </div>
             </div>
         </div>`;
-    // --- END: MODAL HTML ---
     
-    // --- START: FINAL CSS (WITH GAP & OVERFLOW FIX) ---
     const pageStyles = `<style>
         /* Profile Page Input Fields */
-        #page-profile .form-input { height: 56px; padding: 20px 12px 8px 12px; background-color: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.2); } 
-        #page-profile .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; } 
+        #page-profile .form-input { 
+            height: 56px; 
+            padding: 20px 12px 8px 12px; 
+            background-color: rgba(0, 0, 0, 0.4); 
+            border-color: rgba(255, 255, 255, 0.2); 
+        } 
+        #page-profile .form-label { 
+            position: absolute; 
+            top: 50%; 
+            left: 13px; 
+            transform: translateY(-50%); 
+            color: #9ca3af; 
+            pointer-events: none; 
+            transition: all 0.2s ease-out; 
+            font-size: 14px; 
+        } 
         #page-profile .form-input:focus ~ .form-label, 
-        #page-profile .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: var(--brand-blue); } 
-        #page-profile .form-input[readonly] { background-color: rgba(0,0,0,0.2); cursor: not-allowed; } 
+        #page-profile .form-input:not(:placeholder-shown) ~ .form-label { 
+            top: 10px; 
+            transform: translateY(0); 
+            font-size: 11px; 
+            color: var(--brand-blue); 
+        } 
+        #page-profile .form-input[readonly] { 
+            background-color: rgba(0,0,0,0.2); 
+            cursor: not-allowed; 
+        } 
         
         /* Tabs */
-        .tab-btn { border-bottom: 3px solid transparent; transition: all .3s ease; color: #9ca3af; padding: 0.75rem 0.25rem; font-weight: 600; white-space: nowrap; } 
-        .tab-btn.active { border-bottom-color: var(--brand-blue); color: #fff; } 
+        .tab-btn { 
+            border-bottom: 3px solid transparent; 
+            transition: all .3s ease; 
+            color: #9ca3af; 
+            padding: 0.75rem 0.25rem; 
+            font-weight: 600; 
+            white-space: nowrap; 
+        } 
+        .tab-btn.active { 
+            border-bottom-color: var(--brand-blue); 
+            color: #fff; 
+        } 
         .tab-panel { display: none; } 
         .tab-panel.active { display: block; animation: pageFadeIn 0.5s; }
         
         /* Modal Styles */
-        .help-modal-overlay { opacity: 0; visibility: hidden; transition: opacity 0.3s ease-out, visibility 0.3s ease-out; background: rgba(0, 0, 0, 0.2); z-index: 9999; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+        .help-modal-overlay { 
+            opacity: 0; 
+            visibility: hidden; 
+            transition: opacity 0.3s ease-out, visibility 0.3s ease-out; 
+            background: rgba(0, 0, 0, 0.2); 
+            z-index: 9999; 
+            position: fixed; 
+            inset: 0; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 1rem; 
+        }
         .help-modal-overlay.visible { opacity: 1; visibility: visible; }
-        .help-modal-content { opacity: 0; transform: scale(0.90); transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .help-modal-content { 
+            opacity: 0; 
+            transform: scale(0.90); 
+            transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+        }
         .help-modal-overlay.visible .help-modal-content { opacity: 1; transform: scale(1); }
-        .grease-glass { background: rgba(30, 40, 60, 0.4); backdrop-filter: blur(20px) saturate(200%); -webkit-backdrop-filter: blur(20px) saturate(200%); border-radius: 35px; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5); }
+        .grease-glass { 
+            background: rgba(30, 40, 60, 0.4); 
+            backdrop-filter: blur(20px) saturate(200%); 
+            -webkit-backdrop-filter: blur(20px) saturate(200%); 
+            border-radius: 35px; 
+            border: 1px solid rgba(255, 255, 255, 0.2); 
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5); 
+        }
 
         /* --- DROPDOWN STYLING --- */
-        
         .plan-selector-container { 
             display: flex; 
             align-items: center; 
             gap: 0.75rem; 
             margin-bottom: 2rem; 
-            position: relative;
-            z-index: 100;
-            overflow: visible !important;
+            position: relative; 
+            z-index: 100; 
+            overflow: visible !important; 
         }
         .plan-selector-label { font-size: 0.875rem; font-weight: 600; color: #d1d5db; flex-shrink: 0; }
         
@@ -91,23 +145,17 @@ export function renderProfilePage(renderFunc, params) {
             margin: 0; 
             white-space: nowrap; 
             position: relative; 
-            overflow: visible !important;
+            overflow: visible !important; 
         }
         ul.fmenu > li.fmenu-item { position: relative; overflow: visible !important; }
         
         /* Trigger Button */
         ul.fmenu .trigger-menu { 
-            display: flex; align-items: center; justify-content: space-between;
-            box-sizing: border-box; 
-            height: 44px;
-            padding: 0 1.2rem; 
-            border-radius: 999px; 
-            background-color: rgba(30, 41, 59, 0.9); 
-            border: 1px solid rgba(255, 255, 255, 0.2); 
-            cursor: pointer; 
-            transition: all ease 0.3s; 
-            min-width: 180px; 
-            overflow: visible !important;
+            display: flex; align-items: center; justify-content: space-between; 
+            box-sizing: border-box; height: 44px; padding: 0 1.2rem; 
+            border-radius: 999px; background-color: rgba(30, 41, 59, 0.9); 
+            border: 1px solid rgba(255, 255, 255, 0.2); cursor: pointer; 
+            transition: all ease 0.3s; min-width: 180px; overflow: visible !important; 
         }
         ul.fmenu .trigger-menu:hover, ul.fmenu .trigger-menu.open { border-color: var(--brand-blue); box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
         ul.fmenu .trigger-menu i { color: #9ca3af; font-size: 0.9rem; transition: color ease 0.3s; }
@@ -118,79 +166,129 @@ export function renderProfilePage(renderFunc, params) {
         
         /* Dropdown List */
         ul.fmenu .floating-menu { 
-            display: block; 
-            position: absolute; 
-            top: 100%; /* හරියටම බොත්තම යටින් */
-            margin-top: 12px; /* --- මෙන්න හිඩස (GAP) --- */
-            left: 0;
-            width: max-content; 
-            min-width: 100%;
-            list-style: none; 
-            padding: 0.5rem; 
-            background-color: #0f172a; 
-            border: 1px solid rgba(71, 85, 105, 0.6); 
-            border-radius: 35px; 
-            box-shadow: 0 20px 40px rgba(0,0,0,0.8); 
-            z-index: 9999 !important; 
-            
-            opacity: 0; 
-            visibility: hidden;
-            transform: translateY(-10px);
-            transition: opacity 0.3s, transform 0.3s;
+            display: block; position: absolute; top: 100%; margin-top: 12px; left: 0; 
+            width: max-content; min-width: 100%; list-style: none; padding: 0.5rem; 
+            background-color: #0f172a; border: 1px solid rgba(71, 85, 105, 0.6); 
+            border-radius: 35px; box-shadow: 0 20px 40px rgba(0,0,0,0.8); z-index: 9999 !important; 
+            opacity: 0; visibility: hidden; transform: translateY(-10px); transition: opacity 0.3s, transform 0.3s; 
         }
         
-        /* Force visibility when open */
-        ul.fmenu .trigger-menu.open + .floating-menu {
-            opacity: 1 !important;
-            visibility: visible !important;
-            transform: translateY(0) !important;
-            max-height: none !important;
-            overflow: visible !important;
+        ul.fmenu .trigger-menu.open + .floating-menu { 
+            opacity: 1 !important; visibility: visible !important; transform: translateY(0) !important; 
+            max-height: none !important; overflow: visible !important; 
         }
 
         ul.fmenu .floating-menu > li a { 
-            color: #cbd5e1; 
-            font-size: 0.9rem; 
-            text-decoration: none; 
-            display: block; 
-            padding: 0.75rem 1.2rem; 
-            border-radius: 35px; 
-            transition: all 0.2s ease; 
-            border: 1px solid transparent;
+            color: #cbd5e1; font-size: 0.9rem; text-decoration: none; display: block; 
+            padding: 0.75rem 1.2rem; border-radius: 35px; transition: all 0.2s ease; border: 1px solid transparent; 
         }
         
         ul.fmenu .floating-menu > li a:hover { 
-            background-color: rgba(59, 130, 246, 0.15); 
-            color: #ffffff; 
-            border-color: rgba(59, 130, 246, 0.3);
+            background-color: rgba(59, 130, 246, 0.15); color: #ffffff; border-color: rgba(59, 130, 246, 0.3); 
         }
     </style>`;
-    // --- END: CSS ---
     
     let profilePictureUrl = (user.profilePicture || "/assets/profilePhoto.jpg").replace("public/", "");
-    if (profilePictureUrl && !profilePictureUrl.startsWith('/')) {
-        profilePictureUrl = '/' + profilePictureUrl;
-    }
+    if (profilePictureUrl && !profilePictureUrl.startsWith('/')) profilePictureUrl = '/' + profilePictureUrl;
     
-    const baseHtml = `<div id="page-profile" class="page space-y-8"><div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left reveal"><div class="relative flex-shrink-0"><img id="profile-pic-img" src="${profilePictureUrl}" alt="Profile Picture" class="w-24 h-24 rounded-full border-4 border-blue-500/50 object-cover shadow-lg"><label for="avatar-upload" class="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-500 transition shadow-md"><i class="fa-solid fa-camera text-white"></i><input type="file" id="avatar-upload" class="hidden" accept="image/*"></label></div><div class="flex-grow"><h2 class="text-3xl font-bold font-['Orbitron'] text-white">${user.username}</h2><p class="text-gray-400">${user.email}</p><div id="plan-info-container" class="text-xs sm:text-sm mt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2"></div></div></div><div id="user-status-content" class="reveal">
-        <div class="flex flex-col items-center justify-center min-h-[40vh]"><div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-3xl text-blue-400"></i><p class="mt-4 text-lg font-semibold text-blue-300 animate-pulse">Loading Your Data...</p><p class="text-sm text-gray-500 mt-1">Please wait while we fetch your profile information.</p></div></div>
-    </div></div> ${modalHtml}`;
+    const baseHtml = `
+    <div id="page-profile" class="page space-y-8">
+        <div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left reveal">
+            <div class="relative flex-shrink-0">
+                <img id="profile-pic-img" src="${profilePictureUrl}" alt="Profile Picture" class="w-24 h-24 rounded-full border-4 border-blue-500/50 object-cover shadow-lg">
+                <label for="avatar-upload" class="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-500 transition shadow-md">
+                    <i class="fa-solid fa-camera text-white"></i>
+                    <input type="file" id="avatar-upload" class="hidden" accept="image/*">
+                </label>
+            </div>
+            <div class="flex-grow">
+                <h2 class="text-3xl font-bold font-['Orbitron'] text-white">${user.username}</h2>
+                <p class="text-gray-400">${user.email}</p>
+                <div id="plan-info-container" class="text-xs sm:text-sm mt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2"></div>
+            </div>
+        </div>
+        <div id="user-status-content" class="reveal">
+            <div class="flex flex-col items-center justify-center min-h-[40vh]">
+                <div class="text-center p-8">
+                    <i class="fa-solid fa-spinner fa-spin text-3xl text-blue-400"></i>
+                    <p class="mt-4 text-lg font-semibold text-blue-300 animate-pulse">Loading Your Data...</p>
+                    <p class="text-sm text-gray-500 mt-1">Please wait while we fetch your profile information.</p>
+                </div>
+            </div>
+        </div>
+    </div> ${modalHtml}`;
     
     renderFunc(pageStyles + baseHtml);
-    
     const statusContainer = document.getElementById("user-status-content");
     qrModalLogic.init();
-    
+
+    // Event Listeners (Avatar, Settings, etc.)
+    const setupEventListeners = () => {
+        const helpModal = document.getElementById('help-modal');
+        if (helpModal) {
+            const openModal = () => { helpModal.classList.add('visible'); document.body.classList.add('modal-open'); };
+            const closeModal = () => { helpModal.classList.remove('visible'); document.body.classList.remove('modal-open'); };
+            document.querySelector('.open-help-modal-link')?.addEventListener('click', (e) => { e.preventDefault(); openModal(); });
+            document.getElementById('help-modal-close')?.addEventListener('click', closeModal);
+            helpModal.addEventListener('click', (e) => { if (e.target === helpModal) closeModal(); });
+            document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && helpModal.classList.contains('visible')) closeModal(); });
+            document.getElementById('lang-toggle-btn')?.addEventListener('click', () => {
+                document.querySelector('.lang-content.lang-en')?.classList.toggle('hidden');
+                document.querySelector('.lang-content.lang-si')?.classList.toggle('hidden');
+            });
+        }
+
+        document.getElementById("profile-update-form")?.addEventListener("submit", async(e) => {
+            e.preventDefault();
+            const newPassword = document.getElementById("new-password").value;
+            if (!newPassword) return showToast({ title: "No Change", message: "Password field was empty.", type: "info" });
+            if (newPassword.length < 6) return showToast({ title: "Error", message: "Password must be at least 6 characters.", type: "error" });
+            
+            const btn = e.target.querySelector('button');
+            btn.disabled = true;
+            showToast({ title: "Updating...", message: "Please wait.", type: "info" });
+            try {
+                const res = await apiFetch('/api/user/update-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ newPassword }) });
+                const result = await res.json();
+                if (!res.ok) throw new Error(result.message);
+                showToast({ title: "Success!", message: result.message, type: "success" });
+                document.getElementById("new-password").value = "";
+            } catch (error) {
+                showToast({ title: "Update Failed", message: error.message, type: "error" });
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        document.getElementById('profile-password-toggle')?.addEventListener('click', () => togglePassword('new-password', 'profile-password-toggle'));
+        
+        document.getElementById("link-account-form-profile")?.addEventListener("submit", async(e) => {
+            e.preventDefault();
+            const v2rayUsername = document.getElementById("existing-v2ray-username-profile").value;
+            if (!v2rayUsername) return showToast({ title: "Error", message: "Please enter your V2Ray username.", type: "error" });
+
+            const btn = e.target.querySelector("button");
+            btn.disabled = true;
+            showToast({ title: "Linking...", message: "Please wait...", type: "info" });
+            const res = await apiFetch("/api/user/link-v2ray", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ v2rayUsername }) });
+            const result = await res.json();
+            btn.disabled = false;
+            if (res.ok) {
+                showToast({ title: "Success!", message: result.message, type: "success" });
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                showToast({ title: "Linking Failed", message: result.message, type: "error" });
+            }
+        });
+    };
+
     document.getElementById("avatar-upload")?.addEventListener("change", async(e) => {
         const file = e.target.files[0];
         if (!file) return;
         const formData = new FormData();
         formData.append("avatar", file);
         showToast({ title: "Uploading...", message: "Please wait.", type: "info" });
-        const res = await apiFetch("/api/user/profile-picture", {
-            method: "POST",
-            body: formData,
-        });
+        const res = await apiFetch("/api/user/profile-picture", { method: "POST", body: formData });
         const result = await res.json();
         if (res.ok) {
             showToast({ title: "Success!", message: result.message, type: "success" });
@@ -205,375 +303,308 @@ export function renderProfilePage(renderFunc, params) {
             showToast({ title: "Upload Failed", message: result.message, type: "error" });
         }
     });
-    
-    apiFetch("/api/user/status")
-        .then((res) => res.ok ? res.json() : Promise.reject(new Error("Authentication failed")))
-        .then((data) => {
-            const setupEventListeners = () => {
-                const helpModal = document.getElementById('help-modal');
-                if (helpModal) {
-                    const openModal = () => { helpModal.classList.add('visible'); document.body.classList.add('modal-open'); };
-                    const closeModal = () => { helpModal.classList.remove('visible'); document.body.classList.remove('modal-open'); };
-                    document.querySelector('.open-help-modal-link')?.addEventListener('click', (e) => { e.preventDefault(); openModal(); });
-                    document.getElementById('help-modal-close')?.addEventListener('click', closeModal);
-                    helpModal.addEventListener('click', (e) => { if (e.target === helpModal) closeModal(); });
-                    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && helpModal.classList.contains('visible')) closeModal(); });
-                    document.getElementById('lang-toggle-btn')?.addEventListener('click', () => {
-                        document.querySelector('.lang-content.lang-en')?.classList.toggle('hidden');
-                        document.querySelector('.lang-content.lang-si')?.classList.toggle('hidden');
-                    });
-                }
-    
-                document.getElementById("profile-update-form")?.addEventListener("submit", async(e) => {
-                    e.preventDefault();
-                    const newPassword = document.getElementById("new-password").value;
-                    if (!newPassword) return showToast({ title: "No Change", message: "Password field was empty.", type: "info" });
-                    if (newPassword.length < 6) return showToast({ title: "Error", message: "Password must be at least 6 characters.", type: "error" });
-                    
-                    const btn = e.target.querySelector('button');
-                    btn.disabled = true;
-                    showToast({ title: "Updating...", message: "Please wait.", type: "info" });
-                    try {
-                        const res = await apiFetch('/api/user/update-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ newPassword }) });
-                        const result = await res.json();
-                        if (!res.ok) throw new Error(result.message);
-                        showToast({ title: "Success!", message: result.message, type: "success" });
-                        document.getElementById("new-password").value = "";
-                    } catch (error) {
-                        showToast({ title: "Update Failed", message: error.message, type: "error" });
-                    } finally {
-                        btn.disabled = false;
-                    }
-                });
-    
-                document.getElementById('profile-password-toggle')?.addEventListener('click', () => togglePassword('new-password', 'profile-password-toggle'));
-                
-                document.getElementById("link-account-form-profile")?.addEventListener("submit", async(e) => {
-                    e.preventDefault();
-                    const v2rayUsername = document.getElementById("existing-v2ray-username-profile").value;
-                    if (!v2rayUsername) return showToast({ title: "Error", message: "Please enter your V2Ray username.", type: "error" });
-    
-                    const btn = e.target.querySelector("button");
-                    btn.disabled = true;
-                    showToast({ title: "Linking...", message: "Please wait...", type: "info" });
-                    const res = await apiFetch("/api/user/link-v2ray", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ v2rayUsername }) });
-                    const result = await res.json();
-                    btn.disabled = false;
-                    if (res.ok) {
-                        showToast({ title: "Success!", message: result.message, type: "success" });
-                        setTimeout(() => window.location.reload(), 1500);
-                    } else {
-                        showToast({ title: "Linking Failed", message: result.message, type: "error" });
-                    }
-                });
-            };
-    
-            if (data.status === "approved" && data.activePlans?.length > 0) {
-                // --- START: NEW HTML FOR CUSTOM DROPDOWN ---
-                const planListItems = data.activePlans.map((plan, index) => 
-                    `<li><a href="#" data-plan-index="${index}">${plan.v2rayUsername}</a></li>`
-                ).join('');
 
-                statusContainer.innerHTML = `
-                    <div class="plan-selector-container">
-                        <label class="plan-selector-label custom-radius">Viewing Plan:</label>
-                        <ul class="fmenu custom-radius" id="plan-menu">
-                            <li class="fmenu-item custom-radius">
-                                <div class="trigger-menu custom-radius">
-                                    <i class="fa-solid fa-server"></i>
-                                    <span class="text">${data.activePlans[0].v2rayUsername}</span>
-                                    <i class="fa-solid fa-chevron-down arrow"></i>
-                                </div>
-                                <ul class="floating-menu">
-                                    ${planListItems}
-                                </ul>
-                            </li>
+    // --- RENDER PLAN SELECTOR ---
+    let planMenuInstance = null;
+    const renderPlanSelector = (activePlans, activePlanIndex = 0) => {
+        const planListItems = activePlans.map((plan, index) => 
+            `<li><a href="#" data-plan-index="${index}">${plan.v2rayUsername}</a></li>`
+        ).join('');
+
+        const containerHtml = `
+            <div class="plan-selector-container">
+                <label class="plan-selector-label custom-radius">Viewing Plan:</label>
+                <ul class="fmenu custom-radius" id="plan-menu">
+                    <li class="fmenu-item custom-radius">
+                        <div class="trigger-menu custom-radius">
+                            <i class="fa-solid fa-server"></i>
+                            <span class="text">${activePlans[activePlanIndex]?.v2rayUsername || 'Select Plan'}</span>
+                            <i class="fa-solid fa-chevron-down arrow"></i>
+                        </div>
+                        <ul class="floating-menu">
+                            ${planListItems}
                         </ul>
-                    </div>
-                    <div id="plan-details-container"></div>`;
-                // --- END: NEW HTML FOR CUSTOM DROPDOWN ---
-                
-                const planDetailsContainer = document.getElementById("plan-details-container");
-                
-                // Initialize the custom menu
-                const planMenuInstance = new SikFloatingMenu("#plan-menu");
-                
+                    </li>
+                </ul>
+            </div>
+            <div id="plan-details-container"></div>`;
+        
+        // Only re-create container if it doesn't exist, otherwise update logic handled inside main loop
+        if (!document.getElementById("plan-menu")) {
+             statusContainer.innerHTML = containerHtml;
+        } else {
+             // If menu exists, just update the LIST inside it
+             const listContainer = document.querySelector('#plan-menu .floating-menu');
+             if(listContainer) listContainer.innerHTML = planListItems;
+             
+             // Update the TRIGGER TEXT if the index is valid
+             const triggerText = document.querySelector('#plan-menu .trigger-menu .text');
+             if(triggerText && activePlans[activePlanIndex]) {
+                 triggerText.textContent = activePlans[activePlanIndex].v2rayUsername;
+             }
+        }
+
+        // Re-init menu logic (needed if items changed)
+        planMenuInstance = new SikFloatingMenu("#plan-menu");
+        
+        const floatingMenu = document.querySelector('#plan-menu .floating-menu');
+        if (floatingMenu) {
+            floatingMenu.addEventListener('click', (e) => {
+                const link = e.target.closest('a');
+                if (link) {
+                    e.preventDefault();
+                    const index = parseInt(link.dataset.planIndex);
+                    document.querySelector('#plan-menu .trigger-menu .text').textContent = activePlans[index].v2rayUsername;
+                    window.renderPlanDetails(index); 
+                    planMenuInstance.closeAll();
+                }
+            });
+        }
+    };
+
+    const loadProfileData = async () => {
+        try {
+            const res = await apiFetch("/api/user/status");
+            if (!res.ok) throw new Error("Auth failed");
+            const data = await res.json();
+
+            const currentPlansStr = JSON.stringify(data.activePlans || []);
+            const plansChanged = currentPlansStr !== lastKnownPlansStr;
+
+            if (plansChanged) {
+                lastKnownPlansStr = currentPlansStr;
+
+                if (data.status === "approved" && data.activePlans?.length > 0) {
+                    
+                    // --- Logic: Handle Plan Deletion/Addition ---
+                    let currentIndex = 0;
+                    const currentViewedName = document.querySelector('#plan-menu .trigger-menu .text')?.textContent;
+                    
+                    if (currentViewedName) {
+                        // Try to find the plan we were looking at
+                        const foundIndex = data.activePlans.findIndex(p => p.v2rayUsername === currentViewedName);
+                        if (foundIndex !== -1) {
+                            currentIndex = foundIndex;
+                        } else {
+                            // The plan being viewed was removed! Default to 0.
+                            if (document.getElementById("plan-menu")) {
+                                showToast({ title: "Plan Removed", message: "The plan you were viewing is no longer active.", type: "info" });
+                            }
+                        }
+                    }
+
+                    renderPlanSelector(data.activePlans, currentIndex);
+
+                    // --- Define Render Details Function ---
+                    window.renderPlanDetails = (planIndex) => {
+                        const plan = data.activePlans[planIndex];
+                        const container = document.getElementById("plan-details-container");
+                        if(!plan) return;
+                        
+                        const connectionName = appData.connections.find(c => c.name === plan.connId)?.name || plan.connId || 'N/A';
+                        const planName = appData.plans[plan.planId]?.name || plan.planId;
+                        document.getElementById("plan-info-container").innerHTML = `<span class="bg-blue-500/10 text-blue-300 px-2 py-1 rounded-full"><i class="fa-solid fa-rocket fa-fw mr-2"></i>${planName}</span><span class="bg-indigo-500/10 text-indigo-300 px-2 py-1 rounded-full"><i class="fa-solid fa-wifi fa-fw mr-2"></i>${connectionName}</span>`;
+
+                        if(!document.getElementById('profile-tabs')) {
+                            container.innerHTML = `
+                            <div id="profile-tabs" class="flex items-center gap-4 sm:gap-6 border-b border-white/10 mb-6 overflow-x-auto"><button data-tab="config" class="tab-btn active">V2Ray Config</button><button data-tab="usage" class="tab-btn">Usage Stats</button><button data-tab="orders" class="tab-btn">My Orders</button><button data-tab="settings" class="tab-btn">Account Settings</button></div>
+                            <div id="tab-config" class="tab-panel active"><div class="card-glass p-6 sm:p-8 custom-radius"><div class="grid md:grid-cols-2 gap-8 items-center"><div class="flex flex-col items-center text-center"><h3 class="text-lg font-semibold text-white mb-3">Scan with your V2Ray App</h3><div id="qrcode-container" class="w-44 h-44 p-3 bg-white rounded-lg cursor-pointer flex items-center justify-center shadow-lg shadow-blue-500/20"></div></div><div class="space-y-6"><div class="w-full"><label class="text-sm text-gray-400">V2Ray Config Link</label><div class="flex items-center gap-2 mt-2"><input type="text" readonly value="${plan.v2rayLink}" class="w-full bg-slate-800/50 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-300"><button id="copy-config-btn" class="ai-button secondary !text-sm !font-semibold flex-shrink-0 px-4 py-2 rounded-md">Copy</button></div></div><div class="w-full text-center border-t border-white/10 pt-6"><div id="renew-button-container"></div></div></div></div></div></div>
+                            <div id="tab-usage" class="tab-panel"></div><div id="tab-orders" class="tab-panel"></div><div id="tab-settings" class="tab-panel">
+                                <div class="card-glass p-6 sm:p-8 custom-radius">
+                                    <div class="max-w-md mx-auto">
+                                        <h3 class="text-xl font-bold text-white mb-6 font-['Orbitron'] text-center">Account Settings</h3>
+                                        <form id="profile-update-form" class="space-y-6">
+                                            <div class="form-group"><input type="text" class="form-input" readonly value="${user.username}" title="Website username cannot be changed."><label class="form-label">Website Username</label></div>
+                                            <div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" placeholder=" "><label for="new-password" class="form-label">New Password (leave blank to keep)</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i></div>
+                                            <button type="submit" class="ai-button w-full rounded-lg !mt-8">Save Changes</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>`;
+                            
+                            document.getElementById('profile-tabs').addEventListener('click', (e) => { 
+                                if (e.target.tagName === 'BUTTON') {
+                                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                                    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+                                    e.target.classList.add('active');
+                                    document.getElementById(`tab-${e.target.dataset.tab}`).classList.add('active');
+                                    
+                                    // Trigger immediate load for selected tab
+                                    const tabId = e.target.dataset.tab;
+                                    if(tabId === 'config') updateRenewButton(plan);
+                                    if(tabId === 'usage') loadUsageStats(false);
+                                    if(tabId === 'orders') loadMyOrders(false);
+                                }
+                            });
+                            
+                            setupEventListeners();
+                        }
+
+                        const qrContainer = document.getElementById("qrcode-container");
+                        if(qrContainer) {
+                            qrContainer.innerHTML = "";
+                            try {
+                                new QRCode(qrContainer, { text: plan.v2rayLink, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.L });
+                                qrContainer.onclick = () => { const img = qrContainer.querySelector('img'); if(img) qrModalLogic.show(img.src, plan.v2rayUsername); };
+                            } catch(e) { qrContainer.innerHTML = "Error generating QR"; }
+                        }
+                        
+                        const linkInput = document.querySelector('input[readonly]');
+                        if(linkInput) linkInput.value = plan.v2rayLink;
+
+                        const copyBtn = document.getElementById('copy-config-btn');
+                        if(copyBtn) {
+                            const newBtn = copyBtn.cloneNode(true);
+                            copyBtn.parentNode.replaceChild(newBtn, copyBtn);
+                            newBtn.addEventListener('click', () => { navigator.clipboard.writeText(plan.v2rayLink); showToast({ title: 'Copied!', type: 'success' }); });
+                        }
+
+                        updateRenewButton(plan);
+                    };
+
+                    window.renderPlanDetails(currentIndex);
+
+                } else if (data.status === "pending") {
+                    statusContainer.innerHTML = `<div class="card-glass p-8 rounded-xl text-center"><i class="fa-solid fa-clock text-4xl text-amber-400 mb-4 animate-pulse"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Order Pending Approval</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">Your order is currently being reviewed. Your profile will update here once approved.</p></div>`;
+                } else {
+                    // No Plans (or deleted)
+                    const settingsHtml = `<div class="card-glass p-6 custom-radius"><h3 class="text-xl font-bold text-white mb-4 font-['Orbitron']">Account Settings</h3><form id="profile-update-form" class="space-y-6"><div class="form-group"><input type="text" class="form-input" readonly value="${user.username}" title="Website username cannot be changed."><label class="form-label">Website Username</label></div><div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" placeholder=" "><label for="new-password" class="form-label">New Password (leave blank to keep)</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i></div><button type="submit" class="ai-button w-full rounded-lg !mt-8">Save Changes</button></form></div>`;
+                    const linkAccountHtml = `<div class="card-glass p-6 custom-radius"><h3 class="text-xl font-bold text-white mb-2 font-['Orbitron']">Link Existing V2Ray Account</h3><p class="text-sm text-gray-400 mb-6">If you have an old account, link it here to manage renewals.</p><form id="link-account-form-profile" class="space-y-6"><div class="form-group"><input type="text" id="existing-v2ray-username-profile" class="form-input" required placeholder=" "><label for="existing-v2ray-username-profile" class="form-label">Your Old V2Ray Username</label><span class="focus-border"><i></i></span></div><button type="submit" class="ai-button secondary w-full rounded-lg">Link Account</button><div class="text-center text-sm mt-4"><span class="open-help-modal-link text-blue-400 cursor-pointer hover:underline">How to find your username?</span></div></form></div>`;
+                    statusContainer.innerHTML = `<div class="card-glass p-8 custom-radius text-center"><i class="fa-solid fa-rocket text-4xl text-blue-400 mb-4"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Get Started</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">You do not have any active plans yet. Purchase a new plan or link an existing account below.</p><a href="/plans" class="nav-link-internal ai-button inline-block rounded-lg mt-6">Purchase a Plan</a></div><div class="grid md:grid-cols-2 gap-8 mt-8">${settingsHtml}${linkAccountHtml}</div>`;
+                    setupEventListeners();
+                }
+            }
+
+            // --- REAL-TIME UPDATES FOR TABS (Silent) ---
+            if (data.status === "approved" && data.activePlans?.length > 0) {
+                const activePlanUsername = document.querySelector('#plan-menu .trigger-menu .text')?.textContent;
+                const activePlan = data.activePlans.find(p => p.v2rayUsername === activePlanUsername);
+
+                // Define Helpers for Silent Updating
                 const updateRenewButton = async (plan, isSilent = false) => {
                     const container = document.getElementById("renew-button-container");
                     if (!container) return;
-    
-                    if (!isSilent) {
-                        container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking status...</button>`;
-                    }
-    
+                    if (!isSilent) container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking status...</button>`;
                     try {
                         const res = await apiFetch(`/api/check-usage/${plan.v2rayUsername}`);
-                        if (!res.ok) throw new Error('API request failed to get expiry time');
-    
                         const result = await res.json();
-                        if (result.success && result.data.expiryTime > 0) {
-                            const renewalPeriodDays = 5;
-                            const expiryDate = new Date(result.data.expiryTime);
-                            const now = new Date();
-                            const renewalActivationDate = new Date(expiryDate.getTime() - renewalPeriodDays * 24 * 60 * 60 * 1000);
-                            const canRenew = now >= renewalActivationDate;
-    
-                            if (canRenew) {
-                                container.innerHTML = `<button id="renew-profile-btn" class="ai-button inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew / Change Plan</button>`;
-                                document.getElementById('renew-profile-btn')?.addEventListener('click', () => handleRenewalChoice(data.activePlans, plan));
+                        
+                        if (result.success) {
+                            const expiryTime = result.data.expiryTime; // Fresh date from API
+                            
+                            // --- FIX: Real-time Date Logic ---
+                            if (expiryTime > 0) {
+                                const now = new Date();
+                                const renewalPeriodDays = 5;
+                                const canRenew = now >= new Date(new Date(expiryTime).getTime() - renewalPeriodDays * 86400000);
+                                
+                                if (canRenew) {
+                                    if (!document.getElementById('renew-profile-btn')) {
+                                        container.innerHTML = `<button id="renew-profile-btn" class="ai-button inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew / Change Plan</button>`;
+                                        document.getElementById('renew-profile-btn')?.addEventListener('click', () => handleRenewalChoice(data.activePlans, plan));
+                                    }
+                                } else {
+                                    if (!container.innerHTML.includes('disabled')) {
+                                        container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Renew / Change Plan</button>`;
+                                    }
+                                }
                             } else {
-                                container.innerHTML = `<button disabled title="Renewable within 24 hours of expiry" class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Renew / Change Plan</button>`;
+                                container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Does not expire</button>`;
                             }
-                        } else {
-                            container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Does not expire</button>`;
                         }
-                    } catch (error) {
-                        console.error('Error fetching plan status for renewal button:', error);
-                        if (!isSilent) container.innerHTML = `<p class="text-xs text-red-400">Error checking status.</p>`;
-                    }
+                    } catch (e) { if(!isSilent) container.innerHTML = `<p class="text-xs text-red-400">Error</p>`; }
                 };
 
-                const displayPlanDetails = (planIndex) => {
-                    // Stop previous poll if any
-                    if (profilePollingInterval) {
-                        clearInterval(profilePollingInterval);
-                        profilePollingInterval = null;
-                    }
-
-                    // Make sure planIndex is a valid number
-                    planIndex = parseInt(planIndex, 10);
-                    if (isNaN(planIndex) || planIndex < 0 || planIndex >= data.activePlans.length) {
-                        planIndex = 0; // Default to the first plan if index is invalid
-                    }
+                const loadUsageStats = (isSilent = false) => {
+                    const usageContainer = document.getElementById("tab-usage");
+                    if (!usageContainer) return;
+                    if (!isSilent) usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
                     
-                    const plan = data.activePlans[planIndex];
-                    if (!plan) {
-                        console.error("Could not display plan details: Invalid plan index or no active plans.");
-                        planDetailsContainer.innerHTML = `<div class="card-glass p-8 rounded-xl text-center"><p class="text-amber-400">Could not load plan details. Please refresh.</p></div>`;
-                        return;
-                    }
-    
-                    const connectionName = appData.connections.find(c => c.name === plan.connId)?.name || plan.connId || 'N/A';
-                    const planName = appData.plans[plan.planId]?.name || plan.planId;
-                    document.getElementById("plan-info-container").innerHTML = `<span class="bg-blue-500/10 text-blue-300 px-2 py-1 rounded-full"><i class="fa-solid fa-rocket fa-fw mr-2"></i>${planName}</span><span class="bg-indigo-500/10 text-indigo-300 px-2 py-1 rounded-full"><i class="fa-solid fa-wifi fa-fw mr-2"></i>${connectionName}</span>`;
-                    
-                    planDetailsContainer.innerHTML = `
-                        <div id="profile-tabs" class="flex items-center gap-4 sm:gap-6 border-b border-white/10 mb-6 overflow-x-auto">
-                            <button data-tab="config" class="tab-btn">V2Ray Config</button>
-                            <button data-tab="usage" class="tab-btn">Usage Stats</button>
-                            <button data-tab="orders" class="tab-btn">My Orders</button>
-                            <button data-tab="settings" class="tab-btn">Account Settings</button>
-                        </div>
-                        <div id="tab-config" class="tab-panel"><div class="card-glass p-6 sm:p-8 custom-radius"><div class="grid md:grid-cols-2 gap-8 items-center"><div class="flex flex-col items-center text-center"><h3 class="text-lg font-semibold text-white mb-3">Scan with your V2Ray App</h3><div id="qrcode-container" class="w-44 h-44 p-3 bg-white rounded-lg cursor-pointer flex items-center justify-center shadow-lg shadow-blue-500/20" title="Click to view larger"></div></div><div class="space-y-6"><div class="w-full"><label class="text-sm text-gray-400">V2Ray Config Link</label><div class="flex items-center gap-2 mt-2"><input type="text" readonly value="${plan.v2rayLink}" class="w-full bg-slate-800/50 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-300"><button id="copy-config-btn" class="ai-button secondary !text-sm !font-semibold flex-shrink-0 px-4 py-2 rounded-md"><i class="fa-solid fa-copy mr-2"></i>Copy</button></div></div><div class="w-full text-center border-t border-white/10 pt-6"><label class="text-sm text-gray-400">Plan Renewal</label><div id="renew-button-container" class="mt-3"></div></div></div></div></div></div>
-                        <div id="tab-usage" class="tab-panel"></div>
-                        <div id="tab-orders" class="tab-panel"></div>
-                        <div id="tab-settings" class="tab-panel"><div class="card-glass p-6 sm:p-8 custom-radius"><div class="max-w-md mx-auto"><h3 class="text-xl font-bold text-white mb-6 font-['Orbitron'] text-center">Account Settings</h3><form id="profile-update-form" class="space-y-6"><div class="form-group"><input type="text" class="form-input" readonly value="${user.username}" title="Website username cannot be changed."><label class="form-label">Website Username</label></div><div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" placeholder=" "><label for="new-password" class="form-label">New Password (leave blank to keep)</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i></div><button type="submit" class="ai-button w-full rounded-lg !mt-8">Save Changes</button></form></div></div></div>`;
-                    
-                    const qrContainer = document.getElementById("qrcode-container");
-                    qrContainer.innerHTML = "";
-                    try {
-                        new QRCode(qrContainer, {
-                            text: plan.v2rayLink,
-                            width: 140,
-                            height: 140,
-                            correctLevel: QRCode.CorrectLevel.L
-                        });
-                    } catch (error) {
-                        console.error("QR Code generation failed:", error);
-                        qrContainer.innerHTML = `<p class="text-xs text-red-500 text-center p-4">QR code could not be generated. The config link is likely too long.</p>`;
-                    }
+                    apiFetch(`/api/check-usage/${activePlan.v2rayUsername}`).then(res => res.json()).then(result => {
+                        if (result.success) {
+                            const d = result.data;
+                            const total = d.down + d.up;
+                            const percent = d.total > 0 ? Math.min((total / d.total) * 100, 100) : 0;
+                            
+                            const formatBytes = (b = 0, d = 2) => {
+                                const k = 1024;
+                                const s = ['B', 'KB', 'MB', 'GB', 'TB'];
+                                if (b === 0) return '0 B';
+                                const i = Math.floor(Math.log(b) / Math.log(k));
+                                return `${parseFloat((b / k ** i).toFixed(d))} ${s[i]}`;
+                            };
 
-                    qrContainer.addEventListener('click', () => {
-                        const img = qrContainer.querySelector('img');
-                        if (img) qrModalLogic.show(img.src, plan.v2rayUsername);
-                    });
-
-                    document.getElementById('copy-config-btn').addEventListener('click', () => { navigator.clipboard.writeText(plan.v2rayLink); showToast({ title: 'Copied!', message: 'Config link copied to clipboard.', type: 'success' }); });
-    
-                    const tabs = document.getElementById('profile-tabs');
-                    const panels = planDetailsContainer.querySelectorAll('.tab-panel');
-    
-                    const loadUsageStats = (isSilent = false) => {
-                        const usageContainer = document.getElementById("tab-usage");
-                        if (!usageContainer) return;
-                        if (!isSilent) {
-                            usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
-                        }
-                        apiFetch(`/api/check-usage/${plan.v2rayUsername}`).then(res => res.json()).then(result => {
-                            if (result.success) {
-                                // Inline displayUserData function for consistency with main.js block
-                                const data = result.data;
-                                const down = data.down || 0;
-                                const up = data.up || 0;
-                                const totalUsed = down + up;
-                                const totalQuota = data.total || 0;
-                                const usagePercentage = totalQuota > 0 ? Math.min((totalUsed / totalQuota) * 100, 100) : 0;
-                                const status = data.enable ? `<span class="font-semibold text-green-400">ONLINE</span>` : `<span class="font-semibold text-red-400">OFFLINE</span>`;
-                                let expiry = 'N/A';
-                                if (data.expiryTime && data.expiryTime > 0) {
-                                    const expDate = new Date(data.expiryTime);
-                                    expiry = new Date() > expDate ? `<span class="font-semibold text-red-400">Expired</span>` : expDate.toLocaleDateString('en-CA');
-                                }
-
-                                const formatBytes = (b = 0, d = 2) => {
-                                    const k = 1024;
-                                    const s = ['B', 'KB', 'MB', 'GB', 'TB'];
-                                    if (b === 0) return '0 B';
-                                    const i = Math.floor(Math.log(b) / Math.log(k));
-                                    return `${parseFloat((b / k ** i).toFixed(d))} ${s[i]}`;
-                                };
-
-                                const html = `
-                                    <div class="result-card p-4 sm:p-6 card-glass custom-radius space-y-5 reveal is-visible">
-                                        <div class="flex justify-between items-center pb-3 border-b border-white/10">
-                                            <h3 class="text-lg font-semibold text-white flex items-center min-w-0">
-                                                <i class="fa-solid fa-satellite-dish mr-3 text-blue-400 flex-shrink-0"></i>
-                                                <span class="truncate" title="${plan.v2rayUsername}">Client: ${plan.v2rayUsername}</span>
-                                            </h3>
-                                            <div>${status}</div>
-                                        </div>
-                                        ${totalQuota > 0 ? `<div class="space-y-2"><div class="flex justify-between items-baseline text-sm"><span class="font-medium text-gray-300">Data Quota Usage</span><span id="usage-percentage" class="font-bold text-white">0%</span></div><div class="w-full bg-black/30 rounded-full h-2.5"><div class="progress-bar-inner bg-gradient-to-r from-sky-500 to-blue-500 h-2.5 rounded-full" style="width: ${usagePercentage}%"></div></div></div>` : ''}
-                                        <div class="space-y-4 text-sm sm:hidden">
-                                            <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-circle-down text-sky-400 text-lg w-5 text-center"></i><span>Download</span></div><p class="font-semibold text-white text-base">${formatBytes(down)}</p></div>
-                                            <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-circle-up text-violet-400 text-lg w-5 text-center"></i><span>Upload</span></div><p class="font-semibold text-white text-base">${formatBytes(up)}</p></div>
-                                            <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-database text-green-400 text-lg w-5 text-center"></i><span>Total Used</span></div><p class="font-semibold text-white text-base">${formatBytes(totalUsed)}</p></div>
-                                            <div class="flex justify-between items-center"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-calendar-xmark text-red-400 text-lg w-5 text-center"></i><span>Expires On</span></div><p class="font-medium text-white text-base">${expiry}</p></div>
-                                        </div>
-                                        <div class="hidden sm:grid sm:grid-cols-2 gap-4 text-sm">
-                                            <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-circle-down text-sky-400 mr-2"></i><span>Download</span></div><p class="text-2xl font-bold text-white mt-1">${formatBytes(down)}</p></div>
-                                            <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-circle-up text-violet-400 mr-2"></i><span>Upload</span></div><p class="text-2xl font-bold text-white mt-1">${formatBytes(up)}</p></div>
-                                            <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-database text-green-400 mr-2"></i><span>Total Used</span></div><p class="text-2xl font-bold text-white mt-1">${formatBytes(totalUsed)}</p></div>
-                                            <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-calendar-xmark text-red-400 mr-2"></i><span>Expires On</span></div><p class="text-xl font-medium text-white mt-1">${expiry}</p></div>
-                                        </div>
-                                    </div>`;
-                                usageContainer.innerHTML = html;
-                            }
-                            else {
-                                if (!isSilent) usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-amber-400"><p>${result.message}</p></div>`;
-                            }
-                        }).catch(() => {
-                            if (!isSilent) usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-red-400"><p>Could not load usage statistics.</p></div>`;
-                        });
-                    };
-    
-                    const loadMyOrders = async (isSilent = false) => {
-                        const ordersContainer = document.getElementById("tab-orders");
-                        if (!ordersContainer) return;
-                        if (!isSilent) {
-                            ordersContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
-                        }
-                        try {
-                            const res = await apiFetch("/api/user/orders");
-                            if (!res.ok) throw new Error("Failed to fetch orders");
-                            const { orders } = await res.json();
-                            const ordersHtml = (orders.length > 0) ? orders.map(order => {
-                                // Display 'Queued' properly and set colors
-                                const displayStatus = order.status === 'queued_for_renewal' ? 'Queued' : order.status;
-                                const statusColors = { pending: "text-amber-400", approved: "text-green-400", rejected: "text-red-400", queued_for_renewal: "text-blue-300" };
-                                const statusIcons = { pending: "fa-solid fa-clock", approved: "fa-solid fa-check-circle", rejected: "fa-solid fa-times-circle", queued_for_renewal: "fa-solid fa-hourglass-half" };
-                                
-                                return `<div class="card-glass p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 custom-radius">
-                                    <div>
-                                        <p class="font-bold text-white">${appData.plans[order.plan_id]?.name || order.plan_id} <span class="text-gray-400 font-normal">for</span> ${appData.connections.find(c => c.name === order.conn_id)?.name || order.conn_id}</p>
-                                        <p class="text-xs text-gray-400 mt-1">Ordered on: ${new Date(order.created_at).toLocaleDateString()} ${order.status === 'approved' && order.final_username ? `| V2Ray User: <strong class="text-blue-300">${order.final_username}</strong>` : ''}</p>
+                            if(usageContainer.innerHTML.includes('fa-spinner') || usageContainer.innerHTML === '') {
+                                // Initial Render Structure (Expanded)
+                                usageContainer.innerHTML = `
+                                <div class="result-card p-6 card-glass custom-radius space-y-5">
+                                    <div class="flex justify-between items-center">
+                                        <h3 class="text-lg font-semibold text-white">Client: ${activePlan.v2rayUsername}</h3>
+                                        <div id="rt-status"></div>
                                     </div>
-                                    <div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'}">
-                                        <i class="${statusIcons[order.status] || 'fa-solid fa-question-circle'}"></i><span>${displayStatus}</span>
+                                    <div class="space-y-2">
+                                        <div class="flex justify-between text-sm">
+                                            <span class="text-gray-300">Quota</span>
+                                            <span id="rt-percent" class="font-bold text-white"></span>
+                                        </div>
+                                        <div class="w-full bg-black/30 rounded-full h-2.5">
+                                            <div id="rt-bar" class="bg-blue-500 h-2.5 rounded-full" style="width:0%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-4 text-center">
+                                        <div class="bg-black/20 p-4 rounded">
+                                            <p class="text-gray-400 text-xs">Used</p>
+                                            <p id="rt-used" class="text-xl font-bold text-white"></p>
+                                        </div>
+                                        <div class="bg-black/20 p-4 rounded">
+                                            <p class="text-gray-400 text-xs">Expires</p>
+                                            <p id="rt-expiry" class="text-xl font-bold text-white"></p>
+                                        </div>
                                     </div>
                                 </div>`;
-                            }).join('') : `<div class="card-glass p-8 custom-radius text-center"><i class="fa-solid fa-box-open text-4xl text-gray-400 mb-4"></i><h3 class="font-bold text-white">No Orders Found</h3><p class="text-gray-400 text-sm mt-2">You have not placed any orders yet.</p></div>`;
-                            
-                            // Prevent unnecessary DOM update if content is same (simple string comparison)
-                            // This helps with scroll position/selection
-                            if (ordersContainer.innerHTML.includes('fa-spinner') || ordersContainer.innerHTML !== `<div class="space-y-3">${ordersHtml}</div>`) {
-                                 ordersContainer.innerHTML = `<div class="space-y-3">${ordersHtml}</div>`;
                             }
-                        } catch (err) {
-                            if (!isSilent) {
-                                ordersContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-red-400"><p>Could not load your orders.</p></div>`;
-                            }
-                        }
-                    };
-    
-                    const switchTab = (tabId) => {
-                        tabs.querySelector('.active')?.classList.remove('active');
-                        panels.forEach(p => p.classList.remove('active'));
-                        tabs.querySelector(`[data-tab="${tabId}"]`)?.classList.add('active');
-                        document.getElementById(`tab-${tabId}`)?.classList.add('active');
-                        
-                        if (tabId === 'config') updateRenewButton(plan); 
-                        if (tabId === 'usage') loadUsageStats(false);
-                        if (tabId === 'orders') loadMyOrders(false);
-                        
-                        history.pushState(null, '', `/profile?tab=${tabId}`);
-                    };
-    
-                    tabs.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') switchTab(e.target.dataset.tab); });
-                    switchTab(params.get('tab') || 'config');
-                    setupEventListeners();
-
-                    // --- START: POLLING LOGIC ---
-                    profilePollingInterval = setInterval(() => {
-                        // Check if tab exists/visible
-                        const activeTabBtn = tabs.querySelector('.tab-btn.active');
-                        if (activeTabBtn) {
-                            const tabId = activeTabBtn.dataset.tab;
-                            if (tabId === 'usage') loadUsageStats(true); // Silent update
-                            if (tabId === 'orders') loadMyOrders(true); // Silent update
-                            if (tabId === 'config') updateRenewButton(plan, true); // Silent update
-                        }
-                    }, 5000); // 5 seconds
-                    // --- END: POLLING LOGIC ---
-                };
-                
-                // Add event listener for plan selection
-                const floatingMenu = document.querySelector('#plan-menu .floating-menu');
-                if (floatingMenu) {
-                    floatingMenu.addEventListener('click', (e) => {
-                        const link = e.target.closest('a');
-                        if (link) {
-                            e.preventDefault();
-                            const planIndex = link.dataset.planIndex;
-                            if (planIndex !== undefined) {
-                                // Update trigger text
-                                const triggerText = document.querySelector('#plan-menu .trigger-menu .text');
-                                triggerText.textContent = data.activePlans[planIndex].v2rayUsername;
-                                // Call the main function to re-render details
-                                displayPlanDetails(planIndex);
-                                // Close the menu
-                                planMenuInstance.closeAll();
+                            const statusElem = document.getElementById('rt-status');
+                            if(statusElem) {
+                                statusElem.innerHTML = d.enable ? `<span class="text-green-400 font-bold">ONLINE</span>` : `<span class="text-red-400 font-bold">OFFLINE</span>`;
+                                document.getElementById('rt-percent').textContent = `${percent.toFixed(1)}%`;
+                                document.getElementById('rt-bar').style.width = `${percent}%`;
+                                document.getElementById('rt-used').textContent = `${formatBytes(total)}`;
+                                
+                                // --- FIX: Real-time Date Update ---
+                                const newExpiryDate = d.expiryTime ? new Date(d.expiryTime).toLocaleDateString('en-CA') : 'Unlimited';
+                                document.getElementById('rt-expiry').textContent = newExpiryDate;
                             }
                         }
                     });
+                };
+
+                const loadMyOrders = async (isSilent = false) => {
+                    const container = document.getElementById("tab-orders");
+                    if (!container) return;
+                    if (!isSilent) container.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
+                    const res = await apiFetch("/api/user/orders");
+                    const { orders } = await res.json();
+                    const html = orders.map(o => {
+                        const displayStatus = o.status === 'queued_for_renewal' ? 'Queued' : o.status;
+                        const statusColor = o.status === 'approved' ? 'text-green-400' : (o.status === 'pending' ? 'text-amber-400' : 'text-blue-300');
+                        return `<div class="card-glass p-4 rounded-lg flex justify-between items-center mb-2"><div><p class="font-bold text-white">${o.plan_id}</p><p class="text-xs text-gray-400">${new Date(o.created_at).toLocaleDateString()}</p></div><div class="font-bold ${statusColor}">${displayStatus}</div></div>`;
+                    }).join('');
+                    if(container.innerHTML !== `<div class="space-y-3">${html}</div>`) container.innerHTML = `<div class="space-y-3">${html}</div>`;
+                };
+
+                if (activePlan) {
+                    if (document.getElementById('tab-usage')?.classList.contains('active')) loadUsageStats(true);
+                    if (document.getElementById('tab-orders')?.classList.contains('active')) loadMyOrders(true);
+                    if (document.getElementById('tab-config')?.classList.contains('active')) updateRenewButton(activePlan, true);
                 }
-
-                // Initial display
-                displayPlanDetails(0);
-    
-            } else if (data.status === "pending") {
-                statusContainer.innerHTML = `<div class="card-glass p-8 rounded-xl text-center"><i class="fa-solid fa-clock text-4xl text-amber-400 mb-4 animate-pulse"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Order Pending Approval</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">Your order is currently being reviewed. Your profile will update here once approved.</p></div>`;
-                // Poll for pending status change as well
-                profilePollingInterval = setInterval(() => {
-                     // Check status silently
-                     apiFetch("/api/user/status")
-                        .then(res => res.json())
-                        .then(newData => {
-                            if (newData.status === 'approved') {
-                                // Reload page to show approved dashboard
-                                window.location.reload(); 
-                            }
-                        }).catch(()=>{});
-                }, 5000);
-
-            } else {
-                const settingsHtml = `<div class="card-glass p-6 custom-radius"><h3 class="text-xl font-bold text-white mb-4 font-['Orbitron']">Account Settings</h3><form id="profile-update-form" class="space-y-6"><div class="form-group"><input type="text" class="form-input" readonly value="${user.username}" title="Website username cannot be changed."><label class="form-label">Website Username</label></div><div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" placeholder=" "><label for="new-password" class="form-label">New Password (leave blank to keep)</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i></div><button type="submit" class="ai-button w-full rounded-lg !mt-8">Save Changes</button></form></div>`;
-                const linkAccountHtml = `<div class="card-glass p-6 custom-radius"><h3 class="text-xl font-bold text-white mb-2 font-['Orbitron']">Link Existing V2Ray Account</h3><p class="text-sm text-gray-400 mb-6">If you have an old account, link it here to manage renewals.</p><form id="link-account-form-profile" class="space-y-6"><div class="form-group"><input type="text" id="existing-v2ray-username-profile" class="form-input" required placeholder=" "><label for="existing-v2ray-username-profile" class="form-label">Your Old V2Ray Username</label><span class="focus-border"><i></i></span></div><button type="submit" class="ai-button secondary w-full rounded-lg">Link Account</button><div class="text-center text-sm mt-4"><span class="open-help-modal-link text-blue-400 cursor-pointer hover:underline">How to find your username?</span></div></form></div>`;
-                statusContainer.innerHTML = `<div class="card-glass p-8 custom-radius text-center"><i class="fa-solid fa-rocket text-4xl text-blue-400 mb-4"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Get Started</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">You do not have any active plans yet. Purchase a new plan or link an existing account below.</p><a href="/plans" class="nav-link-internal ai-button inline-block rounded-lg mt-6">Purchase a Plan</a></div><div class="grid md:grid-cols-2 gap-8 mt-8">${settingsHtml}${linkAccountHtml}</div>`;
-                setupEventListeners();
             }
-        })
-        .catch((error) => {
-            console.error("Error fetching user status:", error);
-            statusContainer.innerHTML = `<div class="card-glass p-8 rounded-xl text-center"><p class="text-red-400">Could not load profile data. Please try logging in again.</p></div>`;
-        });
+
+        } catch (e) { console.error(e); }
+    };
+
+    // Initial Load
+    loadProfileData();
+
+    // Polling Interval (Every 5 Seconds)
+    profilePollingInterval = setInterval(loadProfileData, 5000);
 }
