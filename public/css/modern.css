@@ -54,14 +54,6 @@ body.modal-open {
 }
 
 
-.toast {
-  border-radius: 35px !important; /* ඔබ ඉල්ලූ 35px Border Radius එක */
-}
-
-/* වම් පැත්තේ ඇති වර්ණ තීරුවද (Color Bar) රවුම් හැඩයට හැරවීම */
-.toast::before {
-  border-radius: 35px 0 0 35px !important;
-}
 
 
 
@@ -320,34 +312,43 @@ body.modal-open {
 /* --- END: CLEANED UP AND UPDATED NAVBAR SCROLL ANIMATION --- */
 
 /* ======================================== */
-/* MODERN ROUNDED TOAST STYLES (FIXED)      */
+/* MODERN LIQUID GLASS TOAST STYLES (FINAL) */
 /* ======================================== */
 
 .toast {
   display: flex;
-  align-items: center; /* අයිකන සහ ටෙක්ස්ට් මැදට ගනී */
-  padding: 12px 24px !important; /* රවුම් හැඩයට ගැලපෙන්න ඉඩ වැඩි කළා */
-  border-radius: 35px !important; /* ඔබ ඉල්ලූ රවුම් හැඩය */
+  align-items: center;
+  padding: 14px 20px 14px 25px !important; /* වම් පැත්තේ ඉඩ වැඩි කළා Color strip එකට */
+  border-radius: 35px !important; /* Full Rounded */
   
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  /* Liquid Glass Effect */
+  background: rgba(10, 15, 30, 0.65) !important; /* Dark Glass Background */
+  backdrop-filter: blur(20px) saturate(180%); /* High Blur & Saturation */
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   
-  /* Default Border & Shadow */
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  /* Visible Border */
+  border: 1.5px solid rgba(255, 255, 255, 0.15); /* Border එක පැහැදිලිව පෙනෙන්න වැඩි කළා */
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5); /* Deep Shadow */
   
   color: #e0e0e0;
   position: relative;
-  overflow: hidden;
+  overflow: hidden; /* Color strip එක හැඩේට කපාගන්න */
   transform: translateX(120%);
   opacity: 0;
-  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-  margin-bottom: 10px;
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); /* Bouncy Animation */
+  margin-bottom: 12px;
 }
 
-/* වම් පැත්තේ තිබුණ කැපෙන ඉර (Bar) එක ඉවත් කිරීම */
+/* වම් පැත්තේ පාට තීරුව (Side Color Strip) */
 .toast::before {
-  display: none !important;
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px !important; /* තීරුවේ මහත */
+  display: block !important;
+  box-shadow: 2px 0 15px rgba(255,255,255,0.1); /* Glow effect inside */
 }
 
 .toast.show {
@@ -355,40 +356,28 @@ body.modal-open {
   opacity: 1;
 }
 
-/* --- Type Specific Styles (Full Border & Tint) --- */
+/* --- Type Specific Colors (Strip & Icon) --- */
 
 /* Success (Green) */
-.toast--success {
-  border-color: #22c55e !important;
-  background: rgba(34, 197, 94, 0.15) !important; /* සියුම් කොළ පැහැ පසුබිමක් */
-}
-.toast--success .toast-icon { color: #22c55e; }
+.toast--success::before { background: #22c55e; box-shadow: 0 0 15px #22c55e; }
+.toast--success .toast-icon { color: #22c55e; text-shadow: 0 0 10px rgba(34, 197, 94, 0.6); }
 
 /* Error (Red) */
-.toast--error {
-  border-color: #ef4444 !important;
-  background: rgba(239, 68, 68, 0.15) !important;
-}
-.toast--error .toast-icon { color: #ef4444; }
+.toast--error::before { background: #ef4444; box-shadow: 0 0 15px #ef4444; }
+.toast--error .toast-icon { color: #ef4444; text-shadow: 0 0 10px rgba(239, 68, 68, 0.6); }
 
 /* Warning (Orange) */
-.toast--warning {
-  border-color: #f97316 !important;
-  background: rgba(249, 115, 22, 0.15) !important;
-}
-.toast--warning .toast-icon { color: #f97316; }
+.toast--warning::before { background: #f97316; box-shadow: 0 0 15px #f97316; }
+.toast--warning .toast-icon { color: #f97316; text-shadow: 0 0 10px rgba(249, 115, 22, 0.6); }
 
 /* Info (Blue) */
-.toast--info {
-  border-color: #3b82f6 !important;
-  background: rgba(59, 130, 246, 0.15) !important;
-}
-.toast--info .toast-icon { color: #3b82f6; }
+.toast--info::before { background: #3b82f6; box-shadow: 0 0 15px #3b82f6; }
+.toast--info .toast-icon { color: #3b82f6; text-shadow: 0 0 10px rgba(59, 130, 246, 0.6); }
 
 /* --- Content Adjustments --- */
 
 .toast-icon {
-  font-size: 1.5rem; /* අයිකනය තරමක් විශාල කළා */
+  font-size: 1.4rem;
   margin-right: 15px;
   display: flex;
   align-items: center;
@@ -401,28 +390,27 @@ body.modal-open {
 .toast-title {
   font-weight: 700;
   font-size: 0.95rem;
-  margin: 0;
+  margin: 0 0 2px 0;
   color: #ffffff;
-  line-height: 1.2;
+  letter-spacing: 0.5px;
 }
 
 .toast-message {
-  font-size: 0.85rem;
-  margin: 2px 0 0 0;
-  color: #d1d5db;
+  font-size: 0.8rem;
+  margin: 0;
+  color: #cbd5e1; /* Lighter text for readability */
   line-height: 1.4;
 }
 
 .toast-close-btn {
-  margin-left: 15px;
+  margin-left: 12px;
   background: transparent;
   border: none;
-  color: #9ca3af;
-  font-size: 1.5rem;
+  color: #64748b;
+  font-size: 1.2rem;
   cursor: pointer;
   transition: color 0.2s;
-  display: flex;
-  align-items: center;
+  padding: 4px;
 }
 
 .toast-close-btn:hover {

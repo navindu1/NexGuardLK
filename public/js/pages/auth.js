@@ -73,11 +73,13 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
                 <button type="submit" class="ai-button w-full rounded-lg">Verify & Create Account</button>
                 <p class="text-center text-sm">Didn't get the code? <span id="show-signup-again" class="auth-toggle-link">Go Back</span></p>
                 
-                <div id="otp-spam-warning" class="hidden mt-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl text-center reveal is-visible">
-                    <p class="text-amber-400 font-bold text-sm mb-1"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Still waiting for the code?</p>
-                    <p class="text-gray-300 text-xs">Email delivery might be slow.</p>
-                    <p class="text-white font-semibold text-xs mt-2 border-t border-white/10 pt-2">Please check your <span class="text-amber-400">Spam / Junk Folder</span>.</p>
-                </div>
+                // public/js/pages/auth.js තුළ ඇති otp-form HTML කොටස:
+
+<div id="otp-spam-warning" class="hidden mt-6 text-center reveal is-visible">
+    <p class="text-blue-400 text-xs font-medium opacity-80 tracking-wide">
+        Please check your Spam / Junk Folder.
+    </p>
+</div>
                 </form>
             <form class="auth-form space-y-6" id="forgot-password-form">
                 <div class="text-center"><h1 class="text-2xl font-bold text-white font-['Orbitron']">Reset Password</h1><p class="text-sm text-gray-400 mt-1">Enter your email to receive a reset link.</p></div>
@@ -189,21 +191,27 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
                 switchAuthView(otpForm);
 
                 // --- START: Timer to show Spam Warning after 15 Seconds ---
+// public/js/pages/auth.js - signupForm event listener එක ඇතුළේ:
+
+// --- START: Timer to show Warning ---
 setTimeout(() => {
     // Check if user is still on the OTP form
     if (otpForm.classList.contains("active")) {
-        // පරණ static warning එක පෙන්වීම (අවශ්‍ය නම් තබාගන්න)
+        
+        // Form එකේ යටින් පොඩි Text එක පෙන්වන්න
+        const warningBox = document.getElementById("otp-spam-warning");
         if(warningBox) warningBox.classList.remove("hidden");
 
-        // --- NEW: Show Toast Message Warning ---
+        // --- Show Toast Message Warning (10 Seconds) ---
         showToast({
             title: "Still Waiting?",
             message: "Email delivery delays detected. Please check your Spam/Junk folder.",
             type: "warning",
-            duration: 8000 // තත්පර 8ක් පෙන්වා තබයි
+            duration: 10000 // තත්පර 10ක් පෙන්වා තබයි
         });
     }
-}, 15000); // තත්පර 15 කට පසු ක්‍රියාත්මක වේ
+}, 15000); // ෆෝරම් එක load වෙලා තත්පර 15කට පස්සේ මැසේජ් එක එයි
+// --- END: Timer Logic --- // තත්පර 15 කට පසු ක්‍රියාත්මක වේ
 // --- END: Timer Logic ---
 
             } else {
