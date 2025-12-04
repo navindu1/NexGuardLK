@@ -41,7 +41,7 @@ export function renderProfilePage(renderFunc, params) {
         </div>`;
     // --- END: MODAL HTML ---
     
-    // --- START: UPDATED CSS (FIXED DROPDOWN WIDTH & VISIBILITY) ---
+    // --- START: FINAL FIXED CSS (OVERFLOW & CLIPPING FIX) ---
     const pageStyles = `<style>
         /* Profile Page Input Fields */
         #page-profile .form-input { height: 56px; padding: 20px 12px 8px 12px; background-color: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.2); } 
@@ -63,32 +63,45 @@ export function renderProfilePage(renderFunc, params) {
         .help-modal-overlay.visible .help-modal-content { opacity: 1; transform: scale(1); }
         .grease-glass { background: rgba(30, 40, 60, 0.4); backdrop-filter: blur(20px) saturate(200%); -webkit-backdrop-filter: blur(20px) saturate(200%); border-radius: 35px; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5); }
 
-        /* --- DROPDOWN FIXES (FINAL) --- */
+        /* --- KEY FIXES FOR DROPDOWN CLIPPING --- */
+        
+        /* 1. Main Container: Allow Overflow */
         .plan-selector-container { 
             display: flex; 
             align-items: center; 
             gap: 0.75rem; 
             margin-bottom: 2rem; 
             position: relative;
-            z-index: 100; /* Ensure container is above others */
+            z-index: 100;
+            overflow: visible !important; /* කැපී පෙනීම වලක්වයි */
         }
         .plan-selector-label { font-size: 0.875rem; font-weight: 600; color: #d1d5db; flex-shrink: 0; }
         
-        ul.fmenu { display: inline-block; list-style: none; padding: 0; margin: 0; white-space: nowrap; position: relative; }
-        ul.fmenu > li.fmenu-item { position: relative; }
+        /* 2. Menu Wrapper: Remove Constraints */
+        ul.fmenu { 
+            display: inline-block; 
+            list-style: none; 
+            padding: 0; 
+            margin: 0; 
+            white-space: nowrap; 
+            position: relative; 
+            overflow: visible !important; /* වැදගත්ම කොටස */
+        }
+        ul.fmenu > li.fmenu-item { position: relative; overflow: visible !important; }
         
-        /* Trigger Button Styling */
+        /* Trigger Button */
         ul.fmenu .trigger-menu { 
             display: flex; align-items: center; justify-content: space-between;
             box-sizing: border-box; 
             height: 44px;
             padding: 0 1.2rem; 
-            border-radius: 999px; /* Fully rounded pill shape */
-            background-color: rgba(30, 41, 59, 0.8); 
+            border-radius: 999px; 
+            background-color: rgba(30, 41, 59, 0.9); 
             border: 1px solid rgba(255, 255, 255, 0.2); 
             cursor: pointer; 
             transition: all ease 0.3s; 
             min-width: 180px; 
+            overflow: visible !important;
         }
         ul.fmenu .trigger-menu:hover, ul.fmenu .trigger-menu.open { border-color: var(--brand-blue); box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
         ul.fmenu .trigger-menu i { color: #9ca3af; font-size: 0.9rem; transition: color ease 0.3s; }
@@ -97,34 +110,38 @@ export function renderProfilePage(renderFunc, params) {
         ul.fmenu .trigger-menu .arrow { font-size: 0.8rem; transition: transform ease 0.3s; }
         ul.fmenu .trigger-menu.open .arrow { transform: rotate(180deg); }
         
-        /* Dropdown List Styling */
+        /* Dropdown List */
         ul.fmenu .floating-menu { 
             display: block; 
             position: absolute; 
-            top: 3.5rem; 
+            top: 110%; /* බොත්තමට පොඩ්ඩක් පහළින් */
             left: 0;
-            
-            /* --- KEY FIXES FOR VISIBILITY --- */
-            width: max-content; /* පළල අන්තර්ගතයට අනුව හැදෙන්න */
-            min-width: 100%;    /* අඩුම තරමේ Button එකේ පළලවත් තියෙන්න */
-            padding-right: 10px; /* දකුණු පැත්තෙන් ඉඩක් තියන්න */
-            
+            width: max-content; 
+            min-width: 100%;
             list-style: none; 
             padding: 0.5rem; 
             margin: 0; 
-            background-color: #0f172a; /* Solid dark background to prevent transparency issues */
+            background-color: #0f172a; 
             border: 1px solid rgba(71, 85, 105, 0.6); 
             border-radius: 16px; 
-            box-shadow: 0 20px 40px rgba(0,0,0,0.6); 
-            max-height: 0px; 
-            z-index: 9999 !important; /* Force on top */
+            box-shadow: 0 20px 40px rgba(0,0,0,0.8); 
+            z-index: 9999 !important; 
+            
+            /* Hide by default */
             opacity: 0; 
-            overflow: hidden; 
-            transition: max-height 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.3s ease; 
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: opacity 0.3s, transform 0.3s;
         }
         
+        /* --- THE FIX: Force visibility when open --- */
+        /* JS එකෙන් 'open' class එක trigger එකට වැටුනම මේක වැඩ කරයි */
         ul.fmenu .trigger-menu.open + .floating-menu {
-            border-color: var(--brand-blue);
+            opacity: 1 !important;
+            visibility: visible !important;
+            transform: translateY(0) !important;
+            max-height: none !important; /* JS height calculation එක override කරයි */
+            overflow: visible !important; /* අනිවාර්යෙන්ම පෙනෙන ලෙස සකසයි */
         }
 
         ul.fmenu .floating-menu > li a { 
@@ -132,21 +149,19 @@ export function renderProfilePage(renderFunc, params) {
             font-size: 0.9rem; 
             text-decoration: none; 
             display: block; 
-            padding: 0.75rem 1.5rem; /* වැඩිපුර ඉඩ (Padding) ලබා දුන්නා */
+            padding: 0.75rem 1.2rem; 
             border-radius: 10px; 
             transition: all 0.2s ease; 
             border: 1px solid transparent;
-            white-space: nowrap; /* අකුරු කඩන්නේ නැතුව එක පෙලට තියන්න */
         }
         
         ul.fmenu .floating-menu > li a:hover { 
             background-color: rgba(59, 130, 246, 0.15); 
             color: #ffffff; 
             border-color: rgba(59, 130, 246, 0.3);
-            transform: translateX(5px);
         }
     </style>`;
-    // --- END: UPDATED CSS ---
+    // --- END: CSS ---
     
     // (මෙතැන් සිට පහළට ඇති ඉතිරි කේතය එලෙසම තබන්න...)
     let profilePictureUrl = (user.profilePicture || "/assets/profilePhoto.jpg").replace("public/", "");
