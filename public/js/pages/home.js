@@ -120,7 +120,7 @@ export function renderAboutPage(renderFunc) {
                     </div>
                 </div>
                 <div class="lg:w-80 flex-shrink-0 reveal custom-radius">
-                    <div class="card-glass p-6 rounded-2xl text-center sticky top-28 shadow-xl">
+                    <div class="card-glass p-6 custom-radius text-center sticky top-28 shadow-xl">
                         <img src="/assets/ceo.jpg" alt="Nexguard Founder" class="w-24 h-24 rounded-full mx-auto border-4 border-blue-500 shadow-md">
                         <h3 class="text-xl font-bold mt-4 text-white">Navindu R.</h3>
                         <p class="text-blue-400 text-sm font-medium">CEO & Founder</p>
