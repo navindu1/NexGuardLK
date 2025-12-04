@@ -11,7 +11,7 @@ export function renderProfilePage(renderFunc, params) {
         return;
     }
 
-    // --- START: UPDATED MODAL HTML (Grease Glass Style) ---
+    // --- START: HELP MODAL HTML (Grease Glass) ---
     const modalHtml = `
         <div id="help-modal" class="help-modal-overlay">
             <div class="help-modal-content grease-glass p-6 space-y-4 w-full max-w-md">
@@ -39,9 +39,9 @@ export function renderProfilePage(renderFunc, params) {
                 </div>
             </div>
         </div>`;
-    // --- END: UPDATED MODAL HTML ---
+    // --- END: MODAL HTML ---
     
-    // --- START: UPDATED CSS FOR PROFILE PAGE & MODAL ---
+    // --- START: UPDATED CSS (Fixed Dropdown Issue) ---
     const pageStyles = `<style>
         /* Profile Page Input Fields */
         #page-profile .form-input { height: 56px; padding: 20px 12px 8px 12px; background-color: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.2); } 
@@ -56,66 +56,84 @@ export function renderProfilePage(renderFunc, params) {
         .tab-panel { display: none; } 
         .tab-panel.active { display: block; animation: pageFadeIn 0.5s; }
         
-        /* --- NEW MODAL STYLES (Grease Glass) --- */
-        .help-modal-overlay {
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
-            background: rgba(0, 0, 0, 0.2); /* Slight tint */
-            z-index: 9999;
-            position: fixed;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-        }
-        
-        .help-modal-overlay.visible {
-            opacity: 1;
-            visibility: visible;
-        }
+        /* Modal Styles */
+        .help-modal-overlay { opacity: 0; visibility: hidden; transition: opacity 0.3s ease-out, visibility 0.3s ease-out; background: rgba(0, 0, 0, 0.2); z-index: 9999; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+        .help-modal-overlay.visible { opacity: 1; visibility: visible; }
+        .help-modal-content { opacity: 0; transform: scale(0.90); transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .help-modal-overlay.visible .help-modal-content { opacity: 1; transform: scale(1); }
+        .grease-glass { background: rgba(30, 40, 60, 0.4); backdrop-filter: blur(20px) saturate(200%); -webkit-backdrop-filter: blur(20px) saturate(200%); border-radius: 35px; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5); }
 
-        .help-modal-content {
-            opacity: 0;
-            transform: scale(0.90);
-            transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        
-        .help-modal-overlay.visible .help-modal-content {
-            opacity: 1;
-            transform: scale(1);
-        }
-
-        .grease-glass {
-            background: rgba(30, 40, 60, 0.4);
-            backdrop-filter: blur(20px) saturate(200%);
-            -webkit-backdrop-filter: blur(20px) saturate(200%);
-            border-radius: 35px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
-        }
-        /* --------------------------- */
-
-        /* Plan selector styles */
-        .plan-selector-container { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; }
+        /* --- UPDATED DROPDOWN STYLES (FIXED) --- */
+        .plan-selector-container { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 2rem; position: relative; z-index: 50; }
         .plan-selector-label { font-size: 0.875rem; font-weight: 600; color: #d1d5db; flex-shrink: 0; }
+        
         ul.fmenu { display: inline-block; list-style: none; padding: 0; margin: 0; white-space: nowrap; }
         ul.fmenu > li.fmenu-item { position: relative; }
-        ul.fmenu .trigger-menu { display: flex; align-items: center; box-sizing: border-box; height: 2.25rem; padding: 0 0.75rem; border-radius: 0.375rem; overflow: hidden; background-color: rgba(30, 41, 59, 0.7); border: 1px solid #475569; cursor: pointer; transition: all ease 0.3s; }
-        ul.fmenu .trigger-menu:hover, ul.fmenu .trigger-menu.open { border-color: var(--brand-blue); }
+        
+        /* Trigger Button Styling */
+        ul.fmenu .trigger-menu { 
+            display: flex; align-items: center; box-sizing: border-box; 
+            height: 40px; /* Fixed height for consistency */
+            padding: 0 1rem; 
+            border-radius: 999px; /* Fully rounded */
+            background-color: rgba(30, 41, 59, 0.8); 
+            border: 1px solid #475569; 
+            cursor: pointer; 
+            transition: all ease 0.3s; 
+            min-width: 150px;
+            justify-content: space-between;
+        }
+        ul.fmenu .trigger-menu:hover, ul.fmenu .trigger-menu.open { border-color: var(--brand-blue); box-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
         ul.fmenu .trigger-menu i { color: #9ca3af; font-size: 0.875rem; transition: color ease 0.3s; }
         ul.fmenu .trigger-menu:hover i, ul.fmenu .trigger-menu.open i { color: #60a5fa; }
-        ul.fmenu .trigger-menu .text { display: block; font-size: 0.875rem; color: #e5e7eb; padding: 0 0.5rem; }
+        ul.fmenu .trigger-menu .text { display: block; font-size: 0.9rem; color: #e5e7eb; padding: 0 0.5rem; font-weight: 500; }
         ul.fmenu .trigger-menu .arrow { font-size: 0.75rem; transition: transform ease 0.3s; }
         ul.fmenu .trigger-menu.open .arrow { transform: rotate(180deg); }
-        ul.fmenu .floating-menu { display: block; position: absolute; top: 2.5rem; width: 100%; min-width: 200px; list-style: none; padding: 0.5rem; margin: 0; background-color: #1e293b; border: 1px solid #475569; border-radius: 35px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); max-height: 0px; z-index: 100; opacity: 0; overflow: hidden; transition: max-height ease 0.4s, opacity ease 0.3s; }
-        ul.fmenu .floating-menu > li a { color: #cbd5e1; font-size: 0.875rem; text-decoration: none; display: block; padding: 0.4rem 0.75rem; border-radius: 0.375rem; transition: all 0.2s ease; }
-        ul.fmenu .floating-menu > li a:hover { background-color: rgba(59, 130, 246, 0.2); color: #ffffff; }
+        
+        /* Dropdown List Styling */
+        ul.fmenu .floating-menu { 
+            display: block; 
+            position: absolute; 
+            top: 3rem; /* Push it down slightly more */
+            left: 0;
+            width: auto;
+            min-width: 100%; /* Match trigger width at minimum */
+            list-style: none; 
+            padding: 0.5rem; 
+            margin: 0; 
+            background-color: #1e293b; 
+            border: 1px solid #475569; 
+            border-radius: 12px; /* Nicer radius for list */
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
+            max-height: 0px; 
+            z-index: 9999 !important; /* Force on top */
+            opacity: 0; 
+            overflow: hidden; 
+            transition: max-height 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.3s ease; 
+        }
+        
+        /* Ensure visible when open (handled by JS logic but CSS ensures styling) */
+        ul.fmenu .trigger-menu.open + .floating-menu {
+            border-color: var(--brand-blue);
+        }
+
+        ul.fmenu .floating-menu > li a { 
+            color: #cbd5e1; 
+            font-size: 0.9rem; 
+            text-decoration: none; 
+            display: block; 
+            padding: 0.6rem 1rem; /* More padding for easier clicking */
+            border-radius: 8px; 
+            transition: all 0.2s ease; 
+        }
+        ul.fmenu .floating-menu > li a:hover { 
+            background-color: rgba(59, 130, 246, 0.2); 
+            color: #ffffff; 
+        }
     </style>`;
     // --- END: CSS ---
     
-    // (ඉතිරි කේතය එලෙසම තබන්න...)
+    // (මෙතැන් සිට පහළට ඇති ඉතිරි කේතය එලෙසම තබන්න...)
     let profilePictureUrl = (user.profilePicture || "/assets/profilePhoto.jpg").replace("public/", "");
     if (profilePictureUrl && !profilePictureUrl.startsWith('/')) {
         profilePictureUrl = '/' + profilePictureUrl;
@@ -127,12 +145,12 @@ export function renderProfilePage(renderFunc, params) {
     
     renderFunc(pageStyles + baseHtml);
     
-    // ... (මෙතැන් සිට පහළට ඇති ඉතිරි කේතය එලෙසම තබන්න)
     const statusContainer = document.getElementById("user-status-content");
     qrModalLogic.init();
-    // ...
-
-    document.getElementById("avatar-upload")?.addEventListener("change", async(e) => {
+    
+    // ... (ඉතිරි කේතය එලෙසම පවතී) ...
+    
+document.getElementById("avatar-upload")?.addEventListener("change", async(e) => {
         const file = e.target.files[0];
         if (!file) return;
         const formData = new FormData();
