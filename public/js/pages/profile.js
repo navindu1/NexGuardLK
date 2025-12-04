@@ -382,7 +382,62 @@ document.getElementById("avatar-upload")?.addEventListener("change", async(e) =>
                     const tabs = document.getElementById('profile-tabs');
                     const panels = planDetailsContainer.querySelectorAll('.tab-panel');
     
-                    
+                    const loadUsageStats = () => {
+                        const usageContainer = document.getElementById("tab-usage");
+                        if (!usageContainer) return;
+                        usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
+                        apiFetch(`/api/check-usage/${plan.v2rayUsername}`).then(res => res.json()).then(result => {
+                            if (result.success) {
+                                // Inline displayUserData function for consistency with main.js block
+                                const data = result.data;
+                                const down = data.down || 0;
+                                const up = data.up || 0;
+                                const totalUsed = down + up;
+                                const totalQuota = data.total || 0;
+                                const usagePercentage = totalQuota > 0 ? Math.min((totalUsed / totalQuota) * 100, 100) : 0;
+                                const status = data.enable ? `<span class="font-semibold text-green-400">ONLINE</span>` : `<span class="font-semibold text-red-400">OFFLINE</span>`;
+                                let expiry = 'N/A';
+                                if (data.expiryTime && data.expiryTime > 0) {
+                                    const expDate = new Date(data.expiryTime);
+                                    expiry = new Date() > expDate ? `<span class="font-semibold text-red-400">Expired</span>` : expDate.toLocaleDateString('en-CA');
+                                }
+
+                                const formatBytes = (b = 0, d = 2) => {
+                                    const k = 1024;
+                                    const s = ['B', 'KB', 'MB', 'GB', 'TB'];
+                                    if (b === 0) return '0 B';
+                                    const i = Math.floor(Math.log(b) / Math.log(k));
+                                    return `${parseFloat((b / k ** i).toFixed(d))} ${s[i]}`;
+                                };
+
+                                const html = `
+                                    <div class="result-card p-4 sm:p-6 card-glass custom-radius space-y-5 reveal is-visible">
+                                        <div class="flex justify-between items-center pb-3 border-b border-white/10">
+                                            <h3 class="text-lg font-semibold text-white flex items-center min-w-0">
+                                                <i class="fa-solid fa-satellite-dish mr-3 text-blue-400 flex-shrink-0"></i>
+                                                <span class="truncate" title="${plan.v2rayUsername}">Client: ${plan.v2rayUsername}</span>
+                                            </h3>
+                                            <div>${status}</div>
+                                        </div>
+                                        ${totalQuota > 0 ? `<div class="space-y-2"><div class="flex justify-between items-baseline text-sm"><span class="font-medium text-gray-300">Data Quota Usage</span><span id="usage-percentage" class="font-bold text-white">0%</span></div><div class="w-full bg-black/30 rounded-full h-2.5"><div class="progress-bar-inner bg-gradient-to-r from-sky-500 to-blue-500 h-2.5 rounded-full" style="width: ${usagePercentage}%"></div></div></div>` : ''}
+                                        <div class="space-y-4 text-sm sm:hidden">
+                                            <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-circle-down text-sky-400 text-lg w-5 text-center"></i><span>Download</span></div><p class="font-semibold text-white text-base">${formatBytes(down)}</p></div>
+                                            <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-circle-up text-violet-400 text-lg w-5 text-center"></i><span>Upload</span></div><p class="font-semibold text-white text-base">${formatBytes(up)}</p></div>
+                                            <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-database text-green-400 text-lg w-5 text-center"></i><span>Total Used</span></div><p class="font-semibold text-white text-base">${formatBytes(totalUsed)}</p></div>
+                                            <div class="flex justify-between items-center"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-calendar-xmark text-red-400 text-lg w-5 text-center"></i><span>Expires On</span></div><p class="font-medium text-white text-base">${expiry}</p></div>
+                                        </div>
+                                        <div class="hidden sm:grid sm:grid-cols-2 gap-4 text-sm">
+                                            <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-circle-down text-sky-400 mr-2"></i><span>Download</span></div><p class="text-2xl font-bold text-white mt-1">${formatBytes(down)}</p></div>
+                                            <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-circle-up text-violet-400 mr-2"></i><span>Upload</span></div><p class="text-2xl font-bold text-white mt-1">${formatBytes(up)}</p></div>
+                                            <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-database text-green-400 mr-2"></i><span>Total Used</span></div><p class="text-2xl font-bold text-white mt-1">${formatBytes(totalUsed)}</p></div>
+                                            <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-calendar-xmark text-red-400 mr-2"></i><span>Expires On</span></div><p class="text-xl font-medium text-white mt-1">${expiry}</p></div>
+                                        </div>
+                                    </div>`;
+                                usageContainer.innerHTML = html;
+                            }
+                            else usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-amber-400"><p>${result.message}</p></div>`;
+                        }).catch(() => usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-red-400"><p>Could not load usage statistics.</p></div>`);
+                    };
     
                     const loadMyOrders = async (isSilent = false) => {
                         const ordersContainer = document.getElementById("tab-orders");
