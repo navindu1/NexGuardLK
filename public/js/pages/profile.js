@@ -41,109 +41,112 @@ export function renderProfilePage(renderFunc, params) {
         </div>`;
     // --- END: MODAL HTML ---
     
-    // --- START: FIXED DROPDOWN CSS ---
-const pageStyles = `<style>
-    /* Profile Page Input Fields */
-    #page-profile .form-input { height: 56px; padding: 20px 12px 8px 12px; background-color: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.2); } 
-    #page-profile .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; } 
-    #page-profile .form-input:focus ~ .form-label, 
-    #page-profile .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: var(--brand-blue); } 
-    #page-profile .form-input[readonly] { background-color: rgba(0,0,0,0.2); cursor: not-allowed; } 
-    
-    /* Tabs */
-    .tab-btn { border-bottom: 3px solid transparent; transition: all .3s ease; color: #9ca3af; padding: 0.75rem 0.25rem; font-weight: 600; white-space: nowrap; } 
-    .tab-btn.active { border-bottom-color: var(--brand-blue); color: #fff; } 
-    .tab-panel { display: none; } 
-    .tab-panel.active { display: block; animation: pageFadeIn 0.5s; }
-    
-    /* Modal Styles */
-    .help-modal-overlay { opacity: 0; visibility: hidden; transition: opacity 0.3s ease-out, visibility 0.3s ease-out; background: rgba(0, 0, 0, 0.2); z-index: 9999; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 1rem; }
-    .help-modal-overlay.visible { opacity: 1; visibility: visible; }
-    .help-modal-content { opacity: 0; transform: scale(0.90); transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-    .help-modal-overlay.visible .help-modal-content { opacity: 1; transform: scale(1); }
-    .grease-glass { background: rgba(30, 40, 60, 0.4); backdrop-filter: blur(20px) saturate(200%); -webkit-backdrop-filter: blur(20px) saturate(200%); border-radius: 35px; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5); }
+    // --- START: UPDATED CSS (FIXED DROPDOWN WIDTH & VISIBILITY) ---
+    const pageStyles = `<style>
+        /* Profile Page Input Fields */
+        #page-profile .form-input { height: 56px; padding: 20px 12px 8px 12px; background-color: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.2); } 
+        #page-profile .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; } 
+        #page-profile .form-input:focus ~ .form-label, 
+        #page-profile .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: var(--brand-blue); } 
+        #page-profile .form-input[readonly] { background-color: rgba(0,0,0,0.2); cursor: not-allowed; } 
+        
+        /* Tabs */
+        .tab-btn { border-bottom: 3px solid transparent; transition: all .3s ease; color: #9ca3af; padding: 0.75rem 0.25rem; font-weight: 600; white-space: nowrap; } 
+        .tab-btn.active { border-bottom-color: var(--brand-blue); color: #fff; } 
+        .tab-panel { display: none; } 
+        .tab-panel.active { display: block; animation: pageFadeIn 0.5s; }
+        
+        /* Modal Styles */
+        .help-modal-overlay { opacity: 0; visibility: hidden; transition: opacity 0.3s ease-out, visibility 0.3s ease-out; background: rgba(0, 0, 0, 0.2); z-index: 9999; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+        .help-modal-overlay.visible { opacity: 1; visibility: visible; }
+        .help-modal-content { opacity: 0; transform: scale(0.90); transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .help-modal-overlay.visible .help-modal-content { opacity: 1; transform: scale(1); }
+        .grease-glass { background: rgba(30, 40, 60, 0.4); backdrop-filter: blur(20px) saturate(200%); -webkit-backdrop-filter: blur(20px) saturate(200%); border-radius: 35px; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5); }
 
-    /* --- DROPDOWN FIXES START HERE --- */
-    .plan-selector-container { 
-        display: flex; 
-        align-items: center; 
-        gap: 0.75rem; 
-        margin-bottom: 2rem; 
-        position: relative; /* මෙනුව ස්ථානගත කිරීමට */
-        z-index: 100; /* අනෙක් කොටස් වලට වඩා ඉදිරියෙන් තබන්න */
-        overflow: visible !important; /* කැපී පෙනීම වැලැක්වීමට */
-    }
-    .plan-selector-label { font-size: 0.875rem; font-weight: 600; color: #d1d5db; flex-shrink: 0; }
-    
-    ul.fmenu { display: inline-block; list-style: none; padding: 0; margin: 0; white-space: nowrap; position: relative; }
-    ul.fmenu > li.fmenu-item { position: relative; }
-    
-    /* Trigger (Button) Styling */
-    ul.fmenu .trigger-menu { 
-        display: flex; align-items: center; justify-content: space-between;
-        box-sizing: border-box; 
-        height: 44px; /* උස තරමක් වැඩි කළා */
-        padding: 0 1.2rem; 
-        border-radius: 999px; 
-        background-color: rgba(30, 41, 59, 0.9); /* පසුබිම තද කළා */
-        border: 1px solid rgba(255, 255, 255, 0.2); 
-        cursor: pointer; 
-        transition: all ease 0.3s; 
-        min-width: 180px; /* අවම පළල වැඩි කළා */
-    }
-    ul.fmenu .trigger-menu:hover, ul.fmenu .trigger-menu.open { border-color: var(--brand-blue); box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
-    ul.fmenu .trigger-menu i { color: #9ca3af; font-size: 0.9rem; transition: color ease 0.3s; }
-    ul.fmenu .trigger-menu:hover i, ul.fmenu .trigger-menu.open i { color: #60a5fa; }
-    ul.fmenu .trigger-menu .text { display: block; font-size: 0.95rem; color: #ffffff; padding: 0 0.5rem; font-weight: 500; }
-    ul.fmenu .trigger-menu .arrow { font-size: 0.8rem; transition: transform ease 0.3s; }
-    ul.fmenu .trigger-menu.open .arrow { transform: rotate(180deg); }
-    
-    /* Dropdown List Styling - FIXING VISIBILITY */
-    ul.fmenu .floating-menu { 
-        display: block; 
-        position: absolute; 
-        top: 3.5rem; /* බොත්තමට පහළින් පරතරයක් ඇතුව */
-        left: 0;
-        width: max-content; /* අකුරු දිග නම් සම්පූර්ණයෙන්ම පෙන්වන්න */
-        min-width: 100%; /* අඩුම තරමේ බොත්තමේ පළලවත් තියෙන්න */
-        list-style: none; 
-        padding: 0.5rem; 
-        margin: 0; 
-        background-color: #0f172a; /* තද නිල් පැහැති පසුබිමක් */
-        border: 1px solid rgba(71, 85, 105, 0.6); 
-        border-radius: 16px; 
-        box-shadow: 0 20px 40px rgba(0,0,0,0.6); /* හොඳ ෂැඩෝ එකක් */
-        max-height: 0px; 
-        z-index: 9999 !important; /* අනිවාර්යයෙන්ම උඩින්ම පෙන්වන්න */
-        opacity: 0; 
-        overflow: hidden; 
-        transition: max-height 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.3s ease; 
-    }
-    
-    ul.fmenu .trigger-menu.open + .floating-menu {
-        border-color: var(--brand-blue);
-    }
+        /* --- DROPDOWN FIXES (FINAL) --- */
+        .plan-selector-container { 
+            display: flex; 
+            align-items: center; 
+            gap: 0.75rem; 
+            margin-bottom: 2rem; 
+            position: relative;
+            z-index: 100; /* Ensure container is above others */
+        }
+        .plan-selector-label { font-size: 0.875rem; font-weight: 600; color: #d1d5db; flex-shrink: 0; }
+        
+        ul.fmenu { display: inline-block; list-style: none; padding: 0; margin: 0; white-space: nowrap; position: relative; }
+        ul.fmenu > li.fmenu-item { position: relative; }
+        
+        /* Trigger Button Styling */
+        ul.fmenu .trigger-menu { 
+            display: flex; align-items: center; justify-content: space-between;
+            box-sizing: border-box; 
+            height: 44px;
+            padding: 0 1.2rem; 
+            border-radius: 999px; /* Fully rounded pill shape */
+            background-color: rgba(30, 41, 59, 0.8); 
+            border: 1px solid rgba(255, 255, 255, 0.2); 
+            cursor: pointer; 
+            transition: all ease 0.3s; 
+            min-width: 180px; 
+        }
+        ul.fmenu .trigger-menu:hover, ul.fmenu .trigger-menu.open { border-color: var(--brand-blue); box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
+        ul.fmenu .trigger-menu i { color: #9ca3af; font-size: 0.9rem; transition: color ease 0.3s; }
+        ul.fmenu .trigger-menu:hover i, ul.fmenu .trigger-menu.open i { color: #60a5fa; }
+        ul.fmenu .trigger-menu .text { display: block; font-size: 0.95rem; color: #ffffff; padding: 0 0.5rem; font-weight: 500; }
+        ul.fmenu .trigger-menu .arrow { font-size: 0.8rem; transition: transform ease 0.3s; }
+        ul.fmenu .trigger-menu.open .arrow { transform: rotate(180deg); }
+        
+        /* Dropdown List Styling */
+        ul.fmenu .floating-menu { 
+            display: block; 
+            position: absolute; 
+            top: 3.5rem; 
+            left: 0;
+            
+            /* --- KEY FIXES FOR VISIBILITY --- */
+            width: max-content; /* පළල අන්තර්ගතයට අනුව හැදෙන්න */
+            min-width: 100%;    /* අඩුම තරමේ Button එකේ පළලවත් තියෙන්න */
+            padding-right: 10px; /* දකුණු පැත්තෙන් ඉඩක් තියන්න */
+            
+            list-style: none; 
+            padding: 0.5rem; 
+            margin: 0; 
+            background-color: #0f172a; /* Solid dark background to prevent transparency issues */
+            border: 1px solid rgba(71, 85, 105, 0.6); 
+            border-radius: 16px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6); 
+            max-height: 0px; 
+            z-index: 9999 !important; /* Force on top */
+            opacity: 0; 
+            overflow: hidden; 
+            transition: max-height 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.3s ease; 
+        }
+        
+        ul.fmenu .trigger-menu.open + .floating-menu {
+            border-color: var(--brand-blue);
+        }
 
-    ul.fmenu .floating-menu > li a { 
-        color: #cbd5e1; 
-        font-size: 0.9rem; 
-        text-decoration: none; 
-        display: block; 
-        padding: 0.75rem 1.2rem; /* Click කරන්න ලේසි වෙන්න ඉඩ වැඩි කළා */
-        border-radius: 10px; 
-        transition: all 0.2s ease; 
-        border: 1px solid transparent;
-    }
-    
-    /* Hover Effect - සම්පූර්ණ කොටසම පාට වෙන විදිහට */
-    ul.fmenu .floating-menu > li a:hover { 
-        background-color: rgba(59, 130, 246, 0.15); 
-        color: #ffffff; 
-        border-color: rgba(59, 130, 246, 0.3);
-        transform: translateX(5px); /* Hover කරනකොට පොඩ්ඩක් ඉස්සරහට එන effect එක */
-    }
-</style>`;
-// --- END: FIXED CSS ---
+        ul.fmenu .floating-menu > li a { 
+            color: #cbd5e1; 
+            font-size: 0.9rem; 
+            text-decoration: none; 
+            display: block; 
+            padding: 0.75rem 1.5rem; /* වැඩිපුර ඉඩ (Padding) ලබා දුන්නා */
+            border-radius: 10px; 
+            transition: all 0.2s ease; 
+            border: 1px solid transparent;
+            white-space: nowrap; /* අකුරු කඩන්නේ නැතුව එක පෙලට තියන්න */
+        }
+        
+        ul.fmenu .floating-menu > li a:hover { 
+            background-color: rgba(59, 130, 246, 0.15); 
+            color: #ffffff; 
+            border-color: rgba(59, 130, 246, 0.3);
+            transform: translateX(5px);
+        }
+    </style>`;
+    // --- END: UPDATED CSS ---
     
     // (මෙතැන් සිට පහළට ඇති ඉතිරි කේතය එලෙසම තබන්න...)
     let profilePictureUrl = (user.profilePicture || "/assets/profilePhoto.jpg").replace("public/", "");
