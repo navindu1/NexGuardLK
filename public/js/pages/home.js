@@ -24,7 +24,7 @@ export function renderHomePage(renderFunc) {
             </div>
             <div class="mt-20 flex flex-col lg:flex-row items-center gap-8 lg:gap-12 reveal">
                 <div class="lg:w-1/2 custom-radius">
-                    <img src="/assets/image.jpg" alt="V2Ray on a laptop" class="rounded-xl shadow-2xl shadow-blue-500/20 w-full h-auto object-cover">
+                    <img src="/assets/image.jpg" alt="V2Ray on a laptop" class="custom-radius shadow-2xl shadow-blue-500/20 w-full h-auto object-cover">
                 </div>
                 <div class="w-full lg:w-1/2 text-center lg:text-left px-4">
                     <h2 class="text-2xl md:text-3xl font-bold text-white mb-4">How to Get Started?</h2>

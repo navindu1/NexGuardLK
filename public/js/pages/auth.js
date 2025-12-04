@@ -9,35 +9,87 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
         initialPanel = "reset-password";
     }
 
+    // --- START: NEW STYLES (Copied from Usage Page) ---
+    const pageStyles = `<style>
+        /* Overlay styles - Transparent to show background */
+        .help-modal-overlay {
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
+            background: rgba(0, 0, 0, 0.2); /* Slight dark tint */
+            z-index: 9999;
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        
+        .help-modal-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Modal Animation - Scale Up */
+        .help-modal-content {
+            opacity: 0;
+            transform: scale(0.90);
+            transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        .help-modal-overlay.visible .help-modal-content {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* NEW STYLE: Grease Glass Effect */
+        .grease-glass {
+            background: rgba(30, 40, 60, 0.4);
+            backdrop-filter: blur(20px) saturate(200%);
+            -webkit-backdrop-filter: blur(20px) saturate(200%);
+            border-radius: 35px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+        }
+    </style>`;
+    // --- END: NEW STYLES ---
+
+    // --- START: UPDATED MODAL HTML (Copied from Usage Page) ---
     const modalHtml = `
     <div id="help-modal" class="help-modal-overlay">
-        <div class="help-modal-content card-glass rounded-lg p-6 space-y-4 w-full max-w-md">
+        <div class="help-modal-content grease-glass p-6 space-y-4 w-full max-w-md">
+            
             <div class="flex justify-between items-start">
                 <div>
-                    <h2 class="text-xl font-bold text-white font-['Orbitron']">Help & Support Matrix</h2>
-                    <button id="lang-toggle-btn" class="text-xs text-blue-400 hover:underline mt-1">English / සිංහල</button>
+                    <h2 class="text-xl font-bold text-white font-['Orbitron'] drop-shadow-md">Help & Support Matrix</h2>
+                    <button id="lang-toggle-btn" class="text-xs text-blue-300 hover:text-white hover:underline mt-1 transition-colors">English / සිංහල</button>
                 </div>
-                <button id="help-modal-close" class="text-gray-400 hover:text-white text-3xl">&times;</button>
+                <button id="help-modal-close" class="text-white/80 hover:text-white text-3xl transition-all hover:rotate-90">&times;</button>
             </div>
+            
             <div class="lang-content lang-en">
                 <div>
-                    <h3 class="text-lg font-semibold text-blue-400 mb-2">How to find your Username?</h3>
-                    <p class="text-gray-300 text-sm mb-4">Your username is the name assigned to your V2ray configuration. It's often visible in your V2ray client app, usually next to the server connection name.</p>
+                    <h3 class="text-lg font-semibold text-blue-300 mb-2 drop-shadow-sm">How to find your Username?</h3>
+                    <p class="text-gray-100 text-sm mb-4 font-medium leading-relaxed">Your username is the name assigned to your V2ray configuration. It's often visible in your V2ray client app, usually next to the server connection name.</p>
                 </div>
             </div>
+            
             <div class="lang-content lang-si hidden">
                 <div>
-                    <h3 class="text-lg font-semibold text-blue-400 mb-2">ඔබගේ Username එක සොයාගන්නේ කෙසේද?</h3>
-                    <p class="text-gray-300 text-sm mb-4">ඔබගේ username යනු V2ray config ගොනුවට ලබා දී ඇති නමයි. එය බොහෝවිට V2ray client ඇප් එකේ, server සම්බන්ධතාවය අසල දිස්වේ.</p>
+                    <h3 class="text-lg font-semibold text-blue-300 mb-2 drop-shadow-sm">ඔබගේ Username එක සොයාගන්නේ කෙසේද?</h3>
+                    <p class="text-gray-100 text-sm mb-4 font-medium leading-relaxed">ඔබගේ username යනු V2ray config ගොනුවට ලබා දී ඇති නමයි. එය බොහෝවිට V2ray client ඇප් එකේ, server සම්බන්ධතාවය අසල දිස්වේ.</p>
                 </div>
             </div>
-            <div class="bg-black/50 border border-white/10 rounded-lg p-2">
-                <img src="/assets/help.jpg" alt="Example image of where to find the username" class="rounded w-full h-auto">
+            
+            <div class="bg-black/20 border border-white/10 rounded-xl p-2 shadow-inner">
+                <img src="/assets/help.jpg" alt="Example image of where to find the username" class="rounded-lg w-full h-auto opacity-95 hover:opacity-100 transition-opacity">
             </div>
         </div>
     </div>`;
+    // --- END: UPDATED MODAL HTML ---
 
-    renderFunc(`
+    renderFunc(pageStyles + `
     <div id="page-login" class="page">
         <style>
             .auth-form { display: none; }
