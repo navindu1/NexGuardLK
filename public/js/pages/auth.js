@@ -189,13 +189,22 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
                 switchAuthView(otpForm);
 
                 // --- START: Timer to show Spam Warning after 15 Seconds ---
-                setTimeout(() => {
-                    // Check if user is still on the OTP form
-                    if (otpForm.classList.contains("active")) {
-                        if(warningBox) warningBox.classList.remove("hidden");
-                    }
-                }, 15000); // 15000ms = 15 Seconds
-                // --- END: Timer Logic ---
+setTimeout(() => {
+    // Check if user is still on the OTP form
+    if (otpForm.classList.contains("active")) {
+        // පරණ static warning එක පෙන්වීම (අවශ්‍ය නම් තබාගන්න)
+        if(warningBox) warningBox.classList.remove("hidden");
+
+        // --- NEW: Show Toast Message Warning ---
+        showToast({
+            title: "Still Waiting?",
+            message: "Email delivery delays detected. Please check your Spam/Junk folder.",
+            type: "warning",
+            duration: 8000 // තත්පර 8ක් පෙන්වා තබයි
+        });
+    }
+}, 15000); // තත්පර 15 කට පසු ක්‍රියාත්මක වේ
+// --- END: Timer Logic ---
 
             } else {
                 showToast({ title: "Error", message: result.message || "An unknown error occurred.", type: "error" });

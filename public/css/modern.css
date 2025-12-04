@@ -53,6 +53,18 @@ body.modal-open {
   -webkit-text-fill-color: transparent;
 }
 
+
+.toast {
+  border-radius: 35px !important; /* ඔබ ඉල්ලූ 35px Border Radius එක */
+}
+
+/* වම් පැත්තේ ඇති වර්ණ තීරුවද (Color Bar) රවුම් හැඩයට හැරවීම */
+.toast::before {
+  border-radius: 35px 0 0 35px !important;
+}
+
+
+
 .page {
   animation: pageFadeIn 0.5s ease-out forwards;
 }
