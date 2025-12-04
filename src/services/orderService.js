@@ -297,17 +297,16 @@ finalUsername = clientInPanel.client.email;
             }
         }
 
-        // Final cleanup for 'change plan' orders (delete the old V2Ray user)
-        if (order.old_v2ray_username && finalStatus === 'approved') { // Only cleanup on final approval
+        if (order.old_v2ray_username && finalStatus === 'approved' && !order.is_renewal) { 
              try {
                   const oldClientData = await v2rayService.findV2rayClient(order.old_v2ray_username);
                   if (oldClientData) {
+                       // Only delete if the inbound is different (Plan Change) OR if explicit change logic applies
                        await v2rayService.deleteClient(oldClientData.inboundId, oldClientData.client.id);
                        console.log(`[Plan Change Cleanup] Successfully deleted old user: ${order.old_v2ray_username} after approving order ${orderId}.`);
                   }
              } catch (cleanupError) {
-                  // Log critical error for manual intervention
-                  console.error(`[CRITICAL - Cleanup Failed] Failed to delete old V2Ray user ${order.old_v2ray_username} for order ${orderId}. Please delete manually. Error: ${cleanupError.message}`);
+                  console.error(`[Cleanup Warning] Failed to delete old V2Ray user ${order.old_v2ray_username}. Error: ${cleanupError.message}`);
              }
         }
 
