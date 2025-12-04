@@ -297,16 +297,19 @@ finalUsername = clientInPanel.client.email;
             }
         }
 
+        // Final cleanup for 'change plan' orders (delete the old V2Ray user)
+        // CRITICAL FIX: Ensure this ONLY runs if it is NOT a renewal.
+        // අපි Controller එකේදී same username නම් renewal=true කළ නිසා, මේ කොටස දැන් renewal වලදී වැඩ කරන්නේ නෑ.
         if (order.old_v2ray_username && finalStatus === 'approved' && !order.is_renewal) { 
              try {
                   const oldClientData = await v2rayService.findV2rayClient(order.old_v2ray_username);
                   if (oldClientData) {
-                       // Only delete if the inbound is different (Plan Change) OR if explicit change logic applies
+                       // Only delete if it is NOT a renewal
                        await v2rayService.deleteClient(oldClientData.inboundId, oldClientData.client.id);
-                       console.log(`[Plan Change Cleanup] Successfully deleted old user: ${order.old_v2ray_username} after approving order ${orderId}.`);
+                       console.log(`[Plan Change Cleanup] Successfully deleted old user: ${order.old_v2ray_username}`);
                   }
              } catch (cleanupError) {
-                  console.error(`[Cleanup Warning] Failed to delete old V2Ray user ${order.old_v2ray_username}. Error: ${cleanupError.message}`);
+                  console.error(`[Cleanup Warning] Failed to delete old user: ${cleanupError.message}`);
              }
         }
 

@@ -315,79 +315,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return canvas.toDataURL('image/png');
     }
 
-    // --- MODIFIED FUNCTION: renderOrders (FIXED) ---
-    function renderOrders(status) {
-        contentTitle.textContent = `${status.charAt(0).toUpperCase() + status.slice(1)} Orders`;
-        searchBarContainer.classList.add('hidden');
-        addNewBtn.classList.add('hidden');
-        const orders = (dataCache.orders || []).filter(o => o.status === status);
-        
-        if (orders.length === 0) {
-            contentContainer.innerHTML = `<div class="glass-panel p-6 text-center rounded-lg">No ${status} orders found.</div>`;
-            return;
-        }
-        
-        contentContainer.innerHTML = orders.map(order => {
-            let orderType, typeColor;
-            
-            // --- FIX 1: Priority Check (Renewals First) ---
-            // Renewal එකක් නම් අනිවාර්යයෙන්ම 'Renew' ලෙස පෙන්වන්න (old_v2ray_username තිබුණත්)
-            if (order.is_renewal) { 
-                orderType = 'Renew'; 
-                typeColor = 'text-blue-400'; 
-            }
-            // Renewal නොවෙයි නම් සහ old_v2ray_username තියෙනවා නම් එය 'Change' එකක්
-            else if (order.old_v2ray_username) { 
-                orderType = 'Change'; 
-                typeColor = 'text-orange-400'; 
-            }
-            // නැත්නම් 'New'
-            else { 
-                orderType = 'New'; 
-                typeColor = 'text-green-400'; 
-            }
-
-            // --- FIX 2: V2Ray User Display Fallback ---
-            // Pending Orders වලදී final_username එක නැති නිසා, username හෝ old_v2ray_username පෙන්වන්න
-            // මෙය මගින් Admin ට කවුද මේ User කියලා බලාගන්න පුළුවන්.
-            const displayV2rayUser = order.final_username || order.username || order.old_v2ray_username || 'N/A';
-
-            let actionButtonsHtml = '';
-            if (status === 'pending' || status === 'unconfirmed') {
-                actionButtonsHtml = `
-                <button class="btn btn-primary approve-btn" data-id="${order.id}">Approve</button>
-                <button class="btn btn-danger reject-btn" data-id="${order.id}">Reject</button>`;
-            } else if (status === 'approved') {
-                 // Share button එකටත් displayV2rayUser භාවිතා කළා
-                 actionButtonsHtml = `
-                 <button class="btn btn-special generate-share-img-btn" data-order-id="${order.id}" data-username="${displayV2rayUser}" data-plan="${order.plan_id}" data-date="${order.approved_at || order.created_at}" title="Generate Share Image">
-                     <i class="fa-solid fa-share-alt"></i> Share
-                 </button>`;
-            } else {
-                 actionButtonsHtml = `<span class="text-xs text-gray-500">Action Taken</span>`;
-            }
-
-            return `
-                <div class="glass-panel p-4 rounded-lg grid grid-cols-2 md:grid-cols-8 gap-4 items-center text-xs sm:text-sm">
-                    <div><span class="font-bold text-slate-400 text-xs block mb-1">User</span><p class="truncate" title="${order.website_username}">${order.website_username}</p></div>
-                    
-                    <div><span class="font-bold text-slate-400 text-xs block mb-1">V2Ray User</span><p class="text-purple-300 font-semibold truncate" title="${displayV2rayUser}">${displayV2rayUser}</p></div>
-                    
-                    <div><span class="font-bold text-slate-400 text-xs block mb-1">Plan</span><p class="truncate" title="${order.plan_id}">${order.plan_id}</p></div>
-                    <div><span class="font-bold text-slate-400 text-xs block mb-1">Connection</span><p class="truncate" title="${order.conn_id || 'N/A'}">${order.conn_id || 'N/A'}</p></div>
-                    
-                    <div><span class="font-bold text-slate-400 text-xs block mb-1">Type</span><p class="font-bold ${typeColor}">${orderType}</p></div>
-                    
-                    <div><span class="font-bold text-slate-400 text-xs block mb-1">Submitted</span><p>${new Date(order.created_at).toLocaleString()}</p></div>
-                    <div class="flex gap-2">
-                        ${order.receipt_path !== 'created_by_reseller' ? `<button class="btn btn-secondary view-receipt-btn" data-url="${order.receipt_path}"><i class="fa-solid fa-receipt"></i> View</button>` : '<span class="text-xs text-gray-500">By Reseller</span>'}
-                    </div>
-                    <div class="flex flex-wrap gap-2 items-center justify-end">
-                        ${actionButtonsHtml}
-                    </div>
-                </div>`;
-        }).join('');
-    }
     
 
     function renderUsers(users, role = 'user') {
@@ -647,6 +574,77 @@ document.addEventListener("DOMContentLoaded", () => {
             showToast({ title: "Error", message: error.message, type: "error" });
             document.getElementById('summary-container').innerHTML = '<p class="text-red-400">Failed to load report data.</p>';
         }
+    }
+
+    // --- FIXED: renderOrders Function ---
+    function renderOrders(status) {
+        contentTitle.textContent = `${status.charAt(0).toUpperCase() + status.slice(1)} Orders`;
+        searchBarContainer.classList.add('hidden');
+        addNewBtn.classList.add('hidden');
+        const orders = (dataCache.orders || []).filter(o => o.status === status);
+        
+        if (orders.length === 0) {
+            contentContainer.innerHTML = `<div class="glass-panel p-6 text-center rounded-lg">No ${status} orders found.</div>`;
+            return;
+        }
+        
+        contentContainer.innerHTML = orders.map(order => {
+            let orderType, typeColor;
+            
+            // --- FIX START: Check is_renewal FIRST ---
+            // Renewal එකක් නම්, old_v2ray_username තිබුණත් එය 'Renew' ලෙස පෙන්වන්න.
+            if (order.is_renewal) { 
+                orderType = 'Renew'; 
+                typeColor = 'text-blue-400'; 
+            }
+            // Renewal නොවේ නම් සහ old_v2ray_username තිබේ නම් -> Change
+            else if (order.old_v2ray_username) { 
+                orderType = 'Change'; 
+                typeColor = 'text-orange-400'; 
+            }
+            else { 
+                orderType = 'New'; 
+                typeColor = 'text-green-400'; 
+            }
+            //
+
+            // Display Username Fix: Pending orders වලදී final_username නැති නිසා දාපු නම පෙන්වන්න
+            const displayV2rayUser = order.final_username || order.username || order.old_v2ray_username || 'N/A';
+
+            let actionButtonsHtml = '';
+            if (status === 'pending' || status === 'unconfirmed') {
+                actionButtonsHtml = `
+                <button class="btn btn-primary approve-btn" data-id="${order.id}">Approve</button>
+                <button class="btn btn-danger reject-btn" data-id="${order.id}">Reject</button>`;
+            } else if (status === 'approved') {
+                 actionButtonsHtml = `
+                 <button class="btn btn-special generate-share-img-btn" data-order-id="${order.id}" data-username="${displayV2rayUser}" data-plan="${order.plan_id}" data-date="${order.approved_at || order.created_at}" title="Generate Share Image">
+                     <i class="fa-solid fa-share-alt"></i> Share
+                 </button>`;
+            } else {
+                 actionButtonsHtml = `<span class="text-xs text-gray-500">Action Taken</span>`;
+            }
+
+            return `
+                <div class="glass-panel p-4 rounded-lg grid grid-cols-2 md:grid-cols-8 gap-4 items-center text-xs sm:text-sm">
+                    <div><span class="font-bold text-slate-400 text-xs block mb-1">User</span><p class="truncate" title="${order.website_username}">${order.website_username}</p></div>
+                    
+                    <div><span class="font-bold text-slate-400 text-xs block mb-1">V2Ray User</span><p class="text-purple-300 font-semibold truncate" title="${displayV2rayUser}">${displayV2rayUser}</p></div>
+                    
+                    <div><span class="font-bold text-slate-400 text-xs block mb-1">Plan</span><p class="truncate" title="${order.plan_id}">${order.plan_id}</p></div>
+                    <div><span class="font-bold text-slate-400 text-xs block mb-1">Connection</span><p class="truncate" title="${order.conn_id || 'N/A'}">${order.conn_id || 'N/A'}</p></div>
+                    
+                    <div><span class="font-bold text-slate-400 text-xs block mb-1">Type</span><p class="font-bold ${typeColor}">${orderType}</p></div>
+                    
+                    <div><span class="font-bold text-slate-400 text-xs block mb-1">Submitted</span><p>${new Date(order.created_at).toLocaleString()}</p></div>
+                    <div class="flex gap-2">
+                        ${order.receipt_path !== 'created_by_reseller' ? `<button class="btn btn-secondary view-receipt-btn" data-url="${order.receipt_path}"><i class="fa-solid fa-receipt"></i> View</button>` : '<span class="text-xs text-gray-500">By Reseller</span>'}
+                    </div>
+                    <div class="flex flex-wrap gap-2 items-center justify-end">
+                        ${actionButtonsHtml}
+                    </div>
+                </div>`;
+        }).join('');
     }
 
     // --- FORM RENDERING ---
