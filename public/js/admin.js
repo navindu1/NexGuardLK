@@ -581,7 +581,15 @@ document.addEventListener("DOMContentLoaded", () => {
         contentTitle.textContent = `${status.charAt(0).toUpperCase() + status.slice(1)} Orders`;
         searchBarContainer.classList.add('hidden');
         addNewBtn.classList.add('hidden');
-        const orders = (dataCache.orders || []).filter(o => o.status === status);
+        
+        let orders = (dataCache.orders || []);
+
+        // --- UPDATE: Show Queued orders in 'Approved' tab ---
+        if (status === 'approved') {
+            orders = orders.filter(o => o.status === 'approved' || o.status === 'queued_for_renewal');
+        } else {
+            orders = orders.filter(o => o.status === status);
+        }
         
         if (orders.length === 0) {
             contentContainer.innerHTML = `<div class="glass-panel p-6 text-center rounded-lg">No ${status} orders found.</div>`;
@@ -591,32 +599,44 @@ document.addEventListener("DOMContentLoaded", () => {
         contentContainer.innerHTML = orders.map(order => {
             let orderType, typeColor;
             
-            // --- FIX START: Check is_renewal FIRST ---
-            // Renewal එකක් නම්, old_v2ray_username තිබුණත් එය 'Renew' ලෙස පෙන්වන්න.
+            // Renewal / Change Logic
             if (order.is_renewal) { 
                 orderType = 'Renew'; 
                 typeColor = 'text-blue-400'; 
-            }
-            // Renewal නොවේ නම් සහ old_v2ray_username තිබේ නම් -> Change
-            else if (order.old_v2ray_username) { 
+            } else if (order.old_v2ray_username) { 
                 orderType = 'Change'; 
                 typeColor = 'text-orange-400'; 
-            }
-            else { 
+            } else { 
                 orderType = 'New'; 
                 typeColor = 'text-green-400'; 
             }
-            //
 
-            // Display Username Fix: Pending orders වලදී final_username නැති නිසා දාපු නම පෙන්වන්න
+            // --- UPDATE: Status Display Logic ---
+            let statusText = order.status;
+            let statusColor = 'text-gray-400';
+            
+            if (order.status === 'approved') {
+                statusText = 'Active';
+                statusColor = 'text-green-400';
+            } else if (order.status === 'queued_for_renewal') {
+                statusText = 'Queued';
+                statusColor = 'text-amber-400';
+            } else if (order.status === 'pending') {
+                statusColor = 'text-yellow-400';
+            } else if (order.status === 'rejected') {
+                statusColor = 'text-red-400';
+            }
+
             const displayV2rayUser = order.final_username || order.username || order.old_v2ray_username || 'N/A';
 
             let actionButtonsHtml = '';
-            if (status === 'pending' || status === 'unconfirmed') {
+            
+            // Button Logic based on Order Status
+            if (order.status === 'pending' || order.status === 'unconfirmed') {
                 actionButtonsHtml = `
                 <button class="btn btn-primary approve-btn" data-id="${order.id}">Approve</button>
                 <button class="btn btn-danger reject-btn" data-id="${order.id}">Reject</button>`;
-            } else if (status === 'approved') {
+            } else if (order.status === 'approved' || order.status === 'queued_for_renewal') {
                  actionButtonsHtml = `
                  <button class="btn btn-special generate-share-img-btn" data-order-id="${order.id}" data-username="${displayV2rayUser}" data-plan="${order.plan_id}" data-date="${order.approved_at || order.created_at}" title="Generate Share Image">
                      <i class="fa-solid fa-share-alt"></i> Share
@@ -625,8 +645,9 @@ document.addEventListener("DOMContentLoaded", () => {
                  actionButtonsHtml = `<span class="text-xs text-gray-500">Action Taken</span>`;
             }
 
+            // --- UPDATE: Grid Columns increased to 9 to fit Status ---
             return `
-                <div class="glass-panel p-4 rounded-lg grid grid-cols-2 md:grid-cols-8 gap-4 items-center text-xs sm:text-sm">
+                <div class="glass-panel p-4 rounded-lg grid grid-cols-2 md:grid-cols-9 gap-4 items-center text-xs sm:text-sm">
                     <div><span class="font-bold text-slate-400 text-xs block mb-1">User</span><p class="truncate" title="${order.website_username}">${order.website_username}</p></div>
                     
                     <div><span class="font-bold text-slate-400 text-xs block mb-1">V2Ray User</span><p class="text-purple-300 font-semibold truncate" title="${displayV2rayUser}">${displayV2rayUser}</p></div>
@@ -636,6 +657,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     
                     <div><span class="font-bold text-slate-400 text-xs block mb-1">Type</span><p class="font-bold ${typeColor}">${orderType}</p></div>
                     
+                    <div><span class="font-bold text-slate-400 text-xs block mb-1">Status</span><p class="font-bold ${statusColor} uppercase">${statusText}</p></div>
+
                     <div><span class="font-bold text-slate-400 text-xs block mb-1">Submitted</span><p>${new Date(order.created_at).toLocaleString()}</p></div>
                     <div class="flex gap-2">
                         ${order.receipt_path !== 'created_by_reseller' ? `<button class="btn btn-secondary view-receipt-btn" data-url="${order.receipt_path}"><i class="fa-solid fa-receipt"></i> View</button>` : '<span class="text-xs text-gray-500">By Reseller</span>'}

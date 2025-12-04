@@ -47,6 +47,14 @@ export const navigateTo = (path) => {
 };
 
 export const router = async () => {
+    // --- START: Clear Existing Intervals ---
+    // පිටු මාරු වීමේදී Profile Page එකේ Auto-Update වැනි දේ නතර කිරීමට.
+    const highestId = window.setInterval(() => {}, 0);
+    for (let i = 0; i < highestId; i++) {
+        window.clearInterval(i);
+    }
+    // --- END: Clear Existing Intervals ---
+
     const pathName = window.location.pathname;
     const params = new URLSearchParams(window.location.search);
     let pageKey = pathName.substring(1).split('/')[0] || 'home';

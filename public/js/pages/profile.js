@@ -4,7 +4,15 @@ import { showToast, SikFloatingMenu, togglePassword, qrModalLogic } from '../uti
 import { navigateTo } from '../router.js';
 import { handleRenewalChoice } from './checkout.js';
 
+let profilePollingInterval = null; // Polling විචල්‍යය
+
 export function renderProfilePage(renderFunc, params) {
+    // පරණ interval එකක් තිබේ නම් එය නවත්වන්න (Safety check)
+    if (profilePollingInterval) {
+        clearInterval(profilePollingInterval);
+        profilePollingInterval = null;
+    }
+
     const user = JSON.parse(localStorage.getItem("nexguard_user"));
     if (!user) {
         navigateTo("/login");
@@ -159,7 +167,6 @@ export function renderProfilePage(renderFunc, params) {
     </style>`;
     // --- END: CSS ---
     
-    // (මෙතැන් සිට පහළට ඇති ඉතිරි කේතය එලෙසම තබන්න...)
     let profilePictureUrl = (user.profilePicture || "/assets/profilePhoto.jpg").replace("public/", "");
     if (profilePictureUrl && !profilePictureUrl.startsWith('/')) {
         profilePictureUrl = '/' + profilePictureUrl;
@@ -174,9 +181,7 @@ export function renderProfilePage(renderFunc, params) {
     const statusContainer = document.getElementById("user-status-content");
     qrModalLogic.init();
     
-    // ... (ඉතිරි කේතය එලෙසම පවතී) ...
-    
-document.getElementById("avatar-upload")?.addEventListener("change", async(e) => {
+    document.getElementById("avatar-upload")?.addEventListener("change", async(e) => {
         const file = e.target.files[0];
         if (!file) return;
         const formData = new FormData();
@@ -324,11 +329,17 @@ document.getElementById("avatar-upload")?.addEventListener("change", async(e) =>
                         }
                     } catch (error) {
                         console.error('Error fetching plan status for renewal button:', error);
-                        container.innerHTML = `<p class="text-xs text-red-400">Error checking status.</p>`;
+                        if (!isSilent) container.innerHTML = `<p class="text-xs text-red-400">Error checking status.</p>`;
                     }
                 };
 
                 const displayPlanDetails = (planIndex) => {
+                    // Stop previous poll if any
+                    if (profilePollingInterval) {
+                        clearInterval(profilePollingInterval);
+                        profilePollingInterval = null;
+                    }
+
                     // Make sure planIndex is a valid number
                     planIndex = parseInt(planIndex, 10);
                     if (isNaN(planIndex) || planIndex < 0 || planIndex >= data.activePlans.length) {
@@ -382,10 +393,12 @@ document.getElementById("avatar-upload")?.addEventListener("change", async(e) =>
                     const tabs = document.getElementById('profile-tabs');
                     const panels = planDetailsContainer.querySelectorAll('.tab-panel');
     
-                    const loadUsageStats = () => {
+                    const loadUsageStats = (isSilent = false) => {
                         const usageContainer = document.getElementById("tab-usage");
                         if (!usageContainer) return;
-                        usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
+                        if (!isSilent) {
+                            usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
+                        }
                         apiFetch(`/api/check-usage/${plan.v2rayUsername}`).then(res => res.json()).then(result => {
                             if (result.success) {
                                 // Inline displayUserData function for consistency with main.js block
@@ -435,8 +448,12 @@ document.getElementById("avatar-upload")?.addEventListener("change", async(e) =>
                                     </div>`;
                                 usageContainer.innerHTML = html;
                             }
-                            else usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-amber-400"><p>${result.message}</p></div>`;
-                        }).catch(() => usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-red-400"><p>Could not load usage statistics.</p></div>`);
+                            else {
+                                if (!isSilent) usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-amber-400"><p>${result.message}</p></div>`;
+                            }
+                        }).catch(() => {
+                            if (!isSilent) usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-red-400"><p>Could not load usage statistics.</p></div>`;
+                        });
                     };
     
                     const loadMyOrders = async (isSilent = false) => {
@@ -450,12 +467,27 @@ document.getElementById("avatar-upload")?.addEventListener("change", async(e) =>
                             if (!res.ok) throw new Error("Failed to fetch orders");
                             const { orders } = await res.json();
                             const ordersHtml = (orders.length > 0) ? orders.map(order => {
-                                const statusColors = { pending: "text-amber-400", approved: "text-green-400", rejected: "text-red-400" };
-                                const statusIcons = { pending: "fa-solid fa-clock", approved: "fa-solid fa-check-circle", rejected: "fa-solid fa-times-circle" };
-                                return `<div class="card-glass p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 custom-radius"><div><p class="font-bold text-white">${appData.plans[order.plan_id]?.name || order.plan_id} <span class="text-gray-400 font-normal">for</span> ${appData.connections.find(c => c.name === order.conn_id)?.name || order.conn_id}</p><p class="text-xs text-gray-400 mt-1">Ordered on: ${new Date(order.created_at).toLocaleDateString()} ${order.status === 'approved' && order.final_username ? `| V2Ray User: <strong class="text-blue-300">${order.final_username}</strong>` : ''}</p></div><div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'}"><i class="${statusIcons[order.status] || 'fa-solid fa-question-circle'}"></i><span>${order.status}</span></div></div>`;
+                                // Display 'Queued' properly and set colors
+                                const displayStatus = order.status === 'queued_for_renewal' ? 'Queued' : order.status;
+                                const statusColors = { pending: "text-amber-400", approved: "text-green-400", rejected: "text-red-400", queued_for_renewal: "text-blue-300" };
+                                const statusIcons = { pending: "fa-solid fa-clock", approved: "fa-solid fa-check-circle", rejected: "fa-solid fa-times-circle", queued_for_renewal: "fa-solid fa-hourglass-half" };
+                                
+                                return `<div class="card-glass p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 custom-radius">
+                                    <div>
+                                        <p class="font-bold text-white">${appData.plans[order.plan_id]?.name || order.plan_id} <span class="text-gray-400 font-normal">for</span> ${appData.connections.find(c => c.name === order.conn_id)?.name || order.conn_id}</p>
+                                        <p class="text-xs text-gray-400 mt-1">Ordered on: ${new Date(order.created_at).toLocaleDateString()} ${order.status === 'approved' && order.final_username ? `| V2Ray User: <strong class="text-blue-300">${order.final_username}</strong>` : ''}</p>
+                                    </div>
+                                    <div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'}">
+                                        <i class="${statusIcons[order.status] || 'fa-solid fa-question-circle'}"></i><span>${displayStatus}</span>
+                                    </div>
+                                </div>`;
                             }).join('') : `<div class="card-glass p-8 custom-radius text-center"><i class="fa-solid fa-box-open text-4xl text-gray-400 mb-4"></i><h3 class="font-bold text-white">No Orders Found</h3><p class="text-gray-400 text-sm mt-2">You have not placed any orders yet.</p></div>`;
                             
-                            ordersContainer.innerHTML = `<div class="space-y-3">${ordersHtml}</div>`;
+                            // Prevent unnecessary DOM update if content is same (simple string comparison)
+                            // This helps with scroll position/selection
+                            if (ordersContainer.innerHTML.includes('fa-spinner') || ordersContainer.innerHTML !== `<div class="space-y-3">${ordersHtml}</div>`) {
+                                 ordersContainer.innerHTML = `<div class="space-y-3">${ordersHtml}</div>`;
+                            }
                         } catch (err) {
                             if (!isSilent) {
                                 ordersContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-red-400"><p>Could not load your orders.</p></div>`;
@@ -470,8 +502,8 @@ document.getElementById("avatar-upload")?.addEventListener("change", async(e) =>
                         document.getElementById(`tab-${tabId}`)?.classList.add('active');
                         
                         if (tabId === 'config') updateRenewButton(plan); 
-                        if (tabId === 'usage') loadUsageStats();
-                        if (tabId === 'orders') loadMyOrders();
+                        if (tabId === 'usage') loadUsageStats(false);
+                        if (tabId === 'orders') loadMyOrders(false);
                         
                         history.pushState(null, '', `/profile?tab=${tabId}`);
                     };
@@ -479,6 +511,19 @@ document.getElementById("avatar-upload")?.addEventListener("change", async(e) =>
                     tabs.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') switchTab(e.target.dataset.tab); });
                     switchTab(params.get('tab') || 'config');
                     setupEventListeners();
+
+                    // --- START: POLLING LOGIC ---
+                    profilePollingInterval = setInterval(() => {
+                        // Check if tab exists/visible
+                        const activeTabBtn = tabs.querySelector('.tab-btn.active');
+                        if (activeTabBtn) {
+                            const tabId = activeTabBtn.dataset.tab;
+                            if (tabId === 'usage') loadUsageStats(true); // Silent update
+                            if (tabId === 'orders') loadMyOrders(true); // Silent update
+                            if (tabId === 'config') updateRenewButton(plan, true); // Silent update
+                        }
+                    }, 5000); // 5 seconds
+                    // --- END: POLLING LOGIC ---
                 };
                 
                 // Add event listener for plan selection
@@ -507,6 +552,19 @@ document.getElementById("avatar-upload")?.addEventListener("change", async(e) =>
     
             } else if (data.status === "pending") {
                 statusContainer.innerHTML = `<div class="card-glass p-8 rounded-xl text-center"><i class="fa-solid fa-clock text-4xl text-amber-400 mb-4 animate-pulse"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Order Pending Approval</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">Your order is currently being reviewed. Your profile will update here once approved.</p></div>`;
+                // Poll for pending status change as well
+                profilePollingInterval = setInterval(() => {
+                     // Check status silently
+                     apiFetch("/api/user/status")
+                        .then(res => res.json())
+                        .then(newData => {
+                            if (newData.status === 'approved') {
+                                // Reload page to show approved dashboard
+                                window.location.reload(); 
+                            }
+                        }).catch(()=>{});
+                }, 5000);
+
             } else {
                 const settingsHtml = `<div class="card-glass p-6 custom-radius"><h3 class="text-xl font-bold text-white mb-4 font-['Orbitron']">Account Settings</h3><form id="profile-update-form" class="space-y-6"><div class="form-group"><input type="text" class="form-input" readonly value="${user.username}" title="Website username cannot be changed."><label class="form-label">Website Username</label></div><div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" placeholder=" "><label for="new-password" class="form-label">New Password (leave blank to keep)</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i></div><button type="submit" class="ai-button w-full rounded-lg !mt-8">Save Changes</button></form></div>`;
                 const linkAccountHtml = `<div class="card-glass p-6 custom-radius"><h3 class="text-xl font-bold text-white mb-2 font-['Orbitron']">Link Existing V2Ray Account</h3><p class="text-sm text-gray-400 mb-6">If you have an old account, link it here to manage renewals.</p><form id="link-account-form-profile" class="space-y-6"><div class="form-group"><input type="text" id="existing-v2ray-username-profile" class="form-input" required placeholder=" "><label for="existing-v2ray-username-profile" class="form-label">Your Old V2Ray Username</label><span class="focus-border"><i></i></span></div><button type="submit" class="ai-button secondary w-full rounded-lg">Link Account</button><div class="text-center text-sm mt-4"><span class="open-help-modal-link text-blue-400 cursor-pointer hover:underline">How to find your username?</span></div></form></div>`;
