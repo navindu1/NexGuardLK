@@ -72,11 +72,9 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
                 <input type="hidden" id="otp-email"><div class="form-group"><input type="text" id="otp-code" class="form-input" required placeholder=" " maxlength="6" /><label for="otp-code" class="form-label">OTP Code</label><span class="focus-border"><i></i></span></div>
                 <button type="submit" class="ai-button w-full rounded-lg">Verify & Create Account</button>
                 <p class="text-center text-sm">Didn't get the code? <span id="show-signup-again" class="auth-toggle-link">Go Back</span></p>
-                
-                // public/js/pages/auth.js තුළ ඇති otp-form HTML කොටස:
 
 <div id="otp-spam-warning" class="hidden mt-6 text-center reveal is-visible">
-    <p class="text-blue-400 text-xs font-medium opacity-80 tracking-wide">
+    <p class="text-blue-500 b text-xs font-medium opacity-80 tracking-wide">
         Please check your Spam / Junk Folder.
     </p>
 </div>
@@ -210,9 +208,7 @@ setTimeout(() => {
             duration: 10000 // තත්පර 10ක් පෙන්වා තබයි
         });
     }
-}, 15000); // ෆෝරම් එක load වෙලා තත්පර 15කට පස්සේ මැසේජ් එක එයි
-// --- END: Timer Logic --- // තත්පර 15 කට පසු ක්‍රියාත්මක වේ
-// --- END: Timer Logic ---
+}, 15000);
 
             } else {
                 showToast({ title: "Error", message: result.message || "An unknown error occurred.", type: "error" });
