@@ -318,3 +318,113 @@ body.modal-open {
     box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25), 0 0 40px rgba(59, 130, 246, 0.2) !important;
 }
 /* --- END: CLEANED UP AND UPDATED NAVBAR SCROLL ANIMATION --- */
+
+/* ======================================== */
+/* MODERN ROUNDED TOAST STYLES (FIXED)      */
+/* ======================================== */
+
+.toast {
+  display: flex;
+  align-items: center; /* අයිකන සහ ටෙක්ස්ට් මැදට ගනී */
+  padding: 12px 24px !important; /* රවුම් හැඩයට ගැලපෙන්න ඉඩ වැඩි කළා */
+  border-radius: 35px !important; /* ඔබ ඉල්ලූ රවුම් හැඩය */
+  
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  
+  /* Default Border & Shadow */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  
+  color: #e0e0e0;
+  position: relative;
+  overflow: hidden;
+  transform: translateX(120%);
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  margin-bottom: 10px;
+}
+
+/* වම් පැත්තේ තිබුණ කැපෙන ඉර (Bar) එක ඉවත් කිරීම */
+.toast::before {
+  display: none !important;
+}
+
+.toast.show {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+/* --- Type Specific Styles (Full Border & Tint) --- */
+
+/* Success (Green) */
+.toast--success {
+  border-color: #22c55e !important;
+  background: rgba(34, 197, 94, 0.15) !important; /* සියුම් කොළ පැහැ පසුබිමක් */
+}
+.toast--success .toast-icon { color: #22c55e; }
+
+/* Error (Red) */
+.toast--error {
+  border-color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.15) !important;
+}
+.toast--error .toast-icon { color: #ef4444; }
+
+/* Warning (Orange) */
+.toast--warning {
+  border-color: #f97316 !important;
+  background: rgba(249, 115, 22, 0.15) !important;
+}
+.toast--warning .toast-icon { color: #f97316; }
+
+/* Info (Blue) */
+.toast--info {
+  border-color: #3b82f6 !important;
+  background: rgba(59, 130, 246, 0.15) !important;
+}
+.toast--info .toast-icon { color: #3b82f6; }
+
+/* --- Content Adjustments --- */
+
+.toast-icon {
+  font-size: 1.5rem; /* අයිකනය තරමක් විශාල කළා */
+  margin-right: 15px;
+  display: flex;
+  align-items: center;
+}
+
+.toast-content {
+  flex-grow: 1;
+}
+
+.toast-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin: 0;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.toast-message {
+  font-size: 0.85rem;
+  margin: 2px 0 0 0;
+  color: #d1d5db;
+  line-height: 1.4;
+}
+
+.toast-close-btn {
+  margin-left: 15px;
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.toast-close-btn:hover {
+  color: #ffffff;
+}
