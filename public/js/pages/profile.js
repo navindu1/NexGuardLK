@@ -8,7 +8,6 @@ let profilePollingInterval = null;
 let lastKnownPlansStr = ""; 
 
 export function renderProfilePage(renderFunc, params) {
-    // 1. Clear existing intervals to prevent duplication
     if (profilePollingInterval) {
         clearInterval(profilePollingInterval);
         profilePollingInterval = null;
@@ -21,7 +20,7 @@ export function renderProfilePage(renderFunc, params) {
         return;
     }
 
-    // --- HELPER HTML & CSS (Expanded for readability) ---
+    // --- HELPER HTML & CSS (Original) ---
     const modalHtml = `
         <div id="help-modal" class="help-modal-overlay">
             <div class="help-modal-content grease-glass p-6 space-y-4 w-full max-w-md">
@@ -33,196 +32,57 @@ export function renderProfilePage(renderFunc, params) {
                     <button id="help-modal-close" class="text-white/80 hover:text-white text-3xl transition-all hover:rotate-90">&times;</button>
                 </div>
                 <div class="lang-content lang-en">
-                    <div>
-                        <h3 class="text-lg font-semibold text-blue-300 mb-2 drop-shadow-sm">How to find your Username?</h3>
-                        <p class="text-gray-100 text-sm mb-4 font-medium leading-relaxed">Your username is the name assigned to your V2ray configuration. It's often visible in your V2ray client app, usually next to the server connection name.</p>
-                    </div>
+                    <div><h3 class="text-lg font-semibold text-blue-300 mb-2 drop-shadow-sm">How to find your Username?</h3><p class="text-gray-100 text-sm mb-4 font-medium leading-relaxed">Your username is the name assigned to your V2ray configuration. It's often visible in your V2ray client app, usually next to the server connection name.</p></div>
                 </div>
                 <div class="lang-content lang-si hidden">
-                    <div>
-                        <h3 class="text-lg font-semibold text-blue-300 mb-2 drop-shadow-sm">ඔබගේ Username එක සොයාගන්නේ කෙසේද?</h3>
-                        <p class="text-gray-100 text-sm mb-4 font-medium leading-relaxed">ඔබගේ username යනු V2ray config ගොනුවට ලබා දී ඇති නමයි. එය බොහෝවිට V2ray client ඇප් එකේ, server සම්බන්ධතාවය අසල දිස්වේ.</p>
-                    </div>
+                    <div><h3 class="text-lg font-semibold text-blue-300 mb-2 drop-shadow-sm">ඔබගේ Username එක සොයාගන්නේ කෙසේද?</h3><p class="text-gray-100 text-sm mb-4 font-medium leading-relaxed">ඔබගේ username යනු V2ray config ගොනුවට ලබා දී ඇති නමයි. එය බොහෝවිට V2ray client ඇප් එකේ, server සම්බන්ධතාවය අසල දිස්වේ.</p></div>
                 </div>
                 <div class="bg-black/20 border border-white/10 rounded-xl p-2 shadow-inner">
-                    <img src="/assets/help.jpg" alt="Example image of where to find the username" class="rounded-lg w-full h-auto opacity-95 hover:opacity-100 transition-opacity">
+                    <img src="/assets/help.jpg" alt="Example" class="rounded-lg w-full h-auto opacity-95 hover:opacity-100 transition-opacity">
                 </div>
             </div>
         </div>`;
     
     const pageStyles = `<style>
-        /* Profile Page Input Fields */
-        #page-profile .form-input { 
-            height: 56px; 
-            padding: 20px 12px 8px 12px; 
-            background-color: rgba(0, 0, 0, 0.4); 
-            border-color: rgba(255, 255, 255, 0.2); 
-        } 
-        #page-profile .form-label { 
-            position: absolute; 
-            top: 50%; 
-            left: 13px; 
-            transform: translateY(-50%); 
-            color: #9ca3af; 
-            pointer-events: none; 
-            transition: all 0.2s ease-out; 
-            font-size: 14px; 
-        } 
-        #page-profile .form-input:focus ~ .form-label, 
-        #page-profile .form-input:not(:placeholder-shown) ~ .form-label { 
-            top: 10px; 
-            transform: translateY(0); 
-            font-size: 11px; 
-            color: var(--brand-blue); 
-        } 
-        #page-profile .form-input[readonly] { 
-            background-color: rgba(0,0,0,0.2); 
-            cursor: not-allowed; 
-        } 
-        
-        /* Tabs */
-        .tab-btn { 
-            border-bottom: 3px solid transparent; 
-            transition: all .3s ease; 
-            color: #9ca3af; 
-            padding: 0.75rem 0.25rem; 
-            font-weight: 600; 
-            white-space: nowrap; 
-        } 
-        .tab-btn.active { 
-            border-bottom-color: var(--brand-blue); 
-            color: #fff; 
-        } 
+        #page-profile .form-input { height: 56px; padding: 20px 12px 8px 12px; background-color: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.2); } 
+        #page-profile .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; } 
+        #page-profile .form-input:focus ~ .form-label, #page-profile .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: var(--brand-blue); } 
+        #page-profile .form-input[readonly] { background-color: rgba(0,0,0,0.2); cursor: not-allowed; } 
+        .tab-btn { border-bottom: 3px solid transparent; transition: all .3s ease; color: #9ca3af; padding: 0.75rem 0.25rem; font-weight: 600; white-space: nowrap; } 
+        .tab-btn.active { border-bottom-color: var(--brand-blue); color: #fff; } 
         .tab-panel { display: none; } 
         .tab-panel.active { display: block; animation: pageFadeIn 0.5s; }
-        
-        /* Modal Styles */
-        .help-modal-overlay { 
-            opacity: 0; 
-            visibility: hidden; 
-            transition: opacity 0.3s ease-out, visibility 0.3s ease-out; 
-            background: rgba(0, 0, 0, 0.2); 
-            z-index: 9999; 
-            position: fixed; 
-            inset: 0; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            padding: 1rem; 
-        }
+        .help-modal-overlay { opacity: 0; visibility: hidden; transition: opacity 0.3s ease-out, visibility 0.3s ease-out; background: rgba(0, 0, 0, 0.2); z-index: 9999; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 1rem; }
         .help-modal-overlay.visible { opacity: 1; visibility: visible; }
-        .help-modal-content { 
-            opacity: 0; 
-            transform: scale(0.90); 
-            transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
-        }
+        .help-modal-content { opacity: 0; transform: scale(0.90); transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .help-modal-overlay.visible .help-modal-content { opacity: 1; transform: scale(1); }
-        .grease-glass { 
-            background: rgba(30, 40, 60, 0.4); 
-            backdrop-filter: blur(20px) saturate(200%); 
-            -webkit-backdrop-filter: blur(20px) saturate(200%); 
-            border-radius: 35px; 
-            border: 1px solid rgba(255, 255, 255, 0.2); 
-            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5); 
-        }
-
-        /* --- DROPDOWN STYLING --- */
-        .plan-selector-container { 
-            display: flex; 
-            align-items: center; 
-            gap: 0.75rem; 
-            margin-bottom: 2rem; 
-            position: relative; 
-            z-index: 100; 
-            overflow: visible !important; 
-        }
+        .grease-glass { background: rgba(30, 40, 60, 0.4); backdrop-filter: blur(20px) saturate(200%); -webkit-backdrop-filter: blur(20px) saturate(200%); border-radius: 35px; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5); }
+        .plan-selector-container { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 2rem; position: relative; z-index: 100; overflow: visible !important; }
         .plan-selector-label { font-size: 0.875rem; font-weight: 600; color: #d1d5db; flex-shrink: 0; }
-        
-        ul.fmenu { 
-            display: inline-block; 
-            list-style: none; 
-            padding: 0; 
-            margin: 0; 
-            white-space: nowrap; 
-            position: relative; 
-            overflow: visible !important; 
-        }
+        ul.fmenu { display: inline-block; list-style: none; padding: 0; margin: 0; white-space: nowrap; position: relative; overflow: visible !important; }
         ul.fmenu > li.fmenu-item { position: relative; overflow: visible !important; }
-        
-        /* Trigger Button */
-        ul.fmenu .trigger-menu { 
-            display: flex; align-items: center; justify-content: space-between; 
-            box-sizing: border-box; height: 44px; padding: 0 1.2rem; 
-            border-radius: 999px; background-color: rgba(30, 41, 59, 0.9); 
-            border: 1px solid rgba(255, 255, 255, 0.2); cursor: pointer; 
-            transition: all ease 0.3s; min-width: 180px; overflow: visible !important; 
-        }
+        ul.fmenu .trigger-menu { display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; height: 44px; padding: 0 1.2rem; border-radius: 999px; background-color: rgba(30, 41, 59, 0.9); border: 1px solid rgba(255, 255, 255, 0.2); cursor: pointer; transition: all ease 0.3s; min-width: 180px; overflow: visible !important; }
         ul.fmenu .trigger-menu:hover, ul.fmenu .trigger-menu.open { border-color: var(--brand-blue); box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
         ul.fmenu .trigger-menu i { color: #9ca3af; font-size: 0.9rem; transition: color ease 0.3s; }
         ul.fmenu .trigger-menu:hover i, ul.fmenu .trigger-menu.open i { color: #60a5fa; }
         ul.fmenu .trigger-menu .text { display: block; font-size: 0.95rem; color: #ffffff; padding: 0 0.5rem; font-weight: 500; }
         ul.fmenu .trigger-menu .arrow { font-size: 0.8rem; transition: transform ease 0.3s; }
         ul.fmenu .trigger-menu.open .arrow { transform: rotate(180deg); }
-        
-        /* Dropdown List */
-        ul.fmenu .floating-menu { 
-            display: block; position: absolute; top: 100%; margin-top: 12px; left: 0; 
-            width: max-content; min-width: 100%; list-style: none; padding: 0.5rem; 
-            background-color: #0f172a; border: 1px solid rgba(71, 85, 105, 0.6); 
-            border-radius: 35px; box-shadow: 0 20px 40px rgba(0,0,0,0.8); z-index: 9999 !important; 
-            opacity: 0; visibility: hidden; transform: translateY(-10px); transition: opacity 0.3s, transform 0.3s; 
-        }
-        
-        ul.fmenu .trigger-menu.open + .floating-menu { 
-            opacity: 1 !important; visibility: visible !important; transform: translateY(0) !important; 
-            max-height: none !important; overflow: visible !important; 
-        }
-
-        ul.fmenu .floating-menu > li a { 
-            color: #cbd5e1; font-size: 0.9rem; text-decoration: none; display: block; 
-            padding: 0.75rem 1.2rem; border-radius: 35px; transition: all 0.2s ease; border: 1px solid transparent; 
-        }
-        
-        ul.fmenu .floating-menu > li a:hover { 
-            background-color: rgba(59, 130, 246, 0.15); color: #ffffff; border-color: rgba(59, 130, 246, 0.3); 
-        }
+        ul.fmenu .floating-menu { display: block; position: absolute; top: 100%; margin-top: 12px; left: 0; width: max-content; min-width: 100%; list-style: none; padding: 0.5rem; background-color: #0f172a; border: 1px solid rgba(71, 85, 105, 0.6); border-radius: 35px; box-shadow: 0 20px 40px rgba(0,0,0,0.8); z-index: 9999 !important; opacity: 0; visibility: hidden; transform: translateY(-10px); transition: opacity 0.3s, transform 0.3s; }
+        ul.fmenu .trigger-menu.open + .floating-menu { opacity: 1 !important; visibility: visible !important; transform: translateY(0) !important; max-height: none !important; overflow: visible !important; }
+        ul.fmenu .floating-menu > li a { color: #cbd5e1; font-size: 0.9rem; text-decoration: none; display: block; padding: 0.75rem 1.2rem; border-radius: 35px; transition: all 0.2s ease; border: 1px solid transparent; }
+        ul.fmenu .floating-menu > li a:hover { background-color: rgba(59, 130, 246, 0.15); color: #ffffff; border-color: rgba(59, 130, 246, 0.3); }
     </style>`;
     
     let profilePictureUrl = (user.profilePicture || "/assets/profilePhoto.jpg").replace("public/", "");
     if (profilePictureUrl && !profilePictureUrl.startsWith('/')) profilePictureUrl = '/' + profilePictureUrl;
     
-    const baseHtml = `
-    <div id="page-profile" class="page space-y-8">
-        <div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left reveal">
-            <div class="relative flex-shrink-0">
-                <img id="profile-pic-img" src="${profilePictureUrl}" alt="Profile Picture" class="w-24 h-24 rounded-full border-4 border-blue-500/50 object-cover shadow-lg">
-                <label for="avatar-upload" class="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-500 transition shadow-md">
-                    <i class="fa-solid fa-camera text-white"></i>
-                    <input type="file" id="avatar-upload" class="hidden" accept="image/*">
-                </label>
-            </div>
-            <div class="flex-grow">
-                <h2 class="text-3xl font-bold font-['Orbitron'] text-white">${user.username}</h2>
-                <p class="text-gray-400">${user.email}</p>
-                <div id="plan-info-container" class="text-xs sm:text-sm mt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2"></div>
-            </div>
-        </div>
-        <div id="user-status-content" class="reveal">
-            <div class="flex flex-col items-center justify-center min-h-[40vh]">
-                <div class="text-center p-8">
-                    <i class="fa-solid fa-spinner fa-spin text-3xl text-blue-400"></i>
-                    <p class="mt-4 text-lg font-semibold text-blue-300 animate-pulse">Loading Your Data...</p>
-                    <p class="text-sm text-gray-500 mt-1">Please wait while we fetch your profile information.</p>
-                </div>
-            </div>
-        </div>
-    </div> ${modalHtml}`;
+    const baseHtml = `<div id="page-profile" class="page space-y-8"><div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left reveal"><div class="relative flex-shrink-0"><img id="profile-pic-img" src="${profilePictureUrl}" alt="Profile Picture" class="w-24 h-24 rounded-full border-4 border-blue-500/50 object-cover shadow-lg"><label for="avatar-upload" class="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-500 transition shadow-md"><i class="fa-solid fa-camera text-white"></i><input type="file" id="avatar-upload" class="hidden" accept="image/*"></label></div><div class="flex-grow"><h2 class="text-3xl font-bold font-['Orbitron'] text-white">${user.username}</h2><p class="text-gray-400">${user.email}</p><div id="plan-info-container" class="text-xs sm:text-sm mt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2"></div></div></div><div id="user-status-content" class="reveal"><div class="flex flex-col items-center justify-center min-h-[40vh]"><div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-3xl text-blue-400"></i><p class="mt-4 text-lg font-semibold text-blue-300 animate-pulse">Loading Your Data...</p><p class="text-sm text-gray-500 mt-1">Please wait while we fetch your profile information.</p></div></div></div></div> ${modalHtml}`;
     
     renderFunc(pageStyles + baseHtml);
     const statusContainer = document.getElementById("user-status-content");
     qrModalLogic.init();
 
-    // Event Listeners (Avatar, Settings, etc.)
     const setupEventListeners = () => {
         const helpModal = document.getElementById('help-modal');
         if (helpModal) {
@@ -304,7 +164,6 @@ export function renderProfilePage(renderFunc, params) {
         }
     });
 
-    // --- RENDER PLAN SELECTOR ---
     let planMenuInstance = null;
     const renderPlanSelector = (activePlans, activePlanIndex = 0) => {
         const planListItems = activePlans.map((plan, index) => 
@@ -329,22 +188,26 @@ export function renderProfilePage(renderFunc, params) {
             </div>
             <div id="plan-details-container"></div>`;
         
-        // Only re-create container if it doesn't exist, otherwise update logic handled inside main loop
         if (!document.getElementById("plan-menu")) {
              statusContainer.innerHTML = containerHtml;
         } else {
-             // If menu exists, just update the LIST inside it
-             const listContainer = document.querySelector('#plan-menu .floating-menu');
-             if(listContainer) listContainer.innerHTML = planListItems;
-             
-             // Update the TRIGGER TEXT if the index is valid
-             const triggerText = document.querySelector('#plan-menu .trigger-menu .text');
-             if(triggerText && activePlans[activePlanIndex]) {
-                 triggerText.textContent = activePlans[activePlanIndex].v2rayUsername;
-             }
+             const menuContainer = document.querySelector('.plan-selector-container');
+             if(menuContainer) menuContainer.outerHTML = `
+                <div class="plan-selector-container">
+                    <label class="plan-selector-label custom-radius">Viewing Plan:</label>
+                    <ul class="fmenu custom-radius" id="plan-menu">
+                        <li class="fmenu-item custom-radius">
+                            <div class="trigger-menu custom-radius">
+                                <i class="fa-solid fa-server"></i>
+                                <span class="text">${activePlans[activePlanIndex]?.v2rayUsername || 'Select Plan'}</span>
+                                <i class="fa-solid fa-chevron-down arrow"></i>
+                            </div>
+                            <ul class="floating-menu">${planListItems}</ul>
+                        </li>
+                    </ul>
+                </div>`;
         }
 
-        // Re-init menu logic (needed if items changed)
         planMenuInstance = new SikFloatingMenu("#plan-menu");
         
         const floatingMenu = document.querySelector('#plan-menu .floating-menu');
@@ -375,18 +238,14 @@ export function renderProfilePage(renderFunc, params) {
                 lastKnownPlansStr = currentPlansStr;
 
                 if (data.status === "approved" && data.activePlans?.length > 0) {
-                    
-                    // --- Logic: Handle Plan Deletion/Addition ---
                     let currentIndex = 0;
                     const currentViewedName = document.querySelector('#plan-menu .trigger-menu .text')?.textContent;
                     
                     if (currentViewedName) {
-                        // Try to find the plan we were looking at
                         const foundIndex = data.activePlans.findIndex(p => p.v2rayUsername === currentViewedName);
                         if (foundIndex !== -1) {
                             currentIndex = foundIndex;
                         } else {
-                            // The plan being viewed was removed! Default to 0.
                             if (document.getElementById("plan-menu")) {
                                 showToast({ title: "Plan Removed", message: "The plan you were viewing is no longer active.", type: "info" });
                             }
@@ -395,7 +254,6 @@ export function renderProfilePage(renderFunc, params) {
 
                     renderPlanSelector(data.activePlans, currentIndex);
 
-                    // --- Define Render Details Function ---
                     window.renderPlanDetails = (planIndex) => {
                         const plan = data.activePlans[planIndex];
                         const container = document.getElementById("plan-details-container");
@@ -429,7 +287,6 @@ export function renderProfilePage(renderFunc, params) {
                                     e.target.classList.add('active');
                                     document.getElementById(`tab-${e.target.dataset.tab}`).classList.add('active');
                                     
-                                    // Trigger immediate load for selected tab
                                     const tabId = e.target.dataset.tab;
                                     if(tabId === 'config') updateRenewButton(plan);
                                     if(tabId === 'usage') loadUsageStats(false);
@@ -467,7 +324,6 @@ export function renderProfilePage(renderFunc, params) {
                 } else if (data.status === "pending") {
                     statusContainer.innerHTML = `<div class="card-glass p-8 rounded-xl text-center"><i class="fa-solid fa-clock text-4xl text-amber-400 mb-4 animate-pulse"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Order Pending Approval</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">Your order is currently being reviewed. Your profile will update here once approved.</p></div>`;
                 } else {
-                    // No Plans (or deleted)
                     const settingsHtml = `<div class="card-glass p-6 custom-radius"><h3 class="text-xl font-bold text-white mb-4 font-['Orbitron']">Account Settings</h3><form id="profile-update-form" class="space-y-6"><div class="form-group"><input type="text" class="form-input" readonly value="${user.username}" title="Website username cannot be changed."><label class="form-label">Website Username</label></div><div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" placeholder=" "><label for="new-password" class="form-label">New Password (leave blank to keep)</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i></div><button type="submit" class="ai-button w-full rounded-lg !mt-8">Save Changes</button></form></div>`;
                     const linkAccountHtml = `<div class="card-glass p-6 custom-radius"><h3 class="text-xl font-bold text-white mb-2 font-['Orbitron']">Link Existing V2Ray Account</h3><p class="text-sm text-gray-400 mb-6">If you have an old account, link it here to manage renewals.</p><form id="link-account-form-profile" class="space-y-6"><div class="form-group"><input type="text" id="existing-v2ray-username-profile" class="form-input" required placeholder=" "><label for="existing-v2ray-username-profile" class="form-label">Your Old V2Ray Username</label><span class="focus-border"><i></i></span></div><button type="submit" class="ai-button secondary w-full rounded-lg">Link Account</button><div class="text-center text-sm mt-4"><span class="open-help-modal-link text-blue-400 cursor-pointer hover:underline">How to find your username?</span></div></form></div>`;
                     statusContainer.innerHTML = `<div class="card-glass p-8 custom-radius text-center"><i class="fa-solid fa-rocket text-4xl text-blue-400 mb-4"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Get Started</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">You do not have any active plans yet. Purchase a new plan or link an existing account below.</p><a href="/plans" class="nav-link-internal ai-button inline-block rounded-lg mt-6">Purchase a Plan</a></div><div class="grid md:grid-cols-2 gap-8 mt-8">${settingsHtml}${linkAccountHtml}</div>`;
@@ -475,12 +331,10 @@ export function renderProfilePage(renderFunc, params) {
                 }
             }
 
-            // --- REAL-TIME UPDATES FOR TABS (Silent) ---
             if (data.status === "approved" && data.activePlans?.length > 0) {
                 const activePlanUsername = document.querySelector('#plan-menu .trigger-menu .text')?.textContent;
                 const activePlan = data.activePlans.find(p => p.v2rayUsername === activePlanUsername);
 
-                // Define Helpers for Silent Updating
                 const updateRenewButton = async (plan, isSilent = false) => {
                     const container = document.getElementById("renew-button-container");
                     if (!container) return;
@@ -488,16 +342,12 @@ export function renderProfilePage(renderFunc, params) {
                     try {
                         const res = await apiFetch(`/api/check-usage/${plan.v2rayUsername}`);
                         const result = await res.json();
-                        
                         if (result.success) {
-                            const expiryTime = result.data.expiryTime; // Fresh date from API
-                            
-                            // --- FIX: Real-time Date Logic ---
+                            const expiryTime = result.data.expiryTime;
                             if (expiryTime > 0) {
                                 const now = new Date();
                                 const renewalPeriodDays = 5;
                                 const canRenew = now >= new Date(new Date(expiryTime).getTime() - renewalPeriodDays * 86400000);
-                                
                                 if (canRenew) {
                                     if (!document.getElementById('renew-profile-btn')) {
                                         container.innerHTML = `<button id="renew-profile-btn" class="ai-button inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew / Change Plan</button>`;
@@ -534,47 +384,57 @@ export function renderProfilePage(renderFunc, params) {
                                 return `${parseFloat((b / k ** i).toFixed(d))} ${s[i]}`;
                             };
 
+                            const expiry = d.expiryTime > 0 ? new Date(d.expiryTime).toLocaleDateString('en-CA') : 'Unlimited';
+                            const status = d.enable ? `<span class="font-semibold text-green-400">ONLINE</span>` : `<span class="font-semibold text-red-400">OFFLINE</span>`;
+
                             if(usageContainer.innerHTML.includes('fa-spinner') || usageContainer.innerHTML === '') {
-                                // Initial Render Structure (Expanded)
-                                usageContainer.innerHTML = `
-                                <div class="result-card p-6 card-glass custom-radius space-y-5">
-                                    <div class="flex justify-between items-center">
-                                        <h3 class="text-lg font-semibold text-white">Client: ${activePlan.v2rayUsername}</h3>
-                                        <div id="rt-status"></div>
-                                    </div>
-                                    <div class="space-y-2">
-                                        <div class="flex justify-between text-sm">
-                                            <span class="text-gray-300">Quota</span>
-                                            <span id="rt-percent" class="font-bold text-white"></span>
+                                const html = `
+                                    <div class="result-card p-4 sm:p-6 card-glass custom-radius space-y-5 reveal is-visible">
+                                        <div class="flex justify-between items-center pb-3 border-b border-white/10">
+                                            <h3 class="text-lg font-semibold text-white flex items-center min-w-0">
+                                                <i class="fa-solid fa-satellite-dish mr-3 text-blue-400 flex-shrink-0"></i>
+                                                <span class="truncate" title="${activePlan.v2rayUsername}">Client: ${activePlan.v2rayUsername}</span>
+                                            </h3>
+                                            <div id="rt-status">${status}</div>
                                         </div>
-                                        <div class="w-full bg-black/30 rounded-full h-2.5">
-                                            <div id="rt-bar" class="bg-blue-500 h-2.5 rounded-full" style="width:0%"></div>
+                                        ${d.total > 0 ? `<div class="space-y-2"><div class="flex justify-between items-baseline text-sm"><span class="font-medium text-gray-300">Data Quota Usage</span><span id="rt-percent" class="font-bold text-white">${percent.toFixed(1)}%</span></div><div class="w-full bg-black/30 rounded-full h-2.5"><div id="rt-bar" class="progress-bar-inner bg-gradient-to-r from-sky-500 to-blue-500 h-2.5 rounded-full" style="width: ${percent}%"></div></div></div>` : ''}
+                                        <div class="space-y-4 text-sm sm:hidden">
+                                            <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-circle-down text-sky-400 text-lg w-5 text-center"></i><span>Download</span></div><p id="rt-down-mob" class="font-semibold text-white text-base">${formatBytes(d.down)}</p></div>
+                                            <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-circle-up text-violet-400 text-lg w-5 text-center"></i><span>Upload</span></div><p id="rt-up-mob" class="font-semibold text-white text-base">${formatBytes(d.up)}</p></div>
+                                            <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-database text-green-400 text-lg w-5 text-center"></i><span>Total Used</span></div><p id="rt-total-mob" class="font-semibold text-white text-base">${formatBytes(total)}</p></div>
+                                            <div class="flex justify-between items-center"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-calendar-xmark text-red-400 text-lg w-5 text-center"></i><span>Expires On</span></div><p id="rt-expiry-mob" class="font-medium text-white text-base">${expiry}</p></div>
                                         </div>
-                                    </div>
-                                    <div class="grid grid-cols-2 gap-4 text-center">
-                                        <div class="bg-black/20 p-4 rounded">
-                                            <p class="text-gray-400 text-xs">Used</p>
-                                            <p id="rt-used" class="text-xl font-bold text-white"></p>
+                                        <div class="hidden sm:grid sm:grid-cols-2 gap-4 text-sm">
+                                            <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-circle-down text-sky-400 mr-2"></i><span>Download</span></div><p id="rt-down-desk" class="text-2xl font-bold text-white mt-1">${formatBytes(d.down)}</p></div>
+                                            <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-circle-up text-violet-400 mr-2"></i><span>Upload</span></div><p id="rt-up-desk" class="text-2xl font-bold text-white mt-1">${formatBytes(d.up)}</p></div>
+                                            <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-database text-green-400 mr-2"></i><span>Total Used</span></div><p id="rt-total-desk" class="text-2xl font-bold text-white mt-1">${formatBytes(total)}</p></div>
+                                            <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-calendar-xmark text-red-400 mr-2"></i><span>Expires On</span></div><p id="rt-expiry-desk" class="text-xl font-medium text-white mt-1">${expiry}</p></div>
                                         </div>
-                                        <div class="bg-black/20 p-4 rounded">
-                                            <p class="text-gray-400 text-xs">Expires</p>
-                                            <p id="rt-expiry" class="text-xl font-bold text-white"></p>
-                                        </div>
-                                    </div>
-                                </div>`;
-                            }
-                            const statusElem = document.getElementById('rt-status');
-                            if(statusElem) {
-                                statusElem.innerHTML = d.enable ? `<span class="text-green-400 font-bold">ONLINE</span>` : `<span class="text-red-400 font-bold">OFFLINE</span>`;
-                                document.getElementById('rt-percent').textContent = `${percent.toFixed(1)}%`;
-                                document.getElementById('rt-bar').style.width = `${percent}%`;
-                                document.getElementById('rt-used').textContent = `${formatBytes(total)}`;
+                                    </div>`;
+                                usageContainer.innerHTML = html;
+                            } else {
+                                // Update values only
+                                const statusEl = document.getElementById('rt-status'); if(statusEl) statusEl.innerHTML = status;
+                                const percentEl = document.getElementById('rt-percent'); if(percentEl) percentEl.textContent = `${percent.toFixed(1)}%`;
+                                const barEl = document.getElementById('rt-bar'); if(barEl) barEl.style.width = `${percent}%`;
                                 
-                                // --- FIX: Real-time Date Update ---
-                                const newExpiryDate = d.expiryTime ? new Date(d.expiryTime).toLocaleDateString('en-CA') : 'Unlimited';
-                                document.getElementById('rt-expiry').textContent = newExpiryDate;
+                                // Mobile updates
+                                const downMob = document.getElementById('rt-down-mob'); if(downMob) downMob.textContent = formatBytes(d.down);
+                                const upMob = document.getElementById('rt-up-mob'); if(upMob) upMob.textContent = formatBytes(d.up);
+                                const totalMob = document.getElementById('rt-total-mob'); if(totalMob) totalMob.textContent = formatBytes(total);
+                                const expiryMob = document.getElementById('rt-expiry-mob'); if(expiryMob) expiryMob.textContent = expiry;
+
+                                // Desktop updates
+                                const downDesk = document.getElementById('rt-down-desk'); if(downDesk) downDesk.textContent = formatBytes(d.down);
+                                const upDesk = document.getElementById('rt-up-desk'); if(upDesk) upDesk.textContent = formatBytes(d.up);
+                                const totalDesk = document.getElementById('rt-total-desk'); if(totalDesk) totalDesk.textContent = formatBytes(total);
+                                const expiryDesk = document.getElementById('rt-expiry-desk'); if(expiryDesk) expiryDesk.textContent = expiry;
                             }
+                        } else {
+                             if (!isSilent) usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-amber-400"><p>${result.message}</p></div>`;
                         }
+                    }).catch(() => {
+                        if (!isSilent) usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-red-400"><p>Could not load usage statistics.</p></div>`;
                     });
                 };
 
@@ -582,14 +442,31 @@ export function renderProfilePage(renderFunc, params) {
                     const container = document.getElementById("tab-orders");
                     if (!container) return;
                     if (!isSilent) container.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
-                    const res = await apiFetch("/api/user/orders");
-                    const { orders } = await res.json();
-                    const html = orders.map(o => {
-                        const displayStatus = o.status === 'queued_for_renewal' ? 'Queued' : o.status;
-                        const statusColor = o.status === 'approved' ? 'text-green-400' : (o.status === 'pending' ? 'text-amber-400' : 'text-blue-300');
-                        return `<div class="card-glass p-4 rounded-lg flex justify-between items-center mb-2"><div><p class="font-bold text-white">${o.plan_id}</p><p class="text-xs text-gray-400">${new Date(o.created_at).toLocaleDateString()}</p></div><div class="font-bold ${statusColor}">${displayStatus}</div></div>`;
-                    }).join('');
-                    if(container.innerHTML !== `<div class="space-y-3">${html}</div>`) container.innerHTML = `<div class="space-y-3">${html}</div>`;
+                    try {
+                        const res = await apiFetch("/api/user/orders");
+                        const { orders } = await res.json();
+                        const html = (orders.length > 0) ? orders.map(order => {
+                            const displayStatus = order.status === 'queued_for_renewal' ? 'Queued' : order.status;
+                            const statusColors = { pending: "text-amber-400", approved: "text-green-400", rejected: "text-red-400", queued_for_renewal: "text-blue-300" };
+                            const statusIcons = { pending: "fa-solid fa-clock", approved: "fa-solid fa-check-circle", rejected: "fa-solid fa-times-circle", queued_for_renewal: "fa-solid fa-hourglass-half" };
+                            
+                            return `<div class="card-glass p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 custom-radius">
+                                <div>
+                                    <p class="font-bold text-white">${appData.plans[order.plan_id]?.name || order.plan_id} <span class="text-gray-400 font-normal">for</span> ${appData.connections.find(c => c.name === order.conn_id)?.name || order.conn_id}</p>
+                                    <p class="text-xs text-gray-400 mt-1">Ordered on: ${new Date(order.created_at).toLocaleDateString()} ${order.status === 'approved' && order.final_username ? `| V2Ray User: <strong class="text-blue-300">${order.final_username}</strong>` : ''}</p>
+                                </div>
+                                <div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'}">
+                                    <i class="${statusIcons[order.status] || 'fa-solid fa-question-circle'}"></i><span>${displayStatus}</span>
+                                </div>
+                            </div>`;
+                        }).join('') : `<div class="card-glass p-8 custom-radius text-center"><i class="fa-solid fa-box-open text-4xl text-gray-400 mb-4"></i><h3 class="font-bold text-white">No Orders Found</h3><p class="text-gray-400 text-sm mt-2">You have not placed any orders yet.</p></div>`;
+                        
+                        if(container.innerHTML.includes('fa-spinner') || container.innerHTML !== `<div class="space-y-3">${html}</div>`) {
+                            container.innerHTML = `<div class="space-y-3">${html}</div>`;
+                        }
+                    } catch (err) {
+                        if (!isSilent) container.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-red-400"><p>Could not load your orders.</p></div>`;
+                    }
                 };
 
                 if (activePlan) {
