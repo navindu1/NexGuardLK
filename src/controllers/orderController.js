@@ -31,47 +31,48 @@ exports.createOrder = async (req, res) => {
 
         let finalPkg = pkg; // Use this variable to store the package name
 
+       // ============================================================
+        // 1. SMART PACKAGE DETECTION LOGIC (RENEWAL FIX)
         // ============================================================
-        // 1. SMART PACKAGE DETECTION LOGIC
-        // ============================================================
-        if (connection.requires_package_choice) {
-            
-            // Package එකක් තෝරා නොමැති නම් සහ මෙය Renewal එකක් නම් පමණක් මෙය ක්‍රියාත්මක වේ
-            if (!finalPkg && (isRenewal === "true" || isRenewal === true)) {
-                console.log(`[Order] Package missing for renewal of ${username}. Attempting to auto-detect...`);
-                
-                // Find the user in the V2Ray panel
-                const clientInPanel = await v2rayService.findV2rayClient(username);
-                
-                if (clientInPanel) {
-                    // Fetch all packages for this connection
-                    const { data: packages, error: pkgError } = await supabase
+        
+        // Renewal එකක් නම්, අපි බලහත්කාරයෙන්ම User දැනට ඉන්න Inbound එක හොයාගන්න ඕනේ.
+        // Frontend එකෙන් එවන Package එක සමහර විට වැරදි වෙන්න පුළුවන් (User වෙනත් එකක් select කරලා තිබුනොත්).
+        if ((isRenewal === "true" || isRenewal === true) && username) {
+             console.log(`[Order] Renewal detected for ${username}. Looking up existing inbound...`);
+             try {
+                 const clientInPanel = await v2rayService.findV2rayClient(username);
+                 if (clientInPanel) {
+                     // පැනල් එකේ යූසර් ඉන්නවා නම්, ඒ Inbound ID එකම පාවිච්චි කරන්න.
+                     inboundId = clientInPanel.inboundId;
+                     
+                     // ඒ Inbound එකට අදාළ Template එක DB එකෙන් ගන්න (Packages Table හරහා)
+                     const { data: pkgInfo } = await supabase
                         .from('packages')
-                        .select('*')
-                        .eq('connection_id', connection.id);
-                    
-                    if (!pkgError && packages) {
-                        const clientInboundId = clientInPanel.inboundId;
-                        // FIX: Use loose equality (==) for String vs Number comparison
-                        const foundPackage = packages.find(p => p.inbound_id == clientInboundId);
+                        .select('template, name')
+                        .eq('inbound_id', inboundId)
+                        .single();
+                        
+                     if (pkgInfo) {
+                         vlessTemplate = pkgInfo.template;
+                         finalPkg = pkgInfo.name; // Package නම යාවත්කාලීන කරන්න
+                         console.log(`[Order] Found existing user on Inbound ${inboundId}. Using Package: ${finalPkg}`);
+                     } else {
+                         // Package එක DB එකේ නැත්නම් Connection Default එක ගන්න (Fallback)
+                         vlessTemplate = connection.default_vless_template;
+                     }
+                 }
+             } catch (err) {
+                 console.error("[Order] Failed to lookup existing client for renewal:", err);
+             }
+        }
 
-                        if (foundPackage) {
-                            finalPkg = foundPackage.name;
-                            console.log(`[Order] Successfully deduced package: ${finalPkg} (Inbound: ${clientInboundId})`);
-                            inboundId = foundPackage.inbound_id;
-                            vlessTemplate = foundPackage.template;
-                        }
-                    }
-                }
-            }
-
-            // තවමත් Package එක සොයාගැනීමට නොහැකි නම් Error එක පෙන්වන්න
-            if (!inboundId) { 
+        // Renewal එකක් නොවෙයි නම් හෝ Inbound එක හොයාගන්න බැරි වුනා නම් සාමාන්‍ය විදිහට යන්න
+        if (!inboundId) {
+            if (connection.requires_package_choice) {
                 if (!finalPkg) { 
                     return res.status(400).json({ success: false, message: 'A package selection is required for this connection type.' });
                 }
                 
-                // Package නම තිබේ නම්, එහි විස්තර DB එකෙන් ගන්න
                 const { data: selectedPackage, error: pkgError } = await supabase
                     .from('packages')
                     .select('inbound_id, template')
@@ -85,13 +86,11 @@ exports.createOrder = async (req, res) => {
 
                 inboundId = selectedPackage.inbound_id;
                 vlessTemplate = selectedPackage.template;
+            } else {
+                inboundId = connection.default_inbound_id;
+                vlessTemplate = connection.default_vless_template;
+                finalPkg = connection.default_package || connection.name; 
             }
-        } else {
-            // Single Package Connection
-            inboundId = connection.default_inbound_id;
-            vlessTemplate = connection.default_vless_template;
-            // FIX: Ensure finalPkg has a value for single-package connections
-            finalPkg = connection.default_package || connection.name; 
         }
 
         if (!inboundId || !vlessTemplate) {

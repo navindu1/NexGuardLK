@@ -106,16 +106,39 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
 
                 } else {
                     // --- CONDITION B: PLAN HAS EXPIRED (Renew Immediately) ---
-                    console.log(`[Immediate Renewal] Plan for ${order.username} (Order: ${orderId}) has expired. Renewing immediately.`);
-                    const expiryTime = Date.now() + 30 * 24 * 60 * 60 * 1000;
-                    const totalGBValue = (planDetails.total_gb || 0) * 1024 * 1024 * 1024;
-                    const updatedClientSettings = { /* ... (settings as before) ... */ }; // Fill details as in original code
+console.log(`[Immediate Renewal] Plan for ${order.username} (Order: ${orderId}) has expired. Renewing immediately.`);
 
-                    await v2rayService.updateClient(inboundId, clientInPanel.client.id, updatedClientSettings);
-                    await v2rayService.resetClientTraffic(inboundId, clientInPanel.client.email);
+const expiryTime = Date.now() + 30 * 24 * 60 * 60 * 1000; // දින 30ක් එකතු කිරීම
+const totalGBValue = (planDetails.total_gb || 0) * 1024 * 1024 * 1024;
 
-                    clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientInPanel.client);
-                    finalUsername = clientInPanel.client.email;
+// 1. UUID සහ Email වෙනස් නොකර Settings සකසන්න
+const updatedClientSettings = {
+    id: clientInPanel.client.id,          // පරණ UUID එකම තබන්න
+    email: clientInPanel.client.email,    // පරණ Email එකම තබන්න
+    total: totalGBValue,                  // Data Reset
+    expiryTime: expiryTime,               // Date Reset
+    enable: true,
+    limitIp: clientInPanel.client.limitIp || 0,
+    flow: clientInPanel.client.flow || "",
+    tgId: clientInPanel.client.tgId || "",
+    subId: clientInPanel.client.subId || ""
+};
+
+// 2. වැදගත්ම කොටස: Order එකේ ඇති inbound ID එක නොව, 
+//    Panel එකේ Client දැනට සිටින නියම Inbound ID එක (actualInboundId) භාවිතා කරන්න.
+const actualInboundId = clientInPanel.inboundId;
+
+// 3. Client Update කරන්න (පරණ ෆයිල් එකම Update වේ)
+await v2rayService.updateClient(actualInboundId, clientInPanel.client.id, updatedClientSettings);
+
+// 4. Traffic Reset කරන්න
+await v2rayService.resetClientTraffic(actualInboundId, clientInPanel.client.email);
+
+console.log(`[Renewal Success] User ${order.username} updated on Inbound ${actualInboundId}`);
+
+// 5. ලින්ක් එක නැවත ජනනය කරන්න (පරණ විස්තරම සහිතව)
+clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientInPanel.client);
+finalUsername = clientInPanel.client.email;
                 }
             } else {
                 // --- New User or Plan Change Logic ---
