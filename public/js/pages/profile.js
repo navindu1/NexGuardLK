@@ -227,10 +227,10 @@ export function renderProfilePage(renderFunc, params) {
 
                 statusContainer.innerHTML = `
                     <div class="plan-selector-container">
-                        <label class="plan-selector-label">Viewing Plan:</label>
-                        <ul class="fmenu" id="plan-menu">
-                            <li class="fmenu-item">
-                                <div class="trigger-menu">
+                        <label class="plan-selector-label custom-radius">Viewing Plan:</label>
+                        <ul class="fmenu custom-radius" id="plan-menu">
+                            <li class="fmenu-item custom-radius">
+                                <div class="trigger-menu custom-radius">
                                     <i class="fa-solid fa-server"></i>
                                     <span class="text">${data.activePlans[0].v2rayUsername}</span>
                                     <i class="fa-solid fa-chevron-down arrow"></i>
@@ -408,7 +408,7 @@ export function renderProfilePage(renderFunc, params) {
                             const ordersHtml = (orders.length > 0) ? orders.map(order => {
                                 const statusColors = { pending: "text-amber-400", approved: "text-green-400", rejected: "text-red-400" };
                                 const statusIcons = { pending: "fa-solid fa-clock", approved: "fa-solid fa-check-circle", rejected: "fa-solid fa-times-circle" };
-                                return `<div class="card-glass p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"><div><p class="font-bold text-white">${appData.plans[order.plan_id]?.name || order.plan_id} <span class="text-gray-400 font-normal">for</span> ${appData.connections.find(c => c.name === order.conn_id)?.name || order.conn_id}</p><p class="text-xs text-gray-400 mt-1">Ordered on: ${new Date(order.created_at).toLocaleDateString()} ${order.status === 'approved' && order.final_username ? `| V2Ray User: <strong class="text-blue-300">${order.final_username}</strong>` : ''}</p></div><div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'}"><i class="${statusIcons[order.status] || 'fa-solid fa-question-circle'}"></i><span>${order.status}</span></div></div>`;
+                                return `<div class="card-glass p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 custom-radius"><div><p class="font-bold text-white">${appData.plans[order.plan_id]?.name || order.plan_id} <span class="text-gray-400 font-normal">for</span> ${appData.connections.find(c => c.name === order.conn_id)?.name || order.conn_id}</p><p class="text-xs text-gray-400 mt-1">Ordered on: ${new Date(order.created_at).toLocaleDateString()} ${order.status === 'approved' && order.final_username ? `| V2Ray User: <strong class="text-blue-300">${order.final_username}</strong>` : ''}</p></div><div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'}"><i class="${statusIcons[order.status] || 'fa-solid fa-question-circle'}"></i><span>${order.status}</span></div></div>`;
                             }).join('') : `<div class="card-glass p-8 custom-radius text-center"><i class="fa-solid fa-box-open text-4xl text-gray-400 mb-4"></i><h3 class="font-bold text-white">No Orders Found</h3><p class="text-gray-400 text-sm mt-2">You have not placed any orders yet.</p></div>`;
                             
                             ordersContainer.innerHTML = `<div class="space-y-3">${ordersHtml}</div>`;
