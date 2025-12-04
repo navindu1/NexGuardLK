@@ -41,7 +41,7 @@ export function renderProfilePage(renderFunc, params) {
         </div>`;
     // --- END: MODAL HTML ---
     
-    // --- START: FINAL FIXED CSS (OVERFLOW & CLIPPING FIX) ---
+    // --- START: FINAL CSS (WITH GAP & OVERFLOW FIX) ---
     const pageStyles = `<style>
         /* Profile Page Input Fields */
         #page-profile .form-input { height: 56px; padding: 20px 12px 8px 12px; background-color: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.2); } 
@@ -63,9 +63,8 @@ export function renderProfilePage(renderFunc, params) {
         .help-modal-overlay.visible .help-modal-content { opacity: 1; transform: scale(1); }
         .grease-glass { background: rgba(30, 40, 60, 0.4); backdrop-filter: blur(20px) saturate(200%); -webkit-backdrop-filter: blur(20px) saturate(200%); border-radius: 35px; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5); }
 
-        /* --- KEY FIXES FOR DROPDOWN CLIPPING --- */
+        /* --- DROPDOWN STYLING --- */
         
-        /* 1. Main Container: Allow Overflow */
         .plan-selector-container { 
             display: flex; 
             align-items: center; 
@@ -73,11 +72,10 @@ export function renderProfilePage(renderFunc, params) {
             margin-bottom: 2rem; 
             position: relative;
             z-index: 100;
-            overflow: visible !important; /* කැපී පෙනීම වලක්වයි */
+            overflow: visible !important;
         }
         .plan-selector-label { font-size: 0.875rem; font-weight: 600; color: #d1d5db; flex-shrink: 0; }
         
-        /* 2. Menu Wrapper: Remove Constraints */
         ul.fmenu { 
             display: inline-block; 
             list-style: none; 
@@ -85,7 +83,7 @@ export function renderProfilePage(renderFunc, params) {
             margin: 0; 
             white-space: nowrap; 
             position: relative; 
-            overflow: visible !important; /* වැදගත්ම කොටස */
+            overflow: visible !important;
         }
         ul.fmenu > li.fmenu-item { position: relative; overflow: visible !important; }
         
@@ -114,34 +112,32 @@ export function renderProfilePage(renderFunc, params) {
         ul.fmenu .floating-menu { 
             display: block; 
             position: absolute; 
-            top: 110%; /* බොත්තමට පොඩ්ඩක් පහළින් */
+            top: 100%; /* හරියටම බොත්තම යටින් */
+            margin-top: 12px; /* --- මෙන්න හිඩස (GAP) --- */
             left: 0;
             width: max-content; 
             min-width: 100%;
             list-style: none; 
             padding: 0.5rem; 
-            margin: 0; 
             background-color: #0f172a; 
             border: 1px solid rgba(71, 85, 105, 0.6); 
-            border-radius: 16px; 
+            border-radius: 35px; 
             box-shadow: 0 20px 40px rgba(0,0,0,0.8); 
             z-index: 9999 !important; 
             
-            /* Hide by default */
             opacity: 0; 
             visibility: hidden;
             transform: translateY(-10px);
             transition: opacity 0.3s, transform 0.3s;
         }
         
-        /* --- THE FIX: Force visibility when open --- */
-        /* JS එකෙන් 'open' class එක trigger එකට වැටුනම මේක වැඩ කරයි */
+        /* Force visibility when open */
         ul.fmenu .trigger-menu.open + .floating-menu {
             opacity: 1 !important;
             visibility: visible !important;
             transform: translateY(0) !important;
-            max-height: none !important; /* JS height calculation එක override කරයි */
-            overflow: visible !important; /* අනිවාර්යෙන්ම පෙනෙන ලෙස සකසයි */
+            max-height: none !important;
+            overflow: visible !important;
         }
 
         ul.fmenu .floating-menu > li a { 
@@ -150,7 +146,7 @@ export function renderProfilePage(renderFunc, params) {
             text-decoration: none; 
             display: block; 
             padding: 0.75rem 1.2rem; 
-            border-radius: 10px; 
+            border-radius: 35px; 
             transition: all 0.2s ease; 
             border: 1px solid transparent;
         }
