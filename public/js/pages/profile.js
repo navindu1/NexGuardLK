@@ -6,30 +6,33 @@ import { handleRenewalChoice } from './checkout.js';
 
 let profilePollingInterval = null;
 
-// --- GLOBAL STATE (Module Level) ---
+// --- GLOBAL STATE ---
 let usageDataCache = {};        
 let ordersCache = null; 
 let activeFetchPromises = {};   
 let currentActivePlan = null; 
 let lastKnownPlansStr = ""; 
-let globalActivePlans = []; // **NEW: To track active plans count globally**
+let globalActivePlans = []; 
 
 // --- SMART DATA FETCHER ---
 const fetchClientData = async (username) => {
-    if (activeFetchPromises[username]) {
-        return activeFetchPromises[username];
-    }
-
-    const promise = apiFetch(`/api/check-usage/${username}`)
+    // Note: We deliberately DO NOT use activeFetchPromises here for polling 
+    // to ensure we always get a fresh status for removal/expiry checks.
+    
+    // Add timestamp to prevent browser caching of the response
+    const timestamp = new Date().getTime();
+    
+    const promise = apiFetch(`/api/check-usage/${username}?_=${timestamp}`)
         .then(res => {
-            // **NEW: Handle 404 (User Not Found) explicitly**
+            // **CRITICAL FIX: Handle 404 immediately**
             if (res.status === 404) {
-                return { success: false, isRemoved: true }; // Mark as removed
+                return { success: false, isRemoved: true }; 
             }
             return res.json();
         })
         .then(result => {
             if (result.success) {
+                // Update Cache only if success
                 usageDataCache[username] = result.data;
                 try { 
                     localStorage.setItem('nexguard_usage_cache', JSON.stringify(usageDataCache)); 
@@ -40,12 +43,8 @@ const fetchClientData = async (username) => {
         .catch(err => {
             console.error(`Fetch error for ${username}:`, err);
             return { success: false, isError: true };
-        })
-        .finally(() => {
-            delete activeFetchPromises[username];
         });
 
-    activeFetchPromises[username] = promise;
     return promise;
 };
 
@@ -216,7 +215,6 @@ export function renderProfilePage(renderFunc, params) {
         }
     });
 
-    // --- RENDER HELPERS ---
     const renderUsageHTML = (d, username) => {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
@@ -260,7 +258,7 @@ export function renderProfilePage(renderFunc, params) {
             </div>`;
     };
 
-    // --- NEW: Render Plan Removed State ---
+    // --- Render Plan Removed State ---
     const renderPlanRemovedHTML = (username) => {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
@@ -282,14 +280,11 @@ export function renderProfilePage(renderFunc, params) {
                 </div>
             </div>`;
 
-        // Add event listener for switch button
         if (otherPlansAvailable) {
             document.getElementById('switch-plan-btn')?.addEventListener('click', () => {
-                // Find next available plan index
                 const currentIndex = globalActivePlans.findIndex(p => p.v2rayUsername === username);
                 const nextIndex = (currentIndex + 1) % globalActivePlans.length;
                 
-                // Update dropdown and render next plan
                 document.querySelector('#plan-menu .trigger-menu .text').textContent = globalActivePlans[nextIndex].v2rayUsername;
                 localStorage.setItem(`nexguard_last_plan_${user.username}`, globalActivePlans[nextIndex].v2rayUsername);
                 
@@ -306,12 +301,14 @@ export function renderProfilePage(renderFunc, params) {
             usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
         }
         
+        // This function now uses fetchClientData which detects 404s
         fetchClientData(username).then(result => {
             if (currentActivePlan && currentActivePlan.v2rayUsername === username) {
                 if (result.success && result.data) {
+                    // Update expiry and other stats live
                     renderUsageHTML(result.data, username);
                 } else if (result.isRemoved) {
-                    // **NEW: Show Plan Removed UI**
+                    // **CRITICAL:** Show removed state immediately without reload
                     renderPlanRemovedHTML(username);
                 } else if (!isSilent) {
                     usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-amber-400"><p>${result.message || 'Error loading usage.'}</p></div>`;
@@ -371,7 +368,6 @@ export function renderProfilePage(renderFunc, params) {
                     container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Does not expire</button>`;
                 }
             } else if (result.isRemoved) {
-                // If plan removed, show disabled button with reason
                 container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed bg-red-500/20 text-red-300 border-red-500/30">Plan Removed</button>`;
             }
         } catch (e) {}
@@ -422,7 +418,6 @@ export function renderProfilePage(renderFunc, params) {
     const handleDataUpdate = (data, isFresh) => {
         const currentPlansStr = JSON.stringify(data.activePlans || []);
         
-        // --- FIX: Compare with GLOBAL lastKnownPlansStr ---
         if (currentPlansStr !== lastKnownPlansStr) {
             lastKnownPlansStr = currentPlansStr;
 
@@ -430,11 +425,9 @@ export function renderProfilePage(renderFunc, params) {
                 // Prefetch All
                 data.activePlans.forEach(p => fetchClientData(p.v2rayUsername));
                 
-                // **NEW: Update Global Active Plans**
                 globalActivePlans = data.activePlans;
 
                 let currentIndex = 0;
-                // Restore Last Selection using user-specific key
                 const storedSelection = localStorage.getItem(LAST_PLAN_KEY);
                 if (storedSelection) {
                     const foundIndex = data.activePlans.findIndex(p => p.v2rayUsername === storedSelection);
@@ -492,7 +485,6 @@ export function renderProfilePage(renderFunc, params) {
                         setupEventListeners();
                     }
 
-                    // --- FORCE REFRESH CONTENT IF TAB ACTIVE ---
                     if (document.getElementById('tab-usage')?.classList.contains('active')) {
                          if (usageDataCache[plan.v2rayUsername]) {
                             renderUsageHTML(usageDataCache[plan.v2rayUsername], plan.v2rayUsername);
@@ -537,6 +529,7 @@ export function renderProfilePage(renderFunc, params) {
         if (data.status === "approved" && data.activePlans?.length > 0 && isFresh) {
             if (currentActivePlan) {
                 if (document.getElementById('tab-usage')?.classList.contains('active')) {
+                    // Poll for fresh data including expiry and removal check
                     loadUsageStats(currentActivePlan.v2rayUsername, true); 
                 }
                 if (document.getElementById('tab-orders')?.classList.contains('active')) {
@@ -551,11 +544,9 @@ export function renderProfilePage(renderFunc, params) {
 
     const loadProfileData = async () => {
         try {
-            // **INSTANT LOAD FROM CACHE (Safely)**
             let cachedPlansStr = null;
             try { cachedPlansStr = localStorage.getItem(PLANS_CACHE_KEY); } catch(e){}
             
-            // Only use cache if we haven't rendered yet
             if (cachedPlansStr) {
                 try {
                     const cachedPlans = JSON.parse(cachedPlansStr);
@@ -568,7 +559,6 @@ export function renderProfilePage(renderFunc, params) {
                 }
             }
 
-            // **FETCH FRESH DATA**
             const res = await apiFetch("/api/user/status");
             const data = await res.json();
             
