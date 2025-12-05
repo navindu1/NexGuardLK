@@ -16,12 +16,12 @@ let globalActivePlans = [];
 
 // --- SMART DATA FETCHER (REAL-TIME UPDATES) ---
 const fetchClientData = async (username) => {
-    // Add unique timestamp + random number to force browser to fetch fresh data every time
-    // This prevents the browser from serving stale data from its internal cache
+    // Add unique timestamp to prevent browser caching
     const timestamp = new Date().getTime();
-    const random = Math.floor(Math.random() * 10000);
     
-    const promise = apiFetch(`/api/check-usage/${username}?_=${timestamp}&r=${random}`, {
+    // Force headers to ensure no caching occurs
+    // We add 'r' (random) parameter as an extra layer of cache busting
+    const promise = apiFetch(`/api/check-usage/${username}?_=${timestamp}&r=${Math.random()}`, {
         headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0' }
     })
     .then(res => {
@@ -383,77 +383,67 @@ export function renderProfilePage(renderFunc, params) {
     const updateRenewButton = async (plan, activePlans) => {
         const container = document.getElementById("renew-button-container");
         if (!container) return;
-
-        // Helper to render the button based on status
-        const render = (expiryTime, isRemoved = false) => {
-            const now = Date.now();
-            let btnHTML = "";
-            
-            // LOGIC:
-            // 1. Removed (404) -> Expired
-            // 2. Expiry > 0 AND Now > Expiry -> Expired
-            // 3. Expiry > 0 AND Now >= Expiry - 5 Days -> Expiring Soon
-            
-            const isExpired = isRemoved || (expiryTime > 0 && now > expiryTime);
-            const isExpiringSoon = !isExpired && (expiryTime > 0 && now >= (expiryTime - 5 * 86400000));
-            
-            if (isExpired) {
-                // EXPIRED STATE
-                btnHTML = `<button id="renew-profile-btn" class="ai-button bg-red-600 hover:bg-red-700 border-none text-white w-full shadow-lg shadow-red-900/20"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Renew Now (Expired)</button>`;
-            } else if (isExpiringSoon) {
-                // EXPIRING SOON
-                btnHTML = `<button id="renew-profile-btn" class="ai-button bg-amber-500 hover:bg-amber-600 border-none text-white w-full"><i class="fa-solid fa-clock mr-2"></i>Renew Plan (Expiring Soon)</button>`;
-            } else {
-                // ACTIVE STATE
-                // This is where the user saw "Renew Not Needed".
-                // We will change the text to "Plan Active" but keep it disabled or enable for "Change Plan".
-                // User wants "Renew Option" ONLY if expired? No, usually Renew/Change is available.
-                // But the user complained about "Renew Not Needed" showing up wrongly.
-                
-                // Let's enable "Change Plan" always, but style it differently.
-                btnHTML = `<button id="renew-profile-btn" class="ai-button secondary w-full"><i class="fa-solid fa-arrows-rotate mr-2"></i>Change / Extend Plan</button>`;
-            }
-            
-            container.innerHTML = btnHTML;
-            
-            // Attach Event Listener
-            document.getElementById('renew-profile-btn')?.addEventListener('click', () => {
-                handleRenewalChoice(activePlans, plan);
-            });
-        };
-
-        // 1. INITIAL RENDER (Cache or Loading)
-        const cached = usageDataCache[plan.v2rayUsername];
-        if (cached) {
-            // Check cache status:
-            // If already expired in cache, SHOW EXPIRED IMMEDIATELY.
-            // If active in cache, SHOW "Checking..." to prevent flicker if it's actually expired on server.
-            const cachedExpiry = parseInt(cached.expiryTime || 0);
-            const now = Date.now();
-            
-            if (cachedExpiry > 0 && now > cachedExpiry) {
-                 render(cachedExpiry); // Already expired in cache, safe to show
-            } else {
-                 // Active in cache, but might be expired on server. Show "Checking..." to be safe.
-                 container.innerHTML = `<button disabled class="ai-button secondary w-full cursor-wait opacity-70"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking Status...</button>`;
-            }
-        } else {
-            // No cache? Show loading.
-            container.innerHTML = `<button disabled class="ai-button secondary w-full cursor-wait opacity-70"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking Status...</button>`;
+        
+        // Keep loading state if not cached
+        if (!usageDataCache[plan.v2rayUsername]) {
+             container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking status...</button>`;
         }
-
+        
         try {
-            // 2. FRESH FETCH (Real-time check)
-            // Use cache busting
             const result = await fetchClientData(plan.v2rayUsername);
             
+            // --- NEW LOGIC START ---
+            let shouldEnableRenew = false;
+            let btnText = "Renew / Change Plan";
+            let btnClass = "ai-button";
+
             if (result.success) {
-                render(parseInt(result.data.expiryTime || 0));
+                // Parse expiry time safely as an integer timestamp
+                const expiryTimestamp = parseInt(result.data.expiryTime, 10);
+                const now = Date.now();
+                
+                if (expiryTimestamp > 0) {
+                    const fiveDaysInMs = 5 * 24 * 60 * 60 * 1000;
+                    const isExpired = now > expiryTimestamp;
+                    const isExpiringSoon = now >= (expiryTimestamp - fiveDaysInMs);
+
+                    if (isExpired) {
+                        shouldEnableRenew = true;
+                        btnText = "Renew Plan";
+                        btnClass = "ai-button bg-amber-500 hover:bg-amber-600 border-none text-white"; // Highlighted style
+                    } else if (isExpiringSoon) {
+                        shouldEnableRenew = true;
+                        btnText = "Renew Plan (Expiring Soon)";
+                    } else {
+                        // Not expired, not expiring soon
+                        shouldEnableRenew = false;
+                    }
+                } else {
+                    // Unlimited expiry
+                    shouldEnableRenew = false;
+                    btnText = "Does not expire";
+                }
             } else if (result.isRemoved) {
-                render(0, true); // Treat as removed/expired
+                // **CRITICAL FIX**: If removed/not found, treat as Expired and ENABLE renewal
+                shouldEnableRenew = true;
+                btnText = "Renew Plan (Inactive/Expired)";
+                btnClass = "ai-button bg-red-600 hover:bg-red-700 border-none text-white"; // Alert style
             }
+
+            // Render Button
+            if (shouldEnableRenew) {
+                container.innerHTML = `<button id="renew-profile-btn" class="${btnClass} inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>${btnText}</button>`;
+                document.getElementById('renew-profile-btn')?.addEventListener('click', () => handleRenewalChoice(activePlans, plan));
+            } else {
+                container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed text-gray-400 border-gray-600">${btnText}</button>`;
+            }
+            // --- NEW LOGIC END ---
+
         } catch (e) {
             console.error("Renew button update error", e);
+            // Fallback in case of error: Allow renewal to be safe
+             container.innerHTML = `<button id="renew-profile-btn" class="ai-button secondary inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew Plan</button>`;
+             document.getElementById('renew-profile-btn')?.addEventListener('click', () => handleRenewalChoice(activePlans, plan));
         }
     };
 
