@@ -1,4 +1,5 @@
 
+// File: public/js/pages/profile.js
 import { apiFetch, appData } from '../api.js';
 import { showToast, SikFloatingMenu, togglePassword, qrModalLogic } from '../utils.js';
 import { navigateTo } from '../router.js';
@@ -9,38 +10,41 @@ let profilePollingInterval = null;
 // --- GLOBAL STATE ---
 let usageDataCache = {};        
 let ordersCache = null; 
+let activeFetchPromises = {};   
 let currentActivePlan = null; 
 let lastKnownPlansStr = ""; 
 let globalActivePlans = []; 
 
-// --- SMART DATA FETCHER ---
+// --- SMART DATA FETCHER (REAL-TIME UPDATES) ---
 const fetchClientData = async (username) => {
-    // Add unique timestamp to force browser to fetch fresh data every time
+    // Add unique timestamp to prevent browser caching
     const timestamp = new Date().getTime();
     
-    // We append a random number to ensure no caching occurs at any level
-    const promise = apiFetch(`/api/check-usage/${username}?_=${timestamp}&r=${Math.random()}`)
-        .then(res => {
-            // Handle 404 (User removed/expired from panel)
-            if (res.status === 404) {
-                return { success: false, isRemoved: true }; 
-            }
-            return res.json();
-        })
-        .then(result => {
-            if (result.success) {
-                // Update Cache with fresh data
-                usageDataCache[username] = result.data;
-                try { 
-                    localStorage.setItem('nexguard_usage_cache', JSON.stringify(usageDataCache)); 
-                } catch(e){}
-            }
-            return result;
-        })
-        .catch(err => {
-            console.error(`Fetch error for ${username}:`, err);
-            return { success: false, isError: true };
-        });
+    // Force headers to ensure no caching occurs
+    const promise = apiFetch(`/api/check-usage/${username}?_=${timestamp}&r=${Math.random()}`, {
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0' }
+    })
+    .then(res => {
+        // Handle 404 (User removed/expired from panel)
+        if (res.status === 404) {
+            return { success: false, isRemoved: true }; 
+        }
+        return res.json();
+    })
+    .then(result => {
+        if (result.success) {
+            // Update Cache with fresh data
+            usageDataCache[username] = result.data;
+            try { 
+                localStorage.setItem('nexguard_usage_cache', JSON.stringify(usageDataCache)); 
+            } catch(e){}
+        }
+        return result;
+    })
+    .catch(err => {
+        console.error(`Fetch error for ${username}:`, err);
+        return { success: false, isError: true };
+    });
 
     return promise;
 };
@@ -230,22 +234,21 @@ export function renderProfilePage(renderFunc, params) {
         // --- EXPIRY LOGIC (UPDATED) ---
         const now = Date.now();
         const expiryTimestamp = parseInt(d.expiryTime, 10);
-        let expiryDisplay = 'Unlimited';
+        
+        let expiryDisplay = '<span class="text-300">Unlimited</span>';
         let expiryColorClass = 'text-white';
         let status = d.enable ? `<span class="font-semibold text-green-400">ONLINE</span>` : `<span class="font-semibold text-red-400">OFFLINE</span>`;
 
         if (expiryTimestamp > 0) {
-            const expiryDate = new Date(expiryTimestamp);
-            const dateString = expiryDate.toLocaleDateString('en-CA');
-            
             if (now > expiryTimestamp) {
-                // Expired
-                expiryDisplay = `${dateString} <span class="text-red-500 font-bold ml-1 text-xs uppercase bg-red-500/10 px-2 py-0.5 rounded">(EXPIRED)</span>`;
+                // EXPIRED STATE: Show ONLY "EXPIRED" in red
+                expiryDisplay = `<span class="font-bold text-red-500 tracking-wide">EXPIRED</span>`;
+                status = `<span class="font-bold text-red-500">EXPIRED</span>`;
                 expiryColorClass = 'text-red-400';
-                status = `<span class="font-semibold text-red-400">EXPIRED</span>`;
             } else {
-                // Active
-                expiryDisplay = dateString;
+                // ACTIVE STATE
+                const expiryDate = new Date(expiryTimestamp);
+                expiryDisplay = expiryDate.toLocaleDateString('en-CA');
             }
         }
 
@@ -390,10 +393,6 @@ export function renderProfilePage(renderFunc, params) {
             const result = await fetchClientData(plan.v2rayUsername);
             
             // --- NEW LOGIC START ---
-            // We define "needsRenewal" if:
-            // 1. Success AND (Expired OR Expiring Soon)
-            // 2. isRemoved (Not found in panel = Expired/Inactive)
-            
             let shouldEnableRenew = false;
             let btnText = "Renew / Change Plan";
             let btnClass = "ai-button";
@@ -563,8 +562,6 @@ export function renderProfilePage(renderFunc, params) {
                     if (document.getElementById('tab-usage')?.classList.contains('active')) {
                          if (usageDataCache[plan.v2rayUsername]) {
                             renderUsageHTML(usageDataCache[plan.v2rayUsername], plan.v2rayUsername);
-                            // We need to fetch fresh data, so passing 'true' for isSilent won't hide existing content,
-                            // but the function call triggers a fetch.
                             loadUsageStats(plan.v2rayUsername, true); 
                         } else {
                             loadUsageStats(plan.v2rayUsername, false);
