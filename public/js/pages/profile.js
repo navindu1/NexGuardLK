@@ -582,7 +582,7 @@ export function renderProfilePage(renderFunc, params) {
                     if(copyBtn) {
                         const newBtn = copyBtn.cloneNode(true);
                         copyBtn.parentNode.replaceChild(newBtn, copyBtn);
-                        newBtn.addEventListener('click', () => { navigator.clipboard.writeText(plan.v2rayLink); showToast({ title: 'Copied!', type: 'success' }); });
+                        newBtn.addEventListener('click', () => { navigator.clipboard.writeText(plan.v2rayLink); showToast({ title: 'Success', message: 'Link Copied Successfully!', type: 'success' }); });
                     }
                     updateRenewButton(plan, data.activePlans);
                 };
