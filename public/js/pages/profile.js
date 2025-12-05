@@ -1,4 +1,3 @@
-
 // File: public/js/pages/profile.js
 import { apiFetch, appData } from '../api.js';
 import { showToast, SikFloatingMenu, togglePassword, qrModalLogic } from '../utils.js';
@@ -21,6 +20,7 @@ const fetchClientData = async (username) => {
     const timestamp = new Date().getTime();
     
     // Force headers to ensure no caching occurs
+    // We add 'r' (random) parameter as an extra layer of cache busting
     const promise = apiFetch(`/api/check-usage/${username}?_=${timestamp}&r=${Math.random()}`, {
         headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0' }
     })
