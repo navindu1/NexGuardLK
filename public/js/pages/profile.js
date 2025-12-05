@@ -348,20 +348,36 @@ export function renderProfilePage(renderFunc, params) {
     const updateRenewButton = async (plan, activePlans) => {
         const container = document.getElementById("renew-button-container");
         if (!container) return;
-        if (!usageDataCache[plan.v2rayUsername]) container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking status...</button>`;
+        
+        // Keep loading state if not cached
+        if (!usageDataCache[plan.v2rayUsername]) {
+             container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking status...</button>`;
+        }
         
         try {
             const result = await fetchClientData(plan.v2rayUsername);
             if (result.success) {
-                const expiryTime = result.data.expiryTime;
-                if (expiryTime > 0) {
-                    const canRenew = new Date() >= new Date(new Date(expiryTime).getTime() - 5 * 86400000);
-                    if (canRenew) {
-                        if (!document.getElementById('renew-profile-btn')) {
-                            container.innerHTML = `<button id="renew-profile-btn" class="ai-button inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew / Change Plan</button>`;
-                            document.getElementById('renew-profile-btn')?.addEventListener('click', () => handleRenewalChoice(activePlans, plan));
-                        }
+                // Parse expiry time safely as an integer timestamp
+                const expiryTimestamp = parseInt(result.data.expiryTime, 10);
+                const now = Date.now();
+                
+                if (expiryTimestamp > 0) {
+                    const fiveDaysInMs = 5 * 24 * 60 * 60 * 1000;
+                    
+                    // Condition 1: Already Expired (now > expiry)
+                    // Condition 2: Expiring Soon (now >= expiry - 5 days)
+                    const isExpired = now > expiryTimestamp;
+                    const isExpiringSoon = now >= (expiryTimestamp - fiveDaysInMs);
+
+                    if (isExpired || isExpiringSoon) {
+                        const btnText = isExpired ? "Renew Plan (Expired)" : "Renew / Change Plan";
+                        // Note: Keeping standard styling, but text indicates urgency
+                        
+                        container.innerHTML = `<button id="renew-profile-btn" class="ai-button inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>${btnText}</button>`;
+                        
+                        document.getElementById('renew-profile-btn')?.addEventListener('click', () => handleRenewalChoice(activePlans, plan));
                     } else {
+                        // Not yet time to renew
                         container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Renew / Change Plan</button>`;
                     }
                 } else {
@@ -370,7 +386,9 @@ export function renderProfilePage(renderFunc, params) {
             } else if (result.isRemoved) {
                 container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed bg-red-500/20 text-red-300 border-red-500/30">Plan Removed</button>`;
             }
-        } catch (e) {}
+        } catch (e) {
+            console.error("Renew button update error", e);
+        }
     };
 
     let planMenuInstance = null;
