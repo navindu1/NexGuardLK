@@ -6,12 +6,42 @@ import { handleRenewalChoice } from './checkout.js';
 
 let profilePollingInterval = null;
 
-// --- GLOBAL STATE ---
-// මේවා Module level එකේ තියෙන්න ඕනේ පිටු අතර මාරු වෙද්දි Data රැකගන්න.
+// --- GLOBAL STATE (Module Level) ---
 let usageDataCache = {};        
 let ordersCache = null; 
 let activeFetchPromises = {};   
-let currentActivePlan = null; // **NEW: දැනට තෝරාගෙන ඇති Plan එක ගබඩා කිරීමට**
+let currentActivePlan = null; 
+
+// --- SMART DATA FETCHER ---
+const fetchClientData = async (username) => {
+    // 1. Request Deduplication: දැනටමත් ඉල්ලීමක් යවා ඇත්නම්, අලුත් එකක් නොයවා එයම භාවිතා කරයි
+    if (activeFetchPromises[username]) {
+        return activeFetchPromises[username];
+    }
+
+    const promise = apiFetch(`/api/check-usage/${username}`)
+        .then(res => res.json())
+        .then(result => {
+            if (result.success) {
+                usageDataCache[username] = result.data;
+                // Cache එක LocalStorage හි ආරක්ෂිතව ගබඩා කිරීම
+                try { 
+                    localStorage.setItem('nexguard_usage_cache', JSON.stringify(usageDataCache)); 
+                } catch(e){}
+            }
+            return result;
+        })
+        .catch(err => {
+            console.error(`Fetch error for ${username}:`, err);
+            return { success: false };
+        })
+        .finally(() => {
+            delete activeFetchPromises[username];
+        });
+
+    activeFetchPromises[username] = promise;
+    return promise;
+};
 
 export function renderProfilePage(renderFunc, params) {
     if (profilePollingInterval) {
@@ -19,13 +49,20 @@ export function renderProfilePage(renderFunc, params) {
         profilePollingInterval = null;
     }
 
+    // Window Object Cleanup (Memory Leak Prevention)
+    if (window.renderPlanDetailsInternal) window.renderPlanDetailsInternal = null;
+
     const user = JSON.parse(localStorage.getItem("nexguard_user"));
     if (!user) {
         navigateTo("/login");
         return;
     }
 
-    // --- HTML Helper Variables ---
+    // --- Dynamic Cache Keys based on Username (Prevents Conflict) ---
+    const PLANS_CACHE_KEY = `nexguard_plans_cache_${user.username}`;
+    const LAST_PLAN_KEY = `nexguard_last_plan_${user.username}`;
+
+    // --- HTML Templates ---
     const modalHtml = `
         <div id="help-modal" class="help-modal-overlay">
             <div class="help-modal-content grease-glass p-6 space-y-4 w-full max-w-md">
@@ -88,43 +125,13 @@ export function renderProfilePage(renderFunc, params) {
     const statusContainer = document.getElementById("user-status-content");
     qrModalLogic.init();
 
-    // --- HELPER FUNCTIONS ---
-
-    const fetchClientData = async (username) => {
-        // Request Deduplication
-        if (activeFetchPromises[username]) {
-            return activeFetchPromises[username];
-        }
-        const promise = apiFetch(`/api/check-usage/${username}`)
-            .then(res => res.json())
-            .then(result => {
-                if (result.success) {
-                    usageDataCache[username] = result.data;
-                    // **NEW:** Save cache to LocalStorage for fast reload
-                    localStorage.setItem('nexguard_usage_cache', JSON.stringify(usageDataCache));
-                }
-                return result;
-            })
-            .catch(err => {
-                console.error(`Fetch error for ${username}:`, err);
-                return { success: false };
-            })
-            .finally(() => {
-                delete activeFetchPromises[username];
-            });
-
-        activeFetchPromises[username] = promise;
-        return promise;
-    };
-
-    // Restore Global Cache from LocalStorage on Init
+    // --- Restore Usage Cache safely ---
     try {
         const storedCache = localStorage.getItem('nexguard_usage_cache');
-        if (storedCache) {
-            usageDataCache = JSON.parse(storedCache);
-        }
-    } catch(e) { console.error('Cache restore error', e); }
+        if (storedCache) usageDataCache = JSON.parse(storedCache);
+    } catch(e) { console.warn("Cache parse error", e); }
 
+    // --- Listeners Setup ---
     const setupEventListeners = () => {
         const helpModal = document.getElementById('help-modal');
         if (helpModal) {
@@ -145,7 +152,6 @@ export function renderProfilePage(renderFunc, params) {
             const newPassword = document.getElementById("new-password").value;
             if (!newPassword) return showToast({ title: "No Change", message: "Password field was empty.", type: "info" });
             if (newPassword.length < 6) return showToast({ title: "Error", message: "Password must be at least 6 characters.", type: "error" });
-            
             const btn = e.target.querySelector('button');
             btn.disabled = true;
             showToast({ title: "Updating...", message: "Please wait.", type: "info" });
@@ -168,7 +174,6 @@ export function renderProfilePage(renderFunc, params) {
             e.preventDefault();
             const v2rayUsername = document.getElementById("existing-v2ray-username-profile").value;
             if (!v2rayUsername) return showToast({ title: "Error", message: "Please enter your V2Ray username.", type: "error" });
-
             const btn = e.target.querySelector("button");
             btn.disabled = true;
             showToast({ title: "Linking...", message: "Please wait...", type: "info" });
@@ -195,9 +200,9 @@ export function renderProfilePage(renderFunc, params) {
         if (res.ok) {
             showToast({ title: "Success!", message: result.message, type: "success" });
             const newPath = result.filePath;
-            document.getElementById("profile-pic-img").src = newPath;
-            document.getElementById("profile-pic-nav-desktop").src = newPath;
-            document.getElementById("profile-pic-nav-mobile").src = newPath;
+            document.querySelectorAll("#profile-pic-img, #profile-pic-nav-desktop, #profile-pic-nav-mobile").forEach(img => {
+                if(img) img.src = newPath;
+            });
             let localUser = JSON.parse(localStorage.getItem("nexguard_user"));
             localUser.profilePicture = `public/${newPath}`;
             localStorage.setItem("nexguard_user", JSON.stringify(localUser));
@@ -206,6 +211,7 @@ export function renderProfilePage(renderFunc, params) {
         }
     });
 
+    // --- RENDER HELPERS ---
     const renderUsageHTML = (d, username) => {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
@@ -224,7 +230,7 @@ export function renderProfilePage(renderFunc, params) {
         const expiry = d.expiryTime > 0 ? new Date(d.expiryTime).toLocaleDateString('en-CA') : 'Unlimited';
         const status = d.enable ? `<span class="font-semibold text-green-400">ONLINE</span>` : `<span class="font-semibold text-red-400">OFFLINE</span>`;
 
-        const html = `
+        usageContainer.innerHTML = `
             <div class="result-card p-4 sm:p-6 card-glass custom-radius space-y-5 reveal is-visible">
                 <div class="flex justify-between items-center pb-3 border-b border-white/10">
                     <h3 class="text-lg font-semibold text-white flex items-center min-w-0">
@@ -235,20 +241,18 @@ export function renderProfilePage(renderFunc, params) {
                 </div>
                 ${d.total > 0 ? `<div class="space-y-2"><div class="flex justify-between items-baseline text-sm"><span class="font-medium text-gray-300">Data Quota Usage</span><span id="rt-percent" class="font-bold text-white">${percent.toFixed(1)}%</span></div><div class="w-full bg-black/30 rounded-full h-2.5"><div id="rt-bar" class="progress-bar-inner bg-gradient-to-r from-sky-500 to-blue-500 h-2.5 rounded-full" style="width: ${percent}%"></div></div></div>` : ''}
                 <div class="space-y-4 text-sm sm:hidden">
-                    <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-circle-down text-sky-400 text-lg w-5 text-center"></i><span>Download</span></div><p id="rt-down-mob" class="font-semibold text-white text-base">${formatBytes(d.down)}</p></div>
-                    <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-circle-up text-violet-400 text-lg w-5 text-center"></i><span>Upload</span></div><p id="rt-up-mob" class="font-semibold text-white text-base">${formatBytes(d.up)}</p></div>
-                    <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-database text-green-400 text-lg w-5 text-center"></i><span>Total Used</span></div><p id="rt-total-mob" class="font-semibold text-white text-base">${formatBytes(total)}</p></div>
-                    <div class="flex justify-between items-center"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-calendar-xmark text-red-400 text-lg w-5 text-center"></i><span>Expires On</span></div><p id="rt-expiry-mob" class="font-medium text-white text-base">${expiry}</p></div>
+                    <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-circle-down text-sky-400 text-lg w-5 text-center"></i><span>Download</span></div><p class="font-semibold text-white text-base">${formatBytes(d.down)}</p></div>
+                    <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-circle-up text-violet-400 text-lg w-5 text-center"></i><span>Upload</span></div><p class="font-semibold text-white text-base">${formatBytes(d.up)}</p></div>
+                    <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-database text-green-400 text-lg w-5 text-center"></i><span>Total Used</span></div><p class="font-semibold text-white text-base">${formatBytes(total)}</p></div>
+                    <div class="flex justify-between items-center"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-calendar-xmark text-red-400 text-lg w-5 text-center"></i><span>Expires On</span></div><p class="font-medium text-white text-base">${expiry}</p></div>
                 </div>
                 <div class="hidden sm:grid sm:grid-cols-2 gap-4 text-sm">
-                    <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-circle-down text-sky-400 mr-2"></i><span>Download</span></div><p id="rt-down-desk" class="text-2xl font-bold text-white mt-1">${formatBytes(d.down)}</p></div>
-                    <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-circle-up text-violet-400 mr-2"></i><span>Upload</span></div><p id="rt-up-desk" class="text-2xl font-bold text-white mt-1">${formatBytes(d.up)}</p></div>
-                    <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-database text-green-400 mr-2"></i><span>Total Used</span></div><p id="rt-total-desk" class="text-2xl font-bold text-white mt-1">${formatBytes(total)}</p></div>
-                    <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-calendar-xmark text-red-400 mr-2"></i><span>Expires On</span></div><p id="rt-expiry-desk" class="text-xl font-medium text-white mt-1">${expiry}</p></div>
+                    <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-circle-down text-sky-400 mr-2"></i><span>Download</span></div><p class="text-2xl font-bold text-white mt-1">${formatBytes(d.down)}</p></div>
+                    <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-circle-up text-violet-400 mr-2"></i><span>Upload</span></div><p class="text-2xl font-bold text-white mt-1">${formatBytes(d.up)}</p></div>
+                    <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-database text-green-400 mr-2"></i><span>Total Used</span></div><p class="text-2xl font-bold text-white mt-1">${formatBytes(total)}</p></div>
+                    <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-calendar-xmark text-red-400 mr-2"></i><span>Expires On</span></div><p class="text-xl font-medium text-white mt-1">${expiry}</p></div>
                 </div>
             </div>`;
-        
-        usageContainer.innerHTML = html;
     };
 
     const loadUsageStats = (username, isSilent = false) => {
@@ -260,8 +264,6 @@ export function renderProfilePage(renderFunc, params) {
         }
         
         fetchClientData(username).then(result => {
-            // **FIX:** Ensure we only render if this result belongs to the CURRENTLY selected plan
-            // This prevents "stale data" from a previous slow request appearing after switching tabs
             if (currentActivePlan && currentActivePlan.v2rayUsername === username) {
                 if (result.success && result.data) {
                     renderUsageHTML(result.data, username);
@@ -275,23 +277,14 @@ export function renderProfilePage(renderFunc, params) {
     const renderOrdersHTML = (orders) => {
         const container = document.getElementById("tab-orders");
         if (!container) return;
-
         const html = (orders.length > 0) ? orders.map(order => {
             const displayStatus = order.status === 'queued_for_renewal' ? 'Queued' : order.status;
             const statusColors = { pending: "text-amber-400", approved: "text-green-400", rejected: "text-red-400", queued_for_renewal: "text-blue-300" };
-            const statusIcons = { pending: "fa-solid fa-clock", approved: "fa-solid fa-check-circle", rejected: "fa-solid fa-times-circle", queued_for_renewal: "fa-solid fa-hourglass-half" };
-            
             return `<div class="card-glass p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 custom-radius">
-                <div>
-                    <p class="font-bold text-white">${appData.plans[order.plan_id]?.name || order.plan_id} <span class="text-gray-400 font-normal">for</span> ${appData.connections.find(c => c.name === order.conn_id)?.name || order.conn_id}</p>
-                    <p class="text-xs text-gray-400 mt-1">Ordered on: ${new Date(order.created_at).toLocaleDateString()} ${order.status === 'approved' && order.final_username ? `| V2Ray User: <strong class="text-blue-300">${order.final_username}</strong>` : ''}</p>
-                </div>
-                <div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'}">
-                    <i class="${statusIcons[order.status] || 'fa-solid fa-question-circle'}"></i><span>${displayStatus}</span>
-                </div>
+                <div><p class="font-bold text-white">${appData.plans[order.plan_id]?.name || order.plan_id} <span class="text-gray-400 font-normal">for</span> ${appData.connections.find(c => c.name === order.conn_id)?.name || order.conn_id}</p><p class="text-xs text-gray-400 mt-1">Ordered on: ${new Date(order.created_at).toLocaleDateString()}</p></div>
+                <div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'}"><span>${displayStatus}</span></div>
             </div>`;
-        }).join('') : `<div class="card-glass p-8 custom-radius text-center"><i class="fa-solid fa-box-open text-4xl text-gray-400 mb-4"></i><h3 class="font-bold text-white">No Orders Found</h3><p class="text-gray-400 text-sm mt-2">You have not placed any orders yet.</p></div>`;
-        
+        }).join('') : `<div class="card-glass p-8 custom-radius text-center"><i class="fa-solid fa-box-open text-4xl text-gray-400 mb-4"></i><h3 class="font-bold text-white">No Orders</h3></div>`;
         container.innerHTML = `<div class="space-y-3">${html}</div>`;
     }
 
@@ -312,43 +305,30 @@ export function renderProfilePage(renderFunc, params) {
     const updateRenewButton = async (plan, activePlans) => {
         const container = document.getElementById("renew-button-container");
         if (!container) return;
-        
-        // Use cache to instantly show something if possible
-        if (usageDataCache[plan.v2rayUsername]) {
-             // Logic to show button immediately using cache could go here, 
-             // but checking status is fast enough usually.
-        } else {
-             container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking status...</button>`;
-        }
+        if (!usageDataCache[plan.v2rayUsername]) container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking status...</button>`;
         
         try {
             const result = await fetchClientData(plan.v2rayUsername);
-            
             if (result.success) {
                 const expiryTime = result.data.expiryTime;
                 if (expiryTime > 0) {
-                    const now = new Date();
-                    const renewalPeriodDays = 5;
-                    const canRenew = now >= new Date(new Date(expiryTime).getTime() - renewalPeriodDays * 86400000);
+                    const canRenew = new Date() >= new Date(new Date(expiryTime).getTime() - 5 * 86400000);
                     if (canRenew) {
                         if (!document.getElementById('renew-profile-btn')) {
                             container.innerHTML = `<button id="renew-profile-btn" class="ai-button inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew / Change Plan</button>`;
                             document.getElementById('renew-profile-btn')?.addEventListener('click', () => handleRenewalChoice(activePlans, plan));
                         }
                     } else {
-                        if (!container.innerHTML.includes('disabled')) {
-                            container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Renew / Change Plan</button>`;
-                        }
+                        container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Renew / Change Plan</button>`;
                     }
                 } else {
                     container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Does not expire</button>`;
                 }
             }
-        } catch (e) { console.error("Renew Check Error", e); }
+        } catch (e) {}
     };
 
     let planMenuInstance = null;
-
     const renderPlanSelector = (activePlans, activePlanIndex = 0) => {
         const planListItems = activePlans.map((plan, index) => 
             `<li><a href="#" data-plan-index="${index}">${plan.v2rayUsername}</a></li>`
@@ -364,97 +344,46 @@ export function renderProfilePage(renderFunc, params) {
                             <span class="text">${activePlans[activePlanIndex]?.v2rayUsername || 'Select Plan'}</span>
                             <i class="fa-solid fa-chevron-down arrow"></i>
                         </div>
-                        <ul class="floating-menu">
-                            ${planListItems}
-                        </ul>
+                        <ul class="floating-menu">${planListItems}</ul>
                     </li>
                 </ul>
-            </div>
-            <div id="plan-details-container"></div>`;
+            </div><div id="plan-details-container"></div>`;
         
-        if (!document.getElementById("plan-menu")) {
+        const existingMenu = document.querySelector('.plan-selector-container');
+        if (!existingMenu) {
              statusContainer.innerHTML = containerHtml;
         } else {
-             const menuContainer = document.querySelector('.plan-selector-container');
-             if(menuContainer) menuContainer.outerHTML = `
-                <div class="plan-selector-container">
-                    <label class="plan-selector-label custom-radius">Viewing Plan:</label>
-                    <ul class="fmenu custom-radius" id="plan-menu">
-                        <li class="fmenu-item custom-radius">
-                            <div class="trigger-menu custom-radius">
-                                <i class="fa-solid fa-server"></i>
-                                <span class="text">${activePlans[activePlanIndex]?.v2rayUsername || 'Select Plan'}</span>
-                                <i class="fa-solid fa-chevron-down arrow"></i>
-                            </div>
-                            <ul class="floating-menu">${planListItems}</ul>
-                        </li>
-                    </ul>
-                </div>`;
+             existingMenu.outerHTML = `<div class="plan-selector-container"><label class="plan-selector-label custom-radius">Viewing Plan:</label><ul class="fmenu custom-radius" id="plan-menu"><li class="fmenu-item custom-radius"><div class="trigger-menu custom-radius"><i class="fa-solid fa-server"></i><span class="text">${activePlans[activePlanIndex]?.v2rayUsername || 'Select Plan'}</span><i class="fa-solid fa-chevron-down arrow"></i></div><ul class="floating-menu">${planListItems}</ul></li></ul></div>`;
         }
 
         planMenuInstance = new SikFloatingMenu("#plan-menu");
-        
-        const floatingMenu = document.querySelector('#plan-menu .floating-menu');
-        if (floatingMenu) {
-            floatingMenu.addEventListener('click', (e) => {
-                const link = e.target.closest('a');
-                if (link) {
-                    e.preventDefault();
-                    const index = parseInt(link.dataset.planIndex);
-                    document.querySelector('#plan-menu .trigger-menu .text').textContent = activePlans[index].v2rayUsername;
-                    
-                    // **NEW:** Persist selection
-                    localStorage.setItem('nexguard_last_selected_plan', activePlans[index].v2rayUsername);
-                    
-                    if (window.renderPlanDetailsInternal) window.renderPlanDetailsInternal(index); 
-                    planMenuInstance.closeAll();
-                }
-            });
-        }
+        document.querySelector('#plan-menu .floating-menu')?.addEventListener('click', (e) => {
+            const link = e.target.closest('a');
+            if (link) {
+                e.preventDefault();
+                const index = parseInt(link.dataset.planIndex);
+                document.querySelector('#plan-menu .trigger-menu .text').textContent = activePlans[index].v2rayUsername;
+                localStorage.setItem(LAST_PLAN_KEY, activePlans[index].v2rayUsername); 
+                if (window.renderPlanDetailsInternal) window.renderPlanDetailsInternal(index); 
+                planMenuInstance.closeAll();
+            }
+        });
     };
 
-    const loadProfileData = async () => {
-        try {
-            // **NEW: Load cached plans FIRST for instant render**
-            const cachedPlansStr = localStorage.getItem('nexguard_plans_cache');
-            if (cachedPlansStr && !lastKnownPlansStr) {
-                const cachedPlans = JSON.parse(cachedPlansStr);
-                // We use a dummy object structure to mimic API response for initial render
-                handleDataUpdate({ status: 'approved', activePlans: cachedPlans }, false);
-            }
-
-            // Fetch fresh data in background
-            const res = await apiFetch("/api/user/status");
-            if (!res.ok) throw new Error("Auth failed");
-            const data = await res.json();
-            
-            // Cache the active plans for next time
-            if(data.activePlans) {
-                localStorage.setItem('nexguard_plans_cache', JSON.stringify(data.activePlans));
-            }
-
-            handleDataUpdate(data, true);
-
-        } catch (e) { console.error(e); }
-    };
-
-    // --- MAIN RENDER LOGIC (Separated for reuse) ---
-    function handleDataUpdate(data, isFresh) {
+    const handleDataUpdate = (data, isFresh) => {
         const currentPlansStr = JSON.stringify(data.activePlans || []);
-        
-        // Only re-render if plans changed OR this is the first fresh load after cache
+        let lastKnownPlansStr = ""; // Local to this logic flow or accessed from safer scope
+
         if (currentPlansStr !== lastKnownPlansStr) {
             lastKnownPlansStr = currentPlansStr;
 
             if (data.status === "approved" && data.activePlans?.length > 0) {
-                
-                // Prefetch logic
+                // Prefetch All
                 data.activePlans.forEach(p => fetchClientData(p.v2rayUsername));
 
                 let currentIndex = 0;
-                
-                // **NEW: Restore last selected plan from LocalStorage**
-                const storedSelection = localStorage.getItem('nexguard_last_selected_plan');
+                // Restore Last Selection using user-specific key
+                const storedSelection = localStorage.getItem(LAST_PLAN_KEY);
                 if (storedSelection) {
                     const foundIndex = data.activePlans.findIndex(p => p.v2rayUsername === storedSelection);
                     if (foundIndex !== -1) currentIndex = foundIndex;
@@ -462,11 +391,8 @@ export function renderProfilePage(renderFunc, params) {
 
                 renderPlanSelector(data.activePlans, currentIndex);
 
-                // Internal Render Function
                 window.renderPlanDetailsInternal = (planIndex) => {
                     const plan = data.activePlans[planIndex];
-                    
-                    // **IMPORTANT: Update Global Current Plan**
                     currentActivePlan = plan; 
                     
                     const container = document.getElementById("plan-details-container");
@@ -482,14 +408,7 @@ export function renderProfilePage(renderFunc, params) {
                         <div id="tab-config" class="tab-panel active"><div class="card-glass p-6 sm:p-8 custom-radius"><div class="grid md:grid-cols-2 gap-8 items-center"><div class="flex flex-col items-center text-center"><h3 class="text-lg font-semibold text-white mb-3">Scan with your V2Ray App</h3><div id="qrcode-container" class="w-44 h-44 p-3 bg-white rounded-lg cursor-pointer flex items-center justify-center shadow-lg shadow-blue-500/20"></div></div><div class="space-y-6"><div class="w-full"><label class="text-sm text-gray-400">V2Ray Config Link</label><div class="flex items-center gap-2 mt-2"><input type="text" readonly value="${plan.v2rayLink}" class="w-full bg-slate-800/50 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-300"><button id="copy-config-btn" class="ai-button secondary !text-sm !font-semibold flex-shrink-0 px-4 py-2 rounded-md">Copy</button></div></div><div class="w-full text-center border-t border-white/10 pt-6"><div id="renew-button-container"></div></div></div></div></div></div>
                         <div id="tab-usage" class="tab-panel"></div><div id="tab-orders" class="tab-panel"></div><div id="tab-settings" class="tab-panel">
                             <div class="card-glass p-6 sm:p-8 custom-radius">
-                                <div class="max-w-md mx-auto">
-                                    <h3 class="text-xl font-bold text-white mb-6 font-['Orbitron'] text-center">Account Settings</h3>
-                                    <form id="profile-update-form" class="space-y-6">
-                                        <div class="form-group"><input type="text" class="form-input" readonly value="${user.username}" title="Website username cannot be changed."><label class="form-label">Website Username</label></div>
-                                        <div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" placeholder=" "><label for="new-password" class="form-label">New Password (leave blank to keep)</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i></div>
-                                        <button type="submit" class="ai-button w-full rounded-lg !mt-8">Save Changes</button>
-                                    </form>
-                                </div>
+                                <div class="max-w-md mx-auto"><h3 class="text-xl font-bold text-white mb-6 font-['Orbitron'] text-center">Account Settings</h3><form id="profile-update-form" class="space-y-6"><div class="form-group"><input type="text" class="form-input" readonly value="${user.username}"><label class="form-label">Website Username</label></div><div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" placeholder=" "><label for="new-password" class="form-label">New Password</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i></div><button type="submit" class="ai-button w-full rounded-lg !mt-8">Save Changes</button></form></div>
                             </div>
                         </div>`;
                         
@@ -501,13 +420,10 @@ export function renderProfilePage(renderFunc, params) {
                                 document.getElementById(`tab-${e.target.dataset.tab}`).classList.add('active');
                                 
                                 const tabId = e.target.dataset.tab;
-                                
-                                // **FIX:** Use currentActivePlan here to ensure we use the selected plan's data
                                 if (!currentActivePlan) return;
 
                                 if(tabId === 'config') updateRenewButton(currentActivePlan, data.activePlans);
                                 if(tabId === 'usage') {
-                                    // Use Deduplication Logic + Check Cache
                                     if (usageDataCache[currentActivePlan.v2rayUsername]) {
                                         renderUsageHTML(usageDataCache[currentActivePlan.v2rayUsername], currentActivePlan.v2rayUsername);
                                         loadUsageStats(currentActivePlan.v2rayUsername, true); 
@@ -516,12 +432,7 @@ export function renderProfilePage(renderFunc, params) {
                                     }
                                 }
                                 if(tabId === 'orders') {
-                                    if (ordersCache) {
-                                        renderOrdersHTML(ordersCache);
-                                        loadMyOrders(true);
-                                    } else {
-                                        loadMyOrders(false);
-                                    }
+                                    if (ordersCache) { renderOrdersHTML(ordersCache); loadMyOrders(true); } else { loadMyOrders(false); }
                                 }
                             }
                         });
@@ -529,9 +440,8 @@ export function renderProfilePage(renderFunc, params) {
                         setupEventListeners();
                     }
 
-                    // --- Force refresh tab content if already active (Handling switch) ---
+                    // --- FORCE REFRESH CONTENT IF TAB ACTIVE ---
                     if (document.getElementById('tab-usage')?.classList.contains('active')) {
-                         // Check global cache for THIS plan
                          if (usageDataCache[plan.v2rayUsername]) {
                             renderUsageHTML(usageDataCache[plan.v2rayUsername], plan.v2rayUsername);
                             loadUsageStats(plan.v2rayUsername, true); 
@@ -546,19 +456,16 @@ export function renderProfilePage(renderFunc, params) {
                         try {
                             new QRCode(qrContainer, { text: plan.v2rayLink, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.L });
                             qrContainer.onclick = () => { const img = qrContainer.querySelector('img'); if(img) qrModalLogic.show(img.src, plan.v2rayUsername); };
-                        } catch(e) { qrContainer.innerHTML = "Error generating QR"; }
+                        } catch(e) {}
                     }
-                    
                     const linkInput = document.querySelector('input[readonly]');
                     if(linkInput) linkInput.value = plan.v2rayLink;
-
                     const copyBtn = document.getElementById('copy-config-btn');
                     if(copyBtn) {
                         const newBtn = copyBtn.cloneNode(true);
                         copyBtn.parentNode.replaceChild(newBtn, copyBtn);
                         newBtn.addEventListener('click', () => { navigator.clipboard.writeText(plan.v2rayLink); showToast({ title: 'Copied!', type: 'success' }); });
                     }
-
                     updateRenewButton(plan, data.activePlans);
                 };
 
@@ -567,7 +474,7 @@ export function renderProfilePage(renderFunc, params) {
             } else if (data.status === "pending") {
                 statusContainer.innerHTML = `<div class="card-glass p-8 rounded-xl text-center"><i class="fa-solid fa-clock text-4xl text-amber-400 mb-4 animate-pulse"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Order Pending Approval</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">Your order is currently being reviewed. Your profile will update here once approved.</p></div>`;
             } else {
-                const settingsHtml = `<div class="card-glass p-6 custom-radius"><h3 class="text-xl font-bold text-white mb-4 font-['Orbitron']">Account Settings</h3><form id="profile-update-form" class="space-y-6"><div class="form-group"><input type="text" class="form-input" readonly value="${user.username}" title="Website username cannot be changed."><label class="form-label">Website Username</label></div><div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" placeholder=" "><label for="new-password" class="form-label">New Password (leave blank to keep)</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i></div><button type="submit" class="ai-button w-full rounded-lg !mt-8">Save Changes</button></form></div>`;
+                const settingsHtml = `<div class="card-glass p-6 custom-radius"><h3 class="text-xl font-bold text-white mb-4 font-['Orbitron']">Account Settings</h3><form id="profile-update-form" class="space-y-6"><div class="form-group"><input type="text" class="form-input" readonly value="${user.username}"><label class="form-label">Website Username</label></div><div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" placeholder=" "><label for="new-password" class="form-label">New Password</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i></div><button type="submit" class="ai-button w-full rounded-lg !mt-8">Save Changes</button></form></div>`;
                 const linkAccountHtml = `<div class="card-glass p-6 custom-radius"><h3 class="text-xl font-bold text-white mb-2 font-['Orbitron']">Link Existing V2Ray Account</h3><p class="text-sm text-gray-400 mb-6">If you have an old account, link it here to manage renewals.</p><form id="link-account-form-profile" class="space-y-6"><div class="form-group"><input type="text" id="existing-v2ray-username-profile" class="form-input" required placeholder=" "><label for="existing-v2ray-username-profile" class="form-label">Your Old V2Ray Username</label><span class="focus-border"><i></i></span></div><button type="submit" class="ai-button secondary w-full rounded-lg">Link Account</button><div class="text-center text-sm mt-4"><span class="open-help-modal-link text-blue-400 cursor-pointer hover:underline">How to find your username?</span></div></form></div>`;
                 statusContainer.innerHTML = `<div class="card-glass p-8 custom-radius text-center"><i class="fa-solid fa-rocket text-4xl text-blue-400 mb-4"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Get Started</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">You do not have any active plans yet. Purchase a new plan or link an existing account below.</p><a href="/plans" class="nav-link-internal ai-button inline-block rounded-lg mt-6">Purchase a Plan</a></div><div class="grid md:grid-cols-2 gap-8 mt-8">${settingsHtml}${linkAccountHtml}</div>`;
                 setupEventListeners();
@@ -575,11 +482,9 @@ export function renderProfilePage(renderFunc, params) {
         }
 
         // --- POLLING LOGIC ---
-        // Keeps UI updated without blocking
         if (data.status === "approved" && data.activePlans?.length > 0 && isFresh) {
             if (currentActivePlan) {
                 if (document.getElementById('tab-usage')?.classList.contains('active')) {
-                    // Always try to fetch fresh data in background
                     loadUsageStats(currentActivePlan.v2rayUsername, true); 
                 }
                 if (document.getElementById('tab-orders')?.classList.contains('active')) {
@@ -592,9 +497,39 @@ export function renderProfilePage(renderFunc, params) {
         }
     }
 
-    // Start Process
-    loadProfileData();
+    const loadProfileData = async () => {
+        try {
+            // **INSTANT LOAD FROM CACHE (Safely)**
+            let cachedPlansStr = null;
+            try { cachedPlansStr = localStorage.getItem(PLANS_CACHE_KEY); } catch(e){}
+            
+            // Only use cache if we haven't rendered yet
+            if (cachedPlansStr) {
+                try {
+                    const cachedPlans = JSON.parse(cachedPlansStr);
+                    // Ensure it's a valid array before using
+                    if (Array.isArray(cachedPlans)) {
+                        handleDataUpdate({ status: 'approved', activePlans: cachedPlans }, false);
+                    }
+                } catch(e) { 
+                    console.error("Cache corrupt, clearing:", e); 
+                    localStorage.removeItem(PLANS_CACHE_KEY);
+                }
+            }
 
-    // Polling Interval (Every 5 Seconds)A
+            // **FETCH FRESH DATA**
+            const res = await apiFetch("/api/user/status");
+            const data = await res.json();
+            
+            if(data.activePlans) {
+                try { localStorage.setItem(PLANS_CACHE_KEY, JSON.stringify(data.activePlans)); } catch(e){}
+            }
+
+            handleDataUpdate(data, true);
+
+        } catch (e) { console.error("Profile load error:", e); }
+    };
+
+    loadProfileData();
     profilePollingInterval = setInterval(loadProfileData, 5000);
 }
