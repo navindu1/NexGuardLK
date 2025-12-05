@@ -7,13 +7,12 @@ import { handleRenewalChoice } from './checkout.js';
 let profilePollingInterval = null;
 let lastKnownPlansStr = ""; 
 
-// --- GLOBAL CACHE (Page එක මාරු වුනත් දත්ත මතකයේ තබා ගනී) ---
-let usageDataCache = {}; 
+// --- GLOBAL STATE ---
+let usageDataCache = {};        // දත්ත ගබඩාව (Data Store)
+let activeFetchPromises = {};   // දැනට ක්‍රියාත්මක වන ඉල්ලීම් (Active Requests)
 let ordersCache = null; 
-let isFetchingAll = false;
 
 export function renderProfilePage(renderFunc, params) {
-    // Clear existing interval
     if (profilePollingInterval) {
         clearInterval(profilePollingInterval);
         profilePollingInterval = null;
@@ -26,7 +25,37 @@ export function renderProfilePage(renderFunc, params) {
         return;
     }
 
-    // --- HTML TEMPLATES ---
+    // --- SMART DATA FETCHER (Request Deduplication) ---
+    // එකම Username එකට එකවර ඉල්ලීම් කිහිපයක් යාම වළක්වයි.
+    const fetchClientData = async (username) => {
+        // 1. දැනටමත් ඉල්ලීමක් ක්‍රියාත්මක නම්, එයම Return කරන්න (Wait for existing request)
+        if (activeFetchPromises[username]) {
+            return activeFetchPromises[username];
+        }
+
+        // 2. නැත්නම් අලුත් ඉල්ලීමක් අරඹන්න
+        const promise = apiFetch(`/api/check-usage/${username}`)
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    usageDataCache[username] = result.data; // Cache එක Update කරන්න
+                }
+                return result;
+            })
+            .catch(err => {
+                console.error(`Fetch error for ${username}:`, err);
+                return { success: false };
+            })
+            .finally(() => {
+                // 3. ඉල්ලීම අවසන් වූ පසු Promise ලැයිස්තුවෙන් ඉවත් කරන්න
+                delete activeFetchPromises[username];
+            });
+
+        activeFetchPromises[username] = promise;
+        return promise;
+    };
+
+    // --- HTML Helper ---
     const modalHtml = `
         <div id="help-modal" class="help-modal-overlay">
             <div class="help-modal-content grease-glass p-6 space-y-4 w-full max-w-md">
@@ -89,7 +118,7 @@ export function renderProfilePage(renderFunc, params) {
     const statusContainer = document.getElementById("user-status-content");
     qrModalLogic.init();
 
-    // --- SETUP EVENT LISTENERS (Modals, Forms) ---
+    // --- EVENT LISTENERS SETUP ---
     const setupEventListeners = () => {
         const helpModal = document.getElementById('help-modal');
         if (helpModal) {
@@ -171,7 +200,7 @@ export function renderProfilePage(renderFunc, params) {
         }
     });
 
-    // --- HELPER FUNCTIONS (DEFINED OUTSIDE loadProfileData to avoid scope issues) ---
+    // --- UTILITY FUNCTIONS ---
 
     const renderUsageHTML = (d, username) => {
         const usageContainer = document.getElementById("tab-usage");
@@ -221,17 +250,19 @@ export function renderProfilePage(renderFunc, params) {
     const loadUsageStats = (username, isSilent = false) => {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
-        if (!isSilent) usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
         
-        apiFetch(`/api/check-usage/${username}`).then(res => res.json()).then(result => {
-            if (result.success) {
-                usageDataCache[username] = result.data; // UPDATE CACHE with Specific Key
+        // Only show spinner if we don't have ANY data yet
+        if (!isSilent && !usageDataCache[username]) {
+            usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
+        }
+        
+        // Use the smart fetcher
+        fetchClientData(username).then(result => {
+            if (result.success && result.data) {
                 renderUsageHTML(result.data, username);
             } else {
-                 if (!isSilent) usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-amber-400"><p>${result.message}</p></div>`;
+                 if (!isSilent) usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-amber-400"><p>${result.message || 'Error loading usage.'}</p></div>`;
             }
-        }).catch(() => {
-            if (!isSilent) usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-red-400"><p>Could not load usage statistics.</p></div>`;
         });
     };
 
@@ -265,20 +296,26 @@ export function renderProfilePage(renderFunc, params) {
         try {
             const res = await apiFetch("/api/user/orders");
             const { orders } = await res.json();
-            ordersCache = orders; // UPDATE CACHE
+            ordersCache = orders;
             renderOrdersHTML(orders);
         } catch (err) {
             if (!isSilent) container.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-red-400"><p>Could not load your orders.</p></div>`;
         }
     };
 
-    const updateRenewButton = async (plan, activePlans, isSilent = false) => {
+    // Use fetched data for renewing status to reuse cache
+    const updateRenewButton = async (plan, activePlans) => {
         const container = document.getElementById("renew-button-container");
         if (!container) return;
-        if (!isSilent) container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking status...</button>`;
+        
+        // Don't show loading if we have data
+        const hasCache = !!usageDataCache[plan.v2rayUsername];
+        if (!hasCache) container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking status...</button>`;
+        
         try {
-            const res = await apiFetch(`/api/check-usage/${plan.v2rayUsername}`);
-            const result = await res.json();
+            // Reuse the smart fetcher
+            const result = await fetchClientData(plan.v2rayUsername);
+            
             if (result.success) {
                 const expiryTime = result.data.expiryTime;
                 if (expiryTime > 0) {
@@ -291,43 +328,16 @@ export function renderProfilePage(renderFunc, params) {
                             document.getElementById('renew-profile-btn')?.addEventListener('click', () => handleRenewalChoice(activePlans, plan));
                         }
                     } else {
-                        if (!container.innerHTML.includes('disabled')) {
-                            container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Renew / Change Plan</button>`;
-                        }
+                        container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Renew / Change Plan</button>`;
                     }
                 } else {
                     container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Does not expire</button>`;
                 }
             }
-        } catch (e) { if(!isSilent) container.innerHTML = `<p class="text-xs text-red-400">Error</p>`; }
+        } catch (e) { console.error("Renew Check Error", e); }
     };
 
-    async function prefetchAllPlansParallel(plans) {
-        if (!plans || plans.length === 0 || isFetchingAll) return;
-        isFetchingAll = true;
-
-        const fetchPromises = plans.map(p => 
-            apiFetch(`/api/check-usage/${p.v2rayUsername}`)
-                .then(res => res.json())
-                .then(result => {
-                    if (result.success) {
-                        usageDataCache[p.v2rayUsername] = result.data;
-                    }
-                })
-                .catch(e => console.warn(`Prefetch failed for ${p.v2rayUsername}`, e))
-        );
-
-        await Promise.all(fetchPromises);
-        isFetchingAll = false;
-        
-        // Refresh Current View if needed
-        const currentViewedName = document.querySelector('#plan-menu .trigger-menu .text')?.textContent;
-        if (currentViewedName && document.getElementById('tab-usage')?.classList.contains('active')) {
-             if(usageDataCache[currentViewedName]) renderUsageHTML(usageDataCache[currentViewedName], currentViewedName);
-        }
-    }
-
-    // --- MAIN DATA LOADING FUNCTION ---
+    // --- DATA LOADING & RENDERING ---
     let planMenuInstance = null;
 
     const renderPlanSelector = (activePlans, activePlanIndex = 0) => {
@@ -383,7 +393,6 @@ export function renderProfilePage(renderFunc, params) {
                     e.preventDefault();
                     const index = parseInt(link.dataset.planIndex);
                     document.querySelector('#plan-menu .trigger-menu .text').textContent = activePlans[index].v2rayUsername;
-                    // Use Global function or defined logic
                     if (window.renderPlanDetailsInternal) window.renderPlanDetailsInternal(index); 
                     planMenuInstance.closeAll();
                 }
@@ -405,8 +414,9 @@ export function renderProfilePage(renderFunc, params) {
 
                 if (data.status === "approved" && data.activePlans?.length > 0) {
                     
-                    // Fire and forget: Fetch all data in parallel
-                    prefetchAllPlansParallel(data.activePlans);
+                    // --- PREFETCH LOGIC ---
+                    // Fire requests for all plans. Deduplication logic in fetchClientData will handle overlaps.
+                    data.activePlans.forEach(p => fetchClientData(p.v2rayUsername));
 
                     let currentIndex = 0;
                     const currentViewedName = document.querySelector('#plan-menu .trigger-menu .text')?.textContent;
@@ -424,7 +434,7 @@ export function renderProfilePage(renderFunc, params) {
 
                     renderPlanSelector(data.activePlans, currentIndex);
 
-                    // Assign to a local variable to be used by the menu click handler
+                    // --- INTERNAL RENDER FUNCTION ---
                     window.renderPlanDetailsInternal = (planIndex) => {
                         const plan = data.activePlans[planIndex];
                         const container = document.getElementById("plan-details-container");
@@ -461,6 +471,7 @@ export function renderProfilePage(renderFunc, params) {
                                     const tabId = e.target.dataset.tab;
                                     if(tabId === 'config') updateRenewButton(plan, data.activePlans);
                                     if(tabId === 'usage') {
+                                        // CHECK CACHE FIRST
                                         if (usageDataCache[plan.v2rayUsername]) {
                                             renderUsageHTML(usageDataCache[plan.v2rayUsername], plan.v2rayUsername);
                                             loadUsageStats(plan.v2rayUsername, true); 
@@ -482,7 +493,7 @@ export function renderProfilePage(renderFunc, params) {
                             setupEventListeners();
                         }
 
-                        // --- Handling tab switch or initial render logic ---
+                        // --- Force refresh usage tab content if it is already active (Handling switch case) ---
                         if (document.getElementById('tab-usage')?.classList.contains('active')) {
                              if (usageDataCache[plan.v2rayUsername]) {
                                 renderUsageHTML(usageDataCache[plan.v2rayUsername], plan.v2rayUsername);
@@ -511,6 +522,7 @@ export function renderProfilePage(renderFunc, params) {
                             newBtn.addEventListener('click', () => { navigator.clipboard.writeText(plan.v2rayLink); showToast({ title: 'Copied!', type: 'success' }); });
                         }
 
+                        // Use Request Deduplication for button status too
                         updateRenewButton(plan, data.activePlans);
                     };
 
@@ -526,31 +538,21 @@ export function renderProfilePage(renderFunc, params) {
                 }
             }
 
-            // --- POLLING LOGIC (Runs every 5 seconds) ---
+            // --- POLLING LOGIC ---
             if (data.status === "approved" && data.activePlans?.length > 0) {
                 const activePlanUsername = document.querySelector('#plan-menu .trigger-menu .text')?.textContent;
                 const activePlan = data.activePlans.find(p => p.v2rayUsername === activePlanUsername);
 
                 if (activePlan) {
                     if (document.getElementById('tab-usage')?.classList.contains('active')) {
-                        // Ensure cache is used if available to avoid flicker, then update silently
-                        if (usageDataCache[activePlan.v2rayUsername]) {
-                            renderUsageHTML(usageDataCache[activePlan.v2rayUsername], activePlan.v2rayUsername);
-                            loadUsageStats(activePlan.v2rayUsername, true); 
-                        } else {
-                            loadUsageStats(activePlan.v2rayUsername, false);
-                        }
+                        // Reuse Deduplication logic for Polling
+                        loadUsageStats(activePlan.v2rayUsername, true); 
                     }
                     if (document.getElementById('tab-orders')?.classList.contains('active')) {
-                        if (ordersCache) {
-                            renderOrdersHTML(ordersCache);
-                            loadMyOrders(true);
-                        } else {
-                            loadMyOrders(false);
-                        }
+                        loadMyOrders(true);
                     }
                     if (document.getElementById('tab-config')?.classList.contains('active')) {
-                        updateRenewButton(activePlan, data.activePlans, true);
+                        updateRenewButton(activePlan, data.activePlans);
                     }
                 }
             }
