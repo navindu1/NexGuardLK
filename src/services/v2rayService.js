@@ -16,10 +16,13 @@ const DEL_CLIENT_BY_UUID_URL = (inboundId, uuid) => `${PANEL_URL}/panel/api/inbo
 const UPDATE_CLIENT_URL = (uuid) => `${PANEL_URL}/panel/api/inbounds/updateClient/${uuid}`;
 const RESET_TRAFFIC_URL = (inboundId, email) => `${PANEL_URL}/panel/api/inbounds/${inboundId}/resetClientTraffic/${email}`;
 
-// --- Caching Variables (New) ---
+// --- Caching Variables (Updated) ---
 let clientCacheMap = null; // දත්ත ගබඩා කර තබන Map එක
 let cacheLastUpdated = 0;  // අවසන් වරට update කළ වේලාව
-const CACHE_TTL = 5 * 60 * 1000; // Cache එකේ ආයු කාලය (විනාඩි 5)
+
+// FIX: Cache කාලය විනාඩි 5 (300,000ms) සිට තත්පර 15 (15,000ms) දක්වා අඩු කරන ලදි.
+// එමගින් Renewal හෝ වෙනස්කම් එසැනින් Profile Page එකේ යාවත්කාලීන වේ.
+const CACHE_TTL = 15 * 1000; 
 
 // --- Session Management Object ---
 const panelSession = {
@@ -86,12 +89,12 @@ exports.getPanelCookie = getPanelCookie;
 
 /**
  * Internal function to fetch all clients and populate the cache.
- * This is the heavy operation, now done only once every 5 minutes.
+ * Optimized: Now refreshes every 15 seconds to keep data current.
  */
 async function refreshClientCache() {
     try {
         const cookie = await getPanelCookie();
-        console.log("[Cache] Fetching fresh data from V2Ray panel...");
+        // console.log("[Cache] Fetching fresh data from V2Ray panel..."); // Log removed to reduce noise on frequent updates
         const { data: inboundsData } = await axios.get(INBOUNDS_LIST_URL, {
             headers: { Cookie: cookie },
         });
@@ -118,7 +121,7 @@ async function refreshClientCache() {
         
         clientCacheMap = newMap;
         cacheLastUpdated = Date.now();
-        console.log(`[Cache] Updated with ${newMap.size} clients.`);
+        // console.log(`[Cache] Updated with ${newMap.size} clients.`);
         return clientCacheMap;
 
     } catch (error) {
@@ -135,7 +138,7 @@ exports.findV2rayClient = async (username) => {
         return null;
     }
 
-    // 1. Check if cache needs refresh
+    // 1. Check if cache needs refresh (Now checks every 15s)
     if (!clientCacheMap || (Date.now() - cacheLastUpdated > CACHE_TTL)) {
         await refreshClientCache();
     }
@@ -148,7 +151,6 @@ exports.findV2rayClient = async (username) => {
     }
 
     // 2. Client found in cache. Now fetch LIVE traffic data separately.
-    // Traffic data changes constantly, so we don't cache it long-term here.
     try {
         const cookie = await getPanelCookie();
         const TRAFFIC_URL = `${PANEL_URL}/panel/api/inbounds/getClientTraffics/${cachedData.client.email}`;
@@ -171,7 +173,7 @@ exports.findV2rayClient = async (username) => {
     } catch (trafficError) {
         console.warn(`Could not fetch client traffics for ${username}. Returning cached static data.`);
         return {
-            client: cachedData.client, // Return without traffic stats if API fails
+            client: cachedData.client, 
             inbound: cachedData.inbound,
             inboundId: cachedData.inboundId,
         };
@@ -250,7 +252,6 @@ exports.getAllClientDetails = async () => {
         await refreshClientCache();
     }
     
-    // We need to return just the client object map to match previous logic logic
     const simplifiedMap = new Map();
     if(clientCacheMap) {
         for (const [email, data] of clientCacheMap.entries()) {
