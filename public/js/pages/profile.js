@@ -7,17 +7,18 @@ import { handleRenewalChoice } from './checkout.js';
 let profilePollingInterval = null;
 let lastKnownPlansStr = ""; 
 
+// --- GLOBAL CACHE (Module Level) ---
+// පිටු අතර මාරු වීමේදී දත්ත නැති නොවීම සඳහා මෙය function එකෙන් පිටත තබයි.
+let usageDataCache = {}; 
+let ordersCache = null; 
+let isFetchingAll = false; // දත්ත ලබා ගනිමින් පවතීද යන්න දැන ගැනීමට
+
 export function renderProfilePage(renderFunc, params) {
     if (profilePollingInterval) {
         clearInterval(profilePollingInterval);
         profilePollingInterval = null;
     }
     lastKnownPlansStr = ""; 
-
-    // --- NEW: Cache Objects (Data Store) ---
-    // තනි variable එකක් වෙනුවට, එක් එක් username එකට අදාළ data ගබඩා කිරීමට Object එකක් භාවිතා කරයි.
-    let usageDataCache = {}; // Format: { 'username1': {data...}, 'username2': {data...} }
-    let ordersCache = null; 
 
     const user = JSON.parse(localStorage.getItem("nexguard_user"));
     if (!user) {
@@ -223,7 +224,7 @@ export function renderProfilePage(renderFunc, params) {
                     e.preventDefault();
                     const index = parseInt(link.dataset.planIndex);
                     document.querySelector('#plan-menu .trigger-menu .text').textContent = activePlans[index].v2rayUsername;
-                    // Note: We do NOT clear cache here, so it loads instantly if available
+                    // Switch instantly using cached data
                     window.renderPlanDetails(index); 
                     planMenuInstance.closeAll();
                 }
@@ -245,8 +246,9 @@ export function renderProfilePage(renderFunc, params) {
 
                 if (data.status === "approved" && data.activePlans?.length > 0) {
                     
-                    // --- NEW: Prefetch all plans in background ---
-                    prefetchAllPlans(data.activePlans);
+                    // --- NEW: PARALLEL PREFETCH (Fastest Way) ---
+                    // Fetch data for ALL plans immediately in the background
+                    prefetchAllPlansParallel(data.activePlans);
 
                     let currentIndex = 0;
                     const currentViewedName = document.querySelector('#plan-menu .trigger-menu .text')?.textContent;
@@ -300,12 +302,12 @@ export function renderProfilePage(renderFunc, params) {
                                     const tabId = e.target.dataset.tab;
                                     if(tabId === 'config') updateRenewButton(plan);
                                     if(tabId === 'usage') {
-                                        // CHECK CACHE: If data exists for this specific username, use it!
+                                        // CHECK CACHE: Using Global Cache
                                         if (usageDataCache[plan.v2rayUsername]) {
                                             renderUsageHTML(usageDataCache[plan.v2rayUsername], plan.v2rayUsername);
-                                            loadUsageStats(true); // Silent update
+                                            loadUsageStats(true); // Silent update for fresh data
                                         } else {
-                                            loadUsageStats(false); // Show loader
+                                            loadUsageStats(false); // Show loader if not cached yet
                                         }
                                     }
                                     if(tabId === 'orders') {
@@ -370,22 +372,30 @@ export function renderProfilePage(renderFunc, params) {
                 const activePlanUsername = document.querySelector('#plan-menu .trigger-menu .text')?.textContent;
                 const activePlan = data.activePlans.find(p => p.v2rayUsername === activePlanUsername);
 
-                // --- NEW: Prefetch Function ---
-                async function prefetchAllPlans(plans) {
-                    if (!plans || plans.length === 0) return;
+                // --- NEW: PARALLEL PREFETCH IMPLEMENTATION ---
+                async function prefetchAllPlansParallel(plans) {
+                    if (!plans || plans.length === 0 || isFetchingAll) return;
+                    isFetchingAll = true;
+
+                    // Fetch ALL plans concurrently using Promise.all
+                    const fetchPromises = plans.map(p => 
+                        apiFetch(`/api/check-usage/${p.v2rayUsername}`)
+                            .then(res => res.json())
+                            .then(result => {
+                                if (result.success) {
+                                    usageDataCache[p.v2rayUsername] = result.data;
+                                }
+                            })
+                            .catch(e => console.warn(`Prefetch failed for ${p.v2rayUsername}`, e))
+                    );
+
+                    await Promise.all(fetchPromises);
+                    isFetchingAll = false;
                     
-                    // Don't prefetch active plan (it gets fetched by UI), fetch others
-                    const otherPlans = plans.filter(p => p.v2rayUsername !== activePlanUsername);
-                    
-                    for (const p of otherPlans) {
-                        // Silent fetch to populate cache
-                        try {
-                            const res = await apiFetch(`/api/check-usage/${p.v2rayUsername}`);
-                            const result = await res.json();
-                            if (result.success) {
-                                usageDataCache[p.v2rayUsername] = result.data;
-                            }
-                        } catch(e) { console.warn("Prefetch fail", e); }
+                    // Trigger a refresh if the user is currently on the Usage tab
+                    if (document.getElementById('tab-usage')?.classList.contains('active') && activePlan) {
+                        const cached = usageDataCache[activePlan.v2rayUsername];
+                        if(cached) renderUsageHTML(cached, activePlan.v2rayUsername);
                     }
                 }
 
@@ -474,7 +484,7 @@ export function renderProfilePage(renderFunc, params) {
 
                     apiFetch(`/api/check-usage/${targetUsername}`).then(res => res.json()).then(result => {
                         if (result.success) {
-                            usageDataCache[targetUsername] = result.data; // UPDATE CACHE with Specific Key
+                            usageDataCache[targetUsername] = result.data; // UPDATE CACHE
                             renderUsageHTML(result.data, targetUsername);
                         } else {
                              if (!isSilent) usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-amber-400"><p>${result.message}</p></div>`;
