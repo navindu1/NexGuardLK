@@ -11,10 +11,10 @@ let usageDataCache = {};
 let ordersCache = null; 
 let activeFetchPromises = {};   
 let currentActivePlan = null; 
+let lastKnownPlansStr = ""; // *** FIX: මෙය Global Scope එකට ගෙනාවා (Menu එක Close වීම නවතී) ***
 
 // --- SMART DATA FETCHER ---
 const fetchClientData = async (username) => {
-    // 1. Request Deduplication: දැනටමත් ඉල්ලීමක් යවා ඇත්නම්, අලුත් එකක් නොයවා එයම භාවිතා කරයි
     if (activeFetchPromises[username]) {
         return activeFetchPromises[username];
     }
@@ -24,7 +24,6 @@ const fetchClientData = async (username) => {
         .then(result => {
             if (result.success) {
                 usageDataCache[username] = result.data;
-                // Cache එක LocalStorage හි ආරක්ෂිතව ගබඩා කිරීම
                 try { 
                     localStorage.setItem('nexguard_usage_cache', JSON.stringify(usageDataCache)); 
                 } catch(e){}
@@ -49,8 +48,10 @@ export function renderProfilePage(renderFunc, params) {
         profilePollingInterval = null;
     }
 
-    // Window Object Cleanup (Memory Leak Prevention)
     if (window.renderPlanDetailsInternal) window.renderPlanDetailsInternal = null;
+    
+    // Page එකට ආපු ගමන් පරණ දත්ත අමතක කරන්න (Fresh Load එකක් වෙන්න)
+    lastKnownPlansStr = ""; 
 
     const user = JSON.parse(localStorage.getItem("nexguard_user"));
     if (!user) {
@@ -58,7 +59,6 @@ export function renderProfilePage(renderFunc, params) {
         return;
     }
 
-    // --- Dynamic Cache Keys based on Username (Prevents Conflict) ---
     const PLANS_CACHE_KEY = `nexguard_plans_cache_${user.username}`;
     const LAST_PLAN_KEY = `nexguard_last_plan_${user.username}`;
 
@@ -211,7 +211,6 @@ export function renderProfilePage(renderFunc, params) {
         }
     });
 
-    // --- RENDER HELPERS ---
     const renderUsageHTML = (d, username) => {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
@@ -280,11 +279,19 @@ export function renderProfilePage(renderFunc, params) {
         const html = (orders.length > 0) ? orders.map(order => {
             const displayStatus = order.status === 'queued_for_renewal' ? 'Queued' : order.status;
             const statusColors = { pending: "text-amber-400", approved: "text-green-400", rejected: "text-red-400", queued_for_renewal: "text-blue-300" };
+            const statusIcons = { pending: "fa-solid fa-clock", approved: "fa-solid fa-check-circle", rejected: "fa-solid fa-times-circle", queued_for_renewal: "fa-solid fa-hourglass-half" };
+            
             return `<div class="card-glass p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 custom-radius">
-                <div><p class="font-bold text-white">${appData.plans[order.plan_id]?.name || order.plan_id} <span class="text-gray-400 font-normal">for</span> ${appData.connections.find(c => c.name === order.conn_id)?.name || order.conn_id}</p><p class="text-xs text-gray-400 mt-1">Ordered on: ${new Date(order.created_at).toLocaleDateString()}</p></div>
-                <div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'}"><span>${displayStatus}</span></div>
+                <div>
+                    <p class="font-bold text-white">${appData.plans[order.plan_id]?.name || order.plan_id} <span class="text-gray-400 font-normal">for</span> ${appData.connections.find(c => c.name === order.conn_id)?.name || order.conn_id}</p>
+                    <p class="text-xs text-gray-400 mt-1">Ordered on: ${new Date(order.created_at).toLocaleDateString()} ${order.status === 'approved' && order.final_username ? `| V2Ray User: <strong class="text-blue-300">${order.final_username}</strong>` : ''}</p>
+                </div>
+                <div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'}">
+                    <i class="${statusIcons[order.status] || 'fa-solid fa-question-circle'}"></i><span>${displayStatus}</span>
+                </div>
             </div>`;
-        }).join('') : `<div class="card-glass p-8 custom-radius text-center"><i class="fa-solid fa-box-open text-4xl text-gray-400 mb-4"></i><h3 class="font-bold text-white">No Orders</h3></div>`;
+        }).join('') : `<div class="card-glass p-8 custom-radius text-center"><i class="fa-solid fa-box-open text-4xl text-gray-400 mb-4"></i><h3 class="font-bold text-white">No Orders Found</h3><p class="text-gray-400 text-sm mt-2">You have not placed any orders yet.</p></div>`;
+        
         container.innerHTML = `<div class="space-y-3">${html}</div>`;
     }
 
@@ -312,14 +319,18 @@ export function renderProfilePage(renderFunc, params) {
             if (result.success) {
                 const expiryTime = result.data.expiryTime;
                 if (expiryTime > 0) {
-                    const canRenew = new Date() >= new Date(new Date(expiryTime).getTime() - 5 * 86400000);
+                    const now = new Date();
+                    const renewalPeriodDays = 5;
+                    const canRenew = now >= new Date(new Date(expiryTime).getTime() - renewalPeriodDays * 86400000);
                     if (canRenew) {
                         if (!document.getElementById('renew-profile-btn')) {
                             container.innerHTML = `<button id="renew-profile-btn" class="ai-button inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew / Change Plan</button>`;
                             document.getElementById('renew-profile-btn')?.addEventListener('click', () => handleRenewalChoice(activePlans, plan));
                         }
                     } else {
-                        container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Renew / Change Plan</button>`;
+                        if (!container.innerHTML.includes('disabled')) {
+                            container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Renew / Change Plan</button>`;
+                        }
                     }
                 } else {
                     container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Does not expire</button>`;
@@ -372,8 +383,8 @@ export function renderProfilePage(renderFunc, params) {
 
     const handleDataUpdate = (data, isFresh) => {
         const currentPlansStr = JSON.stringify(data.activePlans || []);
-        let lastKnownPlansStr = ""; // Local to this logic flow or accessed from safer scope
-
+        
+        // --- FIX: Compare with GLOBAL lastKnownPlansStr ---
         if (currentPlansStr !== lastKnownPlansStr) {
             lastKnownPlansStr = currentPlansStr;
 
@@ -507,7 +518,6 @@ export function renderProfilePage(renderFunc, params) {
             if (cachedPlansStr) {
                 try {
                     const cachedPlans = JSON.parse(cachedPlansStr);
-                    // Ensure it's a valid array before using
                     if (Array.isArray(cachedPlans)) {
                         handleDataUpdate({ status: 'approved', activePlans: cachedPlans }, false);
                     }
