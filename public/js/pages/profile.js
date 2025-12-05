@@ -479,7 +479,8 @@ export function renderProfilePage(renderFunc, params) {
         } catch (e) { console.error(e); }
     };
 
- 
+    // Initial Load
+    loadProfileData();
 
     // Polling Interval (Every 5 Seconds)
     profilePollingInterval = setInterval(loadProfileData, 5000);
