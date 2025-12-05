@@ -8,6 +8,7 @@ let profilePollingInterval = null;
 let lastKnownPlansStr = ""; 
 
 export function renderProfilePage(renderFunc, params) {
+    // Polling පිරිසිදු කිරීම
     if (profilePollingInterval) {
         clearInterval(profilePollingInterval);
         profilePollingInterval = null;
@@ -20,7 +21,7 @@ export function renderProfilePage(renderFunc, params) {
         return;
     }
 
-    // --- HELPER HTML & CSS (Original) ---
+    // --- HELPER HTML & CSS ---
     const modalHtml = `
         <div id="help-modal" class="help-modal-overlay">
             <div class="help-modal-content grease-glass p-6 space-y-4 w-full max-w-md">
@@ -51,7 +52,7 @@ export function renderProfilePage(renderFunc, params) {
         .tab-btn { border-bottom: 3px solid transparent; transition: all .3s ease; color: #9ca3af; padding: 0.75rem 0.25rem; font-weight: 600; white-space: nowrap; } 
         .tab-btn.active { border-bottom-color: var(--brand-blue); color: #fff; } 
         .tab-panel { display: none; } 
-        .tab-panel.active { display: block; animation: pageFadeIn 0.5s; }
+        .tab-panel.active { display: block; animation: pageFadeIn 0.3s; }
         .help-modal-overlay { opacity: 0; visibility: hidden; transition: opacity 0.3s ease-out, visibility 0.3s ease-out; background: rgba(0, 0, 0, 0.2); z-index: 9999; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 1rem; }
         .help-modal-overlay.visible { opacity: 1; visibility: visible; }
         .help-modal-content { opacity: 0; transform: scale(0.90); transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -84,6 +85,7 @@ export function renderProfilePage(renderFunc, params) {
     qrModalLogic.init();
 
     const setupEventListeners = () => {
+        // Modal Logic
         const helpModal = document.getElementById('help-modal');
         if (helpModal) {
             const openModal = () => { helpModal.classList.add('visible'); document.body.classList.add('modal-open'); };
@@ -98,6 +100,7 @@ export function renderProfilePage(renderFunc, params) {
             });
         }
 
+        // Profile Update Form
         document.getElementById("profile-update-form")?.addEventListener("submit", async(e) => {
             e.preventDefault();
             const newPassword = document.getElementById("new-password").value;
@@ -122,6 +125,7 @@ export function renderProfilePage(renderFunc, params) {
 
         document.getElementById('profile-password-toggle')?.addEventListener('click', () => togglePassword('new-password', 'profile-password-toggle'));
         
+        // Link Account Form
         document.getElementById("link-account-form-profile")?.addEventListener("submit", async(e) => {
             e.preventDefault();
             const v2rayUsername = document.getElementById("existing-v2ray-username-profile").value;
@@ -263,11 +267,41 @@ export function renderProfilePage(renderFunc, params) {
                         const planName = appData.plans[plan.planId]?.name || plan.planId;
                         document.getElementById("plan-info-container").innerHTML = `<span class="bg-blue-500/10 text-blue-300 px-2 py-1 rounded-full"><i class="fa-solid fa-rocket fa-fw mr-2"></i>${planName}</span><span class="bg-indigo-500/10 text-indigo-300 px-2 py-1 rounded-full"><i class="fa-solid fa-wifi fa-fw mr-2"></i>${connectionName}</span>`;
 
+                        // Re-render only if tabs don't exist
                         if(!document.getElementById('profile-tabs')) {
                             container.innerHTML = `
-                            <div id="profile-tabs" class="flex items-center gap-4 sm:gap-6 border-b border-white/10 mb-6 overflow-x-auto"><button data-tab="config" class="tab-btn active">V2Ray Config</button><button data-tab="usage" class="tab-btn">Usage Stats</button><button data-tab="orders" class="tab-btn">My Orders</button><button data-tab="settings" class="tab-btn">Account Settings</button></div>
-                            <div id="tab-config" class="tab-panel active"><div class="card-glass p-6 sm:p-8 custom-radius"><div class="grid md:grid-cols-2 gap-8 items-center"><div class="flex flex-col items-center text-center"><h3 class="text-lg font-semibold text-white mb-3">Scan with your V2Ray App</h3><div id="qrcode-container" class="w-44 h-44 p-3 bg-white rounded-lg cursor-pointer flex items-center justify-center shadow-lg shadow-blue-500/20"></div></div><div class="space-y-6"><div class="w-full"><label class="text-sm text-gray-400">V2Ray Config Link</label><div class="flex items-center gap-2 mt-2"><input type="text" readonly value="${plan.v2rayLink}" class="w-full bg-slate-800/50 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-300"><button id="copy-config-btn" class="ai-button secondary !text-sm !font-semibold flex-shrink-0 px-4 py-2 rounded-md">Copy</button></div></div><div class="w-full text-center border-t border-white/10 pt-6"><div id="renew-button-container"></div></div></div></div></div></div>
-                            <div id="tab-usage" class="tab-panel"></div><div id="tab-orders" class="tab-panel"></div><div id="tab-settings" class="tab-panel">
+                            <div id="profile-tabs" class="flex items-center gap-4 sm:gap-6 border-b border-white/10 mb-6 overflow-x-auto">
+                                <button data-tab="config" class="tab-btn active">V2Ray Config</button>
+                                <button data-tab="usage" class="tab-btn">Usage Stats</button>
+                                <button data-tab="orders" class="tab-btn">My Orders</button>
+                                <button data-tab="settings" class="tab-btn">Account Settings</button>
+                            </div>
+                            
+                            <div id="tab-config" class="tab-panel active">
+                                <div class="card-glass p-6 sm:p-8 custom-radius">
+                                    <div class="grid md:grid-cols-2 gap-8 items-center">
+                                        <div class="flex flex-col items-center text-center">
+                                            <h3 class="text-lg font-semibold text-white mb-3">Scan with your V2Ray App</h3>
+                                            <div id="qrcode-container" class="w-44 h-44 p-3 bg-white rounded-lg cursor-pointer flex items-center justify-center shadow-lg shadow-blue-500/20"></div>
+                                        </div>
+                                        <div class="space-y-6">
+                                            <div class="w-full">
+                                                <label class="text-sm text-gray-400">V2Ray Config Link</label>
+                                                <div class="flex items-center gap-2 mt-2">
+                                                    <input type="text" readonly value="${plan.v2rayLink}" class="w-full bg-slate-800/50 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-300">
+                                                    <button id="copy-config-btn" class="ai-button secondary !text-sm !font-semibold flex-shrink-0 px-4 py-2 rounded-md">Copy</button>
+                                                </div>
+                                            </div>
+                                            <div class="w-full text-center border-t border-white/10 pt-6">
+                                                <div id="renew-button-container"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="tab-usage" class="tab-panel"><div class="text-center p-8 text-gray-400">Loading usage...</div></div>
+                            <div id="tab-orders" class="tab-panel"><div class="text-center p-8 text-gray-400">Loading orders...</div></div>
+                            <div id="tab-settings" class="tab-panel">
                                 <div class="card-glass p-6 sm:p-8 custom-radius">
                                     <div class="max-w-md mx-auto">
                                         <h3 class="text-xl font-bold text-white mb-6 font-['Orbitron'] text-center">Account Settings</h3>
@@ -280,21 +314,35 @@ export function renderProfilePage(renderFunc, params) {
                                 </div>
                             </div>`;
                             
+                            // Initialize Components
+                            setupEventListeners();
+                            
+                            // --- NEW: Load Background Data IMMEDIATELY ---
+                            updateRenewButton(plan);
+                            loadUsageStats(plan.v2rayUsername, false); // Pass true to silent
+                            loadMyOrders(false); // Pass true to silent
+
+                            // --- IMPROVED: Instant Tab Switching ---
                             document.getElementById('profile-tabs').addEventListener('click', (e) => { 
                                 if (e.target.tagName === 'BUTTON') {
+                                    // Remove active class from all
                                     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                                     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-                                    e.target.classList.add('active');
-                                    document.getElementById(`tab-${e.target.dataset.tab}`).classList.add('active');
                                     
+                                    // Activate clicked
+                                    e.target.classList.add('active');
                                     const tabId = e.target.dataset.tab;
-                                    if(tabId === 'config') updateRenewButton(plan);
-                                    if(tabId === 'usage') loadUsageStats(false);
-                                    if(tabId === 'orders') loadMyOrders(false);
+                                    document.getElementById(`tab-${tabId}`).classList.add('active');
+                                    
+                                    // NOTE: We do NOT fetch data here anymore. It's already fetched.
                                 }
                             });
-                            
-                            setupEventListeners();
+                        } else {
+                            // Update dynamic components if they exist (QR, etc) without rebuilding HTML
+                            updateRenewButton(plan);
+                            // Refresh data silently on interval
+                            loadUsageStats(plan.v2rayUsername, true); 
+                            loadMyOrders(true);
                         }
 
                         const qrContainer = document.getElementById("qrcode-container");
@@ -315,8 +363,6 @@ export function renderProfilePage(renderFunc, params) {
                             copyBtn.parentNode.replaceChild(newBtn, copyBtn);
                             newBtn.addEventListener('click', () => { navigator.clipboard.writeText(plan.v2rayLink); showToast({ title: 'Copied!', type: 'success' }); });
                         }
-
-                        updateRenewButton(plan);
                     };
 
                     window.renderPlanDetails(currentIndex);
@@ -331,150 +377,152 @@ export function renderProfilePage(renderFunc, params) {
                 }
             }
 
-            if (data.status === "approved" && data.activePlans?.length > 0) {
-                const activePlanUsername = document.querySelector('#plan-menu .trigger-menu .text')?.textContent;
-                const activePlan = data.activePlans.find(p => p.v2rayUsername === activePlanUsername);
-
-                const updateRenewButton = async (plan, isSilent = false) => {
-                    const container = document.getElementById("renew-button-container");
-                    if (!container) return;
-                    if (!isSilent) container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking status...</button>`;
-                    try {
-                        const res = await apiFetch(`/api/check-usage/${plan.v2rayUsername}`);
-                        const result = await res.json();
-                        if (result.success) {
-                            const expiryTime = result.data.expiryTime;
-                            if (expiryTime > 0) {
-                                const now = new Date();
-                                const renewalPeriodDays = 5;
-                                const canRenew = now >= new Date(new Date(expiryTime).getTime() - renewalPeriodDays * 86400000);
-                                if (canRenew) {
-                                    if (!document.getElementById('renew-profile-btn')) {
-                                        container.innerHTML = `<button id="renew-profile-btn" class="ai-button inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew / Change Plan</button>`;
-                                        document.getElementById('renew-profile-btn')?.addEventListener('click', () => handleRenewalChoice(data.activePlans, plan));
-                                    }
-                                } else {
-                                    if (!container.innerHTML.includes('disabled')) {
-                                        container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Renew / Change Plan</button>`;
-                                    }
+            // --- DEFINITIONS MOVED OUTSIDE renderPlanDetails TO BE ACCESSIBLE ---
+            
+            const updateRenewButton = async (plan) => {
+                const container = document.getElementById("renew-button-container");
+                if (!container) return;
+                // Don't show loading spinner for buttons on refresh, only initial
+                if(container.innerHTML === "") container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking status...</button>`;
+                
+                try {
+                    const res = await apiFetch(`/api/check-usage/${plan.v2rayUsername}`);
+                    const result = await res.json();
+                    if (result.success) {
+                        const expiryTime = result.data.expiryTime;
+                        if (expiryTime > 0) {
+                            const now = new Date();
+                            const renewalPeriodDays = 5;
+                            const canRenew = now >= new Date(new Date(expiryTime).getTime() - renewalPeriodDays * 86400000);
+                            if (canRenew) {
+                                if (!document.getElementById('renew-profile-btn')) {
+                                    container.innerHTML = `<button id="renew-profile-btn" class="ai-button inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew / Change Plan</button>`;
+                                    document.getElementById('renew-profile-btn')?.addEventListener('click', () => handleRenewalChoice(data.activePlans, plan));
                                 }
                             } else {
-                                container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Does not expire</button>`;
-                            }
-                        }
-                    } catch (e) { if(!isSilent) container.innerHTML = `<p class="text-xs text-red-400">Error</p>`; }
-                };
-
-                const loadUsageStats = (isSilent = false) => {
-                    const usageContainer = document.getElementById("tab-usage");
-                    if (!usageContainer) return;
-                    if (!isSilent) usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
-                    
-                    apiFetch(`/api/check-usage/${activePlan.v2rayUsername}`).then(res => res.json()).then(result => {
-                        if (result.success) {
-                            const d = result.data;
-                            const total = d.down + d.up;
-                            const percent = d.total > 0 ? Math.min((total / d.total) * 100, 100) : 0;
-                            
-                            const formatBytes = (b = 0, d = 2) => {
-                                const k = 1024;
-                                const s = ['B', 'KB', 'MB', 'GB', 'TB'];
-                                if (b === 0) return '0 B';
-                                const i = Math.floor(Math.log(b) / Math.log(k));
-                                return `${parseFloat((b / k ** i).toFixed(d))} ${s[i]}`;
-                            };
-
-                            const expiry = d.expiryTime > 0 ? new Date(d.expiryTime).toLocaleDateString('en-CA') : 'Unlimited';
-                            const status = d.enable ? `<span class="font-semibold text-green-400">ONLINE</span>` : `<span class="font-semibold text-red-400">OFFLINE</span>`;
-
-                            if(usageContainer.innerHTML.includes('fa-spinner') || usageContainer.innerHTML === '') {
-                                const html = `
-                                    <div class="result-card p-4 sm:p-6 card-glass custom-radius space-y-5 reveal is-visible">
-                                        <div class="flex justify-between items-center pb-3 border-b border-white/10">
-                                            <h3 class="text-lg font-semibold text-white flex items-center min-w-0">
-                                                <i class="fa-solid fa-satellite-dish mr-3 text-blue-400 flex-shrink-0"></i>
-                                                <span class="truncate" title="${activePlan.v2rayUsername}">Client: ${activePlan.v2rayUsername}</span>
-                                            </h3>
-                                            <div id="rt-status">${status}</div>
-                                        </div>
-                                        ${d.total > 0 ? `<div class="space-y-2"><div class="flex justify-between items-baseline text-sm"><span class="font-medium text-gray-300">Data Quota Usage</span><span id="rt-percent" class="font-bold text-white">${percent.toFixed(1)}%</span></div><div class="w-full bg-black/30 rounded-full h-2.5"><div id="rt-bar" class="progress-bar-inner bg-gradient-to-r from-sky-500 to-blue-500 h-2.5 rounded-full" style="width: ${percent}%"></div></div></div>` : ''}
-                                        <div class="space-y-4 text-sm sm:hidden">
-                                            <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-circle-down text-sky-400 text-lg w-5 text-center"></i><span>Download</span></div><p id="rt-down-mob" class="font-semibold text-white text-base">${formatBytes(d.down)}</p></div>
-                                            <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-circle-up text-violet-400 text-lg w-5 text-center"></i><span>Upload</span></div><p id="rt-up-mob" class="font-semibold text-white text-base">${formatBytes(d.up)}</p></div>
-                                            <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-database text-green-400 text-lg w-5 text-center"></i><span>Total Used</span></div><p id="rt-total-mob" class="font-semibold text-white text-base">${formatBytes(total)}</p></div>
-                                            <div class="flex justify-between items-center"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-calendar-xmark text-red-400 text-lg w-5 text-center"></i><span>Expires On</span></div><p id="rt-expiry-mob" class="font-medium text-white text-base">${expiry}</p></div>
-                                        </div>
-                                        <div class="hidden sm:grid sm:grid-cols-2 gap-4 text-sm">
-                                            <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-circle-down text-sky-400 mr-2"></i><span>Download</span></div><p id="rt-down-desk" class="text-2xl font-bold text-white mt-1">${formatBytes(d.down)}</p></div>
-                                            <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-circle-up text-violet-400 mr-2"></i><span>Upload</span></div><p id="rt-up-desk" class="text-2xl font-bold text-white mt-1">${formatBytes(d.up)}</p></div>
-                                            <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-database text-green-400 mr-2"></i><span>Total Used</span></div><p id="rt-total-desk" class="text-2xl font-bold text-white mt-1">${formatBytes(total)}</p></div>
-                                            <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-calendar-xmark text-red-400 mr-2"></i><span>Expires On</span></div><p id="rt-expiry-desk" class="text-xl font-medium text-white mt-1">${expiry}</p></div>
-                                        </div>
-                                    </div>`;
-                                usageContainer.innerHTML = html;
-                            } else {
-                                // Update values only
-                                const statusEl = document.getElementById('rt-status'); if(statusEl) statusEl.innerHTML = status;
-                                const percentEl = document.getElementById('rt-percent'); if(percentEl) percentEl.textContent = `${percent.toFixed(1)}%`;
-                                const barEl = document.getElementById('rt-bar'); if(barEl) barEl.style.width = `${percent}%`;
-                                
-                                // Mobile updates
-                                const downMob = document.getElementById('rt-down-mob'); if(downMob) downMob.textContent = formatBytes(d.down);
-                                const upMob = document.getElementById('rt-up-mob'); if(upMob) upMob.textContent = formatBytes(d.up);
-                                const totalMob = document.getElementById('rt-total-mob'); if(totalMob) totalMob.textContent = formatBytes(total);
-                                const expiryMob = document.getElementById('rt-expiry-mob'); if(expiryMob) expiryMob.textContent = expiry;
-
-                                // Desktop updates
-                                const downDesk = document.getElementById('rt-down-desk'); if(downDesk) downDesk.textContent = formatBytes(d.down);
-                                const upDesk = document.getElementById('rt-up-desk'); if(upDesk) upDesk.textContent = formatBytes(d.up);
-                                const totalDesk = document.getElementById('rt-total-desk'); if(totalDesk) totalDesk.textContent = formatBytes(total);
-                                const expiryDesk = document.getElementById('rt-expiry-desk'); if(expiryDesk) expiryDesk.textContent = expiry;
+                                if (!container.innerHTML.includes('disabled')) {
+                                    container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Renew / Change Plan</button>`;
+                                }
                             }
                         } else {
-                             if (!isSilent) usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-amber-400"><p>${result.message}</p></div>`;
+                            container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Does not expire</button>`;
                         }
-                    }).catch(() => {
-                        if (!isSilent) usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-red-400"><p>Could not load usage statistics.</p></div>`;
-                    });
-                };
-
-                const loadMyOrders = async (isSilent = false) => {
-                    const container = document.getElementById("tab-orders");
-                    if (!container) return;
-                    if (!isSilent) container.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
-                    try {
-                        const res = await apiFetch("/api/user/orders");
-                        const { orders } = await res.json();
-                        const html = (orders.length > 0) ? orders.map(order => {
-                            const displayStatus = order.status === 'queued_for_renewal' ? 'Queued' : order.status;
-                            const statusColors = { pending: "text-amber-400", approved: "text-green-400", rejected: "text-red-400", queued_for_renewal: "text-blue-300" };
-                            const statusIcons = { pending: "fa-solid fa-clock", approved: "fa-solid fa-check-circle", rejected: "fa-solid fa-times-circle", queued_for_renewal: "fa-solid fa-hourglass-half" };
-                            
-                            return `<div class="card-glass p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 custom-radius">
-                                <div>
-                                    <p class="font-bold text-white">${appData.plans[order.plan_id]?.name || order.plan_id} <span class="text-gray-400 font-normal">for</span> ${appData.connections.find(c => c.name === order.conn_id)?.name || order.conn_id}</p>
-                                    <p class="text-xs text-gray-400 mt-1">Ordered on: ${new Date(order.created_at).toLocaleDateString()} ${order.status === 'approved' && order.final_username ? `| V2Ray User: <strong class="text-blue-300">${order.final_username}</strong>` : ''}</p>
-                                </div>
-                                <div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'}">
-                                    <i class="${statusIcons[order.status] || 'fa-solid fa-question-circle'}"></i><span>${displayStatus}</span>
-                                </div>
-                            </div>`;
-                        }).join('') : `<div class="card-glass p-8 custom-radius text-center"><i class="fa-solid fa-box-open text-4xl text-gray-400 mb-4"></i><h3 class="font-bold text-white">No Orders Found</h3><p class="text-gray-400 text-sm mt-2">You have not placed any orders yet.</p></div>`;
-                        
-                        if(container.innerHTML.includes('fa-spinner') || container.innerHTML !== `<div class="space-y-3">${html}</div>`) {
-                            container.innerHTML = `<div class="space-y-3">${html}</div>`;
-                        }
-                    } catch (err) {
-                        if (!isSilent) container.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-red-400"><p>Could not load your orders.</p></div>`;
                     }
-                };
+                } catch (e) { container.innerHTML = `<p class="text-xs text-red-400">Error</p>`; }
+            };
 
-                if (activePlan) {
-                    if (document.getElementById('tab-usage')?.classList.contains('active')) loadUsageStats(true);
-                    if (document.getElementById('tab-orders')?.classList.contains('active')) loadMyOrders(true);
-                    if (document.getElementById('tab-config')?.classList.contains('active')) updateRenewButton(activePlan, true);
+            const loadUsageStats = (v2rayUsername, isSilent = false) => {
+                const usageContainer = document.getElementById("tab-usage");
+                if (!usageContainer) return;
+                
+                if (!isSilent && (usageContainer.innerHTML.includes('Loading') || usageContainer.innerHTML === '')) {
+                     usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
                 }
-            }
+                
+                apiFetch(`/api/check-usage/${v2rayUsername}`).then(res => res.json()).then(result => {
+                    if (result.success) {
+                        const d = result.data;
+                        const total = d.down + d.up;
+                        const percent = d.total > 0 ? Math.min((total / d.total) * 100, 100) : 0;
+                        
+                        const formatBytes = (b = 0, d = 2) => {
+                            const k = 1024;
+                            const s = ['B', 'KB', 'MB', 'GB', 'TB'];
+                            if (b === 0) return '0 B';
+                            const i = Math.floor(Math.log(b) / Math.log(k));
+                            return `${parseFloat((b / k ** i).toFixed(d))} ${s[i]}`;
+                        };
+
+                        const expiry = d.expiryTime > 0 ? new Date(d.expiryTime).toLocaleDateString('en-CA') : 'Unlimited';
+                        const status = d.enable ? `<span class="font-semibold text-green-400">ONLINE</span>` : `<span class="font-semibold text-red-400">OFFLINE</span>`;
+
+                        // Re-render HTML completely if it was loading, otherwise just update text
+                        if(usageContainer.innerHTML.includes('fa-spinner') || usageContainer.innerHTML.includes('Loading')) {
+                            const html = `
+                                <div class="result-card p-4 sm:p-6 card-glass custom-radius space-y-5 reveal is-visible">
+                                    <div class="flex justify-between items-center pb-3 border-b border-white/10">
+                                        <h3 class="text-lg font-semibold text-white flex items-center min-w-0">
+                                            <i class="fa-solid fa-satellite-dish mr-3 text-blue-400 flex-shrink-0"></i>
+                                            <span class="truncate" title="${v2rayUsername}">Client: ${v2rayUsername}</span>
+                                        </h3>
+                                        <div id="rt-status">${status}</div>
+                                    </div>
+                                    ${d.total > 0 ? `<div class="space-y-2"><div class="flex justify-between items-baseline text-sm"><span class="font-medium text-gray-300">Data Quota Usage</span><span id="rt-percent" class="font-bold text-white">${percent.toFixed(1)}%</span></div><div class="w-full bg-black/30 rounded-full h-2.5"><div id="rt-bar" class="progress-bar-inner bg-gradient-to-r from-sky-500 to-blue-500 h-2.5 rounded-full" style="width: ${percent}%"></div></div></div>` : ''}
+                                    <div class="space-y-4 text-sm sm:hidden">
+                                        <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-circle-down text-sky-400 text-lg w-5 text-center"></i><span>Download</span></div><p id="rt-down-mob" class="font-semibold text-white text-base">${formatBytes(d.down)}</p></div>
+                                        <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-circle-up text-violet-400 text-lg w-5 text-center"></i><span>Upload</span></div><p id="rt-up-mob" class="font-semibold text-white text-base">${formatBytes(d.up)}</p></div>
+                                        <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-database text-green-400 text-lg w-5 text-center"></i><span>Total Used</span></div><p id="rt-total-mob" class="font-semibold text-white text-base">${formatBytes(total)}</p></div>
+                                        <div class="flex justify-between items-center"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-calendar-xmark text-red-400 text-lg w-5 text-center"></i><span>Expires On</span></div><p id="rt-expiry-mob" class="font-medium text-white text-base">${expiry}</p></div>
+                                    </div>
+                                    <div class="hidden sm:grid sm:grid-cols-2 gap-4 text-sm">
+                                        <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-circle-down text-sky-400 mr-2"></i><span>Download</span></div><p id="rt-down-desk" class="text-2xl font-bold text-white mt-1">${formatBytes(d.down)}</p></div>
+                                        <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-circle-up text-violet-400 mr-2"></i><span>Upload</span></div><p id="rt-up-desk" class="text-2xl font-bold text-white mt-1">${formatBytes(d.up)}</p></div>
+                                        <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-database text-green-400 mr-2"></i><span>Total Used</span></div><p id="rt-total-desk" class="text-2xl font-bold text-white mt-1">${formatBytes(total)}</p></div>
+                                        <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-calendar-xmark text-red-400 mr-2"></i><span>Expires On</span></div><p id="rt-expiry-desk" class="text-xl font-medium text-white mt-1">${expiry}</p></div>
+                                    </div>
+                                </div>`;
+                            usageContainer.innerHTML = html;
+                        } else {
+                            // Update values only
+                            const statusEl = document.getElementById('rt-status'); if(statusEl) statusEl.innerHTML = status;
+                            const percentEl = document.getElementById('rt-percent'); if(percentEl) percentEl.textContent = `${percent.toFixed(1)}%`;
+                            const barEl = document.getElementById('rt-bar'); if(barEl) barEl.style.width = `${percent}%`;
+                            
+                            // Mobile updates
+                            const downMob = document.getElementById('rt-down-mob'); if(downMob) downMob.textContent = formatBytes(d.down);
+                            const upMob = document.getElementById('rt-up-mob'); if(upMob) upMob.textContent = formatBytes(d.up);
+                            const totalMob = document.getElementById('rt-total-mob'); if(totalMob) totalMob.textContent = formatBytes(total);
+                            const expiryMob = document.getElementById('rt-expiry-mob'); if(expiryMob) expiryMob.textContent = expiry;
+
+                            // Desktop updates
+                            const downDesk = document.getElementById('rt-down-desk'); if(downDesk) downDesk.textContent = formatBytes(d.down);
+                            const upDesk = document.getElementById('rt-up-desk'); if(upDesk) upDesk.textContent = formatBytes(d.up);
+                            const totalDesk = document.getElementById('rt-total-desk'); if(totalDesk) totalDesk.textContent = formatBytes(total);
+                            const expiryDesk = document.getElementById('rt-expiry-desk'); if(expiryDesk) expiryDesk.textContent = expiry;
+                        }
+                    } else {
+                         if (!isSilent) usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-amber-400"><p>${result.message}</p></div>`;
+                    }
+                }).catch(() => {
+                    if (!isSilent) usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-red-400"><p>Could not load usage statistics.</p></div>`;
+                });
+            };
+
+            const loadMyOrders = async (isSilent = false) => {
+                const container = document.getElementById("tab-orders");
+                if (!container) return;
+                
+                if (!isSilent && (container.innerHTML.includes('Loading') || container.innerHTML === '')) {
+                    container.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
+                }
+                
+                try {
+                    const res = await apiFetch("/api/user/orders");
+                    const { orders } = await res.json();
+                    const html = (orders.length > 0) ? orders.map(order => {
+                        const displayStatus = order.status === 'queued_for_renewal' ? 'Queued' : order.status;
+                        const statusColors = { pending: "text-amber-400", approved: "text-green-400", rejected: "text-red-400", queued_for_renewal: "text-blue-300" };
+                        const statusIcons = { pending: "fa-solid fa-clock", approved: "fa-solid fa-check-circle", rejected: "fa-solid fa-times-circle", queued_for_renewal: "fa-solid fa-hourglass-half" };
+                        
+                        return `<div class="card-glass p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 custom-radius">
+                            <div>
+                                <p class="font-bold text-white">${appData.plans[order.plan_id]?.name || order.plan_id} <span class="text-gray-400 font-normal">for</span> ${appData.connections.find(c => c.name === order.conn_id)?.name || order.conn_id}</p>
+                                <p class="text-xs text-gray-400 mt-1">Ordered on: ${new Date(order.created_at).toLocaleDateString()} ${order.status === 'approved' && order.final_username ? `| V2Ray User: <strong class="text-blue-300">${order.final_username}</strong>` : ''}</p>
+                            </div>
+                            <div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'}">
+                                <i class="${statusIcons[order.status] || 'fa-solid fa-question-circle'}"></i><span>${displayStatus}</span>
+                            </div>
+                        </div>`;
+                    }).join('') : `<div class="card-glass p-8 custom-radius text-center"><i class="fa-solid fa-box-open text-4xl text-gray-400 mb-4"></i><h3 class="font-bold text-white">No Orders Found</h3><p class="text-gray-400 text-sm mt-2">You have not placed any orders yet.</p></div>`;
+                    
+                    // Always replace HTML to ensure order is up to date
+                    if(container.innerHTML !== `<div class="space-y-3">${html}</div>`) {
+                        container.innerHTML = `<div class="space-y-3">${html}</div>`;
+                    }
+                } catch (err) {
+                    if (!isSilent) container.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-red-400"><p>Could not load your orders.</p></div>`;
+                }
+            };
 
         } catch (e) { console.error(e); }
     };
@@ -482,6 +530,10 @@ export function renderProfilePage(renderFunc, params) {
     // Initial Load
     loadProfileData();
 
-    // Polling Interval (Every 5 Seconds)
-    profilePollingInterval = setInterval(loadProfileData, 5000);
+    // Polling Interval (Every 5 Seconds) to keep data fresh without resetting UI state forcefully
+    profilePollingInterval = setInterval(() => {
+        // We can optionally create a silent update function here if needed
+        // For now, loadProfileData handles basic refreshing logic internally
+        loadProfileData();
+    }, 5000);
 }
