@@ -1,5 +1,4 @@
 
-// File: public/js/pages/profile.js
 import { apiFetch, appData } from '../api.js';
 import { showToast, SikFloatingMenu, togglePassword, qrModalLogic } from '../utils.js';
 import { navigateTo } from '../router.js';
@@ -10,23 +9,19 @@ let profilePollingInterval = null;
 // --- GLOBAL STATE ---
 let usageDataCache = {};        
 let ordersCache = null; 
-let activeFetchPromises = {};   
 let currentActivePlan = null; 
 let lastKnownPlansStr = ""; 
 let globalActivePlans = []; 
 
 // --- SMART DATA FETCHER ---
 const fetchClientData = async (username) => {
-    // Note: We deliberately DO NOT use activeFetchPromises here for polling 
-    // to ensure we always get a fresh status for removal/expiry checks.
-    
-    // Add timestamp to prevent browser caching of the response
+    // Add unique timestamp to force browser to fetch fresh data every time
     const timestamp = new Date().getTime();
     
-    const promise = apiFetch(`/api/check-usage/${username}?_=${timestamp}`)
+    // We append a random number to ensure no caching occurs at any level
+    const promise = apiFetch(`/api/check-usage/${username}?_=${timestamp}&r=${Math.random()}`)
         .then(res => {
-            // **CRITICAL FIX: Handle 404 immediately**
-            // If 404, it implies user is not found in active list, but we treat it as "Expired/Inactive" for UI
+            // Handle 404 (User removed/expired from panel)
             if (res.status === 404) {
                 return { success: false, isRemoved: true }; 
             }
@@ -34,7 +29,7 @@ const fetchClientData = async (username) => {
         })
         .then(result => {
             if (result.success) {
-                // Update Cache only if success
+                // Update Cache with fresh data
                 usageDataCache[username] = result.data;
                 try { 
                     localStorage.setItem('nexguard_usage_cache', JSON.stringify(usageDataCache)); 
@@ -232,8 +227,27 @@ export function renderProfilePage(renderFunc, params) {
             return `${parseFloat((b / k ** i).toFixed(d))} ${s[i]}`;
         };
 
-        const expiry = d.expiryTime > 0 ? new Date(d.expiryTime).toLocaleDateString('en-CA') : 'Unlimited';
-        const status = d.enable ? `<span class="font-semibold text-green-400">ONLINE</span>` : `<span class="font-semibold text-red-400">OFFLINE</span>`;
+        // --- EXPIRY LOGIC (UPDATED) ---
+        const now = Date.now();
+        const expiryTimestamp = parseInt(d.expiryTime, 10);
+        let expiryDisplay = 'Unlimited';
+        let expiryColorClass = 'text-white';
+        let status = d.enable ? `<span class="font-semibold text-green-400">ONLINE</span>` : `<span class="font-semibold text-red-400">OFFLINE</span>`;
+
+        if (expiryTimestamp > 0) {
+            const expiryDate = new Date(expiryTimestamp);
+            const dateString = expiryDate.toLocaleDateString('en-CA');
+            
+            if (now > expiryTimestamp) {
+                // Expired
+                expiryDisplay = `${dateString} <span class="text-red-500 font-bold ml-1 text-xs uppercase bg-red-500/10 px-2 py-0.5 rounded">(EXPIRED)</span>`;
+                expiryColorClass = 'text-red-400';
+                status = `<span class="font-semibold text-red-400">EXPIRED</span>`;
+            } else {
+                // Active
+                expiryDisplay = dateString;
+            }
+        }
 
         usageContainer.innerHTML = `
             <div class="result-card p-4 sm:p-6 card-glass custom-radius space-y-5 reveal is-visible">
@@ -249,13 +263,13 @@ export function renderProfilePage(renderFunc, params) {
                     <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-circle-down text-sky-400 text-lg w-5 text-center"></i><span>Download</span></div><p class="font-semibold text-white text-base">${formatBytes(d.down)}</p></div>
                     <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-circle-up text-violet-400 text-lg w-5 text-center"></i><span>Upload</span></div><p class="font-semibold text-white text-base">${formatBytes(d.up)}</p></div>
                     <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-database text-green-400 text-lg w-5 text-center"></i><span>Total Used</span></div><p class="font-semibold text-white text-base">${formatBytes(total)}</p></div>
-                    <div class="flex justify-between items-center"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-calendar-xmark text-red-400 text-lg w-5 text-center"></i><span>Expires On</span></div><p class="font-medium text-white text-base">${expiry}</p></div>
+                    <div class="flex justify-between items-center"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-calendar-xmark text-red-400 text-lg w-5 text-center"></i><span>Expires On</span></div><p class="font-medium ${expiryColorClass} text-base">${expiryDisplay}</p></div>
                 </div>
                 <div class="hidden sm:grid sm:grid-cols-2 gap-4 text-sm">
                     <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-circle-down text-sky-400 mr-2"></i><span>Download</span></div><p class="text-2xl font-bold text-white mt-1">${formatBytes(d.down)}</p></div>
                     <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-circle-up text-violet-400 mr-2"></i><span>Upload</span></div><p class="text-2xl font-bold text-white mt-1">${formatBytes(d.up)}</p></div>
                     <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-database text-green-400 mr-2"></i><span>Total Used</span></div><p class="text-2xl font-bold text-white mt-1">${formatBytes(total)}</p></div>
-                    <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-calendar-xmark text-red-400 mr-2"></i><span>Expires On</span></div><p class="text-xl font-medium text-white mt-1">${expiry}</p></div>
+                    <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-calendar-xmark text-red-400 mr-2"></i><span>Expires On</span></div><p class="text-xl font-medium ${expiryColorClass} mt-1">${expiryDisplay}</p></div>
                 </div>
             </div>`;
     };
@@ -549,6 +563,8 @@ export function renderProfilePage(renderFunc, params) {
                     if (document.getElementById('tab-usage')?.classList.contains('active')) {
                          if (usageDataCache[plan.v2rayUsername]) {
                             renderUsageHTML(usageDataCache[plan.v2rayUsername], plan.v2rayUsername);
+                            // We need to fetch fresh data, so passing 'true' for isSilent won't hide existing content,
+                            // but the function call triggers a fetch.
                             loadUsageStats(plan.v2rayUsername, true); 
                         } else {
                             loadUsageStats(plan.v2rayUsername, false);
@@ -587,7 +603,8 @@ export function renderProfilePage(renderFunc, params) {
         }
 
         // --- POLLING LOGIC ---
-        if (data.status === "approved" && data.activePlans?.length > 0 && isFresh) {
+        // Ensure UI updates even if only the underlying Usage Data (Expiry/Traffic) changed
+        if (data.status === "approved" && data.activePlans?.length > 0) {
             if (currentActivePlan) {
                 if (document.getElementById('tab-usage')?.classList.contains('active')) {
                     // Poll for fresh data including expiry and removal check
@@ -633,5 +650,5 @@ export function renderProfilePage(renderFunc, params) {
     };
 
     loadProfileData();
-    profilePollingInterval = setInterval(loadProfileData, 5000);
+    profilePollingInterval = setInterval(loadProfileData, 4000); // Polling every 4 seconds
 }
