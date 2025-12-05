@@ -7,13 +7,13 @@ import { handleRenewalChoice } from './checkout.js';
 let profilePollingInterval = null;
 let lastKnownPlansStr = ""; 
 
-// --- GLOBAL CACHE (Module Level) ---
-// පිටු අතර මාරු වීමේදී දත්ත නැති නොවීම සඳහා මෙය function එකෙන් පිටත තබයි.
+// --- GLOBAL CACHE (Page එක මාරු වුනත් දත්ත මතකයේ තබා ගනී) ---
 let usageDataCache = {}; 
 let ordersCache = null; 
-let isFetchingAll = false; // දත්ත ලබා ගනිමින් පවතීද යන්න දැන ගැනීමට
+let isFetchingAll = false;
 
 export function renderProfilePage(renderFunc, params) {
+    // Clear existing interval
     if (profilePollingInterval) {
         clearInterval(profilePollingInterval);
         profilePollingInterval = null;
@@ -26,7 +26,7 @@ export function renderProfilePage(renderFunc, params) {
         return;
     }
 
-    // --- HELPER HTML & CSS ---
+    // --- HTML TEMPLATES ---
     const modalHtml = `
         <div id="help-modal" class="help-modal-overlay">
             <div class="help-modal-content grease-glass p-6 space-y-4 w-full max-w-md">
@@ -89,6 +89,7 @@ export function renderProfilePage(renderFunc, params) {
     const statusContainer = document.getElementById("user-status-content");
     qrModalLogic.init();
 
+    // --- SETUP EVENT LISTENERS (Modals, Forms) ---
     const setupEventListeners = () => {
         const helpModal = document.getElementById('help-modal');
         if (helpModal) {
@@ -170,7 +171,165 @@ export function renderProfilePage(renderFunc, params) {
         }
     });
 
+    // --- HELPER FUNCTIONS (DEFINED OUTSIDE loadProfileData to avoid scope issues) ---
+
+    const renderUsageHTML = (d, username) => {
+        const usageContainer = document.getElementById("tab-usage");
+        if (!usageContainer) return;
+
+        const total = d.down + d.up;
+        const percent = d.total > 0 ? Math.min((total / d.total) * 100, 100) : 0;
+        
+        const formatBytes = (b = 0, d = 2) => {
+            const k = 1024;
+            const s = ['B', 'KB', 'MB', 'GB', 'TB'];
+            if (b === 0) return '0 B';
+            const i = Math.floor(Math.log(b) / Math.log(k));
+            return `${parseFloat((b / k ** i).toFixed(d))} ${s[i]}`;
+        };
+
+        const expiry = d.expiryTime > 0 ? new Date(d.expiryTime).toLocaleDateString('en-CA') : 'Unlimited';
+        const status = d.enable ? `<span class="font-semibold text-green-400">ONLINE</span>` : `<span class="font-semibold text-red-400">OFFLINE</span>`;
+
+        const html = `
+            <div class="result-card p-4 sm:p-6 card-glass custom-radius space-y-5 reveal is-visible">
+                <div class="flex justify-between items-center pb-3 border-b border-white/10">
+                    <h3 class="text-lg font-semibold text-white flex items-center min-w-0">
+                        <i class="fa-solid fa-satellite-dish mr-3 text-blue-400 flex-shrink-0"></i>
+                        <span class="truncate" title="${username}">Client: ${username}</span>
+                    </h3>
+                    <div id="rt-status">${status}</div>
+                </div>
+                ${d.total > 0 ? `<div class="space-y-2"><div class="flex justify-between items-baseline text-sm"><span class="font-medium text-gray-300">Data Quota Usage</span><span id="rt-percent" class="font-bold text-white">${percent.toFixed(1)}%</span></div><div class="w-full bg-black/30 rounded-full h-2.5"><div id="rt-bar" class="progress-bar-inner bg-gradient-to-r from-sky-500 to-blue-500 h-2.5 rounded-full" style="width: ${percent}%"></div></div></div>` : ''}
+                <div class="space-y-4 text-sm sm:hidden">
+                    <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-circle-down text-sky-400 text-lg w-5 text-center"></i><span>Download</span></div><p id="rt-down-mob" class="font-semibold text-white text-base">${formatBytes(d.down)}</p></div>
+                    <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-circle-up text-violet-400 text-lg w-5 text-center"></i><span>Upload</span></div><p id="rt-up-mob" class="font-semibold text-white text-base">${formatBytes(d.up)}</p></div>
+                    <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-database text-green-400 text-lg w-5 text-center"></i><span>Total Used</span></div><p id="rt-total-mob" class="font-semibold text-white text-base">${formatBytes(total)}</p></div>
+                    <div class="flex justify-between items-center"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-calendar-xmark text-red-400 text-lg w-5 text-center"></i><span>Expires On</span></div><p id="rt-expiry-mob" class="font-medium text-white text-base">${expiry}</p></div>
+                </div>
+                <div class="hidden sm:grid sm:grid-cols-2 gap-4 text-sm">
+                    <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-circle-down text-sky-400 mr-2"></i><span>Download</span></div><p id="rt-down-desk" class="text-2xl font-bold text-white mt-1">${formatBytes(d.down)}</p></div>
+                    <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-circle-up text-violet-400 mr-2"></i><span>Upload</span></div><p id="rt-up-desk" class="text-2xl font-bold text-white mt-1">${formatBytes(d.up)}</p></div>
+                    <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-database text-green-400 mr-2"></i><span>Total Used</span></div><p id="rt-total-desk" class="text-2xl font-bold text-white mt-1">${formatBytes(total)}</p></div>
+                    <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-calendar-xmark text-red-400 mr-2"></i><span>Expires On</span></div><p id="rt-expiry-desk" class="text-xl font-medium text-white mt-1">${expiry}</p></div>
+                </div>
+            </div>`;
+        
+        usageContainer.innerHTML = html;
+    };
+
+    const loadUsageStats = (username, isSilent = false) => {
+        const usageContainer = document.getElementById("tab-usage");
+        if (!usageContainer) return;
+        if (!isSilent) usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
+        
+        apiFetch(`/api/check-usage/${username}`).then(res => res.json()).then(result => {
+            if (result.success) {
+                usageDataCache[username] = result.data; // UPDATE CACHE with Specific Key
+                renderUsageHTML(result.data, username);
+            } else {
+                 if (!isSilent) usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-amber-400"><p>${result.message}</p></div>`;
+            }
+        }).catch(() => {
+            if (!isSilent) usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-red-400"><p>Could not load usage statistics.</p></div>`;
+        });
+    };
+
+    const renderOrdersHTML = (orders) => {
+        const container = document.getElementById("tab-orders");
+        if (!container) return;
+
+        const html = (orders.length > 0) ? orders.map(order => {
+            const displayStatus = order.status === 'queued_for_renewal' ? 'Queued' : order.status;
+            const statusColors = { pending: "text-amber-400", approved: "text-green-400", rejected: "text-red-400", queued_for_renewal: "text-blue-300" };
+            const statusIcons = { pending: "fa-solid fa-clock", approved: "fa-solid fa-check-circle", rejected: "fa-solid fa-times-circle", queued_for_renewal: "fa-solid fa-hourglass-half" };
+            
+            return `<div class="card-glass p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 custom-radius">
+                <div>
+                    <p class="font-bold text-white">${appData.plans[order.plan_id]?.name || order.plan_id} <span class="text-gray-400 font-normal">for</span> ${appData.connections.find(c => c.name === order.conn_id)?.name || order.conn_id}</p>
+                    <p class="text-xs text-gray-400 mt-1">Ordered on: ${new Date(order.created_at).toLocaleDateString()} ${order.status === 'approved' && order.final_username ? `| V2Ray User: <strong class="text-blue-300">${order.final_username}</strong>` : ''}</p>
+                </div>
+                <div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'}">
+                    <i class="${statusIcons[order.status] || 'fa-solid fa-question-circle'}"></i><span>${displayStatus}</span>
+                </div>
+            </div>`;
+        }).join('') : `<div class="card-glass p-8 custom-radius text-center"><i class="fa-solid fa-box-open text-4xl text-gray-400 mb-4"></i><h3 class="font-bold text-white">No Orders Found</h3><p class="text-gray-400 text-sm mt-2">You have not placed any orders yet.</p></div>`;
+        
+        container.innerHTML = `<div class="space-y-3">${html}</div>`;
+    }
+
+    const loadMyOrders = async (isSilent = false) => {
+        const container = document.getElementById("tab-orders");
+        if (!container) return;
+        if (!isSilent) container.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
+        try {
+            const res = await apiFetch("/api/user/orders");
+            const { orders } = await res.json();
+            ordersCache = orders; // UPDATE CACHE
+            renderOrdersHTML(orders);
+        } catch (err) {
+            if (!isSilent) container.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-red-400"><p>Could not load your orders.</p></div>`;
+        }
+    };
+
+    const updateRenewButton = async (plan, activePlans, isSilent = false) => {
+        const container = document.getElementById("renew-button-container");
+        if (!container) return;
+        if (!isSilent) container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking status...</button>`;
+        try {
+            const res = await apiFetch(`/api/check-usage/${plan.v2rayUsername}`);
+            const result = await res.json();
+            if (result.success) {
+                const expiryTime = result.data.expiryTime;
+                if (expiryTime > 0) {
+                    const now = new Date();
+                    const renewalPeriodDays = 5;
+                    const canRenew = now >= new Date(new Date(expiryTime).getTime() - renewalPeriodDays * 86400000);
+                    if (canRenew) {
+                        if (!document.getElementById('renew-profile-btn')) {
+                            container.innerHTML = `<button id="renew-profile-btn" class="ai-button inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew / Change Plan</button>`;
+                            document.getElementById('renew-profile-btn')?.addEventListener('click', () => handleRenewalChoice(activePlans, plan));
+                        }
+                    } else {
+                        if (!container.innerHTML.includes('disabled')) {
+                            container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Renew / Change Plan</button>`;
+                        }
+                    }
+                } else {
+                    container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Does not expire</button>`;
+                }
+            }
+        } catch (e) { if(!isSilent) container.innerHTML = `<p class="text-xs text-red-400">Error</p>`; }
+    };
+
+    async function prefetchAllPlansParallel(plans) {
+        if (!plans || plans.length === 0 || isFetchingAll) return;
+        isFetchingAll = true;
+
+        const fetchPromises = plans.map(p => 
+            apiFetch(`/api/check-usage/${p.v2rayUsername}`)
+                .then(res => res.json())
+                .then(result => {
+                    if (result.success) {
+                        usageDataCache[p.v2rayUsername] = result.data;
+                    }
+                })
+                .catch(e => console.warn(`Prefetch failed for ${p.v2rayUsername}`, e))
+        );
+
+        await Promise.all(fetchPromises);
+        isFetchingAll = false;
+        
+        // Refresh Current View if needed
+        const currentViewedName = document.querySelector('#plan-menu .trigger-menu .text')?.textContent;
+        if (currentViewedName && document.getElementById('tab-usage')?.classList.contains('active')) {
+             if(usageDataCache[currentViewedName]) renderUsageHTML(usageDataCache[currentViewedName], currentViewedName);
+        }
+    }
+
+    // --- MAIN DATA LOADING FUNCTION ---
     let planMenuInstance = null;
+
     const renderPlanSelector = (activePlans, activePlanIndex = 0) => {
         const planListItems = activePlans.map((plan, index) => 
             `<li><a href="#" data-plan-index="${index}">${plan.v2rayUsername}</a></li>`
@@ -224,8 +383,8 @@ export function renderProfilePage(renderFunc, params) {
                     e.preventDefault();
                     const index = parseInt(link.dataset.planIndex);
                     document.querySelector('#plan-menu .trigger-menu .text').textContent = activePlans[index].v2rayUsername;
-                    // Switch instantly using cached data
-                    window.renderPlanDetails(index); 
+                    // Use Global function or defined logic
+                    if (window.renderPlanDetailsInternal) window.renderPlanDetailsInternal(index); 
                     planMenuInstance.closeAll();
                 }
             });
@@ -246,8 +405,7 @@ export function renderProfilePage(renderFunc, params) {
 
                 if (data.status === "approved" && data.activePlans?.length > 0) {
                     
-                    // --- NEW: PARALLEL PREFETCH (Fastest Way) ---
-                    // Fetch data for ALL plans immediately in the background
+                    // Fire and forget: Fetch all data in parallel
                     prefetchAllPlansParallel(data.activePlans);
 
                     let currentIndex = 0;
@@ -266,7 +424,8 @@ export function renderProfilePage(renderFunc, params) {
 
                     renderPlanSelector(data.activePlans, currentIndex);
 
-                    window.renderPlanDetails = (planIndex) => {
+                    // Assign to a local variable to be used by the menu click handler
+                    window.renderPlanDetailsInternal = (planIndex) => {
                         const plan = data.activePlans[planIndex];
                         const container = document.getElementById("plan-details-container");
                         if(!plan) return;
@@ -300,14 +459,13 @@ export function renderProfilePage(renderFunc, params) {
                                     document.getElementById(`tab-${e.target.dataset.tab}`).classList.add('active');
                                     
                                     const tabId = e.target.dataset.tab;
-                                    if(tabId === 'config') updateRenewButton(plan);
+                                    if(tabId === 'config') updateRenewButton(plan, data.activePlans);
                                     if(tabId === 'usage') {
-                                        // CHECK CACHE: Using Global Cache
                                         if (usageDataCache[plan.v2rayUsername]) {
                                             renderUsageHTML(usageDataCache[plan.v2rayUsername], plan.v2rayUsername);
-                                            loadUsageStats(true); // Silent update for fresh data
+                                            loadUsageStats(plan.v2rayUsername, true); 
                                         } else {
-                                            loadUsageStats(false); // Show loader if not cached yet
+                                            loadUsageStats(plan.v2rayUsername, false); 
                                         }
                                     }
                                     if(tabId === 'orders') {
@@ -324,13 +482,13 @@ export function renderProfilePage(renderFunc, params) {
                             setupEventListeners();
                         }
 
-                        // --- Force refresh usage tab content if it is already active (Handling switch case) ---
+                        // --- Handling tab switch or initial render logic ---
                         if (document.getElementById('tab-usage')?.classList.contains('active')) {
                              if (usageDataCache[plan.v2rayUsername]) {
                                 renderUsageHTML(usageDataCache[plan.v2rayUsername], plan.v2rayUsername);
-                                loadUsageStats(true); 
+                                loadUsageStats(plan.v2rayUsername, true); 
                             } else {
-                                loadUsageStats(false);
+                                loadUsageStats(plan.v2rayUsername, false);
                             }
                         }
 
@@ -353,10 +511,10 @@ export function renderProfilePage(renderFunc, params) {
                             newBtn.addEventListener('click', () => { navigator.clipboard.writeText(plan.v2rayLink); showToast({ title: 'Copied!', type: 'success' }); });
                         }
 
-                        updateRenewButton(plan);
+                        updateRenewButton(plan, data.activePlans);
                     };
 
-                    window.renderPlanDetails(currentIndex);
+                    window.renderPlanDetailsInternal(currentIndex);
 
                 } else if (data.status === "pending") {
                     statusContainer.innerHTML = `<div class="card-glass p-8 rounded-xl text-center"><i class="fa-solid fa-clock text-4xl text-amber-400 mb-4 animate-pulse"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Order Pending Approval</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">Your order is currently being reviewed. Your profile will update here once approved.</p></div>`;
@@ -368,189 +526,32 @@ export function renderProfilePage(renderFunc, params) {
                 }
             }
 
+            // --- POLLING LOGIC (Runs every 5 seconds) ---
             if (data.status === "approved" && data.activePlans?.length > 0) {
                 const activePlanUsername = document.querySelector('#plan-menu .trigger-menu .text')?.textContent;
                 const activePlan = data.activePlans.find(p => p.v2rayUsername === activePlanUsername);
 
-                // --- NEW: PARALLEL PREFETCH IMPLEMENTATION ---
-                async function prefetchAllPlansParallel(plans) {
-                    if (!plans || plans.length === 0 || isFetchingAll) return;
-                    isFetchingAll = true;
-
-                    // Fetch ALL plans concurrently using Promise.all
-                    const fetchPromises = plans.map(p => 
-                        apiFetch(`/api/check-usage/${p.v2rayUsername}`)
-                            .then(res => res.json())
-                            .then(result => {
-                                if (result.success) {
-                                    usageDataCache[p.v2rayUsername] = result.data;
-                                }
-                            })
-                            .catch(e => console.warn(`Prefetch failed for ${p.v2rayUsername}`, e))
-                    );
-
-                    await Promise.all(fetchPromises);
-                    isFetchingAll = false;
-                    
-                    // Trigger a refresh if the user is currently on the Usage tab
-                    if (document.getElementById('tab-usage')?.classList.contains('active') && activePlan) {
-                        const cached = usageDataCache[activePlan.v2rayUsername];
-                        if(cached) renderUsageHTML(cached, activePlan.v2rayUsername);
-                    }
-                }
-
-                const updateRenewButton = async (plan, isSilent = false) => {
-                    const container = document.getElementById("renew-button-container");
-                    if (!container) return;
-                    if (!isSilent) container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking status...</button>`;
-                    try {
-                        const res = await apiFetch(`/api/check-usage/${plan.v2rayUsername}`);
-                        const result = await res.json();
-                        if (result.success) {
-                            const expiryTime = result.data.expiryTime;
-                            if (expiryTime > 0) {
-                                const now = new Date();
-                                const renewalPeriodDays = 5;
-                                const canRenew = now >= new Date(new Date(expiryTime).getTime() - renewalPeriodDays * 86400000);
-                                if (canRenew) {
-                                    if (!document.getElementById('renew-profile-btn')) {
-                                        container.innerHTML = `<button id="renew-profile-btn" class="ai-button inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew / Change Plan</button>`;
-                                        document.getElementById('renew-profile-btn')?.addEventListener('click', () => handleRenewalChoice(data.activePlans, plan));
-                                    }
-                                } else {
-                                    if (!container.innerHTML.includes('disabled')) {
-                                        container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Renew / Change Plan</button>`;
-                                    }
-                                }
-                            } else {
-                                container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Does not expire</button>`;
-                            }
-                        }
-                    } catch (e) { if(!isSilent) container.innerHTML = `<p class="text-xs text-red-400">Error</p>`; }
-                };
-
-                // --- Helper: Render Usage HTML ---
-                const renderUsageHTML = (d, username) => {
-                    const usageContainer = document.getElementById("tab-usage");
-                    if (!usageContainer) return;
-
-                    const total = d.down + d.up;
-                    const percent = d.total > 0 ? Math.min((total / d.total) * 100, 100) : 0;
-                    
-                    const formatBytes = (b = 0, d = 2) => {
-                        const k = 1024;
-                        const s = ['B', 'KB', 'MB', 'GB', 'TB'];
-                        if (b === 0) return '0 B';
-                        const i = Math.floor(Math.log(b) / Math.log(k));
-                        return `${parseFloat((b / k ** i).toFixed(d))} ${s[i]}`;
-                    };
-
-                    const expiry = d.expiryTime > 0 ? new Date(d.expiryTime).toLocaleDateString('en-CA') : 'Unlimited';
-                    const status = d.enable ? `<span class="font-semibold text-green-400">ONLINE</span>` : `<span class="font-semibold text-red-400">OFFLINE</span>`;
-
-                    const html = `
-                        <div class="result-card p-4 sm:p-6 card-glass custom-radius space-y-5 reveal is-visible">
-                            <div class="flex justify-between items-center pb-3 border-b border-white/10">
-                                <h3 class="text-lg font-semibold text-white flex items-center min-w-0">
-                                    <i class="fa-solid fa-satellite-dish mr-3 text-blue-400 flex-shrink-0"></i>
-                                    <span class="truncate" title="${username}">Client: ${username}</span>
-                                </h3>
-                                <div id="rt-status">${status}</div>
-                            </div>
-                            ${d.total > 0 ? `<div class="space-y-2"><div class="flex justify-between items-baseline text-sm"><span class="font-medium text-gray-300">Data Quota Usage</span><span id="rt-percent" class="font-bold text-white">${percent.toFixed(1)}%</span></div><div class="w-full bg-black/30 rounded-full h-2.5"><div id="rt-bar" class="progress-bar-inner bg-gradient-to-r from-sky-500 to-blue-500 h-2.5 rounded-full" style="width: ${percent}%"></div></div></div>` : ''}
-                            <div class="space-y-4 text-sm sm:hidden">
-                                <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-circle-down text-sky-400 text-lg w-5 text-center"></i><span>Download</span></div><p id="rt-down-mob" class="font-semibold text-white text-base">${formatBytes(d.down)}</p></div>
-                                <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-circle-up text-violet-400 text-lg w-5 text-center"></i><span>Upload</span></div><p id="rt-up-mob" class="font-semibold text-white text-base">${formatBytes(d.up)}</p></div>
-                                <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-database text-green-400 text-lg w-5 text-center"></i><span>Total Used</span></div><p id="rt-total-mob" class="font-semibold text-white text-base">${formatBytes(total)}</p></div>
-                                <div class="flex justify-between items-center"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-calendar-xmark text-red-400 text-lg w-5 text-center"></i><span>Expires On</span></div><p id="rt-expiry-mob" class="font-medium text-white text-base">${expiry}</p></div>
-                            </div>
-                            <div class="hidden sm:grid sm:grid-cols-2 gap-4 text-sm">
-                                <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-circle-down text-sky-400 mr-2"></i><span>Download</span></div><p id="rt-down-desk" class="text-2xl font-bold text-white mt-1">${formatBytes(d.down)}</p></div>
-                                <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-circle-up text-violet-400 mr-2"></i><span>Upload</span></div><p id="rt-up-desk" class="text-2xl font-bold text-white mt-1">${formatBytes(d.up)}</p></div>
-                                <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-database text-green-400 mr-2"></i><span>Total Used</span></div><p id="rt-total-desk" class="text-2xl font-bold text-white mt-1">${formatBytes(total)}</p></div>
-                                <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-calendar-xmark text-red-400 mr-2"></i><span>Expires On</span></div><p id="rt-expiry-desk" class="text-xl font-medium text-white mt-1">${expiry}</p></div>
-                            </div>
-                        </div>`;
-                    
-                    usageContainer.innerHTML = html;
-                };
-
-                const loadUsageStats = (isSilent = false) => {
-                    const usageContainer = document.getElementById("tab-usage");
-                    if (!usageContainer) return;
-                    if (!isSilent) usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
-                    
-                    const targetUsername = activePlan.v2rayUsername;
-
-                    apiFetch(`/api/check-usage/${targetUsername}`).then(res => res.json()).then(result => {
-                        if (result.success) {
-                            usageDataCache[targetUsername] = result.data; // UPDATE CACHE
-                            renderUsageHTML(result.data, targetUsername);
-                        } else {
-                             if (!isSilent) usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-amber-400"><p>${result.message}</p></div>`;
-                        }
-                    }).catch(() => {
-                        if (!isSilent) usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-red-400"><p>Could not load usage statistics.</p></div>`;
-                    });
-                };
-
-                // --- Helper: Render Orders HTML ---
-                const renderOrdersHTML = (orders) => {
-                    const container = document.getElementById("tab-orders");
-                    if (!container) return;
-
-                    const html = (orders.length > 0) ? orders.map(order => {
-                        const displayStatus = order.status === 'queued_for_renewal' ? 'Queued' : order.status;
-                        const statusColors = { pending: "text-amber-400", approved: "text-green-400", rejected: "text-red-400", queued_for_renewal: "text-blue-300" };
-                        const statusIcons = { pending: "fa-solid fa-clock", approved: "fa-solid fa-check-circle", rejected: "fa-solid fa-times-circle", queued_for_renewal: "fa-solid fa-hourglass-half" };
-                        
-                        return `<div class="card-glass p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 custom-radius">
-                            <div>
-                                <p class="font-bold text-white">${appData.plans[order.plan_id]?.name || order.plan_id} <span class="text-gray-400 font-normal">for</span> ${appData.connections.find(c => c.name === order.conn_id)?.name || order.conn_id}</p>
-                                <p class="text-xs text-gray-400 mt-1">Ordered on: ${new Date(order.created_at).toLocaleDateString()} ${order.status === 'approved' && order.final_username ? `| V2Ray User: <strong class="text-blue-300">${order.final_username}</strong>` : ''}</p>
-                            </div>
-                            <div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'}">
-                                <i class="${statusIcons[order.status] || 'fa-solid fa-question-circle'}"></i><span>${displayStatus}</span>
-                            </div>
-                        </div>`;
-                    }).join('') : `<div class="card-glass p-8 custom-radius text-center"><i class="fa-solid fa-box-open text-4xl text-gray-400 mb-4"></i><h3 class="font-bold text-white">No Orders Found</h3><p class="text-gray-400 text-sm mt-2">You have not placed any orders yet.</p></div>`;
-                    
-                    container.innerHTML = `<div class="space-y-3">${html}</div>`;
-                }
-
-                const loadMyOrders = async (isSilent = false) => {
-                    const container = document.getElementById("tab-orders");
-                    if (!container) return;
-                    if (!isSilent) container.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
-                    try {
-                        const res = await apiFetch("/api/user/orders");
-                        const { orders } = await res.json();
-                        ordersCache = orders; // UPDATE CACHE
-                        renderOrdersHTML(orders);
-                    } catch (err) {
-                        if (!isSilent) container.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-red-400"><p>Could not load your orders.</p></div>`;
-                    }
-                };
-
                 if (activePlan) {
-                    // Update: Only load if active AND NOT CACHED, or forcing refresh
                     if (document.getElementById('tab-usage')?.classList.contains('active')) {
+                        // Ensure cache is used if available to avoid flicker, then update silently
                         if (usageDataCache[activePlan.v2rayUsername]) {
                             renderUsageHTML(usageDataCache[activePlan.v2rayUsername], activePlan.v2rayUsername);
-                            loadUsageStats(true); // Silent
+                            loadUsageStats(activePlan.v2rayUsername, true); 
                         } else {
-                            loadUsageStats(false); // Spinner
+                            loadUsageStats(activePlan.v2rayUsername, false);
                         }
                     }
                     if (document.getElementById('tab-orders')?.classList.contains('active')) {
                         if (ordersCache) {
                             renderOrdersHTML(ordersCache);
-                            loadMyOrders(true); // Silent
+                            loadMyOrders(true);
                         } else {
-                            loadMyOrders(false); // Spinner
+                            loadMyOrders(false);
                         }
                     }
-                    if (document.getElementById('tab-config')?.classList.contains('active')) updateRenewButton(activePlan, true);
+                    if (document.getElementById('tab-config')?.classList.contains('active')) {
+                        updateRenewButton(activePlan, data.activePlans, true);
+                    }
                 }
             }
 
