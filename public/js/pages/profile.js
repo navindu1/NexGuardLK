@@ -11,7 +11,8 @@ let usageDataCache = {};
 let ordersCache = null; 
 let activeFetchPromises = {};   
 let currentActivePlan = null; 
-let lastKnownPlansStr = ""; // *** FIX: මෙය Global Scope එකට ගෙනාවා (Menu එක Close වීම නවතී) ***
+let lastKnownPlansStr = ""; 
+let globalActivePlans = []; // **NEW: To track active plans count globally**
 
 // --- SMART DATA FETCHER ---
 const fetchClientData = async (username) => {
@@ -20,7 +21,13 @@ const fetchClientData = async (username) => {
     }
 
     const promise = apiFetch(`/api/check-usage/${username}`)
-        .then(res => res.json())
+        .then(res => {
+            // **NEW: Handle 404 (User Not Found) explicitly**
+            if (res.status === 404) {
+                return { success: false, isRemoved: true }; // Mark as removed
+            }
+            return res.json();
+        })
         .then(result => {
             if (result.success) {
                 usageDataCache[username] = result.data;
@@ -32,7 +39,7 @@ const fetchClientData = async (username) => {
         })
         .catch(err => {
             console.error(`Fetch error for ${username}:`, err);
-            return { success: false };
+            return { success: false, isError: true };
         })
         .finally(() => {
             delete activeFetchPromises[username];
@@ -50,7 +57,6 @@ export function renderProfilePage(renderFunc, params) {
 
     if (window.renderPlanDetailsInternal) window.renderPlanDetailsInternal = null;
     
-    // Page එකට ආපු ගමන් පරණ දත්ත අමතක කරන්න (Fresh Load එකක් වෙන්න)
     lastKnownPlansStr = ""; 
 
     const user = JSON.parse(localStorage.getItem("nexguard_user"));
@@ -131,7 +137,6 @@ export function renderProfilePage(renderFunc, params) {
         if (storedCache) usageDataCache = JSON.parse(storedCache);
     } catch(e) { console.warn("Cache parse error", e); }
 
-    // --- Listeners Setup ---
     const setupEventListeners = () => {
         const helpModal = document.getElementById('help-modal');
         if (helpModal) {
@@ -211,6 +216,7 @@ export function renderProfilePage(renderFunc, params) {
         }
     });
 
+    // --- RENDER HELPERS ---
     const renderUsageHTML = (d, username) => {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
@@ -254,6 +260,44 @@ export function renderProfilePage(renderFunc, params) {
             </div>`;
     };
 
+    // --- NEW: Render Plan Removed State ---
+    const renderPlanRemovedHTML = (username) => {
+        const usageContainer = document.getElementById("tab-usage");
+        if (!usageContainer) return;
+
+        const otherPlansAvailable = globalActivePlans.length > 1;
+        const buttonHtml = otherPlansAvailable 
+            ? `<button id="switch-plan-btn" class="ai-button secondary w-full rounded-lg mt-2"><i class="fa-solid fa-repeat mr-2"></i>Switch to Another Plan</button>`
+            : `<a href="/plans" class="nav-link-internal ai-button w-full rounded-lg mt-2 inline-block"><i class="fa-solid fa-plus mr-2"></i>Buy New Plan</a>`;
+
+        usageContainer.innerHTML = `
+            <div class="result-card p-6 card-glass custom-radius space-y-4 reveal is-visible border border-red-500/30 bg-red-500/10">
+                <div class="text-center">
+                    <i class="fa-solid fa-user-slash text-4xl text-red-400 mb-3"></i>
+                    <h3 class="text-xl font-bold text-white">Plan Removed</h3>
+                    <p class="text-sm text-gray-300 mt-1">Admin has removed the plan for <span class="font-semibold text-red-300">${username}</span>.</p>
+                </div>
+                <div class="pt-2">
+                    ${buttonHtml}
+                </div>
+            </div>`;
+
+        // Add event listener for switch button
+        if (otherPlansAvailable) {
+            document.getElementById('switch-plan-btn')?.addEventListener('click', () => {
+                // Find next available plan index
+                const currentIndex = globalActivePlans.findIndex(p => p.v2rayUsername === username);
+                const nextIndex = (currentIndex + 1) % globalActivePlans.length;
+                
+                // Update dropdown and render next plan
+                document.querySelector('#plan-menu .trigger-menu .text').textContent = globalActivePlans[nextIndex].v2rayUsername;
+                localStorage.setItem(`nexguard_last_plan_${user.username}`, globalActivePlans[nextIndex].v2rayUsername);
+                
+                if (window.renderPlanDetailsInternal) window.renderPlanDetailsInternal(nextIndex);
+            });
+        }
+    };
+
     const loadUsageStats = (username, isSilent = false) => {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
@@ -266,6 +310,9 @@ export function renderProfilePage(renderFunc, params) {
             if (currentActivePlan && currentActivePlan.v2rayUsername === username) {
                 if (result.success && result.data) {
                     renderUsageHTML(result.data, username);
+                } else if (result.isRemoved) {
+                    // **NEW: Show Plan Removed UI**
+                    renderPlanRemovedHTML(username);
                 } else if (!isSilent) {
                     usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-amber-400"><p>${result.message || 'Error loading usage.'}</p></div>`;
                 }
@@ -279,19 +326,11 @@ export function renderProfilePage(renderFunc, params) {
         const html = (orders.length > 0) ? orders.map(order => {
             const displayStatus = order.status === 'queued_for_renewal' ? 'Queued' : order.status;
             const statusColors = { pending: "text-amber-400", approved: "text-green-400", rejected: "text-red-400", queued_for_renewal: "text-blue-300" };
-            const statusIcons = { pending: "fa-solid fa-clock", approved: "fa-solid fa-check-circle", rejected: "fa-solid fa-times-circle", queued_for_renewal: "fa-solid fa-hourglass-half" };
-            
             return `<div class="card-glass p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 custom-radius">
-                <div>
-                    <p class="font-bold text-white">${appData.plans[order.plan_id]?.name || order.plan_id} <span class="text-gray-400 font-normal">for</span> ${appData.connections.find(c => c.name === order.conn_id)?.name || order.conn_id}</p>
-                    <p class="text-xs text-gray-400 mt-1">Ordered on: ${new Date(order.created_at).toLocaleDateString()} ${order.status === 'approved' && order.final_username ? `| V2Ray User: <strong class="text-blue-300">${order.final_username}</strong>` : ''}</p>
-                </div>
-                <div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'}">
-                    <i class="${statusIcons[order.status] || 'fa-solid fa-question-circle'}"></i><span>${displayStatus}</span>
-                </div>
+                <div><p class="font-bold text-white">${appData.plans[order.plan_id]?.name || order.plan_id} <span class="text-gray-400 font-normal">for</span> ${appData.connections.find(c => c.name === order.conn_id)?.name || order.conn_id}</p><p class="text-xs text-gray-400 mt-1">Ordered on: ${new Date(order.created_at).toLocaleDateString()}</p></div>
+                <div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'}"><span>${displayStatus}</span></div>
             </div>`;
-        }).join('') : `<div class="card-glass p-8 custom-radius text-center"><i class="fa-solid fa-box-open text-4xl text-gray-400 mb-4"></i><h3 class="font-bold text-white">No Orders Found</h3><p class="text-gray-400 text-sm mt-2">You have not placed any orders yet.</p></div>`;
-        
+        }).join('') : `<div class="card-glass p-8 custom-radius text-center"><i class="fa-solid fa-box-open text-4xl text-gray-400 mb-4"></i><h3 class="font-bold text-white">No Orders</h3></div>`;
         container.innerHTML = `<div class="space-y-3">${html}</div>`;
     }
 
@@ -319,22 +358,21 @@ export function renderProfilePage(renderFunc, params) {
             if (result.success) {
                 const expiryTime = result.data.expiryTime;
                 if (expiryTime > 0) {
-                    const now = new Date();
-                    const renewalPeriodDays = 5;
-                    const canRenew = now >= new Date(new Date(expiryTime).getTime() - renewalPeriodDays * 86400000);
+                    const canRenew = new Date() >= new Date(new Date(expiryTime).getTime() - 5 * 86400000);
                     if (canRenew) {
                         if (!document.getElementById('renew-profile-btn')) {
                             container.innerHTML = `<button id="renew-profile-btn" class="ai-button inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew / Change Plan</button>`;
                             document.getElementById('renew-profile-btn')?.addEventListener('click', () => handleRenewalChoice(activePlans, plan));
                         }
                     } else {
-                        if (!container.innerHTML.includes('disabled')) {
-                            container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Renew / Change Plan</button>`;
-                        }
+                        container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Renew / Change Plan</button>`;
                     }
                 } else {
                     container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Does not expire</button>`;
                 }
+            } else if (result.isRemoved) {
+                // If plan removed, show disabled button with reason
+                container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed bg-red-500/20 text-red-300 border-red-500/30">Plan Removed</button>`;
             }
         } catch (e) {}
     };
@@ -391,6 +429,9 @@ export function renderProfilePage(renderFunc, params) {
             if (data.status === "approved" && data.activePlans?.length > 0) {
                 // Prefetch All
                 data.activePlans.forEach(p => fetchClientData(p.v2rayUsername));
+                
+                // **NEW: Update Global Active Plans**
+                globalActivePlans = data.activePlans;
 
                 let currentIndex = 0;
                 // Restore Last Selection using user-specific key
