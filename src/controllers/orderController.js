@@ -1,5 +1,4 @@
 // File Path: src/controllers/orderController.js
-// --- COMPLETE FIXED CODE ---
 
 const supabase = require('../config/supabaseClient');
 const transporter = require('../config/mailer');
@@ -18,17 +17,19 @@ exports.createOrder = async (req, res) => {
     }
 
     try {
-        // --- FIX 1: Auto-Detect Renewal vs Change ---
-        // පරිශීලකයා 'Change Plan' තෝරාගෙන තිබුණත්, ඔහු Username එක වෙනස් කර නැත්නම් (Nelumi -> Nelumi),
-        // අපි එය Renewal එකක් ලෙස සලකමු. එවිට UUID වෙනස් නොවී Traffic/Date Reset පමණක් සිදු වේ.
-        if (old_v2ray_username && username && old_v2ray_username.trim().toLowerCase() === username.trim().toLowerCase()) {
-            console.log(`[Order Logic] Same username detected (${username}). Converting 'Change' to 'Renewal' mode.`);
-            isRenewal = "true"; 
-        }
-        
-        // Convert to boolean for internal use
-        const isRenewalBool = (isRenewal === "true" || isRenewal === true);
+        // --- 1. Fetch Plan Details FIRST (Need total_gb for limits) ---
+        const { data: planData, error: planError } = await supabase
+            .from('plans')
+            .select('price, total_gb')
+            .eq('plan_name', planId)
+            .single();
 
+        if (planError || !planData) throw new Error("Invalid plan selected.");
+        
+        const orderPrice = planData.price;
+        const totalGBValue = (planData.total_gb || 0) * 1024 * 1024 * 1024; // Convert to Bytes
+
+        // --- 2. Fetch Connection Details ---
         const { data: connection, error: connError } = await supabase
             .from('connections')
             .select('*')
@@ -39,45 +40,15 @@ exports.createOrder = async (req, res) => {
             return res.status(404).json({ success: false, message: "Invalid connection type selected." });
         }
 
+        // --- 3. Determine TARGET Inbound & Template (New Configuration) ---
+        let targetInboundId = inboundId;
+        let targetVlessTemplate = vlessTemplate;
         let finalPkg = pkg;
 
-        // ============================================================
-        // 1. SMART PACKAGE & INBOUND DETECTION
-        // ============================================================
-        
-        // Renewal එකක් නම් (හෝ අපි Renewal ලෙස හඳුනා ගත්තා නම්), User දැනට ඉන්න Inbound එක සොයාගන්න.
-        if (isRenewalBool && username) {
-             console.log(`[Order] Renewal detected for ${username}. Looking up existing inbound...`);
-             try {
-                 const clientInPanel = await v2rayService.findV2rayClient(username);
-                 if (clientInPanel) {
-                     inboundId = clientInPanel.inboundId;
-                     
-                     // Inbound එකට අදාළ Template එක ගන්න
-                     const { data: pkgInfo } = await supabase
-                        .from('packages')
-                        .select('template, name')
-                        .eq('inbound_id', inboundId)
-                        .single();
-                        
-                     if (pkgInfo) {
-                         vlessTemplate = pkgInfo.template;
-                         finalPkg = pkgInfo.name;
-                     } else {
-                         vlessTemplate = connection.default_vless_template;
-                     }
-                     console.log(`[Order] Found existing user on Inbound ${inboundId}.`);
-                 }
-             } catch (err) {
-                 console.error("[Order] Failed to lookup existing client for renewal:", err);
-             }
-        }
-
-        // Inbound ID සොයාගත නොහැකි නම් සාමාන්‍ය ක්‍රමයට සොයන්න
-        if (!inboundId) {
+        if (!targetInboundId) {
             if (connection.requires_package_choice) {
                 if (!finalPkg) { 
-                    return res.status(400).json({ success: false, message: 'A package selection is required for this connection type.' });
+                    return res.status(400).json({ success: false, message: 'A package selection is required.' });
                 }
                 
                 const { data: selectedPackage, error: pkgError } = await supabase
@@ -91,30 +62,63 @@ exports.createOrder = async (req, res) => {
                     return res.status(400).json({ success: false, message: 'Invalid package selected.' });
                 }
 
-                inboundId = selectedPackage.inbound_id;
-                vlessTemplate = selectedPackage.template;
+                targetInboundId = selectedPackage.inbound_id;
+                targetVlessTemplate = selectedPackage.template;
             } else {
-                inboundId = connection.default_inbound_id;
-                vlessTemplate = connection.default_vless_template;
+                targetInboundId = connection.default_inbound_id;
+                targetVlessTemplate = connection.default_vless_template;
                 finalPkg = connection.default_package || connection.name; 
             }
         }
 
-        if (!inboundId || !vlessTemplate) {
-            return res.status(500).json({ success: false, message: 'The selected connection is not configured correctly.' });
+        if (!targetInboundId || !targetVlessTemplate) {
+            return res.status(500).json({ success: false, message: 'Connection configuration error.' });
+        }
+
+        // --- 4. SMART RENEWAL vs CHANGE DETECTION ---
+        // We check if the user is staying on the SAME Inbound (Renewal) or moving to a NEW one (Change).
+        
+        let isRenewalBool = (isRenewal === "true" || isRenewal === true);
+
+        if (old_v2ray_username) {
+            try {
+                const existingClient = await v2rayService.findV2rayClient(old_v2ray_username);
+                
+                if (existingClient) {
+                    const currentInboundId = parseInt(existingClient.inboundId);
+                    const newInboundId = parseInt(targetInboundId);
+
+                    if (currentInboundId === newInboundId) {
+                        // Same Inbound: Treat as Renewal/Upgrade to keep the same UUID/Config
+                        console.log(`[Order Logic] Same Inbound (${currentInboundId}). Treating as RENEWAL.`);
+                        isRenewalBool = true;
+                    } else {
+                        // Different Inbound: Treat as Change/Migration (New User will be created)
+                        console.log(`[Order Logic] Inbound Change (${currentInboundId} -> ${newInboundId}). Treating as CHANGE.`);
+                        isRenewalBool = false; 
+                    }
+                } else {
+                    // Client not found? Treat as new creation on new inbound
+                    isRenewalBool = false;
+                }
+            } catch (err) {
+                console.error("[Order Logic] Failed to lookup existing client:", err);
+                // Fallback: If check fails, default to false (New/Change) to avoid overwriting wrong user
+                isRenewalBool = false; 
+            }
         }
 
         // ============================================================
-        // 2. IMMEDIATE RENEWAL EXECUTION (AUTO-UPDATE)
+        // 5. IMMEDIATE RENEWAL EXECUTION (AUTO-UPDATE)
         // ============================================================
-        // Renewal එකක් නම් V2Ray Panel එක එසැනින් Update කරන්න. 
-        // මෙය මගින් Nelumi-1 හැදීම වලකින අතර පරණ Nelumi ම Update වේ.
+        // Only run this if it is strictly a Renewal on the SAME inbound.
         
         let orderUUID = uuidv4(); 
 
         if (isRenewalBool) {
             try {
-                const currentClient = await v2rayService.findV2rayClient(username); // Using 'username' because it matches old_v2ray_username
+                // Use 'username' as it usually matches old_v2ray_username in renewals
+                const currentClient = await v2rayService.findV2rayClient(username) || await v2rayService.findV2rayClient(old_v2ray_username);
                 
                 if (currentClient && currentClient.client) {
                     const now = Date.now();
@@ -128,18 +132,18 @@ exports.createOrder = async (req, res) => {
                         newExpiryTime = now + (30 * 24 * 60 * 60 * 1000);
                     }
 
-                    // Update ONLY (UUID වෙනස් නොකර Update කරන්න)
+                    // Update UUID, Email, AND Data Limit (Total GB)
                     await v2rayService.updateClient(currentClient.inboundId, currentClient.client.id, {
                         id: currentClient.client.id,      // Keep existing UUID
                         email: currentClient.client.email, // Keep existing Email
                         expiryTime: newExpiryTime,
+                        total: totalGBValue,              // Apply NEW Data Limit from the Plan
                         enable: true,
-                        total: currentClient.client.total || 0,
                         limitIp: currentClient.client.limitIp || 0,
                         flow: currentClient.client.flow || ""
                     });
 
-                    console.log(`[Order] Immediate Renewal Applied for ${currentClient.client.email}`);
+                    console.log(`[Order] Immediate Renewal Applied for ${currentClient.client.email} with ${planData.total_gb}GB limit.`);
                 }
             } catch (err) {
                 console.error("[Order] Auto-renewal failed during order creation:", err);
@@ -147,12 +151,9 @@ exports.createOrder = async (req, res) => {
         }
 
         // ============================================================
-        // 3. SAVE ORDER TO DATABASE
+        // 6. SAVE ORDER TO DATABASE
         // ============================================================
         
-        const { data: planData } = await supabase.from('plans').select('price').eq('plan_name', planId).single();
-        const orderPrice = planData ? planData.price : 0;
-
         const file = req.file;
         const fileExt = file.originalname.split('.').pop();
         const fileName = `receipt-${Date.now()}.${fileExt}`;
@@ -175,10 +176,10 @@ exports.createOrder = async (req, res) => {
             whatsapp,
             receipt_path: urlData.publicUrl,
             status: "pending",
-            is_renewal: isRenewalBool, // IMPORTANT: Save as true so Admin sees "Renew"
+            is_renewal: isRenewalBool, // This determines how Admin Panel sees it
             old_v2ray_username: old_v2ray_username || null,
-            inbound_id: parseInt(inboundId, 10),
-            vless_template: vlessTemplate,
+            inbound_id: parseInt(targetInboundId, 10),
+            vless_template: targetVlessTemplate,
             price: orderPrice
         };
 
