@@ -1,3 +1,4 @@
+
 // File: public/js/pages/profile.js
 import { apiFetch, appData } from '../api.js';
 import { showToast, SikFloatingMenu, togglePassword, qrModalLogic } from '../utils.js';
@@ -25,6 +26,7 @@ const fetchClientData = async (username) => {
     const promise = apiFetch(`/api/check-usage/${username}?_=${timestamp}`)
         .then(res => {
             // **CRITICAL FIX: Handle 404 immediately**
+            // If 404, it implies user is not found in active list, but we treat it as "Expired/Inactive" for UI
             if (res.status === 404) {
                 return { success: false, isRemoved: true }; 
             }
@@ -264,21 +266,37 @@ export function renderProfilePage(renderFunc, params) {
         if (!usageContainer) return;
 
         const otherPlansAvailable = globalActivePlans.length > 1;
-        const buttonHtml = otherPlansAvailable 
-            ? `<button id="switch-plan-btn" class="ai-button secondary w-full rounded-lg mt-2"><i class="fa-solid fa-repeat mr-2"></i>Switch to Another Plan</button>`
-            : `<a href="/plans" class="nav-link-internal ai-button w-full rounded-lg mt-2 inline-block"><i class="fa-solid fa-plus mr-2"></i>Buy New Plan</a>`;
+        
+        // --- NEW: Handle Renewal even if removed (Expired/Inactive) ---
+        const renewalActionHtml = `<button id="renew-removed-plan-btn" class="ai-button w-full rounded-lg mt-2 inline-block"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew This Plan</button>`;
+        
+        const switchHtml = otherPlansAvailable 
+            ? `<button id="switch-plan-btn" class="ai-button secondary w-full rounded-lg mt-2"><i class="fa-solid fa-repeat mr-2"></i>Switch Plan</button>`
+            : '';
 
         usageContainer.innerHTML = `
-            <div class="result-card p-6 card-glass custom-radius space-y-4 reveal is-visible border border-red-500/30 bg-red-500/10">
+            <div class="result-card p-6 card-glass custom-radius space-y-4 reveal is-visible border border-amber-500/30 bg-amber-500/10">
                 <div class="text-center">
-                    <i class="fa-solid fa-user-slash text-4xl text-red-400 mb-3"></i>
-                    <h3 class="text-xl font-bold text-white">Plan Removed</h3>
-                    <p class="text-sm text-gray-300 mt-1">Admin has removed the plan for <span class="font-semibold text-red-300">${username}</span>.</p>
+                    <i class="fa-solid fa-triangle-exclamation text-4xl text-amber-400 mb-3"></i>
+                    <h3 class="text-xl font-bold text-white">Plan Expired / Inactive</h3>
+                    <p class="text-sm text-gray-300 mt-1">We couldn't find active data for <span class="font-semibold text-amber-300">${username}</span>. It may have expired.</p>
                 </div>
-                <div class="pt-2">
-                    ${buttonHtml}
+                <div class="pt-2 flex flex-col gap-2">
+                    ${renewalActionHtml}
+                    ${switchHtml}
                 </div>
             </div>`;
+
+        // Add event listener for the new "Renew This Plan" button
+        document.getElementById('renew-removed-plan-btn')?.addEventListener('click', () => {
+             // Find the plan object from globalActivePlans
+             const plan = globalActivePlans.find(p => p.v2rayUsername === username);
+             if (plan) {
+                 handleRenewalChoice(globalActivePlans, plan);
+             } else {
+                 showToast({ title: "Error", message: "Could not identify plan details.", type: "error" });
+             }
+        });
 
         if (otherPlansAvailable) {
             document.getElementById('switch-plan-btn')?.addEventListener('click', () => {
@@ -308,7 +326,7 @@ export function renderProfilePage(renderFunc, params) {
                     // Update expiry and other stats live
                     renderUsageHTML(result.data, username);
                 } else if (result.isRemoved) {
-                    // **CRITICAL:** Show removed state immediately without reload
+                    // **CRITICAL:** Show "Expired/Inactive" state with Renew button
                     renderPlanRemovedHTML(username);
                 } else if (!isSilent) {
                     usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-amber-400"><p>${result.message || 'Error loading usage.'}</p></div>`;
@@ -356,6 +374,16 @@ export function renderProfilePage(renderFunc, params) {
         
         try {
             const result = await fetchClientData(plan.v2rayUsername);
+            
+            // --- NEW LOGIC START ---
+            // We define "needsRenewal" if:
+            // 1. Success AND (Expired OR Expiring Soon)
+            // 2. isRemoved (Not found in panel = Expired/Inactive)
+            
+            let shouldEnableRenew = false;
+            let btnText = "Renew / Change Plan";
+            let btnClass = "ai-button";
+
             if (result.success) {
                 // Parse expiry time safely as an integer timestamp
                 const expiryTimestamp = parseInt(result.data.expiryTime, 10);
@@ -363,31 +391,46 @@ export function renderProfilePage(renderFunc, params) {
                 
                 if (expiryTimestamp > 0) {
                     const fiveDaysInMs = 5 * 24 * 60 * 60 * 1000;
-                    
-                    // Condition 1: Already Expired (now > expiry)
-                    // Condition 2: Expiring Soon (now >= expiry - 5 days)
                     const isExpired = now > expiryTimestamp;
                     const isExpiringSoon = now >= (expiryTimestamp - fiveDaysInMs);
 
-                    if (isExpired || isExpiringSoon) {
-                        const btnText = isExpired ? "Renew Plan (Expired)" : "Renew / Change Plan";
-                        // Note: Keeping standard styling, but text indicates urgency
-                        
-                        container.innerHTML = `<button id="renew-profile-btn" class="ai-button inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>${btnText}</button>`;
-                        
-                        document.getElementById('renew-profile-btn')?.addEventListener('click', () => handleRenewalChoice(activePlans, plan));
+                    if (isExpired) {
+                        shouldEnableRenew = true;
+                        btnText = "Renew Plan (Expired)";
+                        btnClass = "ai-button bg-amber-500 hover:bg-amber-600 border-none text-white"; // Highlighted style
+                    } else if (isExpiringSoon) {
+                        shouldEnableRenew = true;
+                        btnText = "Renew Plan (Expiring Soon)";
                     } else {
-                        // Not yet time to renew
-                        container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Renew / Change Plan</button>`;
+                        // Not expired, not expiring soon
+                        shouldEnableRenew = false;
                     }
                 } else {
-                    container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Does not expire</button>`;
+                    // Unlimited expiry
+                    shouldEnableRenew = false;
+                    btnText = "Does not expire";
                 }
             } else if (result.isRemoved) {
-                container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed bg-red-500/20 text-red-300 border-red-500/30">Plan Removed</button>`;
+                // **CRITICAL FIX**: If removed/not found, treat as Expired and ENABLE renewal
+                shouldEnableRenew = true;
+                btnText = "Renew Plan (Inactive/Expired)";
+                btnClass = "ai-button bg-red-600 hover:bg-red-700 border-none text-white"; // Alert style
             }
+
+            // Render Button
+            if (shouldEnableRenew) {
+                container.innerHTML = `<button id="renew-profile-btn" class="${btnClass} inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>${btnText}</button>`;
+                document.getElementById('renew-profile-btn')?.addEventListener('click', () => handleRenewalChoice(activePlans, plan));
+            } else {
+                container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed text-gray-400 border-gray-600">${btnText}</button>`;
+            }
+            // --- NEW LOGIC END ---
+
         } catch (e) {
             console.error("Renew button update error", e);
+            // Fallback in case of error: Allow renewal to be safe
+             container.innerHTML = `<button id="renew-profile-btn" class="ai-button secondary inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew Plan</button>`;
+             document.getElementById('renew-profile-btn')?.addEventListener('click', () => handleRenewalChoice(activePlans, plan));
         }
     };
 
