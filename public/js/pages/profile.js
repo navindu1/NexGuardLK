@@ -14,10 +14,10 @@ export function renderProfilePage(renderFunc, params) {
     }
     lastKnownPlansStr = ""; 
 
-    // --- CACHE VARIABLES ---
-    let cachedUsageData = null; // Store usage data here
-    let cachedOrdersData = null; // Store orders here
-    let lastFetchedUsername = null; // To track if we switched users
+    // --- NEW: Cache Objects (Data Store) ---
+    // තනි variable එකක් වෙනුවට, එක් එක් username එකට අදාළ data ගබඩා කිරීමට Object එකක් භාවිතා කරයි.
+    let usageDataCache = {}; // Format: { 'username1': {data...}, 'username2': {data...} }
+    let ordersCache = null; 
 
     const user = JSON.parse(localStorage.getItem("nexguard_user"));
     if (!user) {
@@ -223,8 +223,7 @@ export function renderProfilePage(renderFunc, params) {
                     e.preventDefault();
                     const index = parseInt(link.dataset.planIndex);
                     document.querySelector('#plan-menu .trigger-menu .text').textContent = activePlans[index].v2rayUsername;
-                    // When switching plans manually, reset cache so we fetch fresh data for the new plan
-                    cachedUsageData = null; 
+                    // Note: We do NOT clear cache here, so it loads instantly if available
                     window.renderPlanDetails(index); 
                     planMenuInstance.closeAll();
                 }
@@ -245,6 +244,10 @@ export function renderProfilePage(renderFunc, params) {
                 lastKnownPlansStr = currentPlansStr;
 
                 if (data.status === "approved" && data.activePlans?.length > 0) {
+                    
+                    // --- NEW: Prefetch all plans in background ---
+                    prefetchAllPlans(data.activePlans);
+
                     let currentIndex = 0;
                     const currentViewedName = document.querySelector('#plan-menu .trigger-menu .text')?.textContent;
                     
@@ -266,12 +269,6 @@ export function renderProfilePage(renderFunc, params) {
                         const container = document.getElementById("plan-details-container");
                         if(!plan) return;
                         
-                        // Reset cache if username changes
-                        if (lastFetchedUsername !== plan.v2rayUsername) {
-                            cachedUsageData = null;
-                            lastFetchedUsername = plan.v2rayUsername;
-                        }
-
                         const connectionName = appData.connections.find(c => c.name === plan.connId)?.name || plan.connId || 'N/A';
                         const planName = appData.plans[plan.planId]?.name || plan.planId;
                         document.getElementById("plan-info-container").innerHTML = `<span class="bg-blue-500/10 text-blue-300 px-2 py-1 rounded-full"><i class="fa-solid fa-rocket fa-fw mr-2"></i>${planName}</span><span class="bg-indigo-500/10 text-indigo-300 px-2 py-1 rounded-full"><i class="fa-solid fa-wifi fa-fw mr-2"></i>${connectionName}</span>`;
@@ -303,27 +300,36 @@ export function renderProfilePage(renderFunc, params) {
                                     const tabId = e.target.dataset.tab;
                                     if(tabId === 'config') updateRenewButton(plan);
                                     if(tabId === 'usage') {
-                                        // CHECK CACHE FIRST
-                                        if (cachedUsageData) {
-                                            renderUsageHTML(cachedUsageData);
-                                            loadUsageStats(true); // Silent background refresh
+                                        // CHECK CACHE: If data exists for this specific username, use it!
+                                        if (usageDataCache[plan.v2rayUsername]) {
+                                            renderUsageHTML(usageDataCache[plan.v2rayUsername], plan.v2rayUsername);
+                                            loadUsageStats(true); // Silent update
                                         } else {
-                                            loadUsageStats(false); // Show spinner
+                                            loadUsageStats(false); // Show loader
                                         }
                                     }
                                     if(tabId === 'orders') {
-                                        // CHECK CACHE FIRST
-                                        if (cachedOrdersData) {
-                                            renderOrdersHTML(cachedOrdersData);
-                                            loadMyOrders(true); // Silent background refresh
+                                        if (ordersCache) {
+                                            renderOrdersHTML(ordersCache);
+                                            loadMyOrders(true);
                                         } else {
-                                            loadMyOrders(false); // Show spinner
+                                            loadMyOrders(false);
                                         }
                                     }
                                 }
                             });
                             
                             setupEventListeners();
+                        }
+
+                        // --- Force refresh usage tab content if it is already active (Handling switch case) ---
+                        if (document.getElementById('tab-usage')?.classList.contains('active')) {
+                             if (usageDataCache[plan.v2rayUsername]) {
+                                renderUsageHTML(usageDataCache[plan.v2rayUsername], plan.v2rayUsername);
+                                loadUsageStats(true); 
+                            } else {
+                                loadUsageStats(false);
+                            }
                         }
 
                         const qrContainer = document.getElementById("qrcode-container");
@@ -364,6 +370,25 @@ export function renderProfilePage(renderFunc, params) {
                 const activePlanUsername = document.querySelector('#plan-menu .trigger-menu .text')?.textContent;
                 const activePlan = data.activePlans.find(p => p.v2rayUsername === activePlanUsername);
 
+                // --- NEW: Prefetch Function ---
+                async function prefetchAllPlans(plans) {
+                    if (!plans || plans.length === 0) return;
+                    
+                    // Don't prefetch active plan (it gets fetched by UI), fetch others
+                    const otherPlans = plans.filter(p => p.v2rayUsername !== activePlanUsername);
+                    
+                    for (const p of otherPlans) {
+                        // Silent fetch to populate cache
+                        try {
+                            const res = await apiFetch(`/api/check-usage/${p.v2rayUsername}`);
+                            const result = await res.json();
+                            if (result.success) {
+                                usageDataCache[p.v2rayUsername] = result.data;
+                            }
+                        } catch(e) { console.warn("Prefetch fail", e); }
+                    }
+                }
+
                 const updateRenewButton = async (plan, isSilent = false) => {
                     const container = document.getElementById("renew-button-container");
                     if (!container) return;
@@ -395,7 +420,7 @@ export function renderProfilePage(renderFunc, params) {
                 };
 
                 // --- Helper: Render Usage HTML ---
-                const renderUsageHTML = (d) => {
+                const renderUsageHTML = (d, username) => {
                     const usageContainer = document.getElementById("tab-usage");
                     if (!usageContainer) return;
 
@@ -418,7 +443,7 @@ export function renderProfilePage(renderFunc, params) {
                             <div class="flex justify-between items-center pb-3 border-b border-white/10">
                                 <h3 class="text-lg font-semibold text-white flex items-center min-w-0">
                                     <i class="fa-solid fa-satellite-dish mr-3 text-blue-400 flex-shrink-0"></i>
-                                    <span class="truncate" title="${activePlan.v2rayUsername}">Client: ${activePlan.v2rayUsername}</span>
+                                    <span class="truncate" title="${username}">Client: ${username}</span>
                                 </h3>
                                 <div id="rt-status">${status}</div>
                             </div>
@@ -445,10 +470,12 @@ export function renderProfilePage(renderFunc, params) {
                     if (!usageContainer) return;
                     if (!isSilent) usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
                     
-                    apiFetch(`/api/check-usage/${activePlan.v2rayUsername}`).then(res => res.json()).then(result => {
+                    const targetUsername = activePlan.v2rayUsername;
+
+                    apiFetch(`/api/check-usage/${targetUsername}`).then(res => res.json()).then(result => {
                         if (result.success) {
-                            cachedUsageData = result.data; // UPDATE CACHE
-                            renderUsageHTML(result.data);
+                            usageDataCache[targetUsername] = result.data; // UPDATE CACHE with Specific Key
+                            renderUsageHTML(result.data, targetUsername);
                         } else {
                              if (!isSilent) usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-amber-400"><p>${result.message}</p></div>`;
                         }
@@ -488,7 +515,7 @@ export function renderProfilePage(renderFunc, params) {
                     try {
                         const res = await apiFetch("/api/user/orders");
                         const { orders } = await res.json();
-                        cachedOrdersData = orders; // UPDATE CACHE
+                        ordersCache = orders; // UPDATE CACHE
                         renderOrdersHTML(orders);
                     } catch (err) {
                         if (!isSilent) container.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-red-400"><p>Could not load your orders.</p></div>`;
@@ -498,12 +525,20 @@ export function renderProfilePage(renderFunc, params) {
                 if (activePlan) {
                     // Update: Only load if active AND NOT CACHED, or forcing refresh
                     if (document.getElementById('tab-usage')?.classList.contains('active')) {
-                        // Polling update (silent)
-                        loadUsageStats(true); 
+                        if (usageDataCache[activePlan.v2rayUsername]) {
+                            renderUsageHTML(usageDataCache[activePlan.v2rayUsername], activePlan.v2rayUsername);
+                            loadUsageStats(true); // Silent
+                        } else {
+                            loadUsageStats(false); // Spinner
+                        }
                     }
                     if (document.getElementById('tab-orders')?.classList.contains('active')) {
-                        // Polling update (silent)
-                        loadMyOrders(true);
+                        if (ordersCache) {
+                            renderOrdersHTML(ordersCache);
+                            loadMyOrders(true); // Silent
+                        } else {
+                            loadMyOrders(false); // Spinner
+                        }
                     }
                     if (document.getElementById('tab-config')?.classList.contains('active')) updateRenewButton(activePlan, true);
                 }
