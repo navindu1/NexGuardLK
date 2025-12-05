@@ -5,19 +5,19 @@ import { navigateTo } from '../router.js';
 import { handleRenewalChoice } from './checkout.js';
 
 let profilePollingInterval = null;
-let lastKnownPlansStr = ""; 
 
 // --- GLOBAL STATE ---
-let usageDataCache = {};        // දත්ත ගබඩාව (Data Store)
-let activeFetchPromises = {};   // දැනට ක්‍රියාත්මක වන ඉල්ලීම් (Active Requests)
+// මේවා Module level එකේ තියෙන්න ඕනේ පිටු අතර මාරු වෙද්දි Data රැකගන්න.
+let usageDataCache = {};        
 let ordersCache = null; 
+let activeFetchPromises = {};   
+let currentActivePlan = null; // **NEW: දැනට තෝරාගෙන ඇති Plan එක ගබඩා කිරීමට**
 
 export function renderProfilePage(renderFunc, params) {
     if (profilePollingInterval) {
         clearInterval(profilePollingInterval);
         profilePollingInterval = null;
     }
-    lastKnownPlansStr = ""; 
 
     const user = JSON.parse(localStorage.getItem("nexguard_user"));
     if (!user) {
@@ -25,37 +25,7 @@ export function renderProfilePage(renderFunc, params) {
         return;
     }
 
-    // --- SMART DATA FETCHER (Request Deduplication) ---
-    // එකම Username එකට එකවර ඉල්ලීම් කිහිපයක් යාම වළක්වයි.
-    const fetchClientData = async (username) => {
-        // 1. දැනටමත් ඉල්ලීමක් ක්‍රියාත්මක නම්, එයම Return කරන්න (Wait for existing request)
-        if (activeFetchPromises[username]) {
-            return activeFetchPromises[username];
-        }
-
-        // 2. නැත්නම් අලුත් ඉල්ලීමක් අරඹන්න
-        const promise = apiFetch(`/api/check-usage/${username}`)
-            .then(res => res.json())
-            .then(result => {
-                if (result.success) {
-                    usageDataCache[username] = result.data; // Cache එක Update කරන්න
-                }
-                return result;
-            })
-            .catch(err => {
-                console.error(`Fetch error for ${username}:`, err);
-                return { success: false };
-            })
-            .finally(() => {
-                // 3. ඉල්ලීම අවසන් වූ පසු Promise ලැයිස්තුවෙන් ඉවත් කරන්න
-                delete activeFetchPromises[username];
-            });
-
-        activeFetchPromises[username] = promise;
-        return promise;
-    };
-
-    // --- HTML Helper ---
+    // --- HTML Helper Variables ---
     const modalHtml = `
         <div id="help-modal" class="help-modal-overlay">
             <div class="help-modal-content grease-glass p-6 space-y-4 w-full max-w-md">
@@ -118,7 +88,43 @@ export function renderProfilePage(renderFunc, params) {
     const statusContainer = document.getElementById("user-status-content");
     qrModalLogic.init();
 
-    // --- EVENT LISTENERS SETUP ---
+    // --- HELPER FUNCTIONS ---
+
+    const fetchClientData = async (username) => {
+        // Request Deduplication
+        if (activeFetchPromises[username]) {
+            return activeFetchPromises[username];
+        }
+        const promise = apiFetch(`/api/check-usage/${username}`)
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    usageDataCache[username] = result.data;
+                    // **NEW:** Save cache to LocalStorage for fast reload
+                    localStorage.setItem('nexguard_usage_cache', JSON.stringify(usageDataCache));
+                }
+                return result;
+            })
+            .catch(err => {
+                console.error(`Fetch error for ${username}:`, err);
+                return { success: false };
+            })
+            .finally(() => {
+                delete activeFetchPromises[username];
+            });
+
+        activeFetchPromises[username] = promise;
+        return promise;
+    };
+
+    // Restore Global Cache from LocalStorage on Init
+    try {
+        const storedCache = localStorage.getItem('nexguard_usage_cache');
+        if (storedCache) {
+            usageDataCache = JSON.parse(storedCache);
+        }
+    } catch(e) { console.error('Cache restore error', e); }
+
     const setupEventListeners = () => {
         const helpModal = document.getElementById('help-modal');
         if (helpModal) {
@@ -200,8 +206,6 @@ export function renderProfilePage(renderFunc, params) {
         }
     });
 
-    // --- UTILITY FUNCTIONS ---
-
     const renderUsageHTML = (d, username) => {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
@@ -251,17 +255,19 @@ export function renderProfilePage(renderFunc, params) {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
         
-        // Only show spinner if we don't have ANY data yet
         if (!isSilent && !usageDataCache[username]) {
             usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
         }
         
-        // Use the smart fetcher
         fetchClientData(username).then(result => {
-            if (result.success && result.data) {
-                renderUsageHTML(result.data, username);
-            } else {
-                 if (!isSilent) usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-amber-400"><p>${result.message || 'Error loading usage.'}</p></div>`;
+            // **FIX:** Ensure we only render if this result belongs to the CURRENTLY selected plan
+            // This prevents "stale data" from a previous slow request appearing after switching tabs
+            if (currentActivePlan && currentActivePlan.v2rayUsername === username) {
+                if (result.success && result.data) {
+                    renderUsageHTML(result.data, username);
+                } else if (!isSilent) {
+                    usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-amber-400"><p>${result.message || 'Error loading usage.'}</p></div>`;
+                }
             }
         });
     };
@@ -303,17 +309,19 @@ export function renderProfilePage(renderFunc, params) {
         }
     };
 
-    // Use fetched data for renewing status to reuse cache
     const updateRenewButton = async (plan, activePlans) => {
         const container = document.getElementById("renew-button-container");
         if (!container) return;
         
-        // Don't show loading if we have data
-        const hasCache = !!usageDataCache[plan.v2rayUsername];
-        if (!hasCache) container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking status...</button>`;
+        // Use cache to instantly show something if possible
+        if (usageDataCache[plan.v2rayUsername]) {
+             // Logic to show button immediately using cache could go here, 
+             // but checking status is fast enough usually.
+        } else {
+             container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking status...</button>`;
+        }
         
         try {
-            // Reuse the smart fetcher
             const result = await fetchClientData(plan.v2rayUsername);
             
             if (result.success) {
@@ -328,7 +336,9 @@ export function renderProfilePage(renderFunc, params) {
                             document.getElementById('renew-profile-btn')?.addEventListener('click', () => handleRenewalChoice(activePlans, plan));
                         }
                     } else {
-                        container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Renew / Change Plan</button>`;
+                        if (!container.innerHTML.includes('disabled')) {
+                            container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Renew / Change Plan</button>`;
+                        }
                     }
                 } else {
                     container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed">Does not expire</button>`;
@@ -337,7 +347,6 @@ export function renderProfilePage(renderFunc, params) {
         } catch (e) { console.error("Renew Check Error", e); }
     };
 
-    // --- DATA LOADING & RENDERING ---
     let planMenuInstance = null;
 
     const renderPlanSelector = (activePlans, activePlanIndex = 0) => {
@@ -393,6 +402,10 @@ export function renderProfilePage(renderFunc, params) {
                     e.preventDefault();
                     const index = parseInt(link.dataset.planIndex);
                     document.querySelector('#plan-menu .trigger-menu .text').textContent = activePlans[index].v2rayUsername;
+                    
+                    // **NEW:** Persist selection
+                    localStorage.setItem('nexguard_last_selected_plan', activePlans[index].v2rayUsername);
+                    
                     if (window.renderPlanDetailsInternal) window.renderPlanDetailsInternal(index); 
                     planMenuInstance.closeAll();
                 }
@@ -402,165 +415,184 @@ export function renderProfilePage(renderFunc, params) {
 
     const loadProfileData = async () => {
         try {
+            // **NEW: Load cached plans FIRST for instant render**
+            const cachedPlansStr = localStorage.getItem('nexguard_plans_cache');
+            if (cachedPlansStr && !lastKnownPlansStr) {
+                const cachedPlans = JSON.parse(cachedPlansStr);
+                // We use a dummy object structure to mimic API response for initial render
+                handleDataUpdate({ status: 'approved', activePlans: cachedPlans }, false);
+            }
+
+            // Fetch fresh data in background
             const res = await apiFetch("/api/user/status");
             if (!res.ok) throw new Error("Auth failed");
             const data = await res.json();
-
-            const currentPlansStr = JSON.stringify(data.activePlans || []);
-            const plansChanged = currentPlansStr !== lastKnownPlansStr;
-
-            if (plansChanged) {
-                lastKnownPlansStr = currentPlansStr;
-
-                if (data.status === "approved" && data.activePlans?.length > 0) {
-                    
-                    // --- PREFETCH LOGIC ---
-                    // Fire requests for all plans. Deduplication logic in fetchClientData will handle overlaps.
-                    data.activePlans.forEach(p => fetchClientData(p.v2rayUsername));
-
-                    let currentIndex = 0;
-                    const currentViewedName = document.querySelector('#plan-menu .trigger-menu .text')?.textContent;
-                    
-                    if (currentViewedName) {
-                        const foundIndex = data.activePlans.findIndex(p => p.v2rayUsername === currentViewedName);
-                        if (foundIndex !== -1) {
-                            currentIndex = foundIndex;
-                        } else {
-                            if (document.getElementById("plan-menu")) {
-                                showToast({ title: "Plan Removed", message: "The plan you were viewing is no longer active.", type: "info" });
-                            }
-                        }
-                    }
-
-                    renderPlanSelector(data.activePlans, currentIndex);
-
-                    // --- INTERNAL RENDER FUNCTION ---
-                    window.renderPlanDetailsInternal = (planIndex) => {
-                        const plan = data.activePlans[planIndex];
-                        const container = document.getElementById("plan-details-container");
-                        if(!plan) return;
-                        
-                        const connectionName = appData.connections.find(c => c.name === plan.connId)?.name || plan.connId || 'N/A';
-                        const planName = appData.plans[plan.planId]?.name || plan.planId;
-                        document.getElementById("plan-info-container").innerHTML = `<span class="bg-blue-500/10 text-blue-300 px-2 py-1 rounded-full"><i class="fa-solid fa-rocket fa-fw mr-2"></i>${planName}</span><span class="bg-indigo-500/10 text-indigo-300 px-2 py-1 rounded-full"><i class="fa-solid fa-wifi fa-fw mr-2"></i>${connectionName}</span>`;
-
-                        if(!document.getElementById('profile-tabs')) {
-                            container.innerHTML = `
-                            <div id="profile-tabs" class="flex items-center gap-4 sm:gap-6 border-b border-white/10 mb-6 overflow-x-auto"><button data-tab="config" class="tab-btn active">V2Ray Config</button><button data-tab="usage" class="tab-btn">Usage Stats</button><button data-tab="orders" class="tab-btn">My Orders</button><button data-tab="settings" class="tab-btn">Account Settings</button></div>
-                            <div id="tab-config" class="tab-panel active"><div class="card-glass p-6 sm:p-8 custom-radius"><div class="grid md:grid-cols-2 gap-8 items-center"><div class="flex flex-col items-center text-center"><h3 class="text-lg font-semibold text-white mb-3">Scan with your V2Ray App</h3><div id="qrcode-container" class="w-44 h-44 p-3 bg-white rounded-lg cursor-pointer flex items-center justify-center shadow-lg shadow-blue-500/20"></div></div><div class="space-y-6"><div class="w-full"><label class="text-sm text-gray-400">V2Ray Config Link</label><div class="flex items-center gap-2 mt-2"><input type="text" readonly value="${plan.v2rayLink}" class="w-full bg-slate-800/50 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-300"><button id="copy-config-btn" class="ai-button secondary !text-sm !font-semibold flex-shrink-0 px-4 py-2 rounded-md">Copy</button></div></div><div class="w-full text-center border-t border-white/10 pt-6"><div id="renew-button-container"></div></div></div></div></div></div>
-                            <div id="tab-usage" class="tab-panel"></div><div id="tab-orders" class="tab-panel"></div><div id="tab-settings" class="tab-panel">
-                                <div class="card-glass p-6 sm:p-8 custom-radius">
-                                    <div class="max-w-md mx-auto">
-                                        <h3 class="text-xl font-bold text-white mb-6 font-['Orbitron'] text-center">Account Settings</h3>
-                                        <form id="profile-update-form" class="space-y-6">
-                                            <div class="form-group"><input type="text" class="form-input" readonly value="${user.username}" title="Website username cannot be changed."><label class="form-label">Website Username</label></div>
-                                            <div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" placeholder=" "><label for="new-password" class="form-label">New Password (leave blank to keep)</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i></div>
-                                            <button type="submit" class="ai-button w-full rounded-lg !mt-8">Save Changes</button>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>`;
-                            
-                            document.getElementById('profile-tabs').addEventListener('click', (e) => { 
-                                if (e.target.tagName === 'BUTTON') {
-                                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                                    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-                                    e.target.classList.add('active');
-                                    document.getElementById(`tab-${e.target.dataset.tab}`).classList.add('active');
-                                    
-                                    const tabId = e.target.dataset.tab;
-                                    if(tabId === 'config') updateRenewButton(plan, data.activePlans);
-                                    if(tabId === 'usage') {
-                                        // CHECK CACHE FIRST
-                                        if (usageDataCache[plan.v2rayUsername]) {
-                                            renderUsageHTML(usageDataCache[plan.v2rayUsername], plan.v2rayUsername);
-                                            loadUsageStats(plan.v2rayUsername, true); 
-                                        } else {
-                                            loadUsageStats(plan.v2rayUsername, false); 
-                                        }
-                                    }
-                                    if(tabId === 'orders') {
-                                        if (ordersCache) {
-                                            renderOrdersHTML(ordersCache);
-                                            loadMyOrders(true);
-                                        } else {
-                                            loadMyOrders(false);
-                                        }
-                                    }
-                                }
-                            });
-                            
-                            setupEventListeners();
-                        }
-
-                        // --- Force refresh usage tab content if it is already active (Handling switch case) ---
-                        if (document.getElementById('tab-usage')?.classList.contains('active')) {
-                             if (usageDataCache[plan.v2rayUsername]) {
-                                renderUsageHTML(usageDataCache[plan.v2rayUsername], plan.v2rayUsername);
-                                loadUsageStats(plan.v2rayUsername, true); 
-                            } else {
-                                loadUsageStats(plan.v2rayUsername, false);
-                            }
-                        }
-
-                        const qrContainer = document.getElementById("qrcode-container");
-                        if(qrContainer) {
-                            qrContainer.innerHTML = "";
-                            try {
-                                new QRCode(qrContainer, { text: plan.v2rayLink, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.L });
-                                qrContainer.onclick = () => { const img = qrContainer.querySelector('img'); if(img) qrModalLogic.show(img.src, plan.v2rayUsername); };
-                            } catch(e) { qrContainer.innerHTML = "Error generating QR"; }
-                        }
-                        
-                        const linkInput = document.querySelector('input[readonly]');
-                        if(linkInput) linkInput.value = plan.v2rayLink;
-
-                        const copyBtn = document.getElementById('copy-config-btn');
-                        if(copyBtn) {
-                            const newBtn = copyBtn.cloneNode(true);
-                            copyBtn.parentNode.replaceChild(newBtn, copyBtn);
-                            newBtn.addEventListener('click', () => { navigator.clipboard.writeText(plan.v2rayLink); showToast({ title: 'Copied!', type: 'success' }); });
-                        }
-
-                        // Use Request Deduplication for button status too
-                        updateRenewButton(plan, data.activePlans);
-                    };
-
-                    window.renderPlanDetailsInternal(currentIndex);
-
-                } else if (data.status === "pending") {
-                    statusContainer.innerHTML = `<div class="card-glass p-8 rounded-xl text-center"><i class="fa-solid fa-clock text-4xl text-amber-400 mb-4 animate-pulse"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Order Pending Approval</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">Your order is currently being reviewed. Your profile will update here once approved.</p></div>`;
-                } else {
-                    const settingsHtml = `<div class="card-glass p-6 custom-radius"><h3 class="text-xl font-bold text-white mb-4 font-['Orbitron']">Account Settings</h3><form id="profile-update-form" class="space-y-6"><div class="form-group"><input type="text" class="form-input" readonly value="${user.username}" title="Website username cannot be changed."><label class="form-label">Website Username</label></div><div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" placeholder=" "><label for="new-password" class="form-label">New Password (leave blank to keep)</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i></div><button type="submit" class="ai-button w-full rounded-lg !mt-8">Save Changes</button></form></div>`;
-                    const linkAccountHtml = `<div class="card-glass p-6 custom-radius"><h3 class="text-xl font-bold text-white mb-2 font-['Orbitron']">Link Existing V2Ray Account</h3><p class="text-sm text-gray-400 mb-6">If you have an old account, link it here to manage renewals.</p><form id="link-account-form-profile" class="space-y-6"><div class="form-group"><input type="text" id="existing-v2ray-username-profile" class="form-input" required placeholder=" "><label for="existing-v2ray-username-profile" class="form-label">Your Old V2Ray Username</label><span class="focus-border"><i></i></span></div><button type="submit" class="ai-button secondary w-full rounded-lg">Link Account</button><div class="text-center text-sm mt-4"><span class="open-help-modal-link text-blue-400 cursor-pointer hover:underline">How to find your username?</span></div></form></div>`;
-                    statusContainer.innerHTML = `<div class="card-glass p-8 custom-radius text-center"><i class="fa-solid fa-rocket text-4xl text-blue-400 mb-4"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Get Started</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">You do not have any active plans yet. Purchase a new plan or link an existing account below.</p><a href="/plans" class="nav-link-internal ai-button inline-block rounded-lg mt-6">Purchase a Plan</a></div><div class="grid md:grid-cols-2 gap-8 mt-8">${settingsHtml}${linkAccountHtml}</div>`;
-                    setupEventListeners();
-                }
+            
+            // Cache the active plans for next time
+            if(data.activePlans) {
+                localStorage.setItem('nexguard_plans_cache', JSON.stringify(data.activePlans));
             }
 
-            // --- POLLING LOGIC ---
-            if (data.status === "approved" && data.activePlans?.length > 0) {
-                const activePlanUsername = document.querySelector('#plan-menu .trigger-menu .text')?.textContent;
-                const activePlan = data.activePlans.find(p => p.v2rayUsername === activePlanUsername);
-
-                if (activePlan) {
-                    if (document.getElementById('tab-usage')?.classList.contains('active')) {
-                        // Reuse Deduplication logic for Polling
-                        loadUsageStats(activePlan.v2rayUsername, true); 
-                    }
-                    if (document.getElementById('tab-orders')?.classList.contains('active')) {
-                        loadMyOrders(true);
-                    }
-                    if (document.getElementById('tab-config')?.classList.contains('active')) {
-                        updateRenewButton(activePlan, data.activePlans);
-                    }
-                }
-            }
+            handleDataUpdate(data, true);
 
         } catch (e) { console.error(e); }
     };
 
-    // Initial Load
+    // --- MAIN RENDER LOGIC (Separated for reuse) ---
+    function handleDataUpdate(data, isFresh) {
+        const currentPlansStr = JSON.stringify(data.activePlans || []);
+        
+        // Only re-render if plans changed OR this is the first fresh load after cache
+        if (currentPlansStr !== lastKnownPlansStr) {
+            lastKnownPlansStr = currentPlansStr;
+
+            if (data.status === "approved" && data.activePlans?.length > 0) {
+                
+                // Prefetch logic
+                data.activePlans.forEach(p => fetchClientData(p.v2rayUsername));
+
+                let currentIndex = 0;
+                
+                // **NEW: Restore last selected plan from LocalStorage**
+                const storedSelection = localStorage.getItem('nexguard_last_selected_plan');
+                if (storedSelection) {
+                    const foundIndex = data.activePlans.findIndex(p => p.v2rayUsername === storedSelection);
+                    if (foundIndex !== -1) currentIndex = foundIndex;
+                }
+
+                renderPlanSelector(data.activePlans, currentIndex);
+
+                // Internal Render Function
+                window.renderPlanDetailsInternal = (planIndex) => {
+                    const plan = data.activePlans[planIndex];
+                    
+                    // **IMPORTANT: Update Global Current Plan**
+                    currentActivePlan = plan; 
+                    
+                    const container = document.getElementById("plan-details-container");
+                    if(!plan) return;
+                    
+                    const connectionName = appData.connections.find(c => c.name === plan.connId)?.name || plan.connId || 'N/A';
+                    const planName = appData.plans[plan.planId]?.name || plan.planId;
+                    document.getElementById("plan-info-container").innerHTML = `<span class="bg-blue-500/10 text-blue-300 px-2 py-1 rounded-full"><i class="fa-solid fa-rocket fa-fw mr-2"></i>${planName}</span><span class="bg-indigo-500/10 text-indigo-300 px-2 py-1 rounded-full"><i class="fa-solid fa-wifi fa-fw mr-2"></i>${connectionName}</span>`;
+
+                    if(!document.getElementById('profile-tabs')) {
+                        container.innerHTML = `
+                        <div id="profile-tabs" class="flex items-center gap-4 sm:gap-6 border-b border-white/10 mb-6 overflow-x-auto"><button data-tab="config" class="tab-btn active">V2Ray Config</button><button data-tab="usage" class="tab-btn">Usage Stats</button><button data-tab="orders" class="tab-btn">My Orders</button><button data-tab="settings" class="tab-btn">Account Settings</button></div>
+                        <div id="tab-config" class="tab-panel active"><div class="card-glass p-6 sm:p-8 custom-radius"><div class="grid md:grid-cols-2 gap-8 items-center"><div class="flex flex-col items-center text-center"><h3 class="text-lg font-semibold text-white mb-3">Scan with your V2Ray App</h3><div id="qrcode-container" class="w-44 h-44 p-3 bg-white rounded-lg cursor-pointer flex items-center justify-center shadow-lg shadow-blue-500/20"></div></div><div class="space-y-6"><div class="w-full"><label class="text-sm text-gray-400">V2Ray Config Link</label><div class="flex items-center gap-2 mt-2"><input type="text" readonly value="${plan.v2rayLink}" class="w-full bg-slate-800/50 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-300"><button id="copy-config-btn" class="ai-button secondary !text-sm !font-semibold flex-shrink-0 px-4 py-2 rounded-md">Copy</button></div></div><div class="w-full text-center border-t border-white/10 pt-6"><div id="renew-button-container"></div></div></div></div></div></div>
+                        <div id="tab-usage" class="tab-panel"></div><div id="tab-orders" class="tab-panel"></div><div id="tab-settings" class="tab-panel">
+                            <div class="card-glass p-6 sm:p-8 custom-radius">
+                                <div class="max-w-md mx-auto">
+                                    <h3 class="text-xl font-bold text-white mb-6 font-['Orbitron'] text-center">Account Settings</h3>
+                                    <form id="profile-update-form" class="space-y-6">
+                                        <div class="form-group"><input type="text" class="form-input" readonly value="${user.username}" title="Website username cannot be changed."><label class="form-label">Website Username</label></div>
+                                        <div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" placeholder=" "><label for="new-password" class="form-label">New Password (leave blank to keep)</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i></div>
+                                        <button type="submit" class="ai-button w-full rounded-lg !mt-8">Save Changes</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>`;
+                        
+                        document.getElementById('profile-tabs').addEventListener('click', (e) => { 
+                            if (e.target.tagName === 'BUTTON') {
+                                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                                document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+                                e.target.classList.add('active');
+                                document.getElementById(`tab-${e.target.dataset.tab}`).classList.add('active');
+                                
+                                const tabId = e.target.dataset.tab;
+                                
+                                // **FIX:** Use currentActivePlan here to ensure we use the selected plan's data
+                                if (!currentActivePlan) return;
+
+                                if(tabId === 'config') updateRenewButton(currentActivePlan, data.activePlans);
+                                if(tabId === 'usage') {
+                                    // Use Deduplication Logic + Check Cache
+                                    if (usageDataCache[currentActivePlan.v2rayUsername]) {
+                                        renderUsageHTML(usageDataCache[currentActivePlan.v2rayUsername], currentActivePlan.v2rayUsername);
+                                        loadUsageStats(currentActivePlan.v2rayUsername, true); 
+                                    } else {
+                                        loadUsageStats(currentActivePlan.v2rayUsername, false); 
+                                    }
+                                }
+                                if(tabId === 'orders') {
+                                    if (ordersCache) {
+                                        renderOrdersHTML(ordersCache);
+                                        loadMyOrders(true);
+                                    } else {
+                                        loadMyOrders(false);
+                                    }
+                                }
+                            }
+                        });
+                        
+                        setupEventListeners();
+                    }
+
+                    // --- Force refresh tab content if already active (Handling switch) ---
+                    if (document.getElementById('tab-usage')?.classList.contains('active')) {
+                         // Check global cache for THIS plan
+                         if (usageDataCache[plan.v2rayUsername]) {
+                            renderUsageHTML(usageDataCache[plan.v2rayUsername], plan.v2rayUsername);
+                            loadUsageStats(plan.v2rayUsername, true); 
+                        } else {
+                            loadUsageStats(plan.v2rayUsername, false);
+                        }
+                    }
+
+                    const qrContainer = document.getElementById("qrcode-container");
+                    if(qrContainer) {
+                        qrContainer.innerHTML = "";
+                        try {
+                            new QRCode(qrContainer, { text: plan.v2rayLink, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.L });
+                            qrContainer.onclick = () => { const img = qrContainer.querySelector('img'); if(img) qrModalLogic.show(img.src, plan.v2rayUsername); };
+                        } catch(e) { qrContainer.innerHTML = "Error generating QR"; }
+                    }
+                    
+                    const linkInput = document.querySelector('input[readonly]');
+                    if(linkInput) linkInput.value = plan.v2rayLink;
+
+                    const copyBtn = document.getElementById('copy-config-btn');
+                    if(copyBtn) {
+                        const newBtn = copyBtn.cloneNode(true);
+                        copyBtn.parentNode.replaceChild(newBtn, copyBtn);
+                        newBtn.addEventListener('click', () => { navigator.clipboard.writeText(plan.v2rayLink); showToast({ title: 'Copied!', type: 'success' }); });
+                    }
+
+                    updateRenewButton(plan, data.activePlans);
+                };
+
+                window.renderPlanDetailsInternal(currentIndex);
+
+            } else if (data.status === "pending") {
+                statusContainer.innerHTML = `<div class="card-glass p-8 rounded-xl text-center"><i class="fa-solid fa-clock text-4xl text-amber-400 mb-4 animate-pulse"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Order Pending Approval</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">Your order is currently being reviewed. Your profile will update here once approved.</p></div>`;
+            } else {
+                const settingsHtml = `<div class="card-glass p-6 custom-radius"><h3 class="text-xl font-bold text-white mb-4 font-['Orbitron']">Account Settings</h3><form id="profile-update-form" class="space-y-6"><div class="form-group"><input type="text" class="form-input" readonly value="${user.username}" title="Website username cannot be changed."><label class="form-label">Website Username</label></div><div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" placeholder=" "><label for="new-password" class="form-label">New Password (leave blank to keep)</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i></div><button type="submit" class="ai-button w-full rounded-lg !mt-8">Save Changes</button></form></div>`;
+                const linkAccountHtml = `<div class="card-glass p-6 custom-radius"><h3 class="text-xl font-bold text-white mb-2 font-['Orbitron']">Link Existing V2Ray Account</h3><p class="text-sm text-gray-400 mb-6">If you have an old account, link it here to manage renewals.</p><form id="link-account-form-profile" class="space-y-6"><div class="form-group"><input type="text" id="existing-v2ray-username-profile" class="form-input" required placeholder=" "><label for="existing-v2ray-username-profile" class="form-label">Your Old V2Ray Username</label><span class="focus-border"><i></i></span></div><button type="submit" class="ai-button secondary w-full rounded-lg">Link Account</button><div class="text-center text-sm mt-4"><span class="open-help-modal-link text-blue-400 cursor-pointer hover:underline">How to find your username?</span></div></form></div>`;
+                statusContainer.innerHTML = `<div class="card-glass p-8 custom-radius text-center"><i class="fa-solid fa-rocket text-4xl text-blue-400 mb-4"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Get Started</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">You do not have any active plans yet. Purchase a new plan or link an existing account below.</p><a href="/plans" class="nav-link-internal ai-button inline-block rounded-lg mt-6">Purchase a Plan</a></div><div class="grid md:grid-cols-2 gap-8 mt-8">${settingsHtml}${linkAccountHtml}</div>`;
+                setupEventListeners();
+            }
+        }
+
+        // --- POLLING LOGIC ---
+        // Keeps UI updated without blocking
+        if (data.status === "approved" && data.activePlans?.length > 0 && isFresh) {
+            if (currentActivePlan) {
+                if (document.getElementById('tab-usage')?.classList.contains('active')) {
+                    // Always try to fetch fresh data in background
+                    loadUsageStats(currentActivePlan.v2rayUsername, true); 
+                }
+                if (document.getElementById('tab-orders')?.classList.contains('active')) {
+                    loadMyOrders(true);
+                }
+                if (document.getElementById('tab-config')?.classList.contains('active')) {
+                    updateRenewButton(currentActivePlan, data.activePlans);
+                }
+            }
+        }
+    }
+
+    // Start Process
     loadProfileData();
 
     // Polling Interval (Every 5 Seconds)
