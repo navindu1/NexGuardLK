@@ -353,6 +353,38 @@ const updateSettings = async (req, res) => {
     }
 };
 
+// Add tutorial
+exports.addTutorial = async (req, res) => {
+    try {
+        const { title, video_id } = req.body;
+        const { data, error } = await supabase
+            .from('tutorials')
+            .insert([{ title, video_id }])
+            .select();
+
+        if (error) throw error;
+        res.json({ success: true, data });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+// Delete tutorial
+exports.deleteTutorial = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { error } = await supabase
+            .from('tutorials')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
 const getResellers = (req, res) => {
     // This is a placeholder. You need to implement the logic to get resellers.
     res.json({ success: true, data: [] });

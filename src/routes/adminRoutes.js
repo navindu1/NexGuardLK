@@ -37,7 +37,8 @@ router.get('/reports/download', adminController.downloadOrdersReport);
 router.get('/reports/summary', adminController.getReportSummary);
 
 // --- END: NEW AND UPDATED ROUTES ---
-
+router.post('/tutorials', authMiddleware, adminController.addTutorial);
+router.delete('/tutorials/:id', authMiddleware, adminController.deleteTutorial);
 
 // Plans Routes
 router.get('/plans', adminController.getPlans);

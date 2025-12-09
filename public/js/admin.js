@@ -718,6 +718,69 @@ document.addEventListener("DOMContentLoaded", () => {
         formModal.classList.add('active');
     }
 
+    // Load Tutorials when page loads
+document.addEventListener('DOMContentLoaded', loadAdminTutorials);
+
+async function loadAdminTutorials() {
+    try {
+        const res = await fetch('/api/user/tutorials', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        const { data } = await res.json();
+        
+        const container = document.getElementById('admin-tutorials-list');
+        container.innerHTML = data.map(tut => `
+            <div class="flex justify-between items-center p-3 bg-gray-50 rounded border">
+                <div>
+                    <span class="font-bold">${tut.title}</span>
+                    <span class="text-xs text-gray-500 ml-2">ID: ${tut.video_id}</span>
+                </div>
+                <button onclick="deleteTutorial(${tut.id})" class="text-red-500 hover:text-red-700 text-sm">Delete</button>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading tutorials:', error);
+    }
+}
+
+async function addTutorial() {
+    const title = document.getElementById('tut-title').value;
+    const video_id = document.getElementById('tut-vid-id').value;
+
+    if (!title || !video_id) return alert('Please fill all fields');
+
+    try {
+        const res = await fetch('/api/admin/tutorials', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({ title, video_id })
+        });
+
+        if (res.ok) {
+            document.getElementById('tut-title').value = '';
+            document.getElementById('tut-vid-id').value = '';
+            loadAdminTutorials(); // Reload list
+        }
+    } catch (error) {
+        alert('Error adding tutorial');
+    }
+}
+
+async function deleteTutorial(id) {
+    if(!confirm('Are you sure?')) return;
+    try {
+        await fetch(`/api/admin/tutorials/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        loadAdminTutorials();
+    } catch (error) {
+        alert('Error deleting tutorial');
+    }
+}
     // --- CORE LOGIC ---
     async function loadDataAndRender(view, showLoading = true) {
         currentView = view;

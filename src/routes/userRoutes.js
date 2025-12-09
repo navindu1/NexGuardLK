@@ -23,6 +23,8 @@ router.post(
 // Link an existing V2Ray account to the website account
 router.post("/link-v2ray", authenticateToken, userController.linkV2rayAccount);
 
+router.get('/tutorials', authMiddleware, userController.getTutorials);
+
 // Update the user's password
 router.post("/update-password", authenticateToken, userController.updatePassword);
 

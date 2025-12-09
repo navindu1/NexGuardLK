@@ -314,3 +314,18 @@ exports.updatePassword = async (req, res) => {
         res.status(500).json({ success: false, message: "Error updating password." });
     }
 };
+
+// Get all tutorials
+exports.getTutorials = async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('tutorials')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        res.json({ success: true, data });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};

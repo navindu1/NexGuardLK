@@ -340,6 +340,18 @@
             <i class="fa-solid fa-cog"></i>
             <span class="hidden sm:inline ml-2">Settings</span>
           </button>
+          <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100 mb-6">
+    <h3 class="text-lg font-bold text-gray-800 mb-4">Manage Tutorials</h3>
+    
+    <div class="flex gap-4 mb-6">
+        <input type="text" id="tut-title" placeholder="Caption (Title)" class="flex-1 p-2 border rounded">
+        <input type="text" id="tut-vid-id" placeholder="Youtube Video ID (e.g. dQw4w9WgXcQ)" class="w-48 p-2 border rounded">
+        <button onclick="addTutorial()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Add</button>
+    </div>
+
+    <div id="admin-tutorials-list" class="space-y-2">
+        </div>
+</div>
           <button
             id="logout-btn"
             class="text-sm font-semibold text-slate-400 hover:text-white transition-colors"

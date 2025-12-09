@@ -530,6 +530,64 @@ export function renderProfilePage(renderFunc, params) {
                                 <div class="max-w-md mx-auto"><h3 class="text-xl font-bold text-white mb-6 font-['Orbitron'] text-center">Account Settings</h3><form id="profile-update-form" class="space-y-6"><div class="form-group"><input type="text" class="form-input" readonly value="${user.username}"><label class="form-label">Website Username</label></div><div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" placeholder=" "><label for="new-password" class="form-label">New Password</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i></div><button type="submit" class="ai-button w-full rounded-lg !mt-8">Save Changes</button></form></div>
                             </div>
                         </div>`;
+
+                        // Load Tutorials for User
+async function loadTutorials() {
+    try {
+        const res = await fetch('/api/user/tutorials', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        const { data } = await res.json();
+
+        const container = document.getElementById('content-tutorials');
+        
+        // Basic Container Setup
+        let htmlContent = `
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-8">
+                <div class="border-b border-gray-100 pb-4">
+                    <h2 class="text-xl font-bold text-gray-800">Tutorials & Guides</h2>
+                    <p class="text-sm text-gray-500">අපගේ සේවාවන් භාවිතා කරන ආකාරය පහතින් නරඹන්න.</p>
+                </div>
+        `;
+
+        // Loop through videos
+        if (data.length > 0) {
+            data.forEach(tut => {
+                htmlContent += `
+                    <div class="tutorial-item">
+                        <h3 class="font-semibold text-gray-700 mb-3 flex items-center">
+                            <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            ${tut.title}
+                        </h3>
+                        <div class="relative w-full max-w-4xl mx-auto rounded-lg overflow-hidden shadow-lg bg-black mb-6">
+                            <div class="relative pb-[56.25%] h-0">
+                                <iframe 
+                                    class="absolute top-0 left-0 w-full h-full rounded-lg"
+                                    src="https://www.youtube.com/embed/${tut.video_id}?rel=0&modestbranding=1" 
+                                    title="${tut.title}"
+                                    frameborder="0" 
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                    allowfullscreen>
+                                </iframe>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        } else {
+            htmlContent += `<p class="text-gray-400 text-center">No tutorials available yet.</p>`;
+        }
+
+        htmlContent += `</div>`;
+        container.innerHTML = htmlContent;
+
+    } catch (error) {
+        console.error('Error loading tutorials:', error);
+    }
+}
+
+// Add this to your init or load function
+loadTutorials();
                         
                         document.getElementById('profile-tabs').addEventListener('click', (e) => { 
                             if (e.target.tagName === 'BUTTON') {
