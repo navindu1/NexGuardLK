@@ -1,307 +1,276 @@
-const supabase = require('../config/supabaseClient');
-const v2rayService = require('../services/v2rayService');
-const bcrypt = require('bcryptjs');
-const fs = require('fs');
-const path = require('path');
-const { v4: uuidv4 } = require('uuid');
+// File Path: src/services/v2rayService.js
 
-// Plan configuration
-const planConfig = {
-    "100GB": { totalGB: 100 },
-    "200GB": { totalGB: 200 },
-    "300GB": { totalGB: 300 },
-    "Unlimited": { totalGB: 0 },
+const axios = require("axios");
+const { v4: uuidv4 } = require("uuid");
+
+// --- Environment Variables ---
+const PANEL_URL = process.env.PANEL_URL;
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+
+// --- API Endpoint URLs ---
+const LOGIN_URL = `${PANEL_URL}/login`;
+const ADD_CLIENT_URL = `${PANEL_URL}/panel/api/inbounds/addClient`;
+const INBOUNDS_LIST_URL = `${PANEL_URL}/panel/api/inbounds/list`;
+const DEL_CLIENT_BY_UUID_URL = (inboundId, uuid) => `${PANEL_URL}/panel/api/inbounds/${inboundId}/delClient/${uuid}`;
+const UPDATE_CLIENT_URL = (uuid) => `${PANEL_URL}/panel/api/inbounds/updateClient/${uuid}`;
+const RESET_TRAFFIC_URL = (inboundId, email) => `${PANEL_URL}/panel/api/inbounds/${inboundId}/resetClientTraffic/${email}`;
+
+// --- Caching Variables (Updated) ---
+let clientCacheMap = null; // දත්ත ගබඩා කර තබන Map එක
+let cacheLastUpdated = 0;  // අවසන් වරට update කළ වේලාව
+
+// FIX: Cache කාලය විනාඩි 5 (300,000ms) සිට තත්පර 15 (15,000ms) දක්වා අඩු කරන ලදි.
+// එමගින් Renewal හෝ වෙනස්කම් එසැනින් Profile Page එකේ යාවත්කාලීන වේ.
+const CACHE_TTL = 15 * 1000; 
+
+// --- Session Management Object ---
+const panelSession = {
+    cookie: null,
+    lastLogin: 0,
+    isValid: function() {
+        return this.cookie && (Date.now() - this.lastLogin < 3600000); // 1 hour validity
+    }
 };
 
-exports.getUserStatus = async (req, res) => {
+/**
+ * Cache එක බලහත්කාරයෙන් ඉවත් කිරීම (අලුත් User කෙනෙක් හැදූ විට හෝ මැකූ විට භාවිතා වේ)
+ */
+function invalidateCache() {
+    clientCacheMap = null;
+    cacheLastUpdated = 0;
+    console.log("[Cache] Client cache invalidated.");
+}
+
+/**
+ * Logs into the panel and updates the session object.
+ */
+async function loginAndGetCookie() {
+    console.log(`\n[Panel Login] Attempting to login to panel...`);
     try {
-        const { data: user, error: userError } = await supabase
-            .from("users")
-            .select("*")
-            .eq("id", req.user.id)
-            .single();
-
-        if (userError || !user) {
-            return res.status(404).json({ success: false, message: "User not found." });
-        }
-        
-        const { data: pendingOrders, error: orderError } = await supabase
-            .from("orders")
-            .select("id")
-            .eq("website_username", user.username)
-            .eq("status", "pending");
-            
-        if (orderError) throw orderError;
-
-        if (pendingOrders && pendingOrders.length > 0 && (!user.active_plans || user.active_plans.length === 0)) {
-            return res.json({ success: true, status: "pending" });
-        }
-
-        if (!user.active_plans || user.active_plans.length === 0) {
-            return res.json({ success: true, status: "no_plan" });
-        }
-        
-        // --- START: NEW VERIFICATION AND CLEANUP LOGIC (UPDATED) ---
-
-        // 1. Fetch all client details from the V2Ray panel
-        const allPanelClientsMap = await v2rayService.getAllClientDetails();
-        
-        const verifiedActivePlans = [];
-        let plansChanged = false; // Flag to track if we need to update DB
-
-        // 2. Loop through each plan stored in our database
-        for (const plan of user.active_plans) {
-            const v2rayUsernameLower = plan.v2rayUsername.toLowerCase();
-            
-            // 3. Check if the plan exists in the panel
-            if (allPanelClientsMap.has(v2rayUsernameLower)) {
-                // If exists, keep it and update details
-                const clientDetails = allPanelClientsMap.get(v2rayUsernameLower);
-                
-                const enrichedPlan = {
-                    ...plan,
-                    expiryTime: clientDetails.expiryTime || 0
-                };
-                verifiedActivePlans.push(enrichedPlan);
-            } else {
-                // 4. If NOT in panel, DO NOT add to verifiedActivePlans
-                // This effectively removes it from the list
-                plansChanged = true; 
-                console.log(`[Status Check] Plan '${plan.v2rayUsername}' not found in panel. Removing from profile.`);
+        const response = await axios.post(
+            LOGIN_URL,
+            { username: ADMIN_USERNAME, password: ADMIN_PASSWORD },
+            {
+                maxRedirects: 0,
+                validateStatus: (status) => status >= 200 && status < 500,
             }
-        }
-
-        // 5. If plans were removed (plansChanged is true), update the database
-        if (plansChanged) {
-            // Remove 'expiryTime' (temporary field) before saving to DB
-            const plansToSave = verifiedActivePlans.map(({ expiryTime, ...rest }) => rest);
-            
-            await supabase
-                .from("users")
-                .update({ active_plans: plansToSave })
-                .eq("id", user.id);
-                
-            console.log(`[Status Check] Sync complete. User ${user.username}'s profile updated.`);
-        }
-        
-        if (verifiedActivePlans.length === 0) {
-            return res.json({ success: true, status: "no_plan" });
-        }
-
-        // 6. Return only the valid plans
-        return res.json({
-            success: true,
-            status: "approved",
-            activePlans: verifiedActivePlans,
-        });
-        // --- END: NEW VERIFICATION AND CLEANUP LOGIC ---
-
-    } catch (error) {
-        console.error(`[Status Check Error] User: ${req.user.username}, Error: ${error.message}`);
-        return res.status(500).json({ success: false, message: "Server error during status check." });
-    }
-};
-
-exports.getUserOrders = async (req, res) => {
-    try {
-        const { data: userOrders, error } = await supabase
-            .from("orders")
-            .select("*")
-            .eq("website_username", req.user.username)
-            .order("created_at", { ascending: false });
-
-        if (error) throw error;
-
-        res.json({ success: true, orders: userOrders || [] });
-    } catch (error) {
-        console.error("Error fetching user orders:", error);
-        res.status(500).json({ success: false, message: "Could not retrieve orders." });
-    }
-};
-
-exports.updateProfilePicture = async (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ success: false, message: "No file was uploaded." });
-    }
-    try {
-        const { data: user } = await supabase
-            .from("users")
-            .select("profile_picture")
-            .eq("id", req.user.id)
-            .single();
-
-        if (user && user.profile_picture && user.profile_picture.startsWith('uploads/avatars/')) {
-            const oldPath = path.join(process.cwd(), 'public', user.profile_picture);
-             if (fs.existsSync(oldPath)) {
-                fs.unlink(oldPath, (err) => {
-                    if (err) console.error("Could not delete old avatar:", err.message);
-                });
-            }
-        }
-
-        const filePath = req.file.path.replace(/\\/g, "/").replace("public/", "");
-        const { error: updateError } = await supabase
-            .from("users")
-            .update({ profile_picture: filePath })
-            .eq("id", req.user.id);
-
-        if (updateError) throw updateError;
-
-        res.json({
-            success: true,
-            message: "Profile picture updated.",
-            filePath: filePath,
-        });
-    } catch (error) {
-        console.error("Profile picture update error:", error);
-        res.status(500).json({ success: false, message: "Error updating profile picture." });
-    }
-};
-
-exports.linkV2rayAccount = async (req, res) => {
-    const { v2rayUsername } = req.body;
-    
-    if (!v2rayUsername || typeof v2rayUsername !== 'string' || v2rayUsername.trim() === '') {
-        return res.status(400).json({ success: false, message: "Valid V2Ray username is required." });
-    }
-
-    const trimmedUsername = v2rayUsername.trim();
-    
-    try {
-        const clientData = await v2rayService.findV2rayClient(trimmedUsername);
-        if (!clientData || !clientData.client || !clientData.inboundId) {
-            return res.status(404).json({ success: false, message: "This V2Ray username was not found in our panel." });
-        }
-
-        const { data: existingLinks } = await supabase
-            .from("users")
-            .select("id, username, active_plans")
-            .not('active_plans', 'is', null);
-
-        const alreadyLinked = existingLinks?.find(user => 
-            user.active_plans?.some(plan => plan.v2rayUsername.toLowerCase() === trimmedUsername.toLowerCase())
         );
 
-        if (alreadyLinked) {
-            return res.status(409).json({ success: false, message: "This V2Ray account is already linked to another website account." });
-        }
-
-        const { data: currentUser } = await supabase
-            .from("users")
-            .select("active_plans")
-            .eq("id", req.user.id)
-            .single();
-
-        const currentPlans = Array.isArray(currentUser.active_plans) ? currentUser.active_plans : [];
-        const inboundId = parseInt(clientData.inboundId);
-
-        let detectedConnId = null;
-        let vlessTemplate = null;
-        let finalPackage = null;
-
-        const { data: singleConnections } = await supabase
-            .from('connections')
-            .select('name, default_vless_template, default_inbound_id, requires_package_choice')
-            .eq('default_inbound_id', inboundId)
-            .eq('requires_package_choice', false)
-            .limit(1);
-
-        if (singleConnections && singleConnections.length > 0) {
-            const conn = singleConnections[0];
-            detectedConnId = conn.name;
-            vlessTemplate = conn.default_vless_template;
+        if ((response.status === 200 || response.status === 302) && response.headers["set-cookie"]) {
+            console.log("✅ [Panel Login] Successfully logged in.");
+            panelSession.cookie = response.headers["set-cookie"][0];
+            panelSession.lastLogin = Date.now();
+            return panelSession.cookie;
         } else {
-            const { data: packages, error: packageError } = await supabase
-                .from('packages')
-                .select('*, connections(id, name)')
-                .eq('inbound_id', inboundId)
-                .eq('is_active', true);
-
-            if (packageError) throw packageError;
-
-            if (packages && packages.length > 0) {
-                if (packages.length === 1) {
-                    finalPackage = packages[0];
-                } else {
-                    const clientUsername = clientData.client.email || trimmedUsername;
-                    for (const pkg of packages) {
-                        const remark = pkg.template.split('#')[1];
-                        if (remark) {
-                            const prefix = remark.split('{remark}')[0];
-                            if (clientUsername.toLowerCase().startsWith(prefix.toLowerCase())) {
-                                finalPackage = pkg;
-                                break;
-                            }
-                        }
-                    }
-                    if (!finalPackage) finalPackage = packages[0];
-                }
-
-                if (finalPackage && finalPackage.connections) {
-                    detectedConnId = finalPackage.connections.name;
-                    vlessTemplate = finalPackage.template;
-                }
-            }
+            throw new Error(`Login failed with status ${response.status}. Check panel credentials.`);
         }
-
-        if (!detectedConnId || !vlessTemplate) {
-            return res.status(404).json({ success: false, message: `No matching connection configuration found for this V2Ray account (Inbound: ${inboundId}). Please contact support.` });
-        }
-
-        const v2rayLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientData.client);
-        if (!v2rayLink) throw new Error('Generated link is empty');
-
-        let detectedPlanId = "Unlimited";
-        const totalBytes = clientData.client.total || 0;
-        
-        if (totalBytes > 0) {
-            const totalGB = Math.round(totalBytes / (1024 * 1024 * 1024));
-            if (planConfig[`${totalGB}GB`]) {
-                detectedPlanId = `${totalGB}GB`;
-            }
-        }
-
-        const newPlan = {
-        v2rayUsername: clientData.client.email || trimmedUsername,
-        v2rayLink,
-        planId: detectedPlanId,
-        connId: detectedConnId,
-        pkg: finalPackage ? finalPackage.name : null,
-        activatedAt: new Date().toISOString(),
-        orderId: "linked-" + uuidv4(),
-    };
-    
-        const updatedPlans = [...currentPlans, newPlan];
-
-        await supabase.from("users").update({ active_plans: updatedPlans }).eq("id", req.user.id);
-        
-        return res.json({ 
-            success: true, 
-            message: "Your V2Ray account has been successfully linked!"
-        });
-        
     } catch (error) {
-        console.error(`[Link V2Ray] CRITICAL ERROR:`, { user: req.user?.username, v2rayUsername: trimmedUsername, error: error.message, stack: error.stack });
-        return res.status(500).json({ success: false, message: "An unexpected error occurred. Please try again later or contact support." });
+        console.error("❌ [Panel Login] FAILED:", error.message);
+        panelSession.cookie = null;
+        return null;
+    }
+}
+
+/**
+ * Gets a valid session cookie, logging in again if necessary.
+ */
+async function getPanelCookie() {
+    if (panelSession.isValid()) {
+        return panelSession.cookie;
+    }
+    const newCookie = await loginAndGetCookie();
+    if (!newCookie) {
+        throw new Error("Panel authentication failed. Could not retrieve a new session cookie.");
+    }
+    return newCookie;
+}
+exports.getPanelCookie = getPanelCookie;
+
+/**
+ * Internal function to fetch all clients and populate the cache.
+ * Optimized: Now refreshes every 15 seconds to keep data current.
+ */
+async function refreshClientCache() {
+    try {
+        const cookie = await getPanelCookie();
+        // console.log("[Cache] Fetching fresh data from V2Ray panel..."); // Log removed to reduce noise on frequent updates
+        const { data: inboundsData } = await axios.get(INBOUNDS_LIST_URL, {
+            headers: { Cookie: cookie },
+        });
+
+        if (!inboundsData?.success) {
+            console.error("[Cache] Failed to fetch data from panel.");
+            return new Map();
+        }
+
+        const newMap = new Map();
+        for (const inbound of inboundsData.obj) {
+            const clients = (inbound.settings && JSON.parse(inbound.settings).clients) || [];
+            for (const client of clients) {
+                if (client && client.email) {
+                    // Map එකට දත්ත ඇතුලත් කිරීම: key = lowercase email
+                    newMap.set(client.email.toLowerCase(), {
+                        client: client,
+                        inbound: inbound,
+                        inboundId: inbound.id
+                    });
+                }
+            }
+        }
+        
+        clientCacheMap = newMap;
+        cacheLastUpdated = Date.now();
+        // console.log(`[Cache] Updated with ${newMap.size} clients.`);
+        return clientCacheMap;
+
+    } catch (error) {
+        console.error(`[Cache] Error refreshing cache:`, error.message);
+        return new Map(); // Error එකක් ආවොත් හිස් Map එකක් යවන්න
+    }
+}
+
+/**
+ * Finds a V2Ray client by their username (email) using the CACHE first.
+ */
+exports.findV2rayClient = async (username) => {
+    if (typeof username !== "string" || !username) {
+        return null;
+    }
+
+    // 1. Check if cache needs refresh (Now checks every 15s)
+    if (!clientCacheMap || (Date.now() - cacheLastUpdated > CACHE_TTL)) {
+        await refreshClientCache();
+    }
+
+    const lowerCaseUsername = username.toLowerCase();
+    const cachedData = clientCacheMap.get(lowerCaseUsername);
+
+    if (!cachedData) {
+        return null;
+    }
+
+    // 2. Client found in cache. Now fetch LIVE traffic data separately.
+    try {
+        const cookie = await getPanelCookie();
+        const TRAFFIC_URL = `${PANEL_URL}/panel/api/inbounds/getClientTraffics/${cachedData.client.email}`;
+        
+        const { data: trafficData } = await axios.get(TRAFFIC_URL, { headers: { Cookie: cookie } });
+        
+        let clientTraffics = {};
+        if (trafficData?.success && trafficData.obj) {
+            clientTraffics = trafficData.obj;
+        }
+
+        const finalClientData = { ...clientTraffics, ...cachedData.client };
+        
+        return {
+            client: finalClientData,
+            inbound: cachedData.inbound,
+            inboundId: cachedData.inboundId,
+        };
+
+    } catch (trafficError) {
+        console.warn(`Could not fetch client traffics for ${username}. Returning cached static data.`);
+        return {
+            client: cachedData.client, 
+            inbound: cachedData.inbound,
+            inboundId: cachedData.inboundId,
+        };
     }
 };
 
+/**
+ * Adds a new client to a specified inbound.
+ */
+exports.addClient = async (inboundId, clientSettings) => {
+    const cookie = await getPanelCookie();
+    const payload = {
+        id: parseInt(inboundId),
+        settings: JSON.stringify({ clients: [clientSettings] })
+    };
+    console.log('[V2Ray Service] Adding client:', clientSettings.email);
+    const { data } = await axios.post(ADD_CLIENT_URL, payload, { headers: { Cookie: cookie } });
+    
+    if (data.success) {
+        invalidateCache(); // Cache එක පරණ නිසා එය ඉවත් කරන්න
+    }
+    return data;
+};
 
-exports.updatePassword = async (req, res) => {
-    const { newPassword } = req.body;
-    if (!newPassword || newPassword.length < 6) {
-        return res.status(400).json({ success: false, message: "Password must be at least 6 characters long." });
+/**
+ * Deletes a client from a specified inbound using their UUID.
+ */
+exports.deleteClient = async (inboundId, clientUuid) => {
+    const cookie = await getPanelCookie();
+    const url = DEL_CLIENT_BY_UUID_URL(inboundId, clientUuid);
+    const { data } = await axios.post(url, {}, { headers: { Cookie: cookie } });
+    
+    if (data.success) {
+        invalidateCache(); // Cache එක පරණ නිසා එය ඉවත් කරන්න
     }
-    try {
-        const hashedPassword = bcrypt.hashSync(newPassword, 10);
-        const { error } = await supabase
-            .from("users")
-            .update({ password: hashedPassword })
-            .eq("id", req.user.id);
-        if (error) throw error;
-        res.json({ success: true, message: "Password updated successfully!" });
-    } catch (error) {
-        console.error("Password update error:", error);
-        res.status(500).json({ success: false, message: "Error updating password." });
+    return data;
+};
+
+exports.updateClient = async (inboundId, clientUuid, clientSettings) => {
+    const cookie = await getPanelCookie();
+    const payload = {
+        id: parseInt(inboundId),
+        settings: JSON.stringify({ clients: [clientSettings] })
+    };
+    const url = UPDATE_CLIENT_URL(clientUuid);
+    const { data } = await axios.post(url, payload, { headers: { Cookie: cookie } });
+    
+    if (data.success) {
+        invalidateCache(); // Cache එක පරණ නිසා එය ඉවත් කරන්න
     }
+    return data;
+};
+
+exports.resetClientTraffic = async (inboundId, clientEmail) => {
+    const cookie = await getPanelCookie();
+    const url = RESET_TRAFFIC_URL(inboundId, clientEmail);
+    const { data } = await axios.post(url, {}, { headers: { Cookie: cookie }});
+    return data;
+};
+
+// Optimized for performance using Cache
+exports.getAllClients = async () => {
+    if (!clientCacheMap || (Date.now() - cacheLastUpdated > CACHE_TTL)) {
+        await refreshClientCache();
+    }
+    // Return a Set of emails for fast checking
+    return new Set(clientCacheMap.keys());
+};
+
+/**
+ * NEW FUNCTION: Fetches all clients from Cache.
+ * Returns a Map for efficient lookups where: key = lowercase email, value = client object.
+ */
+exports.getAllClientDetails = async () => {
+    if (!clientCacheMap || (Date.now() - cacheLastUpdated > CACHE_TTL)) {
+        await refreshClientCache();
+    }
+    
+    const simplifiedMap = new Map();
+    if(clientCacheMap) {
+        for (const [email, data] of clientCacheMap.entries()) {
+            simplifiedMap.set(email, data.client);
+        }
+    }
+    return simplifiedMap;
+};
+
+exports.generateV2rayConfigLink = (linkTemplate, client) => {
+    if (!linkTemplate || !client || !client.id || !client.email) return null;
+    
+    const uuid = client.id;
+    const remark = encodeURIComponent(client.email);
+    
+    if (!linkTemplate.includes("{uuid}") || !linkTemplate.includes("{remark}")) {
+        console.error(`VLESS template is invalid. It must contain {uuid} and {remark} placeholders.`);
+        return null;
+    }
+    
+    return linkTemplate.replace("{uuid}", uuid).replace("{remark}", remark);
 };
