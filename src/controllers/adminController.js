@@ -354,7 +354,7 @@ const updateSettings = async (req, res) => {
 };
 
 // Add tutorial
-exports.addTutorial = async (req, res) => {
+const addTutorial = async (req, res) => {
     try {
         const { title, video_id } = req.body;
         const { data, error } = await supabase
@@ -370,7 +370,7 @@ exports.addTutorial = async (req, res) => {
 };
 
 // Delete tutorial
-exports.deleteTutorial = async (req, res) => {
+const deleteTutorial = async (req, res) => {
     try {
         const { id } = req.params;
         const { error } = await supabase
@@ -540,5 +540,7 @@ module.exports = {
     updateSettings,
     getReportSummary,
     getChartData,
-    downloadOrdersReport
+    downloadOrdersReport,
+    addTutorial,
+    deleteTutorial
 };
