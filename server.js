@@ -19,10 +19,11 @@ app.use(helmet({
 
 // Rate Limiter: විනාඩි 15ක් තුළ එක IP එකකින් එන උපරිම ඉල්ලීම් 100 කට සීමා කිරීම
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, 
-    max: 100, 
+    windowMs: 1 * 60 * 1000, // විනාඩි 1ක් ඇතුලත (Window reduced to 1 minute)
+    max: 60, // විනාඩියකට ඉල්ලීම් 60ක් (තත්පරයකට 1ක් වගේ)
     standardHeaders: true,
     legacyHeaders: false,
+    // 429 ආවොත් JSON එකක් යවන්න, එවිට Frontend එකට එය හඳුනාගත හැක
     message: { success: false, message: "Too many requests, please try again later." }
 });
 app.use('/api', limiter); // සියලුම API routes වලට මෙය යොදන්න

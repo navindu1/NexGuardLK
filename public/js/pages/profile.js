@@ -619,33 +619,50 @@ export function renderProfilePage(renderFunc, params) {
 
     const loadProfileData = async () => {
         try {
+            // Cache එකෙන් දත්ත තිබේදැයි බලන්න
             let cachedPlansStr = null;
             try { cachedPlansStr = localStorage.getItem(PLANS_CACHE_KEY); } catch(e){}
             
-            if (cachedPlansStr) {
+            // මුලින්ම Cache දත්ත පෙන්වන්න (එවිට Load වෙනකම් හිස්ව නොපෙනේ)
+            if (cachedPlansStr && !currentActivePlan) { // currentActivePlan නැත්නම් විතරක් UI update කරන්න
                 try {
                     const cachedPlans = JSON.parse(cachedPlansStr);
-                    if (Array.isArray(cachedPlans)) {
+                    if (Array.isArray(cachedPlans) && cachedPlans.length > 0) {
                         handleDataUpdate({ status: 'approved', activePlans: cachedPlans }, false);
                     }
                 } catch(e) { 
-                    console.error("Cache corrupt, clearing:", e); 
                     localStorage.removeItem(PLANS_CACHE_KEY);
                 }
             }
 
+            // Server එකෙන් අලුත් දත්ත ඉල්ලන්න
             const res = await apiFetch("/api/user/status");
-            const data = await res.json();
             
-            if(data.activePlans) {
-                try { localStorage.setItem(PLANS_CACHE_KEY, JSON.stringify(data.activePlans)); } catch(e){}
+            // 429 හෝ වෙනත් දෝෂයක් ආවොත්, UI එක වෙනස් නොකර නිකන් ඉන්න
+            if (!res.ok) {
+                console.warn("Skipping update due to server error:", res.status);
+                return; 
             }
 
-            handleDataUpdate(data, true);
+            const data = await res.json();
+            
+            if(data.success && data.activePlans) {
+                try { localStorage.setItem(PLANS_CACHE_KEY, JSON.stringify(data.activePlans)); } catch(e){}
+                handleDataUpdate(data, true);
+            }
 
-        } catch (e) { console.error("Profile load error:", e); }
+        } catch (e) { 
+            // Network Error එකක් ආවොත් Console එකට දාන්න, UI එක කඩන්න එපා
+            console.error("Profile load error (Keeping previous state):", e); 
+        }
     };
+loadProfileData();
 
-    loadProfileData();
-    profilePollingInterval = setInterval(loadProfileData, 4000); // Polling every 4 seconds
+    // තත්පර 10කට වරක් දත්ත අලුත් කරන්න (Server එකට බර අඩුයි)
+    profilePollingInterval = setInterval(() => {
+        // User මේ Tab එකේ සිටී නම් පමණක් දත්ත අලුත් කරන්න (Performance Fix)
+        if (!document.hidden) {
+            loadProfileData();
+        }
+    }, 10000);
 }
