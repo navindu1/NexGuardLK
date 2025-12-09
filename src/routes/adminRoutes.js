@@ -37,8 +37,9 @@ router.get('/reports/download', adminController.downloadOrdersReport);
 router.get('/reports/summary', adminController.getReportSummary);
 
 // --- END: NEW AND UPDATED ROUTES ---
-router.post('/tutorials', authMiddleware, adminController.addTutorial);
-router.delete('/tutorials/:id', authMiddleware, adminController.deleteTutorial);
+// authMiddleware කෑල්ල මකා දමන්න. උඩින්ම authenticateToken දමා ඇති නිසා එය අවශ්‍ය නැත.
+router.post('/tutorials', adminController.addTutorial);
+router.delete('/tutorials/:id', adminController.deleteTutorial);
 
 // Plans Routes
 router.get('/plans', adminController.getPlans);
