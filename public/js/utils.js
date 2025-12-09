@@ -1,5 +1,10 @@
 // File: public/js/utils.js
 
+// 1. මේ variables දෙක function එකට උඩින් (Global) තියෙන්න ඕනේ.
+// එවිට අපිට පුළුවන් කලින් notification එක ගැන මතක තියාගන්න.
+let activeToast = null;
+let activeTimeout = null;
+
 export function showToast({ title, message, type = "info", duration = 5000 }) {
     let container = document.getElementById("toast-container");
     if (!container) {
@@ -7,31 +12,65 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
         container.id = "toast-container";
         document.body.appendChild(container);
     }
+
+    // 2. BUG FIX: කලින් පෙන්වපු Notification එකක් තියෙනවා නම්, අලුත් එක පෙන්වන්න කලින් ඒක අයින් කරන්න.
+    if (activeToast) {
+        // පරණ Timer එක නවත්තන්න
+        if (activeTimeout) {
+            clearTimeout(activeTimeout);
+            activeTimeout = null;
+        }
+        // පරණ Element එක තවමත් තිරයේ තියෙනවා නම් එකපාරම අයින් කරන්න
+        if (activeToast.parentNode) {
+            activeToast.parentNode.removeChild(activeToast);
+        }
+        activeToast = null;
+    }
+
     const icons = {
         success: "fa-solid fa-check-circle",
         error: "fa-solid fa-times-circle",
         warning: "fa-solid fa-exclamation-triangle",
         info: "fa-solid fa-info-circle"
     };
+
     const toast = document.createElement("div");
     toast.className = `toast toast--${type}`;
     toast.innerHTML = `<div class="toast-icon"><i class="${icons[type] || icons.info}"></i></div><div class="toast-content"><p class="toast-title">${title}</p><p class="toast-message">${message}</p></div><button class="toast-close-btn" type="button">&times;</button>`;
+    
     container.appendChild(toast);
+    
+    // 3. අලුත් Notification එක 'active' එක විදිහට සෙට් කරන්න
+    activeToast = toast;
+
+    // Show animation
     setTimeout(() => toast.classList.add("show"), 100);
+
     const removeToast = () => {
         toast.classList.remove("show");
         setTimeout(() => {
             if (toast.parentNode) toast.parentNode.removeChild(toast);
+            
+            // අයින් කරන්නේ දැනට තියෙන active එකම නම් විතරක් variable එක null කරන්න
+            if (activeToast === toast) {
+                activeToast = null;
+                activeTimeout = null;
+            }
         }, 500);
     };
-    const dismissTimeout = setTimeout(removeToast, duration);
+
+    // 4. Timer එක activeTimeout විචල්‍යයට දාගන්න (එතකොට පස්සේ ඕන නම් clear කරන්න පුළුවන්)
+    activeTimeout = setTimeout(removeToast, duration);
+
     toast.querySelector(".toast-close-btn").addEventListener("click", () => {
-        clearTimeout(dismissTimeout);
+        if (activeTimeout) clearTimeout(activeTimeout);
         removeToast();
     });
 }
 
+// පහල තියෙන අනිත් functions (initAnimations, togglePassword, etc.) එහෙමම තියන්න.
 export function initAnimations() {
+    // ... (ඔයාගේ කලින් කෝඩ් එකේ තිබුණ ඉතුරු කොටස් මෙතනට පහලින් තියෙන්න ඕනේ) ...
     const observer = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
             if (entry.isIntersecting) {
