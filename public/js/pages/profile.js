@@ -292,7 +292,7 @@ export function renderProfilePage(renderFunc, params) {
             : '';
 
         usageContainer.innerHTML = `
-            <div class="result-card p-6 card-glass custom-radius space-y-4 reveal is-visible border border-amber-500/30 bg-amber-500/10">
+            <div class="result-card p-6 card-glass custom-radius space-y-4 reveal is-visible border border-amber-500/30">
                 <div class="text-center">
                     <i class="fa-solid fa-triangle-exclamation text-4xl text-amber-400 mb-3"></i>
                     <h3 class="text-xl font-bold text-white">Plan Expired / Inactive</h3>
