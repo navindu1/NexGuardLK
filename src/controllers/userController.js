@@ -13,7 +13,6 @@ const planConfig = {
     "Unlimited": { totalGB: 0 },
 };
 
-
 exports.getUserStatus = async (req, res) => {
     try {
         const { data: user, error: userError } = await supabase
@@ -44,11 +43,11 @@ exports.getUserStatus = async (req, res) => {
         
         // --- START: NEW VERIFICATION AND CLEANUP LOGIC (UPDATED) ---
 
-        // 1. Fetch all client details from the V2Ray panel in one go for efficiency.
+        // 1. Fetch all client details from the V2Ray panel
         const allPanelClientsMap = await v2rayService.getAllClientDetails();
         
         const verifiedActivePlans = [];
-        // let plansChanged = false; // DISABLED: We don't want to auto-delete plans anymore
+        let plansChanged = false; // Flag to track if we need to update DB
 
         // 2. Loop through each plan stored in our database for the user.
         for (const plan of user.active_plans) {
@@ -66,38 +65,31 @@ exports.getUserStatus = async (req, res) => {
                 };
                 verifiedActivePlans.push(enrichedPlan);
             } else {
-                // 4. If the plan is NOT in the V2Ray panel (e.g. Expired & Deleted), 
-                // we STILL keep it in the list so the user sees it (as "Removed" or "Expired") instead of it vanishing.
-                // We assume expiry is 0 or past to indicate issue if needed, but keeping original object is safest.
-                verifiedActivePlans.push({
-                    ...plan,
-                    expiryTime: 0 // Indicate it might be invalid/expired
-                });
-                
-                // Previously, we marked this for deletion. Now we KEEP it.
-                // plansChanged = true; 
-                console.log(`[Status Check] Plan '${plan.v2rayUsername}' not found in panel, but keeping in profile.`);
+                // 4. If NOT in panel, DO NOT add to verifiedActivePlans
+                // This effectively removes it from the list
+                plansChanged = true; 
+                console.log(`[Status Check] Plan '${plan.v2rayUsername}' not found in panel. Removing from profile.`);
             }
         }
 
-        /* // --- DISABLED AUTO-CLEANUP ---
-        // This block previously deleted plans from the database if they weren't in the panel.
-        // We removed it so users can still see their expired/removed plans and renew them if supported.
-        
+        // 5. If plans were removed (plansChanged is true), update the database
         if (plansChanged) {
+            // Remove 'expiryTime' (temporary field) before saving to DB
             const plansToSave = verifiedActivePlans.map(({ expiryTime, ...rest }) => rest);
+            
             await supabase
                 .from("users")
                 .update({ active_plans: plansToSave })
                 .eq("id", user.id);
+                
+            console.log(`[Status Check] Sync complete. User ${user.username}'s profile updated.`);
         }
-        */
         
         if (verifiedActivePlans.length === 0) {
             return res.json({ success: true, status: "no_plan" });
         }
 
-        // 6. Return all plans (including those missing from panel) to the user.
+        // 6. Return only the valid plans (including those missing from panel) to the user.
         return res.json({
             success: true,
             status: "approved",
