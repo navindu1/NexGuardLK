@@ -25,6 +25,7 @@ exports.getUserStatus = async (req, res) => {
             return res.status(404).json({ success: false, message: "User not found." });
         }
         
+        // Pending Orders Check
         const { data: pendingOrders, error: orderError } = await supabase
             .from("orders")
             .select("id")
@@ -41,61 +42,78 @@ exports.getUserStatus = async (req, res) => {
             return res.json({ success: true, status: "no_plan" });
         }
         
-        // --- START: NEW VERIFICATION AND CLEANUP LOGIC (UPDATED) ---
+        // --- START: SYNC LOGIC (IMPROVED) ---
 
-        // 1. Fetch all client details from the V2Ray panel
+        // 1. Panel එකෙන් සියලුම Clients ලබා ගැනීම
         const allPanelClientsMap = await v2rayService.getAllClientDetails();
         
-        const verifiedActivePlans = [];
-        let plansChanged = false; // Flag to track if we need to update DB
+        console.log(`[Sync Debug] Total Panel Clients: ${allPanelClientsMap.size}`);
 
-        // 2. Loop through each plan stored in our database for the user.
+        // SAFETY GUARD: Panel එකෙන් Data ආවේ නැත්නම් (Error එකක් නම්), Delete නොකර ඉමු.
+        if (allPanelClientsMap.size === 0) {
+            console.warn("[Sync Warning] No clients found in Panel or Connection Error. Skipping Sync to protect DB.");
+            return res.json({
+                success: true,
+                status: "approved",
+                activePlans: user.active_plans, // පැරණි Plans ඒ විදිහටම යවමු
+            });
+        }
+
+        const verifiedActivePlans = [];
+        let plansChanged = false; 
+
+        // 2. Database එකේ ඇති Plans එකින් එක Check කිරීම
         for (const plan of user.active_plans) {
-            const v2rayUsernameLower = plan.v2rayUsername.toLowerCase();
+            // Trim: නමේ අග හෝ මුල තියෙන Spaces අයින් කිරීම
+            // Lowercase: අකුරු ලොකු පොඩි භේදය ඉවත් කිරීම
+            const v2rayUsernameLower = plan.v2rayUsername.trim().toLowerCase();
             
-            // 3. Check if the plan's username exists in the live data from the V2Ray panel.
+            // Console Log එකෙන් බලාගන්න පුළුවන් මොකද වෙන්නේ කියලා
+            // console.log(`[Sync Debug] Checking: '${v2rayUsernameLower}'`); 
+
             if (allPanelClientsMap.has(v2rayUsernameLower)) {
-                // If it exists, get the live details from the panel.
+                // User Panel එකේ ඉන්නවා -> Plan එක තියාගන්න
                 const clientDetails = allPanelClientsMap.get(v2rayUsernameLower);
                 
-                // Add live data like expiryTime to the plan object to show the user.
                 const enrichedPlan = {
                     ...plan,
                     expiryTime: clientDetails.expiryTime || 0
                 };
                 verifiedActivePlans.push(enrichedPlan);
             } else {
-                // 4. If NOT in panel, DO NOT add to verifiedActivePlans
-                // This effectively removes it from the list
+                // User Panel එකේ නැහැ -> Remove කරන්න Mark කරනවා
                 plansChanged = true; 
-                console.log(`[Status Check] Plan '${plan.v2rayUsername}' not found in panel. Removing from profile.`);
+                console.log(`[Sync Action] Removing '${plan.v2rayUsername}' because it is missing in V2Ray Panel.`);
             }
         }
 
-        // 5. If plans were removed (plansChanged is true), update the database
+        // 3. වෙනස්කම් තියෙනවා නම් Database එක Update කිරීම
         if (plansChanged) {
-            // Remove 'expiryTime' (temporary field) before saving to DB
             const plansToSave = verifiedActivePlans.map(({ expiryTime, ...rest }) => rest);
             
-            await supabase
+            const { error: updateError } = await supabase
                 .from("users")
                 .update({ active_plans: plansToSave })
                 .eq("id", user.id);
                 
-            console.log(`[Status Check] Sync complete. User ${user.username}'s profile updated.`);
+            if (updateError) {
+                console.error("[Sync Error] Failed to update database:", updateError.message);
+            } else {
+                console.log(`[Sync Success] Removed missing plans for user ${user.username}.`);
+            }
         }
         
+        // සියලුම Plans මැකී ගොස් ඇත්නම් 'no_plan' යැවීම
         if (verifiedActivePlans.length === 0) {
             return res.json({ success: true, status: "no_plan" });
         }
 
-        // 6. Return only the valid plans (including those missing from panel) to the user.
         return res.json({
             success: true,
             status: "approved",
             activePlans: verifiedActivePlans,
         });
-        // --- END: NEW VERIFICATION AND CLEANUP LOGIC ---
+        // --- END: SYNC LOGIC ---
 
     } catch (error) {
         console.error(`[Status Check Error] User: ${req.user.username}, Error: ${error.message}`);
@@ -103,6 +121,7 @@ exports.getUserStatus = async (req, res) => {
     }
 };
 
+// ... (අනෙක් functions - getUserOrders, updateProfilePicture, linkV2rayAccount, updatePassword පහතින් එලෙසම තබන්න)
 exports.getUserOrders = async (req, res) => {
     try {
         const { data: userOrders, error } = await supabase
@@ -267,7 +286,7 @@ exports.linkV2rayAccount = async (req, res) => {
         v2rayLink,
         planId: detectedPlanId,
         connId: detectedConnId,
-        pkg: finalPackage ? finalPackage.name : null, // <--- ADD THIS LINE
+        pkg: finalPackage ? finalPackage.name : null, 
         activatedAt: new Date().toISOString(),
         orderId: "linked-" + uuidv4(),
     };
@@ -286,7 +305,6 @@ exports.linkV2rayAccount = async (req, res) => {
         return res.status(500).json({ success: false, message: "An unexpected error occurred. Please try again later or contact support." });
     }
 };
-
 
 exports.updatePassword = async (req, res) => {
     const { newPassword } = req.body;
