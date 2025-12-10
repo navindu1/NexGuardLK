@@ -927,7 +927,7 @@
 
                 // 3. Load Video (with mute=1 for autoplay policy)
                 if(!iframe.src || iframe.src === 'about:blank' || iframe.src === window.location.href) {
-                    iframe.src = `https://youtu.be/7BvUsWJsN-c?list=RD7BvUsWJsN-c`;
+                    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1`;
                 }
             }
         }
