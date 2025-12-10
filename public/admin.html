@@ -627,6 +627,27 @@
             <button onclick="closeTutorialModal()" class="modal-close-btn absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
             <h3 class="text-xl font-bold mb-6 font-['Orbitron']">Manage Tutorials</h3>
             
+            <div class="mb-6 pb-6 border-b border-gray-700/50">
+                <h4 class="text-sm font-bold text-blue-400 mb-3 uppercase tracking-wider">Home Page Main Video</h4>
+                <div class="bg-slate-800/50 p-4 rounded-lg border border-gray-700/50">
+                    <label class="block text-xs text-gray-400 mb-2">Current YouTube Link</label>
+                    <div class="flex gap-2">
+                        <input 
+                            type="text" 
+                            id="youtubeLinkInput" 
+                            placeholder="Paste YouTube URL (e.g., https://youtu.be/xyz...)" 
+                            class="input-dark text-sm flex-1"
+                        >
+                        <button onclick="updateVideoLink()" class="btn btn-primary text-xs whitespace-nowrap">
+                            <i class="fa-solid fa-save mr-1"></i> Update
+                        </button>
+                    </div>
+                    <p class="text-[10px] text-gray-500 mt-2">
+                        * Paste the full YouTube link. We will handle the embedding automatically.
+                    </p>
+                </div>
+            </div>
+            <h4 class="text-sm font-bold text-gray-400 mb-3">Add New Tutorial to List</h4>
             <div class="space-y-4">
                 <div>
                     <label class="block text-sm text-gray-400 mb-1">Video Title</label>
@@ -691,6 +712,12 @@
             const modal = document.getElementById('tutorial-modal');
             if(modal) {
                 modal.classList.add('active');
+                
+                // Load the Current Home Video setting (Optional enhancement if you implemented the loadCurrentVideoSettings function)
+                if(typeof loadCurrentVideoSettings === 'function') {
+                    loadCurrentVideoSettings();
+                }
+                
                 if(typeof loadAdminTutorials === 'function') {
                     loadAdminTutorials(); 
                 }

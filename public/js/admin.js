@@ -752,6 +752,48 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    // --- NEW: HOME VIDEO LOGIC (Requires Settings Table/Endpoint) ---
+
+    // 5. Update Home Page Video Link
+    async function updateVideoLink() {
+        const input = document.getElementById('youtubeLinkInput');
+        if(!input) return;
+        const rawUrl = input.value.trim();
+        
+        if (!rawUrl) return showToast({ title: "Error", message: "Please enter a URL", type: "error" });
+
+        const videoId = extractYouTubeId(rawUrl);
+        if (!videoId) return showToast({ title: "Error", message: "Invalid YouTube URL", type: "error" });
+
+        const embedUrl = `https://www.youtube.com/embed/${videoId}`;
+        
+        // Button loading state
+        const button = document.querySelector('button[onclick="updateVideoLink()"]');
+        
+        // We assume the backend accepts a key-value pair for settings via POST /settings
+        await handleAction('/settings', { tutorial_video_url: embedUrl }, 'Video Updated Successfully', 'POST', button);
+        
+        // Clear input and show current as placeholder
+        input.value = '';
+        input.placeholder = `Current: ${embedUrl}`;
+    }
+
+    // 6. Load Current Video Link
+    async function loadCurrentVideoSettings() {
+        try {
+            // We reuse the /settings endpoint to get current values
+            const res = await apiFetch('/settings'); 
+            const settings = res.data || {};
+            const input = document.getElementById('youtubeLinkInput');
+            
+            if (input && settings.tutorial_video_url) {
+                input.placeholder = `Current: ${settings.tutorial_video_url}`;
+            }
+        } catch (error) {
+            console.error("Error loading video settings:", error);
+        }
+    }
+
     // --- CORE LOGIC ---
     async function loadDataAndRender(view, showLoading = true) {
         currentView = view;
@@ -890,8 +932,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 imageLoadingText.classList.remove('hidden');
                 let statusPara = imageLoadingText.querySelector('p');
                 if (!statusPara) {
-                     statusPara = document.createElement('p');
-                     imageLoadingText.appendChild(statusPara);
+                      statusPara = document.createElement('p');
+                      imageLoadingText.appendChild(statusPara);
                 }
                 statusPara.className = 'text-slate-400 text-sm';
                 statusPara.textContent = 'Generating image, please wait...';
@@ -915,10 +957,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 } catch (error) {
                     console.error("Error generating shareable image:", error);
                     let statusPara = imageLoadingText.querySelector('p');
-                     if (!statusPara) {
-                         statusPara = document.createElement('p');
-                         imageLoadingText.appendChild(statusPara);
-                     }
+                      if (!statusPara) {
+                          statusPara = document.createElement('p');
+                          imageLoadingText.appendChild(statusPara);
+                      }
                     statusPara.className = 'text-red-400 text-sm';
                     statusPara.textContent = `Error generating image: ${error.message || 'Unknown error'}`;
                     imageLoadingText.classList.remove('hidden');
@@ -1017,12 +1059,18 @@ document.addEventListener("DOMContentLoaded", () => {
     window.addTutorial = addTutorial;
     window.deleteTutorial = deleteTutorial;
     window.loadAdminTutorials = loadAdminTutorials;
+    window.updateVideoLink = updateVideoLink;
+    window.loadCurrentVideoSettings = loadCurrentVideoSettings;
+
     // For manual button click inside modal
     window.openTutorialModal = function() {
         const modal = document.getElementById('tutorial-modal');
         if(modal) {
             modal.classList.add('active');
+            // Load Tutorials List
             loadAdminTutorials(); 
+            // Load Current Video Setting
+            loadCurrentVideoSettings();
         }
     };
     window.closeTutorialModal = function() {
@@ -1034,7 +1082,4 @@ document.addEventListener("DOMContentLoaded", () => {
     setActiveCard(document.getElementById(`card-${currentView}`));
     loadDataAndRender(currentView);
     setupAutoReload();
-    
-    // Load tutorials list silently on start to populate cache if needed
-    // loadAdminTutorials(); 
 });
