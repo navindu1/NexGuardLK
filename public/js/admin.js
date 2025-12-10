@@ -1,5 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
 
+    // --- Vanta Background Animation ---
     VANTA.FOG({
           el: "#vanta-bg",
           mouseControls: true,
@@ -8,7 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
           minHeight: 200.00,
           minWidth: 200.00,
           highlightColor: 0x0,
-          midtoneColor: 0x569e8, // Blue tone
+          midtoneColor: 0x569e8, 
           lowlightColor: 0x0,
           baseColor: 0x0,
           blurFactor: 0.90,
@@ -16,14 +17,12 @@ document.addEventListener("DOMContentLoaded", () => {
           zoom: 0.60
         });
 
-
     const loginForm = document.getElementById('admin-login-form');
     if (loginForm) {
-        // This is the login page.
-        return;
+        return; // Login page logic handled elsewhere or via HTML form submission
     }
 
-    // --- ADMIN DASHBOARD LOGIC ---
+    // --- ADMIN DASHBOARD AUTH CHECK ---
     const token = localStorage.getItem('nexguard_admin_token');
     if (!token) {
         window.location.href = '/admin/login';
@@ -40,7 +39,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const modalImage = document.getElementById('modal-image');
     const formModal = document.getElementById('form-modal');
     const shareImageModal = document.getElementById('share-image-modal');
-    const shareImageContainer = document.getElementById('share-image-container');
     const generatedShareImage = document.getElementById('generated-share-image');
     const imageLoadingText = document.getElementById('image-loading-text');
     const downloadShareImageBtn = document.getElementById('download-share-image-btn');
@@ -127,7 +125,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const setupAutoReload = () => {
         const isEnabled = localStorage.getItem('autoReloadEnabled') === 'true';
-        autoReloadCheckbox.checked = isEnabled;
+        if(autoReloadCheckbox) autoReloadCheckbox.checked = isEnabled;
         clearInterval(autoReloadInterval);
         if (isEnabled) {
             autoReloadInterval = setInterval(() => {
@@ -144,7 +142,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return new Promise((resolve, reject) => {
             const img = new Image();
             img.onload = () => resolve(img);
-            img.onerror = (err) => reject(new Error(`Failed to load image: ${url}. Error: ${err.message || err}`));
+            img.onerror = (err) => reject(new Error(`Failed to load image: ${url}`));
             if (!url.startsWith('/') && !url.startsWith('data:')) {
                 img.crossOrigin = 'anonymous';
             }
@@ -160,49 +158,33 @@ document.addEventListener("DOMContentLoaded", () => {
         canvas.width = width;
         canvas.height = height;
 
-        // --- Design Elements ---
-        const bgColor = '#05081A'; // Very dark blue/black base
+        const bgColor = '#05081A';
         const primaryTextColor = '#FFFFFF';
-        const secondaryTextColor = '#A0AEC0'; // Lighter gray
-        // Vibrant brand colors from logo
+        const secondaryTextColor = '#A0AEC0';
         const accentBlue = '#3B82F6';
         const accentCyan = '#06B6D4';
         const accentPurple = '#A855F7';
-        const glowColor = accentCyan; // Color for glow effects
+        const glowColor = accentCyan; 
 
-        const logoUrl = '/assets/logobox.png'; // Orb logo
+        const logoUrl = '/assets/logobox.png'; 
         const brandName = "NexGuardLK";
         const websiteUrl = "app.nexguardlk.store";
 
-        // --- Sanitize Username ---
         const sanitizedUsername = username.length > 5 ? `${username.substring(0, 5)}***` : `${username}***`;
-
-        // --- Format Date ---
         let formattedDate = 'N/A';
-        try {
-            if (dateStr) formattedDate = new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-        } catch (e) { console.error("Error formatting date:", e); }
+        try { if (dateStr) formattedDate = new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); } catch (e) {}
 
-        // --- Load Assets ---
         let logoImg;
-        try {
-            logoImg = await loadImage(logoUrl);
-        } catch (error) {
-            console.error(error);
-            throw new Error("Could not load logo image for canvas.");
-        }
+        try { logoImg = await loadImage(logoUrl); } catch (error) { console.error(error); }
 
-        // --- Start Drawing ---
-        // 1. Background
+        // Background
         ctx.fillStyle = bgColor;
         ctx.fillRect(0, 0, width, height);
 
-        // 2. Abstract Background Elements (Diagonal Lines/Shards)
-        ctx.save(); // Save context state before clipping/transforming
+        // Abstract Shapes
+        ctx.save();
         ctx.lineWidth = 8;
         ctx.lineCap = 'round';
-
-        // Cyan shard
         ctx.strokeStyle = accentCyan;
         ctx.shadowColor = accentCyan;
         ctx.shadowBlur = 20;
@@ -211,140 +193,78 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.lineTo(width * 0.6, -100);
         ctx.stroke();
 
-        // Purple shard
         ctx.strokeStyle = accentPurple;
         ctx.shadowColor = accentPurple;
         ctx.beginPath();
         ctx.moveTo(width * 0.4, height + 100);
         ctx.lineTo(width + 100, height * 0.3);
         ctx.stroke();
+        ctx.restore();
 
-         // Blue subtle lines (no glow)
-         ctx.strokeStyle = accentBlue;
-         ctx.shadowBlur = 0; // Turn off glow for these
-         ctx.lineWidth = 4;
-         ctx.beginPath();
-         ctx.moveTo(width * 0.8, -50);
-         ctx.lineTo(width * 0.2, height + 50);
-         ctx.stroke();
-         ctx.beginPath();
-         ctx.moveTo(-50, height * 0.1);
-         ctx.lineTo(width + 50, height * 0.9);
-         ctx.stroke();
-
-        ctx.restore(); // Restore context state (removes shadow settings etc.)
-
-
-        // 3. Logo (Larger, maybe bottom corner or side)
+        // Logo
         if (logoImg) {
             const logoSize = 250;
-            // Position bottom right with some padding
             const logoX = width - logoSize - 60;
             const logoY = height - logoSize - 60;
-
-             // Add a subtle glow behind logo
              ctx.shadowColor = accentBlue;
              ctx.shadowBlur = 30;
              ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
-             ctx.shadowBlur = 0; // Turn off glow
+             ctx.shadowBlur = 0;
         }
 
-        // --- Text Elements ---
-        ctx.textAlign = 'left'; // Align text to the left for a more modern feel
+        ctx.textAlign = 'left';
+        const textStartX = 100;
 
-        const textStartX = 100; // Starting X position for most text
-
-        // Username
         ctx.fillStyle = primaryTextColor;
-        ctx.font = 'bold 90px Orbitron, sans-serif'; // Larger, bolder Orbitron
-        // Add glow to username
+        ctx.font = 'bold 90px Orbitron, sans-serif';
         ctx.shadowColor = glowColor;
         ctx.shadowBlur = 15;
         ctx.fillText(sanitizedUsername, textStartX, 250);
-        ctx.shadowBlur = 0; // Turn off glow
+        ctx.shadowBlur = 0; 
 
-        // Subtitle text
-        ctx.font = '45px Inter, sans-serif'; // Inter font
+        ctx.font = '45px Inter, sans-serif';
         ctx.fillStyle = secondaryTextColor;
         ctx.fillText("successfully purchased", textStartX, 320);
 
-        // Plan Name (Positioned below subtitle, standout color)
-        ctx.font = 'bold 90px Orbitron, sans-serif'; // Orbitron
-        ctx.fillStyle = accentCyan; // Use a bright accent color
+        ctx.font = 'bold 90px Orbitron, sans-serif';
+        ctx.fillStyle = accentCyan;
         ctx.fillText(plan, textStartX, 450);
 
-        // "Plan from" text
-        ctx.font = '45px Inter, sans-serif'; // Inter
+        ctx.font = '45px Inter, sans-serif';
         ctx.fillStyle = secondaryTextColor;
         ctx.fillText(`Plan from ${brandName}`, textStartX, 520);
 
-        // --- Verified Purchase Badge (Redesigned) ---
+        // Badge
         const badgeY = height - 150;
         const badgeHeight = 60;
         const checkmark = '✔';
         const badgeText = 'Verified Purchase';
-
-        ctx.font = 'bold 36px Inter, sans-serif'; // Inter
+        ctx.font = 'bold 36px Inter, sans-serif';
         const textWidth = ctx.measureText(badgeText).width;
         const checkWidth = ctx.measureText(checkmark).width;
         const badgePadding = 25;
-        const totalBadgeWidth = textWidth + checkWidth + badgePadding * 2 + 10; // Extra space for checkmark
+        const totalBadgeWidth = textWidth + checkWidth + badgePadding * 2 + 10; 
 
-        ctx.fillStyle = 'rgba(34, 197, 94, 0.2)'; // Green background
-        ctx.strokeStyle = 'rgba(34, 197, 94, 0.6)'; // Green border
+        ctx.fillStyle = 'rgba(34, 197, 94, 0.2)'; 
+        ctx.strokeStyle = 'rgba(34, 197, 94, 0.6)';
         ctx.lineWidth = 2;
-
-        // Draw rounded rect for badge - starting from textStartX
         ctx.beginPath();
         ctx.roundRect(textStartX, badgeY, totalBadgeWidth, badgeHeight, 10);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
 
-        // Draw text inside badge
-        ctx.fillStyle = '#86EFAC'; // Lighter green text
-        ctx.fillText(`${checkmark} ${badgeText}`, textStartX + badgePadding, badgeY + 41); // Adjust Y position for vertical centering
+        ctx.fillStyle = '#86EFAC';
+        ctx.fillText(`${checkmark} ${badgeText}`, textStartX + badgePadding, badgeY + 41);
 
-        // --- Date & Website URL (Small, at the bottom left) ---
-        ctx.font = '24px Inter, sans-serif'; // Inter
+        ctx.font = '24px Inter, sans-serif';
         ctx.fillStyle = secondaryTextColor;
-        ctx.textAlign = 'left';
         ctx.fillText(`Date: ${formattedDate}  •  ${websiteUrl}`, textStartX, height - 60);
 
-        // --- Return Image Data URL ---
         return canvas.toDataURL('image/png');
     }
 
-    
-
-    function renderUsers(users, role = 'user') {
-        const title = role === 'user' ? 'User' : 'Reseller';
-        contentTitle.textContent = `${title} Management`;
-        searchBarContainer.classList.remove('hidden');
-        searchInput.placeholder = `Search ${title}s...`;
-        addNewBtn.classList.add('hidden');
-        const filteredUsers = (users || []).filter(u => u.role === role && (u.username.toLowerCase().includes(searchInput.value.toLowerCase()) || (u.email || '').toLowerCase().includes(searchInput.value.toLowerCase())));
-        if (filteredUsers.length === 0) {
-            contentContainer.innerHTML = `<div class="glass-panel p-6 text-center rounded-lg">No ${title.toLowerCase()}s found.</div>`;
-            return;
-        }
-        const tableHeaders = role === 'user' ? `<th class="p-3 text-left font-semibold">Active Plans</th>` : `<th class="p-3 text-left font-semibold">Credit Balance</th>`;
-        contentContainer.innerHTML = `<div class="glass-panel rounded-xl overflow-hidden"><table class="min-w-full text-sm responsive-table">
-            <thead class="border-b border-slate-700 bg-slate-900/50"><tr>
-                <th class="p-3 text-left font-semibold">Username</th><th class="p-3 text-left font-semibold">Contact</th>${tableHeaders}<th class="p-3 text-center font-semibold">Actions</th>
-            </tr></thead>
-            <tbody>${filteredUsers.map(user => {
-                const roleSpecificData = role === 'user' ? `<td data-label="Active Plans">${(user.active_plans || []).length}</td>` : `<td data-label="Credit">LKR ${parseFloat(user.credit_balance || 0).toFixed(2)}</td>`;
-                const roleSpecificButtons = role === 'reseller' ? `<button class="btn btn-primary add-credit-btn" data-id="${user.id}" data-username="${user.username}"><i class="fa-solid fa-coins"></i></button>` : '';
-                return `<tr class="border-b border-slate-800 hover:bg-slate-800/50">
-                    <td data-label="Username">${user.username}</td>
-                    <td data-label="Contact"><div>${user.email}</div><div class="text-xs text-slate-400">${user.whatsapp || ''}</div></td>
-                    ${roleSpecificData}
-                    <td data-label="Actions" class="actions-cell"><div class="flex justify-center gap-2">${roleSpecificButtons}<button class="btn btn-danger" data-id="${user.id}"><i class="fa-solid fa-user-slash"></i></button></div></td>
-                </tr>`}).join('')}
-            </tbody></table></div>`;
-    }
-
+    // --- Render Functions ---
 
     function renderUsers(users, role = 'user') {
         const title = role === 'user' ? 'User' : 'Reseller';
@@ -576,7 +496,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // --- FIXED: renderOrders Function ---
     function renderOrders(status) {
         contentTitle.textContent = `${status.charAt(0).toUpperCase() + status.slice(1)} Orders`;
         searchBarContainer.classList.add('hidden');
@@ -584,7 +503,6 @@ document.addEventListener("DOMContentLoaded", () => {
         
         let orders = (dataCache.orders || []);
 
-        // --- UPDATE: Show Queued orders in 'Approved' tab ---
         if (status === 'approved') {
             orders = orders.filter(o => o.status === 'approved' || o.status === 'queued_for_renewal');
         } else {
@@ -599,7 +517,6 @@ document.addEventListener("DOMContentLoaded", () => {
         contentContainer.innerHTML = orders.map(order => {
             let orderType, typeColor;
             
-            // Renewal / Change Logic
             if (order.is_renewal) { 
                 orderType = 'Renew'; 
                 typeColor = 'text-blue-400'; 
@@ -611,7 +528,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 typeColor = 'text-green-400'; 
             }
 
-            // --- UPDATE: Status Display Logic ---
             let statusText = order.status;
             let statusColor = 'text-gray-400';
             
@@ -631,7 +547,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
             let actionButtonsHtml = '';
             
-            // Button Logic based on Order Status
             if (order.status === 'pending' || order.status === 'unconfirmed') {
                 actionButtonsHtml = `
                 <button class="btn btn-primary approve-btn" data-id="${order.id}">Approve</button>
@@ -645,7 +560,6 @@ document.addEventListener("DOMContentLoaded", () => {
                  actionButtonsHtml = `<span class="text-xs text-gray-500">Action Taken</span>`;
             }
 
-            // --- UPDATE: Grid Columns increased to 9 to fit Status ---
             return `
                 <div class="glass-panel p-4 rounded-lg grid grid-cols-2 md:grid-cols-9 gap-4 items-center text-xs sm:text-sm">
                     <div><span class="font-bold text-slate-400 text-xs block mb-1">User</span><p class="truncate" title="${order.website_username}">${order.website_username}</p></div>
@@ -718,36 +632,51 @@ document.addEventListener("DOMContentLoaded", () => {
         formModal.classList.add('active');
     }
 
-    // --- Tutorial Management Logic (Fixed) ---
+    // --- TUTORIAL LOGIC (UPDATED WITH ID EXTRACTION) ---
 
-    // Load Tutorials
+    // 1. Helper to extract ID
+    function extractYouTubeId(input) {
+        // Regex patterns for different YouTube URL formats
+        const patterns = [
+            /embed\/([\w-]{11})/,          // Embed URL
+            /[?&]v=([\w-]{11})/,           // Standard URL
+            /youtu\.be\/([\w-]{11})/,      // Short URL
+            /^[\w-]{11}$/                  // Just the ID
+        ];
+
+        for (const pattern of patterns) {
+            const match = input.match(pattern);
+            if (match) return match[1] || match[0];
+        }
+        return null;
+    }
+
+    // 2. Load Tutorials (using User API route with Admin Token)
     async function loadAdminTutorials() {
         try {
-            // Using apiFetch which automatically attaches nexguard_admin_token
-            // Since adminRoutes.js doesn't have a GET /tutorials, we use the user endpoint but with admin token.
-            // Note: If /api/user/tutorials requires a user token, this might fail unless the backend allows admin tokens.
-            // Assuming the backend handles it or the route is public/shared.
-            // If the previous code used /api/user/tutorials, we stick to it but use correct token.
+            const res = await apiFetch('/tutorials', { method: 'GET' }); // Correct endpoint via apiFetch wrapper logic
+            // Note: Since apiFetch handles /api/admin prefix, we might need a direct fetch if endpoint is /api/user/tutorials
+            // Let's use direct fetch for safety if apiFetch fails or redirects wrong
             const token = localStorage.getItem('nexguard_admin_token');
-            const res = await fetch('/api/user/tutorials', {
+            const response = await fetch('/api/user/tutorials', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            
-            const { data } = await res.json();
+            const { data } = await response.json();
             
             const container = document.getElementById('admin-tutorials-list');
             if (data && data.length > 0) {
                 container.innerHTML = data.map(tut => `
-                    <div class="flex justify-between items-center p-3 bg-slate-800/50 rounded border border-slate-700 mb-2">
-                        <div class="text-white">
-                            <div class="font-bold text-sm">${tut.title}</div>
-                            <div class="text-xs text-slate-400">ID: ${tut.video_id}</div>
+                    <div class="flex justify-between items-start p-3 bg-slate-800/50 rounded border border-slate-700 mb-2 gap-3">
+                        <img src="https://img.youtube.com/vi/${tut.video_id}/mqdefault.jpg" class="w-24 h-16 object-cover rounded shadow-sm" alt="Thumb">
+                        <div class="text-white flex-1">
+                            <div class="font-bold text-sm line-clamp-1">${tut.title}</div>
+                            <div class="text-xs text-slate-400 font-mono mt-1 select-all">${tut.video_id}</div>
                         </div>
-                        <button onclick="deleteTutorial(${tut.id})" class="btn btn-danger !p-2 text-xs">Delete</button>
+                        <button onclick="deleteTutorial(${tut.id})" class="btn btn-danger !p-2 text-xs h-8 w-8 flex items-center justify-center hover:scale-110 transition-transform"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 `).join('');
             } else {
-                container.innerHTML = '<p class="text-xs text-slate-500 italic text-center">No tutorials added yet.</p>';
+                container.innerHTML = '<p class="text-xs text-slate-500 italic text-center py-4">No tutorials added yet.</p>';
             }
         } catch (error) {
             console.error('Error loading tutorials:', error);
@@ -756,12 +685,18 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // Add Tutorial
+    // 3. Add Tutorial
     async function addTutorial() {
         const title = document.getElementById('tut-title').value;
-        const video_id = document.getElementById('tut-vid-id').value;
+        const videoInput = document.getElementById('tut-vid-id').value;
 
-        if (!title || !video_id) return showToast({ title: "Error", message: "Please fill all fields", type: "error" });
+        if (!title || !videoInput) return showToast({ title: "Error", message: "Please fill all fields", type: "error" });
+
+        // Extract ID
+        const video_id = extractYouTubeId(videoInput);
+        if (!video_id) {
+            return showToast({ title: "Invalid Video", message: "Could not detect a valid YouTube Video ID. Please check the URL.", type: "error" });
+        }
 
         // Button state
         const btn = document.querySelector('button[onclick="addTutorial()"]');
@@ -773,8 +708,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         try {
-            // Use apiFetch to send POST request to /api/admin/tutorials
-            // This ensures the correct admin token is used.
             await apiFetch('/tutorials', {
                 method: 'POST',
                 body: JSON.stringify({ title, video_id })
@@ -788,7 +721,6 @@ document.addEventListener("DOMContentLoaded", () => {
             
             // Reload list & Close modal
             loadAdminTutorials();
-            // Assuming closeTutorialModal is globally available or we can close the modal element directly
             const modal = document.getElementById('tutorial-modal');
             if(modal) modal.classList.remove('active');
 
@@ -803,12 +735,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // Delete Tutorial
+    // 4. Delete Tutorial
     async function deleteTutorial(id) {
         if(!confirm('Are you sure you want to delete this video?')) return;
 
         try {
-            // Use apiFetch for DELETE
             await apiFetch(`/tutorials/${id}`, {
                 method: 'DELETE'
             });
@@ -871,7 +802,7 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             await apiFetch(endpoint, { method, body: body ? JSON.stringify(body) : null });
             showToast({ title: "Success", message: successMessage, type: "success" });
-            await loadDataAndRender(currentView, false); // Reload without showing spinner for smoother UI
+            await loadDataAndRender(currentView, false); 
         } catch (error) {
             if (error.message !== "Unauthorized") {
                 showToast({ title: "Action Failed", message: error.message, type: "error" });
@@ -947,33 +878,28 @@ document.addEventListener("DOMContentLoaded", () => {
                     await handleAction(`/users/credit`, { userId: id, amount: parseFloat(amount) }, 'Credit Added', 'POST', button);
                 }
             }
-            // --- NEW: Handler for Generate Share Image Button ---
+            // --- Generate Share Image Button ---
             else if (button.classList.contains('generate-share-img-btn')) {
                 const orderId = button.dataset.orderId;
                 const username = button.dataset.username;
                 const plan = button.dataset.plan;
                 const dateStr = button.dataset.date;
 
-                // Show the modal immediately with loading text
-                generatedShareImage.src = ''; // Clear previous image
+                generatedShareImage.src = '';
                 generatedShareImage.classList.add('hidden');
                 imageLoadingText.classList.remove('hidden');
-                // Ensure there's only one paragraph for status
                 let statusPara = imageLoadingText.querySelector('p');
                 if (!statusPara) {
                      statusPara = document.createElement('p');
                      imageLoadingText.appendChild(statusPara);
                 }
-                statusPara.className = 'text-slate-400 text-sm'; // Reset classes if needed
+                statusPara.className = 'text-slate-400 text-sm';
                 statusPara.textContent = 'Generating image, please wait...';
 
-                downloadShareImageBtn.style.display = 'none'; // Hide download button initially
+                downloadShareImageBtn.style.display = 'none';
                 shareImageModal.classList.add('active');
 
-                // Call the generation function (handle errors)
                 try {
-                    // Preload fonts (optional but good for consistency)
-                    // You might need to adjust paths or use web fonts if Orbitron/Inter aren't system fonts
                     await document.fonts.load('bold 64px Orbitron');
                     await document.fonts.load('40px Inter');
                     await document.fonts.load('bold 70px Orbitron');
@@ -985,7 +911,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     generatedShareImage.classList.remove('hidden');
                     imageLoadingText.classList.add('hidden');
                     downloadShareImageBtn.href = imageDataUrl;
-                    downloadShareImageBtn.style.display = 'inline-block'; // Show download button
+                    downloadShareImageBtn.style.display = 'inline-block';
                 } catch (error) {
                     console.error("Error generating shareable image:", error);
                     let statusPara = imageLoadingText.querySelector('p');
@@ -995,12 +921,11 @@ document.addEventListener("DOMContentLoaded", () => {
                      }
                     statusPara.className = 'text-red-400 text-sm';
                     statusPara.textContent = `Error generating image: ${error.message || 'Unknown error'}`;
-                    imageLoadingText.classList.remove('hidden'); // Ensure loading text area is visible for error
-                    generatedShareImage.classList.add('hidden'); // Hide potentially broken image
+                    imageLoadingText.classList.remove('hidden');
+                    generatedShareImage.classList.add('hidden');
                     showToast({ title: "Error", message: `Could not generate shareable image. ${error.message || ''}`, type: "error" });
                 }
             }
-            // --- End of New Handler ---
         }
 
         if (header) {
@@ -1092,11 +1017,24 @@ document.addEventListener("DOMContentLoaded", () => {
     window.addTutorial = addTutorial;
     window.deleteTutorial = deleteTutorial;
     window.loadAdminTutorials = loadAdminTutorials;
+    // For manual button click inside modal
+    window.openTutorialModal = function() {
+        const modal = document.getElementById('tutorial-modal');
+        if(modal) {
+            modal.classList.add('active');
+            loadAdminTutorials(); 
+        }
+    };
+    window.closeTutorialModal = function() {
+        const modal = document.getElementById('tutorial-modal');
+        if(modal) modal.classList.remove('active');
+    };
 
     // --- INITIAL LOAD ---
     setActiveCard(document.getElementById(`card-${currentView}`));
     loadDataAndRender(currentView);
     setupAutoReload();
-    // Load tutorials on initial load
-    loadAdminTutorials();
-}); // End of DOMContentLoaded
+    
+    // Load tutorials list silently on start to populate cache if needed
+    // loadAdminTutorials(); 
+});
