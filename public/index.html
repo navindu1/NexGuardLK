@@ -1,14 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <link rel="icon" type="image/x-icon" href="./assets/logobox.ico" />
-    <title>NexGuardLK STORE - Experience True Freedom</title>
-    
+    <title>NexGuardLK STORE</title>
     <link rel="stylesheet" href="./css/output.css">
     <link rel="stylesheet" href="./css/modern.css">
-    
     <script>
       try {
         const token = localStorage.getItem('nexguard_token');
@@ -21,54 +20,72 @@
         document.documentElement.classList.add('logged-out');
       }
     </script>
-
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@500;700;900&display=swap"
       rel="stylesheet"
     />
-
     <meta property="og:title" content="NexGuardLK - Experience True Freedom">
     <meta property="og:description" content="Ultra-secure V2Ray connections in Sri Lanka.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://app.nexguardlk.store/">
     <meta property="og:image" content="https://app.nexguardlk.store/assets/NEX.jpg">
-
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
     />
-    <link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.fog.min.js"></script>
-    <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
 
+    <link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css" />
+
+    <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
     <style>
       :root {
-        --glow-color: rgba(59, 130, 246, 0.7);
-        --brand-blue: #3b82f6;
-        --brand-gradient: linear-gradient(90deg, #3b82f6, #60a5fa, #2563eb);
+        --glow-color: rgba(59, 130, 246, 0.7); /* Blue Glow */
+        --brand-blue: #3b82f6; /* Blue-500 */
+        --brand-gradient: linear-gradient(90deg, #3b82f6, #60a5fa, #2563eb); /* Blue Gradient */
       }
-
       html {
         scroll-behavior: smooth;
       }
-
       body {
         font-family: "Inter", sans-serif;
         background-color: #020010;
         color: #e0e0e0;
         overflow-x: hidden;
       }
-
       body.sidebar-open,
       body.modal-open {
         overflow: hidden;
       }
+   /* --- Default (Mobile View) --- */
 
-      /* --- Background & Layout --- */
+/* Hide desktop-specific buttons on mobile by default */
+#desktop-auth-buttons,
+#desktop-user-profile {
+  display: none !important;
+}
+
+/* Control MOBILE (Sidebar) buttons based on login state */
+html.logged-out #mobile-auth-buttons { display: flex !important; }
+html.logged-out #mobile-user-profile { display: none !important; }
+
+html.logged-in #mobile-auth-buttons { display: none !important; }
+html.logged-in #mobile-user-profile { display: flex !important; }
+
+
+/* --- Desktop View (sm breakpoint: 640px and up) --- */
+@media (min-width: 640px) {
+  /* When logged out on DESKTOP */
+  html.logged-out #desktop-auth-buttons { display: flex !important; }
+  html.logged-out #desktop-user-profile { display: none !important; }
+
+  /* When logged in on DESKTOP */
+  html.logged-in #desktop-auth-buttons { display: none !important; }
+  html.logged-in #desktop-user-profile { display: flex !important; }
+}
       #vanta-bg {
         position: fixed;
         top: 0;
@@ -77,30 +94,40 @@
         height: 100%;
         z-index: 0;
       }
-
-      #content-wrapper {
+      #content-wrapper {border-radius: 12px;
         position: relative;
         z-index: 1;
         min-height: 100vh;
-        display: flex;
+        display: flex; 
         flex-direction: column;
       }
+      .glass-panel {  
 
-      .glass-panel {   
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
         border: 1px solid rgba(255, 255, 255, 0.1);
         box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
       }
-
       .gradient-text {
         background: var(--brand-gradient);
         -webkit-background-clip: text;
         background-clip: text;
         -webkit-text-fill-color: transparent;
       }
+      .page {
+        animation: pageFadeIn 0.5s ease-out forwards;
+      }
+      @keyframes pageFadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
 
-      /* --- Buttons & Inputs --- */
       .ai-button {
         position: relative;
         background: var(--brand-gradient);
@@ -109,404 +136,694 @@
         overflow: hidden;
         font-family: "Orbitron", sans-serif;
       }
-
       .ai-button:hover:not(:disabled) {
         box-shadow: 0 0 25px var(--glow-color);
         background-position: right center;
       }
-
       .ai-button.secondary {
         background: transparent;
         border: 1px solid var(--brand-blue);
       }
-
       .ai-button.secondary:hover {
         background: rgba(59, 130, 246, 0.2);
       }
-
-      /* --- Navigation --- */
       .nav-link {
         position: relative;
         color: #a0aec0;
         transition: all 0.3s;
-        padding: 6px 12px;
-        border-radius: 9999px;
+        padding: 4px 8px;
+        border-radius: 9999px
       }
-
       .nav-link.active,
       .nav-link:hover {
         color: #ffffff;
         background-color: rgba(255, 255, 255, 0.05);
       }
-
-      /* --- Auth State Visibility --- */
-      #desktop-auth-buttons, #desktop-user-profile { display: none !important; }
-      
-      @media (min-width: 640px) {
-        html.logged-out #desktop-auth-buttons { display: flex !important; }
-        html.logged-out #desktop-user-profile { display: none !important; }
-        html.logged-in #desktop-auth-buttons { display: none !important; }
-        html.logged-in #desktop-user-profile { display: flex !important; }
-      }
-
-      html.logged-out #mobile-auth-buttons { display: flex !important; }
-      html.logged-out #mobile-user-profile { display: none !important; }
-      html.logged-in #mobile-auth-buttons { display: none !important; }
-      html.logged-in #mobile-user-profile { display: flex !important; }
-
-      /* --- Profile Animation (Desktop) --- */
-      @media (min-width: 640px) {
-        .animated-profile-border {
-          position: relative;
-          overflow: hidden;
-          padding: 2px;
-          border-radius: 9999px;
-          display: flex; /* Ensures image is centered */
-          align-items: center;
-          justify-content: center;
-        }
-
-        .animated-profile-border::before {
-          content: "";
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          width: 200%;
-          height: 200%;
-          z-index: 1;
-           background: conic-gradient(
-            from 180deg at 50% 50%,
-            #3b82f6 0%,  
-            #60a5fa 50%, 
-            #2563eb 100%
-          );
-          transform: translate(-50%, -50%);
-          animation: rotate 4s linear infinite;
-        }
-        
-        @keyframes rotate {
-            from { transform: translate(-50%, -50%) rotate(0deg); }
-            to { transform: translate(-50%, -50%) rotate(360deg); }
-        }
-
-        .animated-profile-border img {
-            position: relative;
-            z-index: 2;
-            background: #000; /* mask bg */
-            border-radius: 50%;
-        }
-      }
-
-      /* --- Cards --- */
       .card {
         position: relative;
-        transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.4s ease;
+        transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+          box-shadow 0.4s ease;
         overflow: hidden;
         border: 1px solid rgba(255, 255, 255, 0.1);
         transform-style: preserve-3d;
       }
-      
+      .card::before,
+      .card::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        transition: opacity 0.4s ease-in-out;
+        opacity: 0;
+      }
+      .card::before {
+        border: 2px solid transparent;
+        background: var(--brand-gradient) border-box;
+        -webkit-mask: linear-gradient(#fff 0 0) padding-box,
+          linear-gradient(#fff 0 0);
+        mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+      }
+      .card::after {
+        background: radial-gradient(
+          400px circle at var(--mouse-x, 0px) var(--mouse-y, 0px),
+          rgba(59, 130, 246, 0.4),
+          transparent 80%
+        );
+      }
       .card:hover {
-        transform: translateY(-5px) scale(1.02);
+        transform: perspective(1000px) rotateX(5deg) rotateY(-5deg) scale(1.05);
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
       }
-
-      /* --- Page Transitions --- */
-      .page {
-        animation: pageFadeIn 0.5s ease-out forwards;
-      }
-      @keyframes pageFadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-
-      /* --- Centering Utilities for specific pages --- */
-      #page-usage,
-      #page-checkout,
-      #page-login {
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          min-height: 75vh;
-          padding: 2rem 0;
-      }
-      #page-login > #auth-container,
-      #page-usage > main,
-      #page-checkout > .glass-panel { width: 100%; }
-
-      /* --- Help Modal Overlay (Fixed) --- */
-      .help-modal-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 9999;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background-color: rgba(0,0,0,0.6);
-        backdrop-filter: blur(5px);
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.3s ease, visibility 0.3s ease;
-      }
-
-      .help-modal-overlay.visible {
+      .card:hover::before,
+      .card:hover::after {
         opacity: 1;
-        visibility: visible;
       }
-
-      .help-modal-content {
-        transform: scale(0.95);
-        transition: transform 0.3s ease;
-        z-index: 10000;
-      }
-
-      .help-modal-overlay.visible .help-modal-content {
-        transform: scale(1);
-      }
-
-      /* --- Scrollbars --- */
-      ::-webkit-scrollbar { width: 8px; }
-      ::-webkit-scrollbar-track { background: #0f172a; }
-      ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 4px; }
-      ::-webkit-scrollbar-thumb:hover { background: #60a5fa; }
-
-      /* --- Toast Notifications --- */
-      #toast-container {
-        position: fixed;
-        top: 5rem;
-        right: 1.25rem;
-        z-index: 99999;
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-        width: 100%;
-        max-width: 350px;
-        pointer-events: none; /* Allow clicks through empty area */
-      }
-      
-      .toast {
-        pointer-events: auto; /* Re-enable clicks on toast */
-        display: flex;
-        align-items: flex-start;
-        padding: 0.75rem;
-        border-radius: 8px;
-        backdrop-filter: blur(10px);
-        background: rgba(15, 23, 42, 0.8);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-        color: #e0e0e0;
-        position: relative;
-        overflow: hidden;
-        transform: translateX(120%);
+      .reveal {
         opacity: 0;
-        transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        transform: translateY(40px) scale(0.98);
+        transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+      }
+      .reveal.is-visible {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+      .form-group {
+        position: relative;
+        margin-top: 2.5rem;
+        width: 100%;
       }
 
-      .toast.show { transform: translateX(0); opacity: 1; }
-      .toast::before { content: ""; position: absolute; top: 0; left: 0; bottom: 0; width: 4px; }
-      
-      .toast--success::before { background-color: #22c55e; }
-      .toast--error::before { background-color: #ef4444; }
-      .toast--warning::before { background-color: #f97316; }
-      .toast--info::before { background-color: #3b82f6; }
-      
-      .toast-icon { margin-right: 0.75rem; font-size: 1.1rem; width: 22px; text-align: center; margin-top: 2px; }
-      .toast--success .toast-icon { color: #22c55e; }
-      .toast--error .toast-icon { color: #ef4444; }
-      .toast--warning .toast-icon { color: #f97316; }
-      .toast--info .toast-icon { color: #3b82f6; }
-      
-      .toast-content { flex-grow: 1; }
-      .toast-title { font-weight: 700; font-size: 0.9rem; color: #fff; margin-bottom: 2px; }
-      .toast-message { font-size: 0.8rem; color: #cbd5e1; line-height: 1.4; }
-      .toast-close-btn { margin-left: 0.75rem; background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 1.2rem; }
-      .toast-close-btn:hover { color: #fff; }
+      /* ======== Profile Icon Animation (PC View) ======== */
 
-      @media (max-width: 640px) {
-        #toast-container {
-            top: 1rem;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 90%;
-            max-width: 90%;
-        }
-        .toast { transform: translateY(-150%); }
-        .toast.show { transform: translateY(0); }
+/* PC view එකට විතරක් සක්‍රීය කරන්න (sm breakpoint එකට අනුව) */
+@media (min-width: 640px) {
+  .animated-profile-border {
+    position: relative; /* ඇතුලෙන් එන pseudo-element එකට ඉඩ දෙන්න */
+    overflow: hidden; /* container එකෙන් පිට පනින දේවල් හංගන්න */
+    padding: 2px; /* border එකේ ඝනකම වගේ පේන්න */
+    border-radius: 9999px; /* සම්පූර්ණ රවුම */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Animation එක තියෙන pseudo-element එක */
+  .animated-profile-border::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 150%; /* container එකට වඩා ලොකු වෙන්න */
+    height: 150%;
+    z-index: -1; /* profile image එකට පිටිපස්සෙන් තියන්න */
+    transform-origin: center;
+    
+    /* Gradient එක - ඔබේ තේමාවට ගැලපෙන වර්ණ භාවිතා කරන්න */
+    background: conic-gradient(
+      from 180deg at 50% 50%,
+      #3b82f6 0%,  
+      #60a5fa 50%, 
+      #2563eb 100%
+    );
+    
+    /* Animation එකේ නම, වේගය සහ එය නොනවත්වා ක්‍රියාත්මක වන බව */
+    animation: spin-gradient 3s linear infinite;
+  }
+
+  /* Animation එකේ keyframes (කරකැවීම) */
+  @keyframes spin-gradient {
+    0% {
+      transform: translate(-50%, -50%) rotate(0deg);
+    }
+    100% {
+      transform: translate(-50%, -50%) rotate(360deg);
+    }
+  }
+
+  /* image එකට උඩින් padding එක පේන්න */
+  .animated-profile-border img {
+      position: relative;
+      z-index: 2;
+      background: #000;
+      border-radius: 50%;
+  }
+}
+      .form-input {
+        font-size: 14px;
+        color: #e0e0e0;
+        width: 100%;
+        height: 48px;
+        letter-spacing: 1px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background-color: rgba(0, 0, 0, 0.3);
+        padding: 14px 12px 0 12px;
+        transition: 0.4s;
+        outline: none;
+        border-radius: 6px;
       }
-
-      /* --- Page Loader --- */
-      #page-loader {
-        position: fixed;
+      .form-label {
+        position: absolute;
+        top: 14px;
+        left: 13px;
+        font-size: 14px;
+        color: #9ca3af;
+        transition: all 0.25s linear;
+        pointer-events: none;
+      }
+      .form-input:focus ~ .form-label,
+      .form-input:not(:placeholder-shown) ~ .form-label {
+        top: 6px;
+        font-size: 11px;
+        color: var(--brand-blue);
+      }
+      .form-input ~ .focus-border:before,
+      .form-input ~ .focus-border:after {
+        content: "";
+        position: absolute;
         top: 0;
+        left: 50%;
+        width: 0;
+        height: 2px;
+        background-color: var(--brand-blue);
+        transition: 0.4s;
+        border-radius: 6px;
+      }
+      .form-input ~ .focus-border:after {
+        top: auto;
+        bottom: 0;
+      }
+      .form-input ~ .focus-border i:before,
+      .form-input ~ .focus-border i:after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 0;
+        width: 2px;
+        height: 0;
+        background-color: var(--brand-blue);
+        transition: 0.6s;
+      }
+      .form-input ~ .focus-border i:after {
+        left: auto;
+        right: 0;
+      }
+      .form-input:focus ~ .focus-border:before,
+      .form-input:focus ~ .focus-border:after {
         left: 0;
         width: 100%;
+        transition: 0.4s;
+      }
+      .form-input:focus ~ .focus-border i:before,
+      .form-input:focus ~ .focus-border i:after {
+        top: 0;
         height: 100%;
-        background-color: #020010;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 100000;
-        transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
+        transition: 0.6s;
       }
-      
-      #page-loader.fade-out {
-          opacity: 0;
-          visibility: hidden;
+      /* ======================================================= */
+/* === ෆෝරමය සිරස්ව සහ තිරස්ව මැදට ගැනීම (අවසාන විසඳුම) === */
+/* ======================================================= */
+
+/* ෆෝරම් ඇති පිටු flex container බවට පත් කිරීම */
+#page-usage,
+#page-checkout,
+#page-login {
+    display: flex;
+    flex-direction: column; /* අන්තර්ගතය සිරස්ව තැබීම */
+    justify-content: center; /* සිරස්ව (Vertically) මැදට ගැනීම */
+    align-items: center;    /* තිරස්ව (Horizontally) මැදට ගැනීම */
+    min-height: 70vh;       /* මැදට ගැනීමට අවශ්‍ය අවම උස ලබා දීම */
+    padding: 2rem 0;        /* උඩින් සහ යටින් ඉඩක් තැබීම */
+}
+
+/* flex නිසා හැකිලෙන (shrink) ෆෝරම් container එක නැවත సరిగ్గా ගැනීම */
+#page-login > #auth-container,
+#page-usage > main,
+#page-checkout > .glass-panel {
+    width: 100%; /* container එකේ සම්පූර්ණ පළල ලබාගැනීමට සැලැස්වීම */
+    /* දැන්, container එකේම ඇති max-width (උදා: max-w-md) එකෙන් 
+       එහි උපරිම පළල සීමා වේ. එම නිසා size එක වෙනස් නොවේ. */
+}
+
+/* Profile පිටුවේ grid එක මැදට ගැනීම (පෙර පරිදිම) */
+#page-profile .grid {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 880px;
+}
+
+      /* Replace your modal CSS with this fixed version: */
+/* Replace your modal CSS with this fixed version: */
+.help-modal-overlay {
+  position: fixed;
+  /* top: 60px;  <-- මේ ලයින් එක ඉවත් කරන්න */
+  /* margin-top: 60px; <-- මේ ලයින් එකත් ඉවත් කරන්න */
+  top: 0; /* ඒ වෙනුවට මේක දාන්න. Overlay එක උඩම ඉඳන් පටන් ගන්න */
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+  display: flex;
+  align-items: center;    /* සිරස්ව (vertically) මැදට ගේන්න */
+  justify-content: center; /* තිරස්ව (horizontally) මැදට ගේන්න */
+  padding: 1rem;
+  
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  background-color: rgba(0,0,0,0.6);
+  backdrop-filter: blur(5px);
+}
+
+/* Visible state */
+.help-modal-overlay.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Modal content animations */
+.help-modal-content {
+  position: relative;
+  transform: scale(0.95);
+  transition: transform 0.3s ease;
+  /* Ensure content is above everything */
+  z-index: 10000;
+}
+
+.help-modal-overlay.visible .help-modal-content {
+  transform: scale(1);
+}
+
+      /* Firefox */
+      * {
+        scrollbar-width: thin;
+        scrollbar-color: #2563eb #222; /* thumb color | track color */
       }
 
-      .loader {
-        width: 48px;
-        height: 48px;
-        border: 5px solid #FFF;
-        border-bottom-color: var(--brand-blue);
-        border-radius: 50%;
-        display: inline-block;
-        box-sizing: border-box;
-        animation: rotation 1s linear infinite;
+      /* Chrome, Edge, Safari */
+      *::-webkit-scrollbar {
+        width: 8px; /* scroll bar width */
       }
 
-      @keyframes rotation {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+      *::-webkit-scrollbar-track {
+        background: #222; /* track color */
       }
+
+      *::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, #3b82f6, #60a5fa);
+        border-radius: 10px;
+      }
+
+      *::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(180deg, #2563eb, #3b82f6);
+      }
+/* ======================================== */
+/* Toast Notification Styles (Complete & Fixed) */
+/* ======================================== */
+
+#toast-container {
+  position: fixed;
+  top: 6.5rem;
+  right: 1.25rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 350px;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  padding: 0.75rem;
+  border-radius: 8px;
+  
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  color: #e0e0e0;
+  position: relative;
+  overflow: hidden;
+  transform: translateX(120%);
+  opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+    opacity 0.4s ease-out;
+}
+
+.toast.show {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+/* This is the colored bar on the left */
+.toast::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: 8px 0 0 8px;
+}
+
+/* Colors for the bar based on toast type */
+.toast--success::before {
+  background-color: #22c55e;
+}
+.toast--error::before {
+  background-color: #ef4444;
+}
+.toast--warning::before {
+  background-color: #f97316;
+}
+.toast--info::before {
+  background-color: #3b82f6;
+}
+
+.toast-icon {
+  flex-shrink: 0;
+  margin-right: 0.75rem;
+  font-size: 1.125rem;
+  width: 22px;
+  text-align: center;
+  margin-top: 1px;
+}
+
+/* Colors for the icon based on toast type */
+.toast--success .toast-icon {
+  color: #22c55e;
+}
+.toast--error .toast-icon {
+  color: #ef4444;
+}
+.toast--warning .toast-icon {
+  color: #f97316;
+}
+.toast--info .toast-icon {
+  color: #3b82f6;
+}
+
+.toast-content {
+  flex-grow: 1;
+}
+
+.toast-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin: 0 0 0.2rem 0;
+  color: #ffffff;
+}
+
+.toast-message {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  margin: 0;
+  color: #d1d5db;
+}
+
+.toast-close-btn {
+  flex-shrink: 0;
+  margin-left: 0.75rem;
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+
+.toast-close-btn:hover {
+  color: #ffffff;
+}
+
+#page-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.2); /* 20% opacity black background */
+  display: flex; /* Centers the loader */
+  justify-content: center;
+  align-items: center;
+  z-index: 9999; /* Ensures it's on top of everything */
+  transition: opacity 0.5s ease-in-out;
+  opacity: 1; /* Initially visible */
+}
+
+#page-loader.fade-out {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.loader,
+.loader:before,
+.loader:after {
+  width: 35px;
+  aspect-ratio: 1;
+  box-shadow: 0 0 0 3px inset #1e40af;
+  position: relative;
+  animation: 1.5s infinite 0.5s;
+  animation-name: l7-1, l7-2;
+}
+
+.loader:before,
+.loader:after {
+  content: "";
+  position: absolute;
+  left: calc(100% + 5px);
+  animation-delay: 1s, 0s;
+}
+
+.loader:after {
+  left: -40px;
+  animation-delay: 0s, 1s;
+}
+
+@keyframes l7-1 {
+  0%, 55%, 100% {
+    border-top-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+  20%, 30% {
+    border-top-left-radius: 50%;
+    border-bottom-right-radius: 50%;
+  }
+}
+
+@keyframes l7-2 {
+  0%, 55%, 100% {
+    border-bottom-left-radius: 0;
+    border-top-right-radius: 0;
+  }
+  20%, 30% {
+    border-bottom-left-radius: 50%;
+    border-top-right-radius: 50%;
+  }
+}
+
+/* --- Mobile Responsive Fix --- */
+@media (max-width: 640px) {
+  #toast-container {
+    top: 5.7rem;
+    left: 1rem;
+    right: 1rem;
+    max-width: none;
+    
+    /* This line fixes the overflow by letting the browser calculate the width */
+    width: auto; 
+  }
+
+  /* Optional: Animate from top on mobile */
+  .toast {
+    transform: translateY(-150%);
+  }
+  .toast.show {
+    transform: translateY(0);
+  }
+  
+}
     </style>
   </head>
-  <body class="p-2 sm:p-4 text-gray-200">
-    
+  <body class="p-2 sm:p-4">
     <div id="page-loader">
-      <div class="loader"></div>
-    </div>
-
-    <div id="toast-container"></div>
-
+  <div class="loader"></div>
+</div>
     <div
       id="sidebar-overlay"
-      class="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 transition-opacity opacity-0 pointer-events-none"
+      class="fixed inset-0 bg-black/60 z-30 transition-opacity opacity-0 pointer-events-none"
     ></div>
     <div
       id="mobile-sidebar"
-      class="fixed top-0 left-0 h-full w-72 glass-panel p-6 z-50 transition-transform -translate-x-full border-r border-white/10"
+      class="fixed top-0 left-0 h-full w-64 glass-panel p-6 z-40 transition-transform -translate-x-full"
     >
-      <a href="/home" class="flex items-center space-x-2 nav-link-internal mb-8">
-        <img src="/assets/logobox.png" alt="NexGuard Logo" class="h-8 w-8" />
-        <h1 class="text-xl font-bold text-white font-['Orbitron']">
+      <a
+        href="/home"
+        class="flex items-center space-x-2 nav-link-internal mb-8"
+      >
+        <img src="/assets/logobox.png" alt="NexGuard Logo" class="h-8" />
+        <h1
+          class="text-xl font-bold text-white"
+          style="font-family: 'Orbitron', sans-serif"
+        >
           NexGuard
         </h1>
       </a>
-      <nav id="mobile-nav" class="flex flex-col space-y-3">
-        <a href="/home" class="nav-link text-lg p-3 flex items-center gap-3 bg-white/5 rounded-lg text-white">
-            <i class="fa-solid fa-home w-6 text-center text-blue-400"></i> Dashboard
-        </a>
-        <a href="/usage" class="nav-link text-lg p-3 flex items-center gap-3 hover:bg-white/5 rounded-lg">
-            <i class="fa-solid fa-chart-simple w-6 text-center text-blue-400"></i> Usage
-        </a>
-        <a href="/plans" class="nav-link text-lg p-3 flex items-center gap-3 hover:bg-white/5 rounded-lg">
-            <i class="fa-solid fa-rocket w-6 text-center text-blue-400"></i> Plans
-        </a>
-        <a href="/about" class="nav-link text-lg p-3 flex items-center gap-3 hover:bg-white/5 rounded-lg">
-            <i class="fa-solid fa-info-circle w-6 text-center text-blue-400"></i> About
-        </a>
-        <a href="/privacy" class="nav-link text-lg p-3 flex items-center gap-3 hover:bg-white/5 rounded-lg">
-            <i class="fa-solid fa-shield-halved w-6 text-center text-blue-400"></i> Privacy
-        </a>
-        
+      <nav id="mobile-nav" class="flex flex-col space-y-2">
+        <a
+          href="/home"
+          class="nav-link text-lg p-3 flex items-center gap-3 bg-white/5 rounded-lg text-white"
+          ><i class="fa-solid fa-home w-5 text-center"></i> Dashboard</a
+        >
+        <a href="/usage" class="nav-link text-lg p-3 flex items-center gap-3"
+          ><i class="fa-solid fa-chart-simple w-5 text-center"></i> Usage</a
+        >
+        <a href="/plans" class="nav-link text-lg p-3 flex items-center gap-3"
+          ><i class="fa-solid fa-rocket w-5 text-center"></i> Plans</a
+        >
+        <a href="/about" class="nav-link text-lg p-3 flex items-center gap-3"
+          ><i class="fa-solid fa-info-circle w-5 text-center"></i> About</a
+        >
+        <a href="/privacy" class="nav-link text-lg p-3 flex items-center gap-3"
+          ><i class="fa-solid fa-shield-halved w-5 text-center"></i> Privacy</a
+        >
         <hr class="border-white/10 my-4" />
 
-        <div id="mobile-auth-buttons" class="flex flex-col gap-3 mt-2">
-            <a href="/login" class="nav-link-internal flex items-center justify-center w-full py-3 text-center font-semibold text-white rounded-lg ai-button secondary">
+        <div id="mobile-auth-buttons" class="flex flex-col gap-3 mt-6">
+            <a href="/login" class="nav-link-internal flex items-center justify-center w-full py-2.5 text-center font-semibold text-white rounded-lg ai-button secondary">
                 Login
             </a>
-            <a href="/signup" class="nav-link-internal flex items-center justify-center w-full py-3 text-center font-semibold text-white rounded-lg ai-button">
+            <a href="/signup" class="nav-link-internal flex items-center justify-center w-full py-2.5 text-center font-semibold text-white rounded-lg ai-button">
                 Sign Up
             </a>
         </div>
-        <div id="mobile-user-profile" class="hidden flex flex-col gap-2 mt-2">
-          <a href="/profile" class="nav-link-internal flex items-center gap-3 p-3 bg-white/10 rounded-lg border border-white/5">
-            <img id="profile-pic-nav-mobile" src="/assets/profilePhoto.jpg" alt="User" class="h-10 w-10 rounded-full object-cover border border-blue-500" />
-            <div class="flex flex-col">
-                <span class="font-semibold text-white text-sm">My Profile</span>
-                <span class="text-xs text-gray-400">View Settings</span>
-            </div>
+        <div id="mobile-user-profile" class="hidden flex flex-col gap-2 mt-6">
+          <a
+            href="/profile"
+            class="nav-link-internal flex items-center gap-3 p-3 bg-white/10 rounded-lg"
+          >
+            <img
+              id="profile-pic-nav-mobile"
+              src="/assets/profilePhoto.jpg"
+              alt="User Profile"
+              class="h-8 w-8 rounded-full object-cover"
+            />
+            <span class="font-semibold text-white">My Profile</span>
           </a>
-          <button id="logout-btn-mobile" class="nav-link text-lg p-3 flex items-center gap-3 w-full text-left text-red-400 hover:bg-red-500/10 rounded-lg mt-2 transition-colors">
-            <i class="fa-solid fa-right-from-bracket w-6 text-center"></i>
-            <span class="font-semibold">Logout</span>
+          <button
+            id="logout-btn-mobile"
+            class="nav-link text-lg p-3 flex items-center gap-3 w-full text-left"
+          >
+            <i
+              class="fa-solid fa-right-from-bracket w-5 text-center text-gray-400"
+            ></i>
+            <span class="font-semibold text-white">Logout</span>
           </button>
         </div>
       </nav>
     </div>
-
     <div id="vanta-bg"></div>
-
     <div id="content-wrapper">
-      <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full z-10 flex-grow flex flex-col">
-        
-        <header id="main-header" class="flex justify-between items-center py-4 my-2 sm:my-4 rounded-2xl glass-panel px-4 sm:px-6 sticky top-2 sm:top-4 z-30 transition-all duration-300">
-          <a href="/home" class="flex items-center space-x-2 nav-link-internal group">
-            <img src="/assets/logobox.png" alt="NexGuard Logo" class="h-8 w-8 group-hover:scale-110 transition-transform duration-300" />
-            <h1 class="text-xl font-bold text-white font-['Orbitron'] tracking-wide">
+      <div class="w-full max-w-6xl mx-auto z-10">
+        <header id="main-header" class="flex justify-between items-center py-3 mb-8 rounded-xl navbar px-4 sm:px-5 sticky top-2 sm:top-4 z-20">
+          <a
+            href="/home"
+            class="flex items-center space-x-2 nav-link-internal"
+          >
+            <img src="/assets/logobox.png" alt="NexGuard Logo" class="h-8" />
+            <h1
+              class="text-xl font-bold text-white"
+              style="font-family: 'Orbitron', sans-serif"
+            >
               NexGuard <span class="gradient-text">LK</span>
             </h1>
           </a>
 
-          <nav id="main-nav" class="hidden md:flex items-center gap-1 lg:gap-2">
-            <a href="/home" class="nav-link text-sm font-medium">Home</a>
-            <a href="/usage" class="nav-link text-sm font-medium">Usage</a>
-            <a href="/plans" class="nav-link text-sm font-medium">Plans</a>
-            <a href="/about" class="nav-link text-sm font-medium">About</a>
-            <a href="/privacy" class="nav-link text-sm font-medium">Privacy</a>
+          <nav id="main-nav" class="hidden sm:flex flex-wrap justify-center items-center gap-x-1 sm:gap-x-3">
+            <a href="/home" class="nav-link text-sm">Home</a>  <a href="/usage" class="nav-link text-sm">Usage</a>
+            <a href="/plans" class="nav-link text-sm">Plans</a>
+            <a href="/about" class="nav-link text-sm">About</a>
+            <a href="/privacy" class="nav-link text-sm">Privacy Policy</a>
           </nav>
 
-          <button id="hamburger-btn" class="md:hidden text-white text-xl p-2 z-50 focus:outline-none">
+          <button id="hamburger-btn" class="sm:hidden text-white text-xl p-2 z-50">
             <i class="fa-solid fa-bars"></i>
           </button>
 
-          <div class="hidden md:flex items-center gap-4">
-              <div id="desktop-auth-buttons" class="hidden md:flex items-center gap-3">
-                <a href="/login" class="nav-link-internal px-5 py-2 text-sm font-medium rounded-full hover:bg-white/10 transition-all ai-button secondary">Login</a>
-                <a href="/signup" class="nav-link-internal px-5 py-2 text-sm font-bold text-white rounded-full shadow-lg shadow-blue-500/30 ai-button">Sign Up</a>
-              </div>
-              
-              <div id="desktop-user-profile" class="hidden items-center gap-4">
-                <button id="logout-btn-desktop" class="text-gray-400 hover:text-white transition-colors text-sm font-medium">
-                    Logout
-                </button>
-                <a href="/profile" class="nav-link-internal animated-profile-border block transition-transform hover:scale-105" title="My Profile">
-                    <img id="profile-pic-nav-desktop" src="/assets/profilePhoto.jpg" alt="Profile" class="h-9 w-9 object-cover border-2 border-transparent" />
-                </a>
-              </div>
+          <div id="desktop-auth-buttons" class="hidden sm:flex items-center gap-2">
+            <a
+              href="/login"
+              class="nav-link-internal px-3 py-1.5 text-xs font-medium rounded-lg hover:bg-white/10 transition-colors ai-button secondary "
+              >Login</a
+            >
+            <a
+              href="/signup"
+              class="nav-link-internal px-3 py-1.5 text-xs font-semibold text-white rounded-lg ai-button"
+              >Sign Up</a
+            >
+          </div>
+          <div id="desktop-user-profile" class="hidden items-center gap-3">
+            <button
+                id="logout-btn-desktop"
+                class="nav-link-internal px-3 py-1.5 text-xs font-medium rounded-lg hover:bg-white/10 transition-colors ai-button secondary"
+            >
+                Logout
+            </button>
+            <a
+                href="/profile"
+                class="nav-link-internal animated-profile-border block rounded-full p-0.5 transition-colors"
+                title="My Profile"
+            >
+                <img
+                    id="profile-pic-nav-desktop"
+                    src="/assets/profilePhoto.jpg"
+                    alt="My Profile"
+                    class="h-8 w-8 rounded-full object-cover"
+                />
+            </a>
           </div>
         </header>
-
-        <main id="app-router" class="flex-grow relative pb-10 min-h-[60vh]"></main>
-      
+        <main id="app-router" class="min-h-[70vh] px-2"></main>
       </div>
       
       <footer class="w-full text-center py-6 text-gray-500 text-xs relative z-10">
           &copy; 2025 NexGuardLK. All rights reserved.
       </footer>
     </div>
-
-    <div id="qr-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm flex justify-center items-center z-[100]" style="display: none">
-      <div class="glass-panel p-0 rounded-2xl max-w-xs w-full relative overflow-hidden shadow-2xl shadow-blue-900/20 transform transition-all scale-100">
-        <div class="flex justify-between items-center p-4 border-b border-white/10 bg-white/5">
-          <h3 class="text-lg font-bold text-white font-['Orbitron']">Scan QR Code</h3>
-          <button id="qr-modal-close-btn" class="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-red-500 hover:text-white transition-colors">
+    <div
+      id="qr-modal"
+      class="fixed inset-0 bg-black/80 justify-center items-center z-[101]"
+      style="display: none"
+    >
+      <div
+        class="glass-panel p-0 rounded-lg max-w-xs w-11/12 relative overflow-hidden border border-white/10 custom-radius"
+      >
+        <div class="flex justify-between items-center p-4 border-b border-white/10 custom-radius">
+          <h3 class="text-lg font-bold text-white font-['Orbitron']">
+            Scan QR Code
+          </h3>
+          <button
+            id="qr-modal-close-btn"
+            class="text-gray-400 hover:text-white text-3xl leading-none"
+          >
             &times;
           </button>
         </div>
-        <div class="p-6 flex flex-col items-center gap-4">
-          <div id="modal-connection-name" class="bg-blue-500/20 border border-blue-500/30 text-blue-200 text-xs font-mono px-3 py-1 rounded-full text-center break-all max-w-full">
-            Loading...
-          </div>
-          <div class="bg-white p-4 rounded-xl shadow-inner">
-             <div id="modal-qr-code"></div>
-          </div>
-          <p class="text-xs text-gray-400 text-center">Scan with your V2Ray client</p>
+        <div class="p-6 flex flex-col items-center">
+          <div
+            id="modal-connection-name"
+            class="bg-green-500/20 text-green-300 text-sm font-medium px-4 py-2 rounded-full inline-block mb-4 break-all"
+          ></div>
+          <div id="modal-qr-code" class="p-3 bg-white rounded-lg"></div>
         </div>
       </div>
     </div>
@@ -514,12 +831,12 @@
     <script src="./js/effects.js"></script> 
     <script type="module" src="./js/main.js"></script>
     <script>
-        // Fallback to remove loader if main.js fails or takes too long
+        // Ensure loader fades out even if main.js is slow
         window.addEventListener('load', () => {
             setTimeout(() => {
                 const loader = document.getElementById('page-loader');
                 if(loader) loader.classList.add('fade-out');
-            }, 1000); // Ensures loader stays for at least 1s for visual continuity
+            }, 1000);
         });
     </script>
   </body>

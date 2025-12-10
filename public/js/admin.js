@@ -718,69 +718,109 @@ document.addEventListener("DOMContentLoaded", () => {
         formModal.classList.add('active');
     }
 
-    // Load Tutorials when page loads
-document.addEventListener('DOMContentLoaded', loadAdminTutorials);
+    // --- Tutorial Management Logic (Fixed) ---
 
-async function loadAdminTutorials() {
-    try {
-        const res = await fetch('/api/user/tutorials', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        });
-        const { data } = await res.json();
-        
-        const container = document.getElementById('admin-tutorials-list');
-        container.innerHTML = data.map(tut => `
-            <div class="flex justify-between items-center p-3 bg-gray-50 rounded border">
-                <div>
-                    <span class="font-bold">${tut.title}</span>
-                    <span class="text-xs text-gray-500 ml-2">ID: ${tut.video_id}</span>
-                </div>
-                <button onclick="deleteTutorial(${tut.id})" class="text-red-500 hover:text-red-700 text-sm">Delete</button>
-            </div>
-        `).join('');
-    } catch (error) {
-        console.error('Error loading tutorials:', error);
+    // Load Tutorials
+    async function loadAdminTutorials() {
+        try {
+            // Using apiFetch which automatically attaches nexguard_admin_token
+            // Since adminRoutes.js doesn't have a GET /tutorials, we use the user endpoint but with admin token.
+            // Note: If /api/user/tutorials requires a user token, this might fail unless the backend allows admin tokens.
+            // Assuming the backend handles it or the route is public/shared.
+            // If the previous code used /api/user/tutorials, we stick to it but use correct token.
+            const token = localStorage.getItem('nexguard_admin_token');
+            const res = await fetch('/api/user/tutorials', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            const { data } = await res.json();
+            
+            const container = document.getElementById('admin-tutorials-list');
+            if (data && data.length > 0) {
+                container.innerHTML = data.map(tut => `
+                    <div class="flex justify-between items-center p-3 bg-slate-800/50 rounded border border-slate-700 mb-2">
+                        <div class="text-white">
+                            <div class="font-bold text-sm">${tut.title}</div>
+                            <div class="text-xs text-slate-400">ID: ${tut.video_id}</div>
+                        </div>
+                        <button onclick="deleteTutorial(${tut.id})" class="btn btn-danger !p-2 text-xs">Delete</button>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<p class="text-xs text-slate-500 italic text-center">No tutorials added yet.</p>';
+            }
+        } catch (error) {
+            console.error('Error loading tutorials:', error);
+            const container = document.getElementById('admin-tutorials-list');
+            if(container) container.innerHTML = '<p class="text-xs text-red-400 text-center">Failed to load list.</p>';
+        }
     }
-}
 
-async function addTutorial() {
-    const title = document.getElementById('tut-title').value;
-    const video_id = document.getElementById('tut-vid-id').value;
+    // Add Tutorial
+    async function addTutorial() {
+        const title = document.getElementById('tut-title').value;
+        const video_id = document.getElementById('tut-vid-id').value;
 
-    if (!title || !video_id) return alert('Please fill all fields');
+        if (!title || !video_id) return showToast({ title: "Error", message: "Please fill all fields", type: "error" });
 
-    try {
-        const res = await fetch('/api/admin/tutorials', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            body: JSON.stringify({ title, video_id })
-        });
+        // Button state
+        const btn = document.querySelector('button[onclick="addTutorial()"]');
+        let originalText = 'Add';
+        if(btn) {
+             originalText = btn.innerHTML;
+             btn.disabled = true;
+             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+        }
 
-        if (res.ok) {
+        try {
+            // Use apiFetch to send POST request to /api/admin/tutorials
+            // This ensures the correct admin token is used.
+            await apiFetch('/tutorials', {
+                method: 'POST',
+                body: JSON.stringify({ title, video_id })
+            });
+
+            showToast({ title: "Success", message: "Video added successfully!", type: "success" });
+            
+            // Clear inputs
             document.getElementById('tut-title').value = '';
             document.getElementById('tut-vid-id').value = '';
-            loadAdminTutorials(); // Reload list
-        }
-    } catch (error) {
-        alert('Error adding tutorial');
-    }
-}
+            
+            // Reload list & Close modal
+            loadAdminTutorials();
+            // Assuming closeTutorialModal is globally available or we can close the modal element directly
+            const modal = document.getElementById('tutorial-modal');
+            if(modal) modal.classList.remove('active');
 
-async function deleteTutorial(id) {
-    if(!confirm('Are you sure?')) return;
-    try {
-        await fetch(`/api/admin/tutorials/${id}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        });
-        loadAdminTutorials();
-    } catch (error) {
-        alert('Error deleting tutorial');
+        } catch (error) {
+            console.error(error);
+            showToast({ title: "Error", message: error.message || "Failed to add video", type: "error" });
+        } finally {
+            if(btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
     }
-}
+
+    // Delete Tutorial
+    async function deleteTutorial(id) {
+        if(!confirm('Are you sure you want to delete this video?')) return;
+
+        try {
+            // Use apiFetch for DELETE
+            await apiFetch(`/tutorials/${id}`, {
+                method: 'DELETE'
+            });
+            
+            showToast({ title: "Deleted", message: "Video removed successfully", type: "success" });
+            loadAdminTutorials();
+        } catch (error) {
+            console.error(error);
+            showToast({ title: "Error", message: "Failed to delete video", type: "error" });
+        }
+    }
+
     // --- CORE LOGIC ---
     async function loadDataAndRender(view, showLoading = true) {
         currentView = view;
@@ -1048,8 +1088,15 @@ async function deleteTutorial(id) {
         }
     });
 
+    // Make tutorial functions global so HTML onclick can access them
+    window.addTutorial = addTutorial;
+    window.deleteTutorial = deleteTutorial;
+    window.loadAdminTutorials = loadAdminTutorials;
+
     // --- INITIAL LOAD ---
     setActiveCard(document.getElementById(`card-${currentView}`));
     loadDataAndRender(currentView);
     setupAutoReload();
+    // Load tutorials on initial load
+    loadAdminTutorials();
 }); // End of DOMContentLoaded

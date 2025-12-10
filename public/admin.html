@@ -139,38 +139,138 @@
       .toggle-checkbox:checked + .toggle-label {
         background-color: #a78bfa;
       }
+      .connection-card {
+        background: rgba(10, 8, 28, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+      }
+      .connection-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        background: rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .connection-title h3 {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      .connection-title .type-badge {
+        font-size: 0.75rem;
+        font-weight: 500;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        color: #e0e0e0;
+      }
+      .type-badge.single-package {
+        background-color: rgba(59, 130, 246, 0.2);
+        color: #93c5fd;
+      }
+      .type-badge.multi-package {
+        background-color: rgba(168, 85, 247, 0.2);
+        color: #d8b4fe;
+      }
+      .details-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+      }
+      .detail-item {
+        background: rgba(0, 0, 0, 0.2);
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+      }
+      .detail-item .label {
+        font-size: 0.75rem;
+        color: #9ca3af;
+        margin-bottom: 0.25rem;
+      }
+      .detail-item .value {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #ffffff;
+        word-break: break-all;
+      }
+      .package-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+      .connection-header {
+        cursor: pointer;
+      }
+      .connection-body {
+        max-height: 0;
+        overflow: hidden;
+        padding-top: 0;
+        padding-bottom: 0;
+        transition: max-height 0.5s cubic-bezier(0.25, 0.8, 0.25, 1),
+          padding 0.5s ease-in-out;
+      }
+      .connection-body.expanded {
+        max-height: 1000px; /* Increased to accommodate content */
+        padding: 1.5rem;
+      }
+      .collapse-icon {
+        transition: transform 0.4s ease;
+      }
+      .connection-header:not(.collapsed) .collapse-icon {
+        transform: rotate(90deg);
+      }
+      .package-item {
+        display: flex;
+        flex-wrap: wrap; /* Allow wrapping on small screens */
+        align-items: center;
+        gap: 1rem;
+        padding: 0.75rem 1.25rem;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 8px;
+        transition: background-color 0.2s;
+      }
+      .package-item:hover {
+        background: rgba(0, 0, 0, 0.4);
+      }
+      .package-item .name {
+        flex-grow: 1;
+        font-weight: 600;
+        color: #ffffff;
+        min-width: 120px;
+      }
+      .package-item .inbound {
+        font-family: monospace;
+        color: #a5b4fc;
+        min-width: 100px;
+      }
+      .package-item .template-display {
+        flex-grow: 2;
+        min-width: 150px;
+      }
+      .package-item .actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+      }
+      .template-display .template-text {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 6px;
+        padding: 0.3rem 0.5rem;
+        font-family: monospace;
+        font-size: 0.7rem;
+        color: #a5b4fc;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: block;
+      }
       
-      /* New Input Styles for Dark Modal */
-      .input-dark {
-          background-color: rgba(15, 23, 42, 0.6);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          color: #fff;
-          border-radius: 0.375rem;
-          padding: 0.5rem 0.75rem;
-          width: 100%;
-          outline: none;
-          transition: border-color 0.2s;
-      }
-      .input-dark:focus {
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-      }
-      
-      /* Scrollbar for modal list */
-      .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
-      }
-      .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(0,0,0,0.2);
-      }
-      .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255,255,255,0.2);
-          border-radius: 10px;
-      }
-      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(255,255,255,0.3);
-      }
-
       #toast-container {
         position: fixed;
         top: 1.25rem;
@@ -197,7 +297,8 @@
         overflow: hidden;
         transform: translateX(120%);
         opacity: 0;
-        transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease-out;
+        transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+          opacity 0.4s ease-out;
       }
       .toast.show { transform: translateX(0); opacity: 1; }
       .toast::before { content: ""; position: absolute; top: 0; left: 0; bottom: 0; width: 4px; border-radius: 8px 0 0 8px; }
@@ -215,6 +316,35 @@
       .toast-message { font-size: 0.8rem; line-height: 1.4; margin: 0; color: #d1d5db; }
       .toast-close-btn { flex-shrink: 0; margin-left: 0.75rem; background: transparent; border: none; color: #9ca3af; font-size: 1.25rem; line-height: 1; cursor: pointer; transition: color 0.2s ease; }
       .toast-close-btn:hover { color: #ffffff; }
+
+      /* Styles for Tutorial Modal */
+      .input-dark {
+          background-color: rgba(15, 23, 42, 0.6);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: #fff;
+          border-radius: 0.375rem;
+          padding: 0.5rem 0.75rem;
+          width: 100%;
+          outline: none;
+          transition: border-color 0.2s;
+      }
+      .input-dark:focus {
+          border-color: #a855f7;
+          box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.2);
+      }
+      .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(0,0,0,0.2);
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(255,255,255,0.2);
+          border-radius: 10px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(255,255,255,0.3);
+      }
     </style>
   </head>
   <body class="p-4 sm:p-6 lg:p-8">
@@ -227,12 +357,8 @@
           Admin Dashboard
         </h1>
         <div class="flex items-center gap-4 self-end sm:self-center">
-            
-          <button
-            onclick="openTutorialModal()"
-            class="text-sm font-semibold text-slate-400 hover:text-white transition-colors flex items-center gap-2"
-            title="Manage Tutorials"
-          >
+          
+          <button onclick="openTutorialModal()" class="text-sm font-semibold text-slate-400 hover:text-white transition-colors flex items-center gap-2" title="Manage Tutorials">
             <i class="fa-brands fa-youtube fa-lg text-red-500"></i>
             <span class="hidden sm:inline">Tutorials</span>
           </button>
@@ -254,7 +380,6 @@
           </button>
         </div>
       </header>
-      
       <section
   id="stats-section"
   class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8"
@@ -375,7 +500,6 @@
     </div>
   </div>
 </section>
-
       <main id="main-content-area">
         <div
           class="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-4"
@@ -567,12 +691,8 @@
             const modal = document.getElementById('tutorial-modal');
             if(modal) {
                 modal.classList.add('active');
-                // Trigger load logic if defined in admin.js
                 if(typeof loadAdminTutorials === 'function') {
                     loadAdminTutorials(); 
-                } else {
-                    // Fallback reload if function name varies
-                    console.log("Loading tutorials...");
                 }
             }
         }
