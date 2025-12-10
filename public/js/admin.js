@@ -1,25 +1,31 @@
 document.addEventListener("DOMContentLoaded", () => {
 
     // --- Vanta Background Animation ---
-    VANTA.FOG({
-          el: "#vanta-bg",
-          mouseControls: true,
-          touchControls: true,
-          gyroControls: false,
-          minHeight: 200.00,
-          minWidth: 200.00,
-          highlightColor: 0x0,
-          midtoneColor: 0x569e8, 
-          lowlightColor: 0x0,
-          baseColor: 0x0,
-          blurFactor: 0.90,
-          speed: 1.30,
-          zoom: 0.60
-        });
+    try {
+        if (window.VANTA) {
+            VANTA.FOG({
+                el: "#vanta-bg",
+                mouseControls: true,
+                touchControls: true,
+                gyroControls: false,
+                minHeight: 200.00,
+                minWidth: 200.00,
+                highlightColor: 0x0,
+                midtoneColor: 0x569e8, 
+                lowlightColor: 0x0,
+                baseColor: 0x0,
+                blurFactor: 0.90,
+                speed: 1.30,
+                zoom: 0.60
+            });
+        }
+    } catch (e) {
+        console.warn("Vanta JS not loaded properly", e);
+    }
 
     const loginForm = document.getElementById('admin-login-form');
     if (loginForm) {
-        return; // Login page logic handled elsewhere or via HTML form submission
+        return; // Login page logic handled elsewhere
     }
 
     // --- ADMIN DASHBOARD AUTH CHECK ---
@@ -137,6 +143,27 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
+    // --- Helper: Extract YouTube ID from ANY string (URL or Iframe) ---
+    function extractYouTubeId(input) {
+        if (!input) return null;
+        
+        // Regex patterns to match various YouTube formats
+        const patterns = [
+            /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([\w-]{11})/, // Standard URL
+            /(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([\w-]{11})/,   // Embed URL (inside iframe src)
+            /(?:https?:\/\/)?youtu\.be\/([\w-]{11})/,                       // Short URL
+            /^([\w-]{11})$/                                                  // ID Only
+        ];
+
+        for (const pattern of patterns) {
+            const match = input.match(pattern);
+            if (match && match[1]) {
+                return match[1]; // Return the ID
+            }
+        }
+        return null;
+    }
+
     // --- Helper to load images for Canvas ---
     function loadImage(url) {
         return new Promise((resolve, reject) => {
@@ -158,33 +185,49 @@ document.addEventListener("DOMContentLoaded", () => {
         canvas.width = width;
         canvas.height = height;
 
-        const bgColor = '#05081A';
+        // --- Design Elements ---
+        const bgColor = '#05081A'; // Very dark blue/black base
         const primaryTextColor = '#FFFFFF';
-        const secondaryTextColor = '#A0AEC0';
+        const secondaryTextColor = '#A0AEC0'; // Lighter gray
+        // Vibrant brand colors from logo
         const accentBlue = '#3B82F6';
         const accentCyan = '#06B6D4';
         const accentPurple = '#A855F7';
-        const glowColor = accentCyan; 
+        const glowColor = accentCyan; // Color for glow effects
 
-        const logoUrl = '/assets/logobox.png'; 
+        const logoUrl = '/assets/logobox.png'; // Orb logo
         const brandName = "NexGuardLK";
         const websiteUrl = "app.nexguardlk.store";
 
+        // --- Sanitize Username ---
         const sanitizedUsername = username.length > 5 ? `${username.substring(0, 5)}***` : `${username}***`;
+
+        // --- Format Date ---
         let formattedDate = 'N/A';
-        try { if (dateStr) formattedDate = new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); } catch (e) {}
+        try {
+            if (dateStr) formattedDate = new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        } catch (e) { console.error("Error formatting date:", e); }
 
+        // --- Load Assets ---
         let logoImg;
-        try { logoImg = await loadImage(logoUrl); } catch (error) { console.error(error); }
+        try {
+            logoImg = await loadImage(logoUrl);
+        } catch (error) {
+            console.error(error);
+            // Continue without logo if it fails
+        }
 
-        // Background
+        // --- Start Drawing ---
+        // 1. Background
         ctx.fillStyle = bgColor;
         ctx.fillRect(0, 0, width, height);
 
-        // Abstract Shapes
-        ctx.save();
+        // 2. Abstract Background Elements (Diagonal Lines/Shards)
+        ctx.save(); 
         ctx.lineWidth = 8;
         ctx.lineCap = 'round';
+
+        // Cyan shard
         ctx.strokeStyle = accentCyan;
         ctx.shadowColor = accentCyan;
         ctx.shadowBlur = 20;
@@ -193,78 +236,108 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.lineTo(width * 0.6, -100);
         ctx.stroke();
 
+        // Purple shard
         ctx.strokeStyle = accentPurple;
         ctx.shadowColor = accentPurple;
         ctx.beginPath();
         ctx.moveTo(width * 0.4, height + 100);
         ctx.lineTo(width + 100, height * 0.3);
         ctx.stroke();
-        ctx.restore();
 
-        // Logo
+         // Blue subtle lines (no glow)
+         ctx.strokeStyle = accentBlue;
+         ctx.shadowBlur = 0; 
+         ctx.lineWidth = 4;
+         ctx.beginPath();
+         ctx.moveTo(width * 0.8, -50);
+         ctx.lineTo(width * 0.2, height + 50);
+         ctx.stroke();
+         ctx.beginPath();
+         ctx.moveTo(-50, height * 0.1);
+         ctx.lineTo(width + 50, height * 0.9);
+         ctx.stroke();
+
+        ctx.restore(); 
+
+
+        // 3. Logo (Larger, maybe bottom corner or side)
         if (logoImg) {
             const logoSize = 250;
+            // Position bottom right with some padding
             const logoX = width - logoSize - 60;
             const logoY = height - logoSize - 60;
+
+             // Add a subtle glow behind logo
              ctx.shadowColor = accentBlue;
              ctx.shadowBlur = 30;
              ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
-             ctx.shadowBlur = 0;
+             ctx.shadowBlur = 0; // Turn off glow
         }
 
-        ctx.textAlign = 'left';
-        const textStartX = 100;
+        // --- Text Elements ---
+        ctx.textAlign = 'left'; 
 
+        const textStartX = 100; 
+
+        // Username
         ctx.fillStyle = primaryTextColor;
-        ctx.font = 'bold 90px Orbitron, sans-serif';
+        ctx.font = 'bold 90px Orbitron, sans-serif'; 
+        // Add glow to username
         ctx.shadowColor = glowColor;
         ctx.shadowBlur = 15;
         ctx.fillText(sanitizedUsername, textStartX, 250);
-        ctx.shadowBlur = 0; 
+        ctx.shadowBlur = 0; // Turn off glow
 
-        ctx.font = '45px Inter, sans-serif';
+        // Subtitle text
+        ctx.font = '45px Inter, sans-serif'; 
         ctx.fillStyle = secondaryTextColor;
         ctx.fillText("successfully purchased", textStartX, 320);
 
-        ctx.font = 'bold 90px Orbitron, sans-serif';
-        ctx.fillStyle = accentCyan;
+        // Plan Name (Positioned below subtitle, standout color)
+        ctx.font = 'bold 90px Orbitron, sans-serif'; 
+        ctx.fillStyle = accentCyan; 
         ctx.fillText(plan, textStartX, 450);
 
-        ctx.font = '45px Inter, sans-serif';
+        // "Plan from" text
+        ctx.font = '45px Inter, sans-serif'; 
         ctx.fillStyle = secondaryTextColor;
         ctx.fillText(`Plan from ${brandName}`, textStartX, 520);
 
-        // Badge
+        // --- Verified Purchase Badge ---
         const badgeY = height - 150;
         const badgeHeight = 60;
         const checkmark = '✔';
         const badgeText = 'Verified Purchase';
-        ctx.font = 'bold 36px Inter, sans-serif';
+
+        ctx.font = 'bold 36px Inter, sans-serif'; 
         const textWidth = ctx.measureText(badgeText).width;
         const checkWidth = ctx.measureText(checkmark).width;
         const badgePadding = 25;
         const totalBadgeWidth = textWidth + checkWidth + badgePadding * 2 + 10; 
 
-        ctx.fillStyle = 'rgba(34, 197, 94, 0.2)'; 
-        ctx.strokeStyle = 'rgba(34, 197, 94, 0.6)';
+        ctx.fillStyle = 'rgba(34, 197, 94, 0.2)'; // Green background
+        ctx.strokeStyle = 'rgba(34, 197, 94, 0.6)'; // Green border
         ctx.lineWidth = 2;
+
+        // Draw rounded rect for badge
         ctx.beginPath();
         ctx.roundRect(textStartX, badgeY, totalBadgeWidth, badgeHeight, 10);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
 
-        ctx.fillStyle = '#86EFAC';
-        ctx.fillText(`${checkmark} ${badgeText}`, textStartX + badgePadding, badgeY + 41);
+        // Draw text inside badge
+        ctx.fillStyle = '#86EFAC'; // Lighter green text
+        ctx.fillText(`${checkmark} ${badgeText}`, textStartX + badgePadding, badgeY + 41); 
 
-        ctx.font = '24px Inter, sans-serif';
+        // --- Date & Website URL ---
+        ctx.font = '24px Inter, sans-serif'; 
         ctx.fillStyle = secondaryTextColor;
+        ctx.textAlign = 'left';
         ctx.fillText(`Date: ${formattedDate}  •  ${websiteUrl}`, textStartX, height - 60);
 
         return canvas.toDataURL('image/png');
     }
-
-    // --- Render Functions ---
 
     function renderUsers(users, role = 'user') {
         const title = role === 'user' ? 'User' : 'Reseller';
@@ -297,7 +370,8 @@ document.addEventListener("DOMContentLoaded", () => {
     function renderConnections() {
         contentTitle.textContent = `Connections & Packages`;
         searchBarContainer.classList.add('hidden');
-        addNewBtn.classList.add('hidden');
+        addNewBtn.classList.remove('hidden');
+        addNewBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Add Connection';
         addNewBtn.dataset.type = 'connection';
 
         const connections = dataCache.connections || [];
@@ -503,6 +577,7 @@ document.addEventListener("DOMContentLoaded", () => {
         
         let orders = (dataCache.orders || []);
 
+        // --- UPDATE: Show Queued orders in 'Approved' tab ---
         if (status === 'approved') {
             orders = orders.filter(o => o.status === 'approved' || o.status === 'queued_for_renewal');
         } else {
@@ -517,6 +592,7 @@ document.addEventListener("DOMContentLoaded", () => {
         contentContainer.innerHTML = orders.map(order => {
             let orderType, typeColor;
             
+            // Renewal / Change Logic
             if (order.is_renewal) { 
                 orderType = 'Renew'; 
                 typeColor = 'text-blue-400'; 
@@ -528,6 +604,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 typeColor = 'text-green-400'; 
             }
 
+            // --- UPDATE: Status Display Logic ---
             let statusText = order.status;
             let statusColor = 'text-gray-400';
             
@@ -547,6 +624,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             let actionButtonsHtml = '';
             
+            // Button Logic based on Order Status
             if (order.status === 'pending' || order.status === 'unconfirmed') {
                 actionButtonsHtml = `
                 <button class="btn btn-primary approve-btn" data-id="${order.id}">Approve</button>
@@ -560,6 +638,7 @@ document.addEventListener("DOMContentLoaded", () => {
                  actionButtonsHtml = `<span class="text-xs text-gray-500">Action Taken</span>`;
             }
 
+            // --- UPDATE: Grid Columns increased to 9 to fit Status ---
             return `
                 <div class="glass-panel p-4 rounded-lg grid grid-cols-2 md:grid-cols-9 gap-4 items-center text-xs sm:text-sm">
                     <div><span class="font-bold text-slate-400 text-xs block mb-1">User</span><p class="truncate" title="${order.website_username}">${order.website_username}</p></div>
@@ -636,17 +715,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // 1. Helper to extract ID
     function extractYouTubeId(input) {
+        if (!input) return null;
+        
         // Regex patterns for different YouTube URL formats
         const patterns = [
-            /embed\/([\w-]{11})/,          // Embed URL
-            /[?&]v=([\w-]{11})/,           // Standard URL
-            /youtu\.be\/([\w-]{11})/,      // Short URL
-            /^[\w-]{11}$/                  // Just the ID
+            /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([\w-]{11})/, // Standard URL
+            /(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([\w-]{11})/,   // Embed URL (inside iframe src)
+            /(?:https?:\/\/)?youtu\.be\/([\w-]{11})/,                       // Short URL
+            /^([\w-]{11})$/                                                  // ID Only
         ];
 
         for (const pattern of patterns) {
             const match = input.match(pattern);
-            if (match) return match[1] || match[0];
+            if (match && match[1]) {
+                return match[1]; // Return the ID
+            }
         }
         return null;
     }
@@ -654,9 +737,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // 2. Load Tutorials (using User API route with Admin Token)
     async function loadAdminTutorials() {
         try {
-            const res = await apiFetch('/tutorials', { method: 'GET' }); // Correct endpoint via apiFetch wrapper logic
-            // Note: Since apiFetch handles /api/admin prefix, we might need a direct fetch if endpoint is /api/user/tutorials
-            // Let's use direct fetch for safety if apiFetch fails or redirects wrong
+            // Using user endpoint with admin token
             const token = localStorage.getItem('nexguard_admin_token');
             const response = await fetch('/api/user/tutorials', {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -802,7 +883,7 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             await apiFetch(endpoint, { method, body: body ? JSON.stringify(body) : null });
             showToast({ title: "Success", message: successMessage, type: "success" });
-            await loadDataAndRender(currentView, false); 
+            await loadDataAndRender(currentView, false); // Reload without showing spinner for smoother UI
         } catch (error) {
             if (error.message !== "Unauthorized") {
                 showToast({ title: "Action Failed", message: error.message, type: "error" });
@@ -878,28 +959,33 @@ document.addEventListener("DOMContentLoaded", () => {
                     await handleAction(`/users/credit`, { userId: id, amount: parseFloat(amount) }, 'Credit Added', 'POST', button);
                 }
             }
-            // --- Generate Share Image Button ---
+            // --- NEW: Handler for Generate Share Image Button ---
             else if (button.classList.contains('generate-share-img-btn')) {
                 const orderId = button.dataset.orderId;
                 const username = button.dataset.username;
                 const plan = button.dataset.plan;
                 const dateStr = button.dataset.date;
 
-                generatedShareImage.src = '';
+                // Show the modal immediately with loading text
+                generatedShareImage.src = ''; // Clear previous image
                 generatedShareImage.classList.add('hidden');
                 imageLoadingText.classList.remove('hidden');
+                // Ensure there's only one paragraph for status
                 let statusPara = imageLoadingText.querySelector('p');
                 if (!statusPara) {
                      statusPara = document.createElement('p');
                      imageLoadingText.appendChild(statusPara);
                 }
-                statusPara.className = 'text-slate-400 text-sm';
+                statusPara.className = 'text-slate-400 text-sm'; // Reset classes if needed
                 statusPara.textContent = 'Generating image, please wait...';
 
-                downloadShareImageBtn.style.display = 'none';
+                downloadShareImageBtn.style.display = 'none'; // Hide download button initially
                 shareImageModal.classList.add('active');
 
+                // Call the generation function (handle errors)
                 try {
+                    // Preload fonts (optional but good for consistency)
+                    // You might need to adjust paths or use web fonts if Orbitron/Inter aren't system fonts
                     await document.fonts.load('bold 64px Orbitron');
                     await document.fonts.load('40px Inter');
                     await document.fonts.load('bold 70px Orbitron');
@@ -911,7 +997,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     generatedShareImage.classList.remove('hidden');
                     imageLoadingText.classList.add('hidden');
                     downloadShareImageBtn.href = imageDataUrl;
-                    downloadShareImageBtn.style.display = 'inline-block';
+                    downloadShareImageBtn.style.display = 'inline-block'; // Show download button
                 } catch (error) {
                     console.error("Error generating shareable image:", error);
                     let statusPara = imageLoadingText.querySelector('p');
@@ -921,11 +1007,12 @@ document.addEventListener("DOMContentLoaded", () => {
                      }
                     statusPara.className = 'text-red-400 text-sm';
                     statusPara.textContent = `Error generating image: ${error.message || 'Unknown error'}`;
-                    imageLoadingText.classList.remove('hidden');
-                    generatedShareImage.classList.add('hidden');
+                    imageLoadingText.classList.remove('hidden'); // Ensure loading text area is visible for error
+                    generatedShareImage.classList.add('hidden'); // Hide potentially broken image
                     showToast({ title: "Error", message: `Could not generate shareable image. ${error.message || ''}`, type: "error" });
                 }
             }
+            // --- End of New Handler ---
         }
 
         if (header) {

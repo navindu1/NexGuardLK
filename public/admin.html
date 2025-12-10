@@ -1,713 +1,832 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Admin Dashboard - NexGuard</title>
-    <link rel="stylesheet" href="/css/output.css">
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@700&display=swap"
-      rel="stylesheet"
-    />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.fog.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-      body {
-        font-family: "Inter", sans-serif;
-        color: #e0e0e0;
-        background-color: #020010;
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard - NexGuard</title>
+  <link rel="stylesheet" href="/css/output.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@700&display=swap"
+    rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.fog.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* --- Global Reset & Body --- */
+    body {
+      font-family: "Inter", sans-serif;
+      color: #e0e0e0;
+      background-color: #020010;
+      overflow-x: hidden;
+      /* Prevent horizontal scroll */
+    }
+
+    #vanta-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      /* Let clicks pass through */
+    }
+
+    #app-container {
+      position: relative;
+      z-index: 10;
+      /* Ensure content is above background */
+    }
+
+    /* --- Glass Panel Styling --- */
+    .glass-panel {
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: rgba(10, 8, 28, 0.6);
+      /* Slightly darker for better contrast */
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    /* --- Button Components --- */
+    .btn {
+      padding: 8px 16px;
+      border-radius: 9999px;
+      font-weight: 600;
+      transition: all 0.2s;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(90deg, #3b82f6, #60a5fa);
+      color: white;
+      border: none;
+      box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.5);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      box-shadow: 0 0 15px rgba(59, 130, 246, 0.6);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background-color: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.5);
+      color: #93c5fd;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background-color: rgba(59, 130, 246, 0.2);
+      color: #ffffff;
+    }
+
+    .btn-danger {
+      background-color: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      color: #fca5a5;
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background-color: rgba(239, 68, 68, 0.2);
+      color: #ffffff;
+    }
+
+    .btn-special {
+      background-color: rgba(168, 85, 247, 0.15);
+      border: 1px solid #a855f7;
+      color: #d8b4fe;
+    }
+
+    .btn-special:hover:not(:disabled) {
+      background-color: rgba(168, 85, 247, 0.3);
+      color: #ffffff;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* --- Header Buttons --- */
+    .header-btn {
+      padding: 8px 12px;
+      border-radius: 8px;
+      color: #94a3b8;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+      font-size: 0.9rem;
+      border: 1px solid transparent;
+    }
+
+    .header-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    /* --- Modals --- */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      /* Darker backdrop */
+      backdrop-filter: blur(5px);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+      padding: 1rem;
+      opacity: 0;
+      transition: opacity 0.2s ease-in-out;
+    }
+
+    .modal.active {
+      display: flex;
+      opacity: 1;
+    }
+
+    .modal-content {
+      animation: modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes modalSlideIn {
+      from {
+        transform: translateY(20px) scale(0.95);
+        opacity: 0;
       }
-      #vanta-bg {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 0;
+
+      to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
       }
-      #app-container {
-        position: relative;
-        z-index: 1;
-      }
-      .glass-panel {   
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-      }
-      .btn {
-        padding: 8px 14px;
-        border-radius: 9999px;
-        font-weight: 600;
-        transition: all 0.2s;
-        font-size: 13px;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-      }
-      .btn-primary {
-        background: linear-gradient(90deg, #3b82f6, #60a5fa);
-        color: white;
-        border: none;
-      }
-      .btn-primary:hover:not(:disabled) {
-        box-shadow: 0 0 15px rgba(59, 130, 246, 0.6);
-      }
-      .btn-secondary {
-        background-color: rgba(59, 130, 246, 0.15);
-        border: 1px solid #3b82f6;
-        color: #93c5fd;
-      }
-      .btn-secondary:hover:not(:disabled) {
-        background-color: rgba(59, 130, 246, 0.3);
-        color: #ffffff;
-      }
-      .btn-danger {
-        background-color: rgba(239, 68, 68, 0.15);
-        border: 1px solid #ef4444;
-        color: #fca5a5;
-      }
-      .btn-danger:hover:not(:disabled) {
-        background-color: rgba(239, 68, 68, 0.3);
-        color: #ffffff;
-      }
-      .btn-special {
-        background-color: rgba(168, 85, 247, 0.15);
-        border-color: #a855f7;
-        color: #d8b4fe;
-      }
-      .btn-special:hover:not(:disabled) {
-        background-color: rgba(168, 85, 247, 0.3);
-        color: #ffffff;
-      }
-      .btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-      .modal {
+    }
+
+    .modal-close-btn {
+      background: transparent;
+      border: none;
+      color: #9ca3af;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .modal-close-btn:hover {
+      color: white;
+    }
+
+    /* --- Tables (Responsive) --- */
+    @media (max-width: 767px) {
+      .responsive-table thead {
         display: none;
       }
-      .modal.active {
-        display: flex;
-      }
 
-      @media (max-width: 767px) {
-        .responsive-table thead {
-          display: none;
-        }
-        .responsive-table tr {
-          display: block;
-          margin-bottom: 1rem;
-          border-radius: 0.75rem;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          padding: 1rem;
-          background: rgba(255, 255, 255, 0.05);
-        }
-        .responsive-table td {
-          display: grid;
-          grid-template-columns: 120px 1fr;
-          gap: 1rem;
-          align-items: center;
-          padding: 0.6rem 0;
-          text-align: left;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        .responsive-table td:last-child {
-          border-bottom: none;
-        }
-        .responsive-table td::before {
-          content: attr(data-label);
-          font-weight: 600;
-          color: #9ca3af;
-        }
-        .responsive-table .actions-cell {
-          grid-template-columns: 1fr;
-        }
-        .responsive-table .actions-cell::before {
-          display: none;
-        }
-      }
-      .toggle-checkbox:checked {
-        right: 0;
-        border-color: #a78bfa;
-      }
-      .toggle-checkbox:checked + .toggle-label {
-        background-color: #a78bfa;
-      }
-      .connection-card {
-        background: rgba(10, 8, 28, 0.6);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        margin-bottom: 1.5rem;
-        overflow: hidden;
-      }
-      .connection-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1rem 1.5rem;
-        background: rgba(255, 255, 255, 0.05);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      }
-      .connection-title h3 {
-        font-size: 1.125rem;
-        font-weight: 700;
-        color: #ffffff;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-      }
-      .connection-title .type-badge {
-        font-size: 0.75rem;
-        font-weight: 500;
-        padding: 0.25rem 0.75rem;
-        border-radius: 9999px;
-        color: #e0e0e0;
-      }
-      .type-badge.single-package {
-        background-color: rgba(59, 130, 246, 0.2);
-        color: #93c5fd;
-      }
-      .type-badge.multi-package {
-        background-color: rgba(168, 85, 247, 0.2);
-        color: #d8b4fe;
-      }
-      .details-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-      }
-      .detail-item {
-        background: rgba(0, 0, 0, 0.2);
-        padding: 0.75rem 1rem;
-        border-radius: 8px;
-      }
-      .detail-item .label {
-        font-size: 0.75rem;
-        color: #9ca3af;
-        margin-bottom: 0.25rem;
-      }
-      .detail-item .value {
-        font-size: 0.9rem;
-        font-weight: 600;
-        color: #ffffff;
-        word-break: break-all;
-      }
-      .package-list {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-      }
-      .connection-header {
-        cursor: pointer;
-      }
-      .connection-body {
-        max-height: 0;
-        overflow: hidden;
-        padding-top: 0;
-        padding-bottom: 0;
-        transition: max-height 0.5s cubic-bezier(0.25, 0.8, 0.25, 1),
-          padding 0.5s ease-in-out;
-      }
-      .connection-body.expanded {
-        max-height: 1000px; /* Increased to accommodate content */
-        padding: 1.5rem;
-      }
-      .collapse-icon {
-        transition: transform 0.4s ease;
-      }
-      .connection-header:not(.collapsed) .collapse-icon {
-        transform: rotate(90deg);
-      }
-      .package-item {
-        display: flex;
-        flex-wrap: wrap; /* Allow wrapping on small screens */
-        align-items: center;
-        gap: 1rem;
-        padding: 0.75rem 1.25rem;
-        background: rgba(0, 0, 0, 0.2);
-        border-radius: 8px;
-        transition: background-color 0.2s;
-      }
-      .package-item:hover {
-        background: rgba(0, 0, 0, 0.4);
-      }
-      .package-item .name {
-        flex-grow: 1;
-        font-weight: 600;
-        color: #ffffff;
-        min-width: 120px;
-      }
-      .package-item .inbound {
-        font-family: monospace;
-        color: #a5b4fc;
-        min-width: 100px;
-      }
-      .package-item .template-display {
-        flex-grow: 2;
-        min-width: 150px;
-      }
-      .package-item .actions {
-        display: flex;
-        gap: 0.5rem;
-        justify-content: flex-end;
-      }
-      .template-display .template-text {
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 6px;
-        padding: 0.3rem 0.5rem;
-        font-family: monospace;
-        font-size: 0.7rem;
-        color: #a5b4fc;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+      .responsive-table tr {
         display: block;
-      }
-      
-      #toast-container {
-        position: fixed;
-        top: 1.25rem;
-        right: 1.25rem;
-        z-index: 9999;
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-        width: 100%;
-        max-width: 350px;
+        margin-bottom: 1rem;
+        border-radius: 0.75rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.05);
       }
 
-      .toast {
-        display: flex;
-        align-items: flex-start;
-        padding: 0.75rem;
-        border-radius: 8px;
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        color: #e0e0e0;
-        position: relative;
-        overflow: hidden;
-        transform: translateX(120%);
-        opacity: 0;
-        transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
-          opacity 0.4s ease-out;
+      .responsive-table td {
+        display: grid;
+        grid-template-columns: 120px 1fr;
+        gap: 1rem;
+        align-items: center;
+        padding: 0.5rem 0;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
       }
-      .toast.show { transform: translateX(0); opacity: 1; }
-      .toast::before { content: ""; position: absolute; top: 0; left: 0; bottom: 0; width: 4px; border-radius: 8px 0 0 8px; }
-      .toast--success::before { background-color: #22c55e; }
-      .toast--error::before { background-color: #ef4444; }
-      .toast--warning::before { background-color: #f97316; }
-      .toast--info::before { background-color: #3b82f6; }
-      .toast-icon { flex-shrink: 0; margin-right: 0.75rem; font-size: 1.125rem; width: 22px; text-align: center; margin-top: 1px; }
-      .toast--success .toast-icon { color: #22c55e; }
-      .toast--error .toast-icon { color: #ef4444; }
-      .toast--warning .toast-icon { color: #f97316; }
-      .toast--info .toast-icon { color: #3b82f6; }
-      .toast-content { flex-grow: 1; }
-      .toast-title { font-weight: 700; font-size: 0.9rem; margin: 0 0 0.2rem 0; color: #ffffff; }
-      .toast-message { font-size: 0.8rem; line-height: 1.4; margin: 0; color: #d1d5db; }
-      .toast-close-btn { flex-shrink: 0; margin-left: 0.75rem; background: transparent; border: none; color: #9ca3af; font-size: 1.25rem; line-height: 1; cursor: pointer; transition: color 0.2s ease; }
-      .toast-close-btn:hover { color: #ffffff; }
 
-      /* Styles for Tutorial Modal */
-      .input-dark {
-          background-color: rgba(15, 23, 42, 0.6);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          color: #fff;
-          border-radius: 0.375rem;
-          padding: 0.5rem 0.75rem;
-          width: 100%;
-          outline: none;
-          transition: border-color 0.2s;
+      .responsive-table td:last-child {
+        border-bottom: none;
       }
-      .input-dark:focus {
-          border-color: #a855f7;
-          box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.2);
-      }
-      .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
-      }
-      .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(0,0,0,0.2);
-      }
-      .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255,255,255,0.2);
-          border-radius: 10px;
-      }
-      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(255,255,255,0.3);
-      }
-    </style>
-  </head>
-  <body class="p-4 sm:p-6 lg:p-8">
-    <div id="vanta-bg"></div>
-    <div id="app-container" class="max-w-7xl mx-auto">
-      <header
-        class="flex flex-col sm:flex-row justify-between sm:items-center py-4 mb-8 gap-4"
-      >
-        <h1 class="text-3xl font-bold font-['Orbitron'] text-white">
-          Admin Dashboard
-        </h1>
-        <div class="flex items-center gap-4 self-end sm:self-center">
-          
-          <button onclick="openTutorialModal()" class="text-sm font-semibold text-slate-400 hover:text-white transition-colors flex items-center gap-2" title="Manage Tutorials">
-            <i class="fa-brands fa-youtube fa-lg text-red-500"></i>
-            <span class="hidden sm:inline">Tutorials</span>
-          </button>
 
-          <button
-            id="settings-btn"
-            class="text-sm font-semibold text-slate-400 hover:text-white transition-colors"
-          >
-            <i class="fa-solid fa-cog"></i>
-            <span class="hidden sm:inline ml-2">Settings</span>
-          </button>
-          
-          <button
-            id="logout-btn"
-            class="text-sm font-semibold text-slate-400 hover:text-white transition-colors"
-          >
-            <span class="hidden sm:inline">Logout</span>
-            <i class="fa-solid fa-right-from-bracket ml-2"></i>
-          </button>
+      .responsive-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: #94a3b8;
+        font-size: 0.85rem;
+      }
+
+      .responsive-table .actions-cell {
+        grid-template-columns: 1fr;
+      }
+
+      .responsive-table .actions-cell::before {
+        display: none;
+      }
+    }
+
+    /* --- Toggle Switch --- */
+    .toggle-checkbox:checked {
+      right: 0;
+      border-color: #a78bfa;
+    }
+
+    .toggle-checkbox:checked+.toggle-label {
+      background-color: #a78bfa;
+    }
+
+    /* --- Cards & Lists --- */
+    .connection-card {
+      background: rgba(10, 8, 28, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+    }
+
+    .connection-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      cursor: pointer;
+    }
+
+    .connection-title h3 {
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .type-badge {
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      color: #e0e0e0;
+    }
+
+    .type-badge.single-package {
+      background-color: rgba(59, 130, 246, 0.2);
+      color: #93c5fd;
+    }
+
+    .type-badge.multi-package {
+      background-color: rgba(168, 85, 247, 0.2);
+      color: #d8b4fe;
+    }
+
+    .details-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    .detail-item {
+      background: rgba(0, 0, 0, 0.2);
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+    }
+
+    .detail-item .label {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      margin-bottom: 0.25rem;
+    }
+
+    .detail-item .value {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #ffffff;
+      word-break: break-all;
+    }
+
+    .connection-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), padding 0.4s ease;
+    }
+
+    .connection-body.expanded {
+      max-height: 1200px;
+      padding: 1.5rem;
+    }
+
+    .collapse-icon {
+      transition: transform 0.3s ease;
+    }
+
+    .connection-header:not(.collapsed) .collapse-icon {
+      transform: rotate(90deg);
+    }
+
+    .package-item {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem 1.25rem;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      transition: background-color 0.2s;
+      margin-bottom: 0.5rem;
+    }
+
+    .package-item:hover {
+      background: rgba(0, 0, 0, 0.4);
+    }
+
+    .package-item .name {
+      flex-grow: 1;
+      font-weight: 600;
+      color: #ffffff;
+      min-width: 120px;
+    }
+
+    .package-item .inbound {
+      font-family: monospace;
+      color: #a5b4fc;
+      min-width: 100px;
+    }
+
+    .package-item .template-display {
+      flex-grow: 2;
+      min-width: 150px;
+    }
+
+    .template-display .template-text {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      padding: 0.3rem 0.5rem;
+      font-family: monospace;
+      font-size: 0.75rem;
+      color: #a5b4fc;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: block;
+    }
+
+    /* --- Form Inputs (Dark Theme) --- */
+    .input-dark {
+      background-color: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #fff;
+      border-radius: 0.5rem;
+      padding: 0.75rem 1rem;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .input-dark:focus {
+      border-color: #a855f7;
+      box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.15);
+    }
+
+    /* --- Custom Scrollbar --- */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.1);
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* --- Toasts --- */
+    #toast-container {
+      position: fixed;
+      top: 1.5rem;
+      right: 1.5rem;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      width: 100%;
+      max-width: 350px;
+      pointer-events: none;
+    }
+
+    .toast {
+      pointer-events: auto;
+      display: flex;
+      align-items: flex-start;
+      padding: 1rem;
+      border-radius: 12px;
+      backdrop-filter: blur(12px);
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      color: #fff;
+      transform: translateX(120%);
+      opacity: 0;
+      transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+
+    .toast.show {
+      transform: translateX(0);
+      opacity: 1;
+    }
+
+    .toast::before {
+      content: "";
+      position: absolute;
+      top: 10px;
+      bottom: 10px;
+      left: 0;
+      width: 4px;
+      border-radius: 0 4px 4px 0;
+    }
+
+    .toast--success::before {
+      background-color: #22c55e;
+    }
+
+    .toast--error::before {
+      background-color: #ef4444;
+    }
+
+    .toast--warning::before {
+      background-color: #f97316;
+    }
+
+    .toast--info::before {
+      background-color: #3b82f6;
+    }
+
+    .toast-icon {
+      margin-right: 1rem;
+      font-size: 1.25rem;
+      margin-top: 2px;
+    }
+
+    .toast--success .toast-icon {
+      color: #22c55e;
+    }
+
+    .toast--error .toast-icon {
+      color: #ef4444;
+    }
+
+    .toast--warning .toast-icon {
+      color: #f97316;
+    }
+
+    .toast--info .toast-icon {
+      color: #3b82f6;
+    }
+
+    .toast-content {
+      flex: 1;
+    }
+
+    .toast-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .toast-message {
+      font-size: 0.85rem;
+      color: #cbd5e1;
+      line-height: 1.4;
+    }
+
+    .toast-close-btn {
+      color: #64748b;
+      background: none;
+      border: none;
+      font-size: 1.25rem;
+      cursor: pointer;
+      padding: 0;
+      margin-left: 0.5rem;
+      transition: color 0.2s;
+    }
+
+    .toast-close-btn:hover {
+      color: #fff;
+    }
+  </style>
+</head>
+
+<body class="p-4 sm:p-6 lg:p-8 min-h-screen">
+  <div id="vanta-bg"></div>
+
+  <div id="app-container" class="max-w-7xl mx-auto">
+    <header class="flex flex-col sm:flex-row justify-between items-center py-6 mb-8 gap-6 relative z-20">
+      <h1 class="text-3xl sm:text-4xl font-black font-['Orbitron'] text-white tracking-wide drop-shadow-lg">
+        <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">Admin</span> Dashboard
+      </h1>
+
+      <div
+        class="flex items-center gap-3 bg-slate-900/40 p-2 rounded-xl border border-white/5 backdrop-blur-md shadow-xl">
+        <button onclick="openTutorialModal()"
+          class="header-btn hover:bg-red-500/10 hover:text-red-400 transition-colors" title="Manage Tutorials">
+          <i class="fa-brands fa-youtube text-xl text-red-500"></i>
+          <span class="hidden sm:inline">Tutorials</span>
+        </button>
+
+        <button id="settings-btn" class="header-btn hover:bg-blue-500/10 hover:text-blue-400 transition-colors">
+          <i class="fa-solid fa-cog text-lg"></i>
+          <span class="hidden sm:inline">Settings</span>
+        </button>
+
+        <div class="h-6 w-px bg-white/10 mx-1"></div>
+
+        <button id="logout-btn" class="header-btn hover:bg-white/10 hover:text-white transition-colors">
+          <span class="hidden sm:inline">Logout</span>
+          <i class="fa-solid fa-right-from-bracket text-lg"></i>
+        </button>
+      </div>
+    </header>
+
+    <section id="stats-section" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6 mb-10">
+      <div id="card-pending"
+        class="glass-panel p-5 rounded-2xl flex flex-col sm:flex-row items-center sm:items-start gap-4 cursor-pointer transition-all hover:border-amber-400/50 hover:bg-amber-500/5 group">
+        <div class="bg-amber-500/20 text-amber-400 p-3 rounded-xl group-hover:scale-110 transition-transform"><i
+            class="fa-solid fa-clock fa-xl"></i></div>
+        <div class="text-center sm:text-left">
+          <p class="text-xs font-bold text-amber-400/80 uppercase tracking-wider mb-1">Pending</p>
+          <h3 id="pending-stat" class="text-2xl font-bold text-white">0</h3>
         </div>
-      </header>
-      <section
-  id="stats-section"
-  class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8"
->
-  <div
-    id="card-pending"
-    class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-amber-400"
-  >
-    <div class="bg-amber-500/10 text-amber-400 p-3 rounded-lg">
-      <i class="fa-solid fa-clock fa-lg"></i>
-    </div>
-    <div>
-      <p class="text-sm text-slate-400">Pending</p>
-      <h3 id="pending-stat" class="text-2xl font-bold text-white">0</h3>
-    </div>
-  </div>
+      </div>
 
-  <div
-    id="card-unconfirmed"
-    class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-orange-400"
-  >
-    <div class="bg-orange-500/10 text-orange-400 p-3 rounded-lg">
-      <i class="fa-solid fa-robot fa-lg"></i>
-    </div>
-    <div>
-      <p class="text-sm text-slate-400 whitespace-nowrap">Unconfirmed</p>
-      <h3 id="unconfirmed-stat" class="text-2xl font-bold text-white">0</h3>
-    </div>
-  </div>
-  <div
-    id="card-approved"
-    class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-green-400"
-  >
-    <div class="bg-green-500/10 text-green-400 p-3 rounded-lg">
-      <i class="fa-solid fa-check-circle fa-lg"></i>
-    </div>
-    <div>
-      <p class="text-sm text-slate-400">Approved</p>
-      <h3 id="approved-stat" class="text-2xl font-bold text-white">0</h3>
-    </div>
-  </div>
+      <div id="card-unconfirmed"
+        class="glass-panel p-5 rounded-2xl flex flex-col sm:flex-row items-center sm:items-start gap-4 cursor-pointer transition-all hover:border-orange-400/50 hover:bg-orange-500/5 group">
+        <div class="bg-orange-500/20 text-orange-400 p-3 rounded-xl group-hover:scale-110 transition-transform"><i
+            class="fa-solid fa-robot fa-xl"></i></div>
+        <div class="text-center sm:text-left">
+          <p class="text-xs font-bold text-orange-400/80 uppercase tracking-wider mb-1">Unconfirmed</p>
+          <h3 id="unconfirmed-stat" class="text-2xl font-bold text-white">0</h3>
+        </div>
+      </div>
 
-  <div
-    id="card-rejected"
-    class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-red-400"
-  >
-    <div class="bg-red-500/10 text-red-400 p-3 rounded-lg">
-      <i class="fa-solid fa-times-circle fa-lg"></i>
-    </div>
-    <div>
-      <p class="text-sm text-slate-400">Rejected</p>
-      <h3 id="rejected-stat" class="text-2xl font-bold text-white">0</h3>
-    </div>
-  </div>
+      <div id="card-approved"
+        class="glass-panel p-5 rounded-2xl flex flex-col sm:flex-row items-center sm:items-start gap-4 cursor-pointer transition-all hover:border-green-400/50 hover:bg-green-500/5 group">
+        <div class="bg-green-500/20 text-green-400 p-3 rounded-xl group-hover:scale-110 transition-transform"><i
+            class="fa-solid fa-check-circle fa-xl"></i></div>
+        <div class="text-center sm:text-left">
+          <p class="text-xs font-bold text-green-400/80 uppercase tracking-wider mb-1">Approved</p>
+          <h3 id="approved-stat" class="text-2xl font-bold text-white">0</h3>
+        </div>
+      </div>
 
-  <div
-    id="card-users"
-    class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-sky-400"
-  >
-    <div class="bg-sky-500/10 text-sky-400 p-3 rounded-lg">
-      <i class="fa-solid fa-users fa-lg"></i>
-    </div>
-    <div>
-      <p class="text-sm text-slate-400">Users</p>
-      <h3 id="total-users-stat" class="text-2xl font-bold text-white">0</h3>
-    </div>
-  </div>
+      <div id="card-rejected"
+        class="glass-panel p-5 rounded-2xl flex flex-col sm:flex-row items-center sm:items-start gap-4 cursor-pointer transition-all hover:border-red-400/50 hover:bg-red-500/5 group">
+        <div class="bg-red-500/20 text-red-400 p-3 rounded-xl group-hover:scale-110 transition-transform"><i
+            class="fa-solid fa-times-circle fa-xl"></i></div>
+        <div class="text-center sm:text-left">
+          <p class="text-xs font-bold text-red-400/80 uppercase tracking-wider mb-1">Rejected</p>
+          <h3 id="rejected-stat" class="text-2xl font-bold text-white">0</h3>
+        </div>
+      </div>
 
-  <div
-    id="card-resellers"
-    class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-purple-400"
-  >
-    <div class="bg-purple-500/10 text-purple-400 p-3 rounded-lg">
-      <i class="fa-solid fa-user-tag fa-lg"></i>
-    </div>
-    <div>
-      <p class="text-sm text-slate-400">Resellers</p>
-      <h3 id="total-resellers-stat" class="text-2xl font-bold text-white">0</h3>
-    </div>
-  </div>
+      <div id="card-users"
+        class="glass-panel p-5 rounded-2xl flex flex-col sm:flex-row items-center sm:items-start gap-4 cursor-pointer transition-all hover:border-sky-400/50 hover:bg-sky-500/5 group">
+        <div class="bg-sky-500/20 text-sky-400 p-3 rounded-xl group-hover:scale-110 transition-transform"><i
+            class="fa-solid fa-users fa-xl"></i></div>
+        <div class="text-center sm:text-left">
+          <p class="text-xs font-bold text-sky-400/80 uppercase tracking-wider mb-1">Users</p>
+          <h3 id="total-users-stat" class="text-2xl font-bold text-white">0</h3>
+        </div>
+      </div>
 
-  <div
-    id="card-connections"
-    class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-teal-400"
-  >
-    <div class="bg-teal-500/10 text-teal-400 p-3 rounded-lg">
-      <i class="fa-solid fa-server fa-lg"></i>
-    </div>
-    <div>
-      <p class="text-sm text-slate-400">Connections</p>
-      <h3 class="text-xl font-bold text-white whitespace-nowrap">Manage</h3>
-    </div>
-  </div>
+      <div id="card-resellers"
+        class="glass-panel p-5 rounded-2xl flex items-center gap-4 cursor-pointer hover:border-purple-400/50">
+        <div class="bg-purple-500/20 text-purple-400 p-3 rounded-xl"><i class="fa-solid fa-user-tag fa-xl"></i></div>
+        <div>
+          <p class="text-xs text-purple-400/80 font-bold uppercase">Resellers</p>
+          <h3 id="total-resellers-stat" class="text-lg font-bold text-white">Manage</h3>
+        </div>
+      </div>
 
-  <div
-    id="card-plans"
-    class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-indigo-400"
-  >
-    <div class="bg-indigo-500/10 text-indigo-400 p-3 rounded-lg">
-      <i class="fa-solid fa-list-alt fa-lg"></i>
-    </div>
-    <div>
-      <p class="text-sm text-slate-400">Plans</p>
-      <h3 class="text-xl font-bold text-white whitespace-nowrap">Manage</h3>
-    </div>
-  </div>
+      <div id="card-connections"
+        class="glass-panel p-5 rounded-2xl flex items-center gap-4 cursor-pointer hover:border-teal-400/50">
+        <div class="bg-teal-500/20 text-teal-400 p-3 rounded-xl"><i class="fa-solid fa-server fa-xl"></i></div>
+        <div>
+          <p class="text-xs text-teal-400/80 font-bold uppercase">Connections</p>
+          <h3 class="text-lg font-bold text-white">Manage</h3>
+        </div>
+      </div>
 
-  <div
-    id="card-reports"
-    class="glass-panel p-4 rounded-xl flex items-center gap-4 cursor-pointer transition-all border-2 border-transparent hover:border-pink-400"
-  >
-    <div class="bg-pink-500/10 text-pink-400 p-3 rounded-lg">
-      <i class="fa-solid fa-chart-line fa-lg"></i>
-    </div>
-    <div>
-      <p class="text-sm text-slate-400">Reports</p>
-      <h3 class="text-xl font-bold text-white whitespace-nowrap">Generate</h3>
-    </div>
-  </div>
-</section>
-      <main id="main-content-area">
-        <div
-          class="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-4"
-        >
-          <h2 id="content-title" class="text-xl font-bold text-white"></h2>
-          <div class="flex items-center gap-4">
-            <div id="auto-reload-container" class="flex items-center gap-2">
-              <label
-                for="auto-reload-checkbox"
-                class="text-xs text-gray-400 cursor-pointer"
-                >Auto-reload</label
-              >
-              <div class="relative inline-block w-10 align-middle select-none">
-                <input
-                  type="checkbox"
-                  id="auto-reload-checkbox"
-                  class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
-                />
-                <label
-                  for="auto-reload-checkbox"
-                  class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"
-                ></label>
-              </div>
+      <div id="card-plans"
+        class="glass-panel p-5 rounded-2xl flex items-center gap-4 cursor-pointer hover:border-indigo-400/50">
+        <div class="bg-indigo-500/20 text-indigo-400 p-3 rounded-xl"><i class="fa-solid fa-list-alt fa-xl"></i></div>
+        <div>
+          <p class="text-xs text-indigo-400/80 font-bold uppercase">Plans</p>
+          <h3 class="text-lg font-bold text-white">Manage</h3>
+        </div>
+      </div>
+
+      <div id="card-reports"
+        class="glass-panel p-5 rounded-2xl flex items-center gap-4 cursor-pointer hover:border-pink-400/50">
+        <div class="bg-pink-500/20 text-pink-400 p-3 rounded-xl"><i class="fa-solid fa-chart-line fa-xl"></i></div>
+        <div>
+          <p class="text-xs text-pink-400/80 font-bold uppercase">Reports</p>
+          <h3 class="text-lg font-bold text-white">Analytics</h3>
+        </div>
+      </div>
+    </section>
+
+    <main id="main-content-area" class="pb-10">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <h2 id="content-title" class="text-2xl font-bold text-white font-['Orbitron']"></h2>
+
+        <div class="flex flex-wrap items-center gap-4 w-full sm:w-auto">
+          <div id="auto-reload-container"
+            class="flex items-center gap-2 bg-slate-800/50 px-3 py-1.5 rounded-full border border-white/5 shadow-sm">
+            <label for="auto-reload-checkbox"
+              class="text-xs font-semibold text-gray-400 cursor-pointer">Auto-reload</label>
+            <div class="relative inline-block w-9 align-middle select-none">
+              <input type="checkbox" id="auto-reload-checkbox"
+                class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-2 appearance-none cursor-pointer" />
+              <label for="auto-reload-checkbox"
+                class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-600 cursor-pointer"></label>
             </div>
-            <button
-              id="manual-reload-btn"
-              class="text-slate-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-slate-700"
-            >
-              <i class="fa-solid fa-sync"></i>
-            </button>
-            <div id="search-bar-container" class="relative hidden">
-              <i
-                class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-              ></i
-              ><input
-                type="text"
-                id="search-input"
-                class="bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500 w-full sm:w-64"
-                placeholder="Search..."
-              />
-            </div>
-            <button id="add-new-btn" class="btn btn-primary hidden">
-              <i class="fa-solid fa-plus"></i> Add New
-            </button>
           </div>
-        </div>
-        <div id="content-container" class="space-y-4"></div>
-      </main>
-    </div>
 
-    <div
-      id="image-modal"
-      class="modal fixed inset-0 bg-black/80 justify-center items-center z-50 p-4"
-    >
-      <div class="p-4 bg-slate-900 rounded-lg max-w-4xl max-h-[90vh] relative">
-        <button
-          class="modal-close-btn absolute -top-4 -right-4 w-10 h-10 bg-red-600 rounded-full text-white text-xl z-10"
-        >
-          &times;
-        </button>
-        <img
-          id="modal-image"
-          src=""
-          alt="Payment Proof"
-          class="max-w-full max-h-[85vh] object-contain rounded"
-        />
+          <button id="manual-reload-btn"
+            class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-700/50 transition-colors"
+            title="Refresh Data">
+            <i class="fa-solid fa-rotate"></i>
+          </button>
+
+          <div id="search-bar-container" class="relative hidden w-full sm:w-64">
+            <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 z-10"></i>
+            <input type="text" id="search-input"
+              class="bg-slate-900/80 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 w-full text-white placeholder-slate-500 transition-all shadow-inner"
+              placeholder="Search..." />
+          </div>
+
+          <button id="add-new-btn" class="btn btn-primary hidden shadow-lg shadow-blue-500/20">
+            <i class="fa-solid fa-plus"></i> Add New
+          </button>
+        </div>
+      </div>
+
+      <div id="content-container" class="space-y-4 min-h-[300px]">
+      </div>
+    </main>
+  </div>
+
+  <div id="image-modal" class="modal">
+    <div class="glass-panel p-2 rounded-2xl max-w-4xl max-h-[90vh] relative modal-content shadow-2xl">
+      <button
+        class="modal-close-btn absolute -top-4 -right-4 w-10 h-10 bg-red-500 hover:bg-red-600 rounded-full text-white text-xl z-10 flex items-center justify-center shadow-lg transition-colors">&times;</button>
+      <img id="modal-image" src="" alt="Proof" class="max-w-full max-h-[85vh] object-contain rounded-xl" />
+    </div>
+  </div>
+
+  <div id="settings-modal" class="modal">
+    <div class="glass-panel w-full max-w-2xl p-8 rounded-2xl relative modal-content border border-white/10 shadow-2xl">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-2xl font-bold font-['Orbitron'] text-white">System Settings</h3>
+        <button class="modal-close-btn text-slate-400 hover:text-white text-2xl transition-colors">&times;</button>
+      </div>
+      <div id="settings-modal-content" class="space-y-6 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2"></div>
+      <div class="mt-8 pt-6 border-t border-white/10">
+        <button id="settings-modal-save-btn"
+          class="btn btn-primary w-full justify-center text-lg py-3 shadow-lg shadow-blue-500/20">Save Changes</button>
       </div>
     </div>
+  </div>
 
-    <div
-      id="settings-modal"
-      class="modal fixed inset-0 bg-black/80 justify-center items-center z-50 p-4"
-    >
-      <div class="glass-panel w-full max-w-2xl p-6 rounded-lg relative">
-        <button
-          class="modal-close-btn absolute top-4 right-4 text-gray-400 hover:text-white text-2xl"
-        >
-          &times;
-        </button>
-        <h3 class="text-xl font-bold mb-6 font-['Orbitron']">
-          Application Settings
+  <div id="form-modal" class="modal">
+    <div class="glass-panel w-full max-w-lg p-8 rounded-2xl relative modal-content border border-white/10 shadow-2xl">
+      <button
+        class="modal-close-btn absolute top-6 right-6 text-slate-400 hover:text-white text-2xl transition-colors">&times;</button>
+      <h3 id="form-modal-title" class="text-2xl font-bold mb-8 font-['Orbitron'] text-white text-center"></h3>
+      <form id="form-modal-content" class="space-y-5 max-h-[65vh] overflow-y-auto custom-scrollbar pr-2"></form>
+      <button id="form-modal-save-btn"
+        class="btn btn-primary w-full justify-center mt-8 py-3 text-lg font-semibold shadow-lg shadow-blue-500/25">Save
+        Changes</button>
+    </div>
+  </div>
+
+  <div id="tutorial-modal" class="modal">
+    <div class="glass-panel w-full max-w-lg p-8 rounded-2xl relative modal-content border border-white/10 shadow-2xl">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-2xl font-bold font-['Orbitron'] text-white flex items-center gap-3">
+          <i class="fa-brands fa-youtube text-red-500"></i> Manage Tutorials
         </h3>
-        <div
-          id="settings-modal-content"
-          class="space-y-4 max-h-[70vh] overflow-y-auto"
-        ></div>
-        <button
-          id="settings-modal-save-btn"
-          class="btn btn-primary w-full justify-center mt-6"
-        >
-          Save Settings
+        <button onclick="closeTutorialModal()"
+          class="text-slate-400 hover:text-white text-2xl transition-colors">&times;</button>
+      </div>
+
+      <div class="space-y-5 bg-slate-900/50 p-6 rounded-xl border border-white/5 shadow-inner">
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Video Title</label>
+          <input type="text" id="tut-title" placeholder="e.g., How to Connect" class="input-dark">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">YouTube Video URL / ID</label>
+          <input type="text" id="tut-vid-id" placeholder="Paste full YouTube link here..." class="input-dark">
+          <p class="text-xs text-slate-500 mt-2">Example: https://www.youtube.com/watch?v=dQw4w9WgXcQ</p>
+        </div>
+        <button onclick="addTutorial()"
+          class="btn btn-primary w-full justify-center py-2.5 shadow-lg shadow-blue-500/20">
+          <i class="fa-solid fa-plus-circle"></i> Add Video
         </button>
       </div>
+
+      <div class="mt-8">
+        <h4 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-white/10 pb-2">Current
+          Videos</h4>
+        <div id="admin-tutorials-list" class="space-y-3 max-h-60 overflow-y-auto custom-scrollbar pr-2">
+          <p class="text-center text-slate-500 py-4 italic">Loading videos...</p>
+        </div>
+      </div>
     </div>
-    
+  </div>
+
+  <div id="share-image-modal" class="modal">
     <div
-      id="form-modal"
-      class="modal fixed inset-0 bg-black/80 justify-center items-center z-50 p-4"
-    >
-      <div class="glass-panel w-full max-w-lg p-6 rounded-lg relative">
-        <button
-          class="modal-close-btn absolute top-4 right-4 text-gray-400 hover:text-white text-2xl"
-        >
-          &times;
-        </button>
-        <h3
-          id="form-modal-title"
-          class="text-xl font-bold mb-6 font-['Orbitron']"
-        ></h3>
-        <form
-          id="form-modal-content"
-          class="space-y-4 max-h-[70vh] overflow-y-auto"
-        ></form>
-        <button
-          id="form-modal-save-btn"
-          class="btn btn-primary w-full justify-center mt-6"
-        >
-          Save Changes
-        </button>
+      class="glass-panel w-full max-w-md p-8 rounded-2xl relative text-center modal-content border border-white/10 shadow-2xl">
+      <button class="modal-close-btn absolute top-4 right-4 text-slate-400 hover:text-white text-2xl">&times;</button>
+      <h3 class="text-xl font-bold mb-6 font-['Orbitron'] text-white">Purchase Confirmation</h3>
+      <div id="share-image-container"
+        class="mb-6 bg-slate-900 rounded-xl border border-slate-700 p-2 flex justify-center items-center min-h-[350px] shadow-inner relative overflow-hidden">
+        <p id="image-loading-text" class="text-slate-400 text-sm flex flex-col items-center animate-pulse">
+          <i class="fa-solid fa-wand-magic-sparkles fa-2x mb-3 text-purple-400"></i>
+          Generating Magic...
+        </p>
+        <img id="generated-share-image" src="" alt="Confirmation"
+          class="max-w-full h-auto rounded-lg hidden shadow-lg relative z-10">
       </div>
+      <a id="download-share-image-btn" href="#" download="nexguard_purchase.png"
+        class="btn btn-primary w-full justify-center py-3 hidden shadow-lg shadow-blue-500/25">
+        <i class="fa-solid fa-download mr-2"></i> Download Image
+      </a>
     </div>
+  </div>
 
-    <div id="tutorial-modal" class="modal fixed inset-0 bg-black/80 justify-center items-center z-50 p-4">
-        <div class="glass-panel w-full max-w-lg p-6 rounded-lg relative">
-            <button onclick="closeTutorialModal()" class="modal-close-btn absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
-            <h3 class="text-xl font-bold mb-6 font-['Orbitron']">Manage Tutorials</h3>
-            
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm text-gray-400 mb-1">Video Title</label>
-                    <input type="text" id="tut-title" placeholder="Enter title..." class="input-dark">
-                </div>
-                <div>
-                    <label class="block text-sm text-gray-400 mb-1">YouTube Video ID</label>
-                    <input type="text" id="tut-vid-id" placeholder="e.g. dQw4w9WgXcQ" class="input-dark">
-                </div>
-                <button onclick="addTutorial()" class="btn btn-primary w-full justify-center">
-                    <i class="fa-solid fa-plus mr-2"></i> Add Video
-                </button>
-            </div>
+  <script src="/js/admin.js"></script>
+  <script>
+    // Vanta Background Initialization
+    VANTA.FOG({
+      el: "#vanta-bg",
+      mouseControls: true,
+      touchControls: true,
+      gyroControls: false,
+      minHeight: 200.00,
+      minWidth: 200.00,
+      highlightColor: 0x0,
+      midtoneColor: 0x569e8,
+      lowlightColor: 0x0,
+      baseColor: 0x0,
+      blurFactor: 0.90,
+      speed: 1.30,
+      zoom: 0.60
+    });
 
-            <div class="mt-6 border-t border-gray-700 pt-4">
-                <h4 class="text-sm font-bold text-gray-400 mb-3">Current Tutorials</h4>
-                <div id="admin-tutorials-list" class="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                    <p class="text-xs text-gray-500 italic">Loading tutorials...</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="share-image-modal" class="modal fixed inset-0 bg-black/80 justify-center items-center z-50 p-4">
-        <div class="glass-panel w-full max-w-md p-6 rounded-lg relative text-center">
-            <button class="modal-close-btn absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
-            <h3 class="text-xl font-bold mb-4 font-['Orbitron']">Shareable Purchase Confirmation</h3>
-            <div id="share-image-container" class="mb-4 bg-slate-800/50 border border-slate-700 p-2 rounded flex justify-center items-center min-h-[350px]">
-                <p id="image-loading-text" class="text-slate-400 text-sm flex flex-col items-center">
-                    <i class="fa-solid fa-spinner fa-spin text-2xl mb-3 text-purple-400"></i>
-                    Generating image, please wait...
-                </p>
-                <img id="generated-share-image" src="" alt="Purchase Confirmation" class="max-w-full h-auto rounded hidden">
-            </div>
-            <a id="download-share-image-btn" href="#" download="nexguard_purchase.png" class="btn btn-primary hidden">
-                <i class="fa-solid fa-download mr-2"></i> Download Image
-            </a>
-        </div>
-    </div>
-
-    
-    <script src="/js/admin.js"></script>
-    <script>
-        VANTA.FOG({
-            el: "#vanta-bg",
-            mouseControls: true,
-            touchControls: true,
-            gyroControls: false,
-            minHeight: 200.00,
-            minWidth: 200.00,
-            highlightColor: 0x0,
-            midtoneColor: 0x569e8, 
-            lowlightColor: 0x0,
-            baseColor: 0x0,
-            blurFactor: 0.90,
-            speed: 1.30,
-            zoom: 0.60
-        });
-
-        // Functions for the new Tutorial Modal
-        function openTutorialModal() {
-            const modal = document.getElementById('tutorial-modal');
-            if(modal) {
-                modal.classList.add('active');
-                if(typeof loadAdminTutorials === 'function') {
-                    loadAdminTutorials(); 
-                }
-            }
+    // Global handlers for Tutorial Modal (Accessible from inline HTML onclick)
+    window.openTutorialModal = function () {
+      const modal = document.getElementById('tutorial-modal');
+      if (modal) {
+        modal.classList.add('active');
+        // Trigger load logic if defined in admin.js
+        if (typeof window.loadAdminTutorials === 'function') {
+          window.loadAdminTutorials();
         }
+      }
+    };
 
-        function closeTutorialModal() {
-            const modal = document.getElementById('tutorial-modal');
-            if(modal) modal.classList.remove('active');
-        }
+    window.closeTutorialModal = function () {
+      const modal = document.getElementById('tutorial-modal');
+      if (modal) modal.classList.remove('active');
+    };
 
-        // Close modal when clicking outside
-        document.getElementById('tutorial-modal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeTutorialModal();
-            }
-        });
-    </script>
-  </body>
+    // Close modal when clicking outside
+    document.getElementById('tutorial-modal')?.addEventListener('click', function (e) {
+      if (e.target === this) {
+        window.closeTutorialModal();
+      }
+    });
+  </script>
+</body>
+
 </html>
