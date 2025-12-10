@@ -3,23 +3,23 @@
   <head>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/x-icon" href="./assets/logobox.ico" />
     <title>NexGuardLK STORE</title>
     <link rel="stylesheet" href="./css/output.css">
     <link rel="stylesheet" href="./css/modern.css">
     <script>
-      try {
-        const token = localStorage.getItem('nexguard_token');
-        if (token) {
-          document.documentElement.classList.add('logged-in');
-        } else {
-          document.documentElement.classList.add('logged-out');
-        }
-      } catch (e) {
-        document.documentElement.classList.add('logged-out');
-      }
-    </script>
+  try {
+    const token = localStorage.getItem('nexguard_token');
+    if (token) {
+      document.documentElement.classList.add('logged-in');
+    } else {
+      document.documentElement.classList.add('logged-out');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('logged-out');
+  }
+</script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://gstatic.com" crossorigin />
     <link
@@ -27,10 +27,10 @@
       rel="stylesheet"
     />
     <meta property="og:title" content="NexGuardLK - Experience True Freedom">
-    <meta property="og:description" content="Ultra-secure V2Ray connections in Sri Lanka.">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://app.nexguardlk.store/">
-    <meta property="og:image" content="https://app.nexguardlk.store/assets/NEX.jpg">
+<meta property="og:description" content="Ultra-secure V2Ray connections in Sri Lanka.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://app.nexguardlk.store/">
+<meta property="og:image" content="https://app.nexguardlk.store/assets/NEX.jpg">
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
@@ -40,7 +40,7 @@
 
     <link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css" />
 
-    <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+<script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
     <style>
       :root {
         --glow-color: rgba(59, 130, 246, 0.7); /* Blue Glow */
@@ -97,9 +97,6 @@ html.logged-in #mobile-user-profile { display: flex !important; }
       #content-wrapper {border-radius: 12px;
         position: relative;
         z-index: 1;
-        min-height: 100vh;
-        display: flex; 
-        flex-direction: column;
       }
       .glass-panel {  
 
@@ -228,9 +225,6 @@ html.logged-in #mobile-user-profile { display: flex !important; }
     overflow: hidden; /* container එකෙන් පිට පනින දේවල් හංගන්න */
     padding: 2px; /* border එකේ ඝනකම වගේ පේන්න */
     border-radius: 9999px; /* සම්පූර්ණ රවුම */
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
 
   /* Animation එක තියෙන pseudo-element එක */
@@ -270,8 +264,6 @@ html.logged-in #mobile-user-profile { display: flex !important; }
   .animated-profile-border img {
       position: relative;
       z-index: 2;
-      background: #000;
-      border-radius: 50%;
   }
 }
       .form-input {
@@ -396,8 +388,6 @@ html.logged-in #mobile-user-profile { display: flex !important; }
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.3s ease, visibility 0.3s ease;
-  background-color: rgba(0,0,0,0.6);
-  backdrop-filter: blur(5px);
 }
 
 /* Visible state */
@@ -580,11 +570,6 @@ html.logged-in #mobile-user-profile { display: flex !important; }
   opacity: 1; /* Initially visible */
 }
 
-#page-loader.fade-out {
-    opacity: 0;
-    visibility: hidden;
-}
-
 .loader,
 .loader:before,
 .loader:after {
@@ -749,11 +734,11 @@ html.logged-in #mobile-user-profile { display: flex !important; }
           </a>
 
           <nav id="main-nav" class="hidden sm:flex flex-wrap justify-center items-center gap-x-1 sm:gap-x-3">
-            <a href="/home" class="nav-link text-sm">Home</a>  <a href="/usage" class="nav-link text-sm">Usage</a>
-            <a href="/plans" class="nav-link text-sm">Plans</a>
-            <a href="/about" class="nav-link text-sm">About</a>
-            <a href="/privacy" class="nav-link text-sm">Privacy Policy</a>
-          </nav>
+    <a href="/home" class="nav-link text-sm">Home</a>  <a href="/usage" class="nav-link text-sm">Usage</a>
+    <a href="/plans" class="nav-link text-sm">Plans</a>
+    <a href="/about" class="nav-link text-sm">About</a>
+    <a href="/privacy" class="nav-link text-sm">Privacy Policy</a>
+</nav>
 
           <button id="hamburger-btn" class="sm:hidden text-white text-xl p-2 z-50">
             <i class="fa-solid fa-bars"></i>
@@ -772,32 +757,28 @@ html.logged-in #mobile-user-profile { display: flex !important; }
             >
           </div>
           <div id="desktop-user-profile" class="hidden items-center gap-3">
-            <button
-                id="logout-btn-desktop"
-                class="nav-link-internal px-3 py-1.5 text-xs font-medium rounded-lg hover:bg-white/10 transition-colors ai-button secondary"
-            >
-                Logout
-            </button>
-            <a
-                href="/profile"
-                class="nav-link-internal animated-profile-border block rounded-full p-0.5 transition-colors"
-                title="My Profile"
-            >
-                <img
-                    id="profile-pic-nav-desktop"
-                    src="/assets/profilePhoto.jpg"
-                    alt="My Profile"
-                    class="h-8 w-8 rounded-full object-cover"
-                />
-            </a>
-          </div>
+    <button
+        id="logout-btn-desktop"
+        class="nav-link-internal px-3 py-1.5 text-xs font-medium rounded-lg hover:bg-white/10 transition-colors ai-button secondary"
+    >
+        Logout
+    </button>
+    <a
+        href="/profile"
+        class="nav-link-internal animated-profile-border block rounded-full p-0.5 transition-colors"
+        title="My Profile"
+    >
+        <img
+            id="profile-pic-nav-desktop"
+            src="/assets/profilePhoto.jpg"
+            alt="My Profile"
+            class="h-8 w-8 rounded-full object-cover"
+        />
+    </a>
+</div>
         </header>
         <main id="app-router" class="min-h-[70vh] px-2"></main>
       </div>
-      
-      <footer class="w-full text-center py-6 text-gray-500 text-xs relative z-10">
-          &copy; 2025 NexGuardLK. All rights reserved.
-      </footer>
     </div>
     <div
       id="qr-modal"
@@ -829,15 +810,6 @@ html.logged-in #mobile-user-profile { display: flex !important; }
     </div>
     
     <script src="./js/effects.js"></script> 
-    <script type="module" src="./js/main.js"></script>
-    <script>
-        // Ensure loader fades out even if main.js is slow
-        window.addEventListener('load', () => {
-            setTimeout(() => {
-                const loader = document.getElementById('page-loader');
-                if(loader) loader.classList.add('fade-out');
-            }, 1000);
-        });
-    </script>
+<script type="module" src="./js/main.js"></script>
   </body>
 </html>
