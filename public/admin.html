@@ -707,13 +707,13 @@
             zoom: 0.60
         });
 
-        // Functions for the new Tutorial Modal
+        // Functions for the new Tutorial Modal (Backup in case admin.js loads slowly)
         function openTutorialModal() {
             const modal = document.getElementById('tutorial-modal');
             if(modal) {
                 modal.classList.add('active');
                 
-                // Load the Current Home Video setting (Optional enhancement if you implemented the loadCurrentVideoSettings function)
+                // Safe checks to prevent errors if admin.js is not fully ready
                 if(typeof loadCurrentVideoSettings === 'function') {
                     loadCurrentVideoSettings();
                 }

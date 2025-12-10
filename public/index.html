@@ -481,6 +481,43 @@
         transform: scale(1);
       }
 
+      /* Tutorial Modal Specific Styles */
+      .tutorial-modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0,0,0,0.85);
+          backdrop-filter: blur(5px);
+          z-index: 1000;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          opacity: 0;
+          visibility: hidden;
+          transition: all 0.3s ease;
+      }
+      .tutorial-modal-overlay.active {
+          opacity: 1;
+          visibility: visible;
+      }
+      .tutorial-modal-content {
+          width: 90%;
+          max-width: 800px;
+          background: #0f172a;
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 16px;
+          padding: 20px;
+          transform: scale(0.9);
+          transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          position: relative;
+          box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+      }
+      .tutorial-modal-overlay.active .tutorial-modal-content {
+          transform: scale(1);
+      }
+
       /* Firefox */
       * {
         scrollbar-width: thin;
@@ -750,6 +787,9 @@
         <a href="/home" class="nav-link text-lg p-3 flex items-center gap-3 bg-white/5 rounded-lg text-white"><i class="fa-solid fa-home w-5 text-center"></i> Dashboard</a>
         <a href="/usage" class="nav-link text-lg p-3 flex items-center gap-3"><i class="fa-solid fa-chart-simple w-5 text-center"></i> Usage</a>
         <a href="/plans" class="nav-link text-lg p-3 flex items-center gap-3"><i class="fa-solid fa-rocket w-5 text-center"></i> Plans</a>
+        
+        <a href="#" onclick="openUserTutorials(); return false;" class="nav-link text-lg p-3 flex items-center gap-3 text-blue-400"><i class="fa-brands fa-youtube w-5 text-center"></i> Tutorials</a>
+        
         <a href="/about" class="nav-link text-lg p-3 flex items-center gap-3"><i class="fa-solid fa-info-circle w-5 text-center"></i> About</a>
         <a href="/privacy" class="nav-link text-lg p-3 flex items-center gap-3"><i class="fa-solid fa-shield-halved w-5 text-center"></i> Privacy</a>
         <hr class="border-white/10 my-4" />
@@ -782,6 +822,9 @@
             <a href="/home" class="nav-link text-sm">Home</a>
             <a href="/usage" class="nav-link text-sm">Usage</a>
             <a href="/plans" class="nav-link text-sm">Plans</a>
+            
+            <a href="#" onclick="openUserTutorials(); return false;" class="nav-link text-sm text-blue-400 hover:text-blue-300 transition-colors">Tutorials</a>
+            
             <a href="/about" class="nav-link text-sm">About</a>
             <a href="/privacy" class="nav-link text-sm">Privacy Policy</a>
           </nav>
@@ -802,53 +845,7 @@
 
         <main id="app-router" class="min-h-[70vh] px-2"></main>
 
-        <section id="home-tutorial-section" class="relative py-8 sm:py-12 overflow-hidden mt-8 mb-12 border-t border-white/5">
-            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-4xl bg-blue-600/10 blur-[80px] rounded-full pointer-events-none"></div>
-
-            <div class="relative max-w-6xl mx-auto px-4">
-                 <div class="text-center mb-8">
-                    <h2 class="text-2xl md:text-3xl font-bold text-white mb-2" style="font-family: 'Orbitron', sans-serif;">
-                        NexGuard<span class="text-blue-500">LK</span> Guide
-                    </h2>
-                    <p class="text-gray-400 text-sm md:text-base max-w-xl mx-auto">
-                        අපගේ සේවාවන් පහසුවෙන් භාවිතා කරන ආකාරය මෙම වීඩියෝවෙන් නරඹන්න.
-                    </p>
-                </div>
-
-                <div class="relative max-w-4xl mx-auto group">
-                    <div class="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-30 group-hover:opacity-75 transition duration-500"></div>
-                    
-                    <div class="relative w-full aspect-video bg-gray-900 rounded-2xl overflow-hidden shadow-2xl border border-gray-700/50">
-                        <iframe 
-                            id="tutorialFrame"
-                            class="w-full h-full"
-                            src="https://www.youtube.com/embed/YOUR_VIDEO_ID_HERE" 
-                            title="NexGuardLK Tutorial" 
-                            frameborder="0" 
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                            referrerpolicy="strict-origin-when-cross-origin"
-                            allowfullscreen>
-                        </iframe>
-                    </div>
-                </div>
-                
-                <div class="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-                     <div class="p-4 bg-gray-800/40 rounded-xl border border-gray-700/30 backdrop-blur-sm">
-                        <div class="text-blue-400 font-bold mb-1 font-['Orbitron']">Step 01</div>
-                        <div class="text-gray-300 text-xs">Create an Account</div>
-                     </div>
-                     <div class="p-4 bg-gray-800/40 rounded-xl border border-gray-700/30 backdrop-blur-sm">
-                        <div class="text-purple-400 font-bold mb-1 font-['Orbitron']">Step 02</div>
-                        <div class="text-gray-300 text-xs">Select & Active Plan</div>
-                     </div>
-                     <div class="p-4 bg-gray-800/40 rounded-xl border border-gray-700/30 backdrop-blur-sm">
-                        <div class="text-green-400 font-bold mb-1 font-['Orbitron']">Step 03</div>
-                        <div class="text-gray-300 text-xs">Connect to V2Ray App</div>
-                     </div>
-                </div>
-            </div>
-        </section>
-        </div>
+      </div>
     </div>
     <div id="qr-modal" class="fixed inset-0 bg-black/80 justify-center items-center z-[101]" style="display: none">
       <div class="glass-panel p-0 rounded-lg max-w-xs w-11/12 relative overflow-hidden border border-white/10 custom-radius">
@@ -862,7 +859,77 @@
         </div>
       </div>
     </div>
+
+    <div id="user-tutorials-modal" class="tutorial-modal-overlay">
+        <div class="tutorial-modal-content glass-panel">
+            <button onclick="closeUserTutorials()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl z-50">
+                <i class="fa-solid fa-times"></i>
+            </button>
+            
+            <div class="text-center mb-6">
+                <h2 class="text-2xl font-bold text-white font-['Orbitron']">How to use NexGuard<span class="text-blue-500">LK</span></h2>
+            </div>
+            
+            <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden shadow-2xl border border-gray-700">
+                <iframe 
+                    id="userTutorialIframe"
+                    class="w-full h-full"
+                    src="" 
+                    title="NexGuard Tutorial" 
+                    frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowfullscreen>
+                </iframe>
+            </div>
+            
+            <div class="mt-6 text-center">
+                <p class="text-sm text-gray-400">ඔබට ගැටලුවක් ඇත්නම් අපගේ WhatsApp සහාය ලබාගන්න.</p>
+                <a href="https://wa.me/9477xxxxxxx" target="_blank" class="inline-block mt-3 px-6 py-2 bg-green-600 hover:bg-green-500 text-white rounded-full text-sm font-medium transition-colors">
+                    <i class="fa-brands fa-whatsapp mr-2"></i> WhatsApp Support
+                </a>
+            </div>
+        </div>
+    </div>
+
     <script src="./js/effects.js"></script>
     <script type="module" src="./js/main.js"></script>
+
+    <script>
+        function openUserTutorials() {
+            const modal = document.getElementById('user-tutorials-modal');
+            const iframe = document.getElementById('userTutorialIframe');
+            
+            if(modal) {
+                modal.classList.add('active');
+                document.body.classList.add('modal-open');
+                
+                // Embed URL Logic to prevent error
+                // Replace 'dQw4w9WgXcQ' with your actual YouTube Video ID
+                if(!iframe.src || iframe.src === window.location.href) {
+                    iframe.src = "https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0&autoplay=1"; 
+                }
+            }
+        }
+
+        function closeUserTutorials() {
+            const modal = document.getElementById('user-tutorials-modal');
+            const iframe = document.getElementById('userTutorialIframe');
+            
+            if(modal) {
+                modal.classList.remove('active');
+                document.body.classList.remove('modal-open');
+                
+                // Stop the video when closing
+                iframe.src = ""; 
+            }
+        }
+
+        // Close on clicking outside
+        document.getElementById('user-tutorials-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeUserTutorials();
+            }
+        });
+    </script>
   </body>
 </html>

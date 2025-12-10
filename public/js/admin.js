@@ -1,25 +1,29 @@
 document.addEventListener("DOMContentLoaded", () => {
 
     // --- Vanta Background Animation ---
-    VANTA.FOG({
-          el: "#vanta-bg",
-          mouseControls: true,
-          touchControls: true,
-          gyroControls: false,
-          minHeight: 200.00,
-          minWidth: 200.00,
-          highlightColor: 0x0,
-          midtoneColor: 0x569e8, 
-          lowlightColor: 0x0,
-          baseColor: 0x0,
-          blurFactor: 0.90,
-          speed: 1.30,
-          zoom: 0.60
+    try {
+        VANTA.FOG({
+            el: "#vanta-bg",
+            mouseControls: true,
+            touchControls: true,
+            gyroControls: false,
+            minHeight: 200.00,
+            minWidth: 200.00,
+            highlightColor: 0x0,
+            midtoneColor: 0x569e8,
+            lowlightColor: 0x0,
+            baseColor: 0x0,
+            blurFactor: 0.90,
+            speed: 1.30,
+            zoom: 0.60
         });
+    } catch (e) {
+        console.log("Vanta JS not loaded or error init:", e);
+    }
 
     const loginForm = document.getElementById('admin-login-form');
     if (loginForm) {
-        return; // Login page logic handled elsewhere or via HTML form submission
+        return; // Login page logic handled elsewhere
     }
 
     // --- ADMIN DASHBOARD AUTH CHECK ---
@@ -103,7 +107,7 @@ document.addEventListener("DOMContentLoaded", () => {
     async function apiFetch(url, options = {}) {
         const defaultOptions = { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } };
         const response = await fetch(`/api/admin${url}`, { ...defaultOptions, ...options });
-         if (response.status === 401 || response.status === 403) {
+        if (response.status === 401 || response.status === 403) {
             logout();
             return Promise.reject(new Error("Unauthorized"));
         }
@@ -113,19 +117,19 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function renderLoading() {
-        contentContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin fa-3x text-purple-400"></i></div>`;
+        if(contentContainer) contentContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin fa-3x text-purple-400"></i></div>`;
     }
 
     function setActiveCard(cardElement) {
         document.querySelectorAll('#stats-section .glass-panel').forEach(c => c.classList.remove('border-purple-500', 'bg-slate-900/50'));
-        if(cardElement) {
+        if (cardElement) {
             cardElement.classList.add('border-purple-500', 'bg-slate-900/50');
         }
     }
 
     const setupAutoReload = () => {
         const isEnabled = localStorage.getItem('autoReloadEnabled') === 'true';
-        if(autoReloadCheckbox) autoReloadCheckbox.checked = isEnabled;
+        if (autoReloadCheckbox) autoReloadCheckbox.checked = isEnabled;
         clearInterval(autoReloadInterval);
         if (isEnabled) {
             autoReloadInterval = setInterval(() => {
@@ -164,15 +168,15 @@ document.addEventListener("DOMContentLoaded", () => {
         const accentBlue = '#3B82F6';
         const accentCyan = '#06B6D4';
         const accentPurple = '#A855F7';
-        const glowColor = accentCyan; 
+        const glowColor = accentCyan;
 
-        const logoUrl = '/assets/logobox.png'; 
+        const logoUrl = '/assets/logobox.png';
         const brandName = "NexGuardLK";
         const websiteUrl = "app.nexguardlk.store";
 
         const sanitizedUsername = username.length > 5 ? `${username.substring(0, 5)}***` : `${username}***`;
         let formattedDate = 'N/A';
-        try { if (dateStr) formattedDate = new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); } catch (e) {}
+        try { if (dateStr) formattedDate = new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); } catch (e) { }
 
         let logoImg;
         try { logoImg = await loadImage(logoUrl); } catch (error) { console.error(error); }
@@ -206,10 +210,10 @@ document.addEventListener("DOMContentLoaded", () => {
             const logoSize = 250;
             const logoX = width - logoSize - 60;
             const logoY = height - logoSize - 60;
-             ctx.shadowColor = accentBlue;
-             ctx.shadowBlur = 30;
-             ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
-             ctx.shadowBlur = 0;
+            ctx.shadowColor = accentBlue;
+            ctx.shadowBlur = 30;
+            ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
+            ctx.shadowBlur = 0;
         }
 
         ctx.textAlign = 'left';
@@ -220,7 +224,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.shadowColor = glowColor;
         ctx.shadowBlur = 15;
         ctx.fillText(sanitizedUsername, textStartX, 250);
-        ctx.shadowBlur = 0; 
+        ctx.shadowBlur = 0;
 
         ctx.font = '45px Inter, sans-serif';
         ctx.fillStyle = secondaryTextColor;
@@ -243,9 +247,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const textWidth = ctx.measureText(badgeText).width;
         const checkWidth = ctx.measureText(checkmark).width;
         const badgePadding = 25;
-        const totalBadgeWidth = textWidth + checkWidth + badgePadding * 2 + 10; 
+        const totalBadgeWidth = textWidth + checkWidth + badgePadding * 2 + 10;
 
-        ctx.fillStyle = 'rgba(34, 197, 94, 0.2)'; 
+        ctx.fillStyle = 'rgba(34, 197, 94, 0.2)';
         ctx.strokeStyle = 'rgba(34, 197, 94, 0.6)';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -283,9 +287,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 <th class="p-3 text-left font-semibold">Username</th><th class="p-3 text-left font-semibold">Contact</th>${tableHeaders}<th class="p-3 text-center font-semibold">Actions</th>
             </tr></thead>
             <tbody>${filteredUsers.map(user => {
-                const roleSpecificData = role === 'user' ? `<td data-label="Active Plans">${(user.active_plans || []).length}</td>` : `<td data-label="Credit">LKR ${parseFloat(user.credit_balance || 0).toFixed(2)}</td>`;
-                const roleSpecificButtons = role === 'reseller' ? `<button class="btn btn-primary add-credit-btn" data-id="${user.id}" data-username="${user.username}"><i class="fa-solid fa-coins"></i></button>` : '';
-                return `<tr class="border-b border-slate-800 hover:bg-slate-800/50">
+            const roleSpecificData = role === 'user' ? `<td data-label="Active Plans">${(user.active_plans || []).length}</td>` : `<td data-label="Credit">LKR ${parseFloat(user.credit_balance || 0).toFixed(2)}</td>`;
+            const roleSpecificButtons = role === 'reseller' ? `<button class="btn btn-primary add-credit-btn" data-id="${user.id}" data-username="${user.username}"><i class="fa-solid fa-coins"></i></button>` : '';
+            return `<tr class="border-b border-slate-800 hover:bg-slate-800/50">
                     <td data-label="Username">${user.username}</td>
                     <td data-label="Contact"><div>${user.email}</div><div class="text-xs text-slate-400">${user.whatsapp || ''}</div></td>
                     ${roleSpecificData}
@@ -500,7 +504,7 @@ document.addEventListener("DOMContentLoaded", () => {
         contentTitle.textContent = `${status.charAt(0).toUpperCase() + status.slice(1)} Orders`;
         searchBarContainer.classList.add('hidden');
         addNewBtn.classList.add('hidden');
-        
+
         let orders = (dataCache.orders || []);
 
         if (status === 'approved') {
@@ -508,29 +512,29 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
             orders = orders.filter(o => o.status === status);
         }
-        
+
         if (orders.length === 0) {
             contentContainer.innerHTML = `<div class="glass-panel p-6 text-center rounded-lg">No ${status} orders found.</div>`;
             return;
         }
-        
+
         contentContainer.innerHTML = orders.map(order => {
             let orderType, typeColor;
-            
-            if (order.is_renewal) { 
-                orderType = 'Renew'; 
-                typeColor = 'text-blue-400'; 
-            } else if (order.old_v2ray_username) { 
-                orderType = 'Change'; 
-                typeColor = 'text-orange-400'; 
-            } else { 
-                orderType = 'New'; 
-                typeColor = 'text-green-400'; 
+
+            if (order.is_renewal) {
+                orderType = 'Renew';
+                typeColor = 'text-blue-400';
+            } else if (order.old_v2ray_username) {
+                orderType = 'Change';
+                typeColor = 'text-orange-400';
+            } else {
+                orderType = 'New';
+                typeColor = 'text-green-400';
             }
 
             let statusText = order.status;
             let statusColor = 'text-gray-400';
-            
+
             if (order.status === 'approved') {
                 statusText = 'Active';
                 statusColor = 'text-green-400';
@@ -546,18 +550,18 @@ document.addEventListener("DOMContentLoaded", () => {
             const displayV2rayUser = order.final_username || order.username || order.old_v2ray_username || 'N/A';
 
             let actionButtonsHtml = '';
-            
+
             if (order.status === 'pending' || order.status === 'unconfirmed') {
                 actionButtonsHtml = `
                 <button class="btn btn-primary approve-btn" data-id="${order.id}">Approve</button>
                 <button class="btn btn-danger reject-btn" data-id="${order.id}">Reject</button>`;
             } else if (order.status === 'approved' || order.status === 'queued_for_renewal') {
-                 actionButtonsHtml = `
+                actionButtonsHtml = `
                  <button class="btn btn-special generate-share-img-btn" data-order-id="${order.id}" data-username="${displayV2rayUser}" data-plan="${order.plan_id}" data-date="${order.approved_at || order.created_at}" title="Generate Share Image">
                      <i class="fa-solid fa-share-alt"></i> Share
                  </button>`;
             } else {
-                 actionButtonsHtml = `<span class="text-xs text-gray-500">Action Taken</span>`;
+                actionButtonsHtml = `<span class="text-xs text-gray-500">Action Taken</span>`;
             }
 
             return `
@@ -654,13 +658,17 @@ document.addEventListener("DOMContentLoaded", () => {
     // 2. Load Tutorials (using User API route with Admin Token)
     async function loadAdminTutorials() {
         try {
-            const res = await apiFetch('/tutorials', { method: 'GET' }); // Correct endpoint via apiFetch wrapper logic
-            // Note: Since apiFetch handles /api/admin prefix, we might need a direct fetch if endpoint is /api/user/tutorials
-            // Let's use direct fetch for safety if apiFetch fails or redirects wrong
+            // Note: If you have a specific admin endpoint, use it. Falling back to public/user endpoint for display.
             const token = localStorage.getItem('nexguard_admin_token');
             const response = await fetch('/api/user/tutorials', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
+            
+            if (!response.ok) {
+                // If endpoint doesn't exist, we just show empty to avoid error flood
+                throw new Error("Failed to fetch tutorials");
+            }
+
             const { data } = await response.json();
             
             const container = document.getElementById('admin-tutorials-list');
@@ -679,9 +687,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 container.innerHTML = '<p class="text-xs text-slate-500 italic text-center py-4">No tutorials added yet.</p>';
             }
         } catch (error) {
-            console.error('Error loading tutorials:', error);
+            console.warn('Tutorials load warning:', error);
             const container = document.getElementById('admin-tutorials-list');
-            if(container) container.innerHTML = '<p class="text-xs text-red-400 text-center">Failed to load list.</p>';
+            if(container) container.innerHTML = '<p class="text-xs text-gray-500 text-center">List empty or API not ready.</p>';
         }
     }
 
@@ -698,7 +706,6 @@ document.addEventListener("DOMContentLoaded", () => {
             return showToast({ title: "Invalid Video", message: "Could not detect a valid YouTube Video ID. Please check the URL.", type: "error" });
         }
 
-        // Button state
         const btn = document.querySelector('button[onclick="addTutorial()"]');
         let originalText = 'Add';
         if(btn) {
@@ -715,14 +722,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
             showToast({ title: "Success", message: "Video added successfully!", type: "success" });
             
-            // Clear inputs
             document.getElementById('tut-title').value = '';
             document.getElementById('tut-vid-id').value = '';
             
-            // Reload list & Close modal
             loadAdminTutorials();
-            const modal = document.getElementById('tutorial-modal');
-            if(modal) modal.classList.remove('active');
 
         } catch (error) {
             console.error(error);
@@ -765,15 +768,13 @@ document.addEventListener("DOMContentLoaded", () => {
         const videoId = extractYouTubeId(rawUrl);
         if (!videoId) return showToast({ title: "Error", message: "Invalid YouTube URL", type: "error" });
 
-        const embedUrl = `https://www.youtube.com/embed/${videoId}`;
+        // Convert to Embed URL with autoplay parameters
+        const embedUrl = `https://www.youtube.com/embed/${videoId}?rel=0&autoplay=1`;
         
-        // Button loading state
         const button = document.querySelector('button[onclick="updateVideoLink()"]');
         
-        // We assume the backend accepts a key-value pair for settings via POST /settings
         await handleAction('/settings', { tutorial_video_url: embedUrl }, 'Video Updated Successfully', 'POST', button);
         
-        // Clear input and show current as placeholder
         input.value = '';
         input.placeholder = `Current: ${embedUrl}`;
     }
@@ -781,7 +782,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // 6. Load Current Video Link
     async function loadCurrentVideoSettings() {
         try {
-            // We reuse the /settings endpoint to get current values
             const res = await apiFetch('/settings'); 
             const settings = res.data || {};
             const input = document.getElementById('youtubeLinkInput');
@@ -833,7 +833,7 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (error) {
             if (error.message !== "Unauthorized") {
                 showToast({ title: "Error", message: error.message, type: "error" });
-                contentContainer.innerHTML = `<div class="glass-panel p-6 text-center rounded-lg text-red-400">Failed to load data. Please refresh.</div>`;
+                if(contentContainer) contentContainer.innerHTML = `<div class="glass-panel p-6 text-center rounded-lg text-red-400">Failed to load data. Please refresh.</div>`;
             }
         }
     }
