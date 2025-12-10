@@ -482,6 +482,7 @@
       }
 
       /* Tutorial Modal Specific Styles */
+      /* FIX: INCREASED Z-INDEX TO 99999 TO ENSURE IT'S ON TOP OF EVERYTHING */
       .tutorial-modal-overlay {
           position: fixed;
           top: 0;
@@ -490,7 +491,7 @@
           height: 100%;
           background: rgba(0,0,0,0.85);
           backdrop-filter: blur(5px);
-          z-index: 1000;
+          z-index: 99999; /* Highest priority */
           display: flex;
           justify-content: center;
           align-items: center;
@@ -874,7 +875,7 @@
                 <iframe 
                     id="userTutorialIframe"
                     class="w-full h-full"
-                    src="" 
+                    src="about:blank" 
                     title="NexGuard Tutorial" 
                     frameborder="0" 
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
@@ -903,10 +904,10 @@
                 modal.classList.add('active');
                 document.body.classList.add('modal-open');
                 
-                // Embed URL Logic to prevent error
-                // Replace 'dQw4w9WgXcQ' with your actual YouTube Video ID
-                if(!iframe.src || iframe.src === window.location.href) {
-                    iframe.src = "https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0&autoplay=1"; 
+                // Check if src is empty or blank, then load the video
+                // Added mute=1 to ensure autoplay works on modern browsers
+                if(!iframe.src || iframe.src === 'about:blank' || iframe.src === window.location.href) {
+                    iframe.src = "https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1&rel=0"; 
                 }
             }
         }
@@ -919,8 +920,8 @@
                 modal.classList.remove('active');
                 document.body.classList.remove('modal-open');
                 
-                // Stop the video when closing
-                iframe.src = ""; 
+                // Stop the video by resetting src to blank
+                iframe.src = "about:blank"; 
             }
         }
 
