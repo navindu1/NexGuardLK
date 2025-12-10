@@ -34,19 +34,15 @@
         position: relative;
         z-index: 1;
       }
-      /* --- UPDATED: Matched with main website's card style --- */
-      .glass-panel {  
-
+      .glass-panel {   
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
         border: 1px solid rgba(255, 255, 255, 0.1);
         box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
       }
-
-      /* --- UPDATED: Buttons are now fully rounded --- */
       .btn {
         padding: 8px 14px;
-        border-radius: 9999px; /* Changed from 8px to fully rounded */
+        border-radius: 9999px;
         font-weight: 600;
         transition: all 0.2s;
         font-size: 13px;
@@ -143,138 +139,38 @@
       .toggle-checkbox:checked + .toggle-label {
         background-color: #a78bfa;
       }
-      .connection-card {
-        background: rgba(10, 8, 28, 0.6);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        margin-bottom: 1.5rem;
-        overflow: hidden;
+      
+      /* New Input Styles for Dark Modal */
+      .input-dark {
+          background-color: rgba(15, 23, 42, 0.6);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: #fff;
+          border-radius: 0.375rem;
+          padding: 0.5rem 0.75rem;
+          width: 100%;
+          outline: none;
+          transition: border-color 0.2s;
       }
-      .connection-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1rem 1.5rem;
-        background: rgba(255, 255, 255, 0.05);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      }
-      .connection-title h3 {
-        font-size: 1.125rem;
-        font-weight: 700;
-        color: #ffffff;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-      }
-      .connection-title .type-badge {
-        font-size: 0.75rem;
-        font-weight: 500;
-        padding: 0.25rem 0.75rem;
-        border-radius: 9999px;
-        color: #e0e0e0;
-      }
-      .type-badge.single-package {
-        background-color: rgba(59, 130, 246, 0.2);
-        color: #93c5fd;
-      }
-      .type-badge.multi-package {
-        background-color: rgba(168, 85, 247, 0.2);
-        color: #d8b4fe;
-      }
-      .details-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-      }
-      .detail-item {
-        background: rgba(0, 0, 0, 0.2);
-        padding: 0.75rem 1rem;
-        border-radius: 8px;
-      }
-      .detail-item .label {
-        font-size: 0.75rem;
-        color: #9ca3af;
-        margin-bottom: 0.25rem;
-      }
-      .detail-item .value {
-        font-size: 0.9rem;
-        font-weight: 600;
-        color: #ffffff;
-        word-break: break-all;
-      }
-      .package-list {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-      }
-      .connection-header {
-        cursor: pointer;
-      }
-      .connection-body {
-        max-height: 0;
-        overflow: hidden;
-        padding-top: 0;
-        padding-bottom: 0;
-        transition: max-height 0.5s cubic-bezier(0.25, 0.8, 0.25, 1),
-          padding 0.5s ease-in-out;
-      }
-      .connection-body.expanded {
-        max-height: 1000px; /* Increased to accommodate content */
-        padding: 1.5rem;
-      }
-      .collapse-icon {
-        transition: transform 0.4s ease;
-      }
-      .connection-header:not(.collapsed) .collapse-icon {
-        transform: rotate(90deg);
-      }
-      .package-item {
-        display: flex;
-        flex-wrap: wrap; /* Allow wrapping on small screens */
-        align-items: center;
-        gap: 1rem;
-        padding: 0.75rem 1.25rem;
-        background: rgba(0, 0, 0, 0.2);
-        border-radius: 8px;
-        transition: background-color 0.2s;
-      }
-      .package-item:hover {
-        background: rgba(0, 0, 0, 0.4);
-      }
-      .package-item .name {
-        flex-grow: 1;
-        font-weight: 600;
-        color: #ffffff;
-        min-width: 120px;
-      }
-      .package-item .inbound {
-        font-family: monospace;
-        color: #a5b4fc;
-        min-width: 100px;
-      }
-      .package-item .template-display {
-        flex-grow: 2;
-        min-width: 150px;
-      }
-      .package-item .actions {
-        display: flex;
-        gap: 0.5rem;
-        justify-content: flex-end;
-      }
-      .template-display .template-text {
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 6px;
-        padding: 0.3rem 0.5rem;
-        font-family: monospace;
-        font-size: 0.7rem;
-        color: #a5b4fc;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        display: block;
+      .input-dark:focus {
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
       }
       
+      /* Scrollbar for modal list */
+      .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(0,0,0,0.2);
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(255,255,255,0.2);
+          border-radius: 10px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(255,255,255,0.3);
+      }
+
       #toast-container {
         position: fixed;
         top: 1.25rem;
@@ -288,23 +184,21 @@
       }
 
       .toast {
-  display: flex;
-  align-items: flex-start;
-  padding: 0.75rem;
-  border-radius: 8px;
-  
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  color: #e0e0e0;
-  position: relative;
-  overflow: hidden;
-  transform: translateX(120%);
-  opacity: 0;
-  transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
-    opacity 0.4s ease-out;
-}
+        display: flex;
+        align-items: flex-start;
+        padding: 0.75rem;
+        border-radius: 8px;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        color: #e0e0e0;
+        position: relative;
+        overflow: hidden;
+        transform: translateX(120%);
+        opacity: 0;
+        transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease-out;
+      }
       .toast.show { transform: translateX(0); opacity: 1; }
       .toast::before { content: ""; position: absolute; top: 0; left: 0; bottom: 0; width: 4px; border-radius: 8px 0 0 8px; }
       .toast--success::before { background-color: #22c55e; }
@@ -333,6 +227,16 @@
           Admin Dashboard
         </h1>
         <div class="flex items-center gap-4 self-end sm:self-center">
+            
+          <button
+            onclick="openTutorialModal()"
+            class="text-sm font-semibold text-slate-400 hover:text-white transition-colors flex items-center gap-2"
+            title="Manage Tutorials"
+          >
+            <i class="fa-brands fa-youtube fa-lg text-red-500"></i>
+            <span class="hidden sm:inline">Tutorials</span>
+          </button>
+
           <button
             id="settings-btn"
             class="text-sm font-semibold text-slate-400 hover:text-white transition-colors"
@@ -340,18 +244,7 @@
             <i class="fa-solid fa-cog"></i>
             <span class="hidden sm:inline ml-2">Settings</span>
           </button>
-          <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100 mb-6">
-    <h3 class="text-lg font-bold text-gray-800 mb-4">Manage Tutorials</h3>
-    
-    <div class="flex gap-4 mb-6">
-        <input type="text" id="tut-title" placeholder="Caption (Title)" class="flex-1 p-2 border rounded">
-        <input type="text" id="tut-vid-id" placeholder="Youtube Video ID (e.g. dQw4w9WgXcQ)" class="w-48 p-2 border rounded">
-        <button onclick="addTutorial()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Add</button>
-    </div>
-
-    <div id="admin-tutorials-list" class="space-y-2">
-        </div>
-</div>
+          
           <button
             id="logout-btn"
             class="text-sm font-semibold text-slate-400 hover:text-white transition-colors"
@@ -361,7 +254,8 @@
           </button>
         </div>
       </header>
-     <section
+      
+      <section
   id="stats-section"
   class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8"
 >
@@ -481,6 +375,7 @@
     </div>
   </div>
 </section>
+
       <main id="main-content-area">
         <div
           class="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-4"
@@ -603,6 +498,34 @@
       </div>
     </div>
 
+    <div id="tutorial-modal" class="modal fixed inset-0 bg-black/80 justify-center items-center z-50 p-4">
+        <div class="glass-panel w-full max-w-lg p-6 rounded-lg relative">
+            <button onclick="closeTutorialModal()" class="modal-close-btn absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
+            <h3 class="text-xl font-bold mb-6 font-['Orbitron']">Manage Tutorials</h3>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm text-gray-400 mb-1">Video Title</label>
+                    <input type="text" id="tut-title" placeholder="Enter title..." class="input-dark">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-1">YouTube Video ID</label>
+                    <input type="text" id="tut-vid-id" placeholder="e.g. dQw4w9WgXcQ" class="input-dark">
+                </div>
+                <button onclick="addTutorial()" class="btn btn-primary w-full justify-center">
+                    <i class="fa-solid fa-plus mr-2"></i> Add Video
+                </button>
+            </div>
+
+            <div class="mt-6 border-t border-gray-700 pt-4">
+                <h4 class="text-sm font-bold text-gray-400 mb-3">Current Tutorials</h4>
+                <div id="admin-tutorials-list" class="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                    <p class="text-xs text-gray-500 italic">Loading tutorials...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="share-image-modal" class="modal fixed inset-0 bg-black/80 justify-center items-center z-50 p-4">
         <div class="glass-panel w-full max-w-md p-6 rounded-lg relative text-center">
             <button class="modal-close-btn absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
@@ -637,6 +560,33 @@
             blurFactor: 0.90,
             speed: 1.30,
             zoom: 0.60
+        });
+
+        // Functions for the new Tutorial Modal
+        function openTutorialModal() {
+            const modal = document.getElementById('tutorial-modal');
+            if(modal) {
+                modal.classList.add('active');
+                // Trigger load logic if defined in admin.js
+                if(typeof loadAdminTutorials === 'function') {
+                    loadAdminTutorials(); 
+                } else {
+                    // Fallback reload if function name varies
+                    console.log("Loading tutorials...");
+                }
+            }
+        }
+
+        function closeTutorialModal() {
+            const modal = document.getElementById('tutorial-modal');
+            if(modal) modal.classList.remove('active');
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('tutorial-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeTutorialModal();
+            }
         });
     </script>
   </body>

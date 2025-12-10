@@ -9,35 +9,24 @@ let profilePollingInterval = null;
 // --- GLOBAL STATE ---
 let usageDataCache = {};        
 let ordersCache = null; 
-let activeFetchPromises = {};   
 let currentActivePlan = null; 
 let lastKnownPlansStr = ""; 
 let globalActivePlans = []; 
 
 // --- SMART DATA FETCHER (REAL-TIME UPDATES) ---
 const fetchClientData = async (username) => {
-    // Add unique timestamp to prevent browser caching
     const timestamp = new Date().getTime();
-    
-    // Force headers to ensure no caching occurs
-    // We add 'r' (random) parameter as an extra layer of cache busting
     const promise = apiFetch(`/api/check-usage/${username}?_=${timestamp}&r=${Math.random()}`, {
         headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0' }
     })
     .then(res => {
-        // Handle 404 (User removed/expired from panel)
-        if (res.status === 404) {
-            return { success: false, isRemoved: true }; 
-        }
+        if (res.status === 404) return { success: false, isRemoved: true }; 
         return res.json();
     })
     .then(result => {
         if (result.success) {
-            // Update Cache with fresh data
             usageDataCache[username] = result.data;
-            try { 
-                localStorage.setItem('nexguard_usage_cache', JSON.stringify(usageDataCache)); 
-            } catch(e){}
+            try { localStorage.setItem('nexguard_usage_cache', JSON.stringify(usageDataCache)); } catch(e){}
         }
         return result;
     })
@@ -45,7 +34,6 @@ const fetchClientData = async (username) => {
         console.error(`Fetch error for ${username}:`, err);
         return { success: false, isError: true };
     });
-
     return promise;
 };
 
@@ -56,7 +44,6 @@ export function renderProfilePage(renderFunc, params) {
     }
 
     if (window.renderPlanDetailsInternal) window.renderPlanDetailsInternal = null;
-    
     lastKnownPlansStr = ""; 
 
     const user = JSON.parse(localStorage.getItem("nexguard_user"));
@@ -131,7 +118,7 @@ export function renderProfilePage(renderFunc, params) {
     const statusContainer = document.getElementById("user-status-content");
     qrModalLogic.init();
 
-    // --- Restore Usage Cache safely ---
+    // Restore Usage Cache safely
     try {
         const storedCache = localStorage.getItem('nexguard_usage_cache');
         if (storedCache) usageDataCache = JSON.parse(storedCache);
@@ -145,7 +132,6 @@ export function renderProfilePage(renderFunc, params) {
             document.querySelector('.open-help-modal-link')?.addEventListener('click', (e) => { e.preventDefault(); openModal(); });
             document.getElementById('help-modal-close')?.addEventListener('click', closeModal);
             helpModal.addEventListener('click', (e) => { if (e.target === helpModal) closeModal(); });
-            document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && helpModal.classList.contains('visible')) closeModal(); });
             document.getElementById('lang-toggle-btn')?.addEventListener('click', () => {
                 document.querySelector('.lang-content.lang-en')?.classList.toggle('hidden');
                 document.querySelector('.lang-content.lang-si')?.classList.toggle('hidden');
@@ -155,11 +141,9 @@ export function renderProfilePage(renderFunc, params) {
         document.getElementById("profile-update-form")?.addEventListener("submit", async(e) => {
             e.preventDefault();
             const newPassword = document.getElementById("new-password").value;
-            if (!newPassword) return showToast({ title: "No Change", message: "Password field was empty.", type: "info" });
-            if (newPassword.length < 6) return showToast({ title: "Error", message: "Password must be at least 6 characters.", type: "error" });
+            if (!newPassword || newPassword.length < 6) return showToast({ title: "Error", message: "Password must be at least 6 characters.", type: "error" });
             const btn = e.target.querySelector('button');
             btn.disabled = true;
-            showToast({ title: "Updating...", message: "Please wait.", type: "info" });
             try {
                 const res = await apiFetch('/api/user/update-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ newPassword }) });
                 const result = await res.json();
@@ -181,7 +165,6 @@ export function renderProfilePage(renderFunc, params) {
             if (!v2rayUsername) return showToast({ title: "Error", message: "Please enter your V2Ray username.", type: "error" });
             const btn = e.target.querySelector("button");
             btn.disabled = true;
-            showToast({ title: "Linking...", message: "Please wait...", type: "info" });
             const res = await apiFetch("/api/user/link-v2ray", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ v2rayUsername }) });
             const result = await res.json();
             btn.disabled = false;
@@ -205,9 +188,7 @@ export function renderProfilePage(renderFunc, params) {
         if (res.ok) {
             showToast({ title: "Success!", message: result.message, type: "success" });
             const newPath = result.filePath;
-            document.querySelectorAll("#profile-pic-img, #profile-pic-nav-desktop, #profile-pic-nav-mobile").forEach(img => {
-                if(img) img.src = newPath;
-            });
+            document.querySelectorAll("#profile-pic-img, #profile-pic-nav-desktop, #profile-pic-nav-mobile").forEach(img => { if(img) img.src = newPath; });
             let localUser = JSON.parse(localStorage.getItem("nexguard_user"));
             localUser.profilePicture = `public/${newPath}`;
             localStorage.setItem("nexguard_user", JSON.stringify(localUser));
@@ -216,6 +197,52 @@ export function renderProfilePage(renderFunc, params) {
         }
     });
 
+    // --- Helper to load Tutorials ---
+    const loadTutorials = async () => {
+        const container = document.getElementById('tab-tutorials');
+        if (!container) return;
+        
+        container.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
+        
+        try {
+            const res = await apiFetch('/api/user/tutorials');
+            const result = await res.json();
+            const data = result.data || [];
+
+            let htmlContent = `
+                <div class="card-glass p-6 custom-radius space-y-6">
+                    <div class="border-b border-white/10 pb-4">
+                        <h2 class="text-xl font-bold text-white font-['Orbitron']">Tutorials & Guides</h2>
+                        <p class="text-sm text-gray-400">Learn how to use our services effectively.</p>
+                    </div>
+                    <div class="grid gap-6 md:grid-cols-2">
+            `;
+
+            if (data.length > 0) {
+                data.forEach(tut => {
+                    htmlContent += `
+                        <div class="bg-black/30 rounded-lg overflow-hidden border border-white/5 hover:border-blue-500/30 transition-colors">
+                            <div class="p-3 border-b border-white/5">
+                                <h3 class="font-semibold text-gray-200 flex items-center text-sm">
+                                    <i class="fa-brands fa-youtube text-red-500 mr-2"></i> ${tut.title}
+                                </h3>
+                            </div>
+                            <div class="relative w-full aspect-video bg-black">
+                                <iframe class="absolute top-0 left-0 w-full h-full" src="https://www.youtube.com/embed/${tut.video_id}?rel=0&modestbranding=1" title="${tut.title}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                            </div>
+                        </div>`;
+                });
+            } else {
+                htmlContent += `<div class="col-span-2 text-center py-8 text-gray-500">No tutorials available at the moment.</div>`;
+            }
+            htmlContent += `</div></div>`;
+            container.innerHTML = htmlContent;
+        } catch (error) {
+            console.error('Error loading tutorials:', error);
+            container.innerHTML = `<div class="text-red-400 text-center p-4">Failed to load tutorials.</div>`;
+        }
+    };
+
     const renderUsageHTML = (d, username) => {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
@@ -223,32 +250,25 @@ export function renderProfilePage(renderFunc, params) {
         const total = d.down + d.up;
         const percent = d.total > 0 ? Math.min((total / d.total) * 100, 100) : 0;
         
-        const formatBytes = (b = 0, d = 2) => {
-            const k = 1024;
-            const s = ['B', 'KB', 'MB', 'GB', 'TB'];
+        const formatBytes = (b = 0) => {
             if (b === 0) return '0 B';
-            const i = Math.floor(Math.log(b) / Math.log(k));
-            return `${parseFloat((b / k ** i).toFixed(d))} ${s[i]}`;
+            const i = Math.floor(Math.log(b) / Math.log(1024));
+            return `${parseFloat((b / 1024 ** i).toFixed(2))} ${['B', 'KB', 'MB', 'GB', 'TB'][i]}`;
         };
 
-        // --- EXPIRY LOGIC (UPDATED) ---
         const now = Date.now();
         const expiryTimestamp = parseInt(d.expiryTime, 10);
-        
         let expiryDisplay = '<span class="text-300">Unlimited</span>';
         let expiryColorClass = 'text-white';
         let status = d.enable ? `<span class="font-semibold text-green-400">ONLINE</span>` : `<span class="font-semibold text-red-400">OFFLINE</span>`;
 
         if (expiryTimestamp > 0) {
             if (now > expiryTimestamp) {
-                // EXPIRED STATE: Show ONLY "EXPIRED" in red
                 expiryDisplay = `<span class="font-bold text-red-500 tracking-wide">EXPIRED</span>`;
                 status = `<span class="font-bold text-red-500">EXPIRED</span>`;
                 expiryColorClass = 'text-red-400';
             } else {
-                // ACTIVE STATE
-                const expiryDate = new Date(expiryTimestamp);
-                expiryDisplay = expiryDate.toLocaleDateString('en-CA');
+                expiryDisplay = new Date(expiryTimestamp).toLocaleDateString('en-CA');
             }
         }
 
@@ -262,34 +282,21 @@ export function renderProfilePage(renderFunc, params) {
                     <div id="rt-status">${status}</div>
                 </div>
                 ${d.total > 0 ? `<div class="space-y-2"><div class="flex justify-between items-baseline text-sm"><span class="font-medium text-gray-300">Data Quota Usage</span><span id="rt-percent" class="font-bold text-white">${percent.toFixed(1)}%</span></div><div class="w-full bg-black/30 rounded-full h-2.5"><div id="rt-bar" class="progress-bar-inner bg-gradient-to-r from-sky-500 to-blue-500 h-2.5 rounded-full" style="width: ${percent}%"></div></div></div>` : ''}
-                <div class="space-y-4 text-sm sm:hidden">
-                    <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-circle-down text-sky-400 text-lg w-5 text-center"></i><span>Download</span></div><p class="font-semibold text-white text-base">${formatBytes(d.down)}</p></div>
-                    <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-circle-up text-violet-400 text-lg w-5 text-center"></i><span>Upload</span></div><p class="font-semibold text-white text-base">${formatBytes(d.up)}</p></div>
-                    <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-database text-green-400 text-lg w-5 text-center"></i><span>Total Used</span></div><p class="font-semibold text-white text-base">${formatBytes(total)}</p></div>
-                    <div class="flex justify-between items-center"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-calendar-xmark text-red-400 text-lg w-5 text-center"></i><span>Expires On</span></div><p class="font-medium ${expiryColorClass} text-base">${expiryDisplay}</p></div>
-                </div>
-                <div class="hidden sm:grid sm:grid-cols-2 gap-4 text-sm">
-                    <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-circle-down text-sky-400 mr-2"></i><span>Download</span></div><p class="text-2xl font-bold text-white mt-1">${formatBytes(d.down)}</p></div>
-                    <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-circle-up text-violet-400 mr-2"></i><span>Upload</span></div><p class="text-2xl font-bold text-white mt-1">${formatBytes(d.up)}</p></div>
-                    <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-database text-green-400 mr-2"></i><span>Total Used</span></div><p class="text-2xl font-bold text-white mt-1">${formatBytes(total)}</p></div>
-                    <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-calendar-xmark text-red-400 mr-2"></i><span>Expires On</span></div><p class="text-xl font-medium ${expiryColorClass} mt-1">${expiryDisplay}</p></div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm mt-4">
+                    <div class="bg-black/20 rounded-lg p-4 flex justify-between items-center"><span class="text-gray-400"><i class="fa-solid fa-circle-down text-sky-400 mr-2"></i>Download</span><span class="font-bold text-white">${formatBytes(d.down)}</span></div>
+                    <div class="bg-black/20 rounded-lg p-4 flex justify-between items-center"><span class="text-gray-400"><i class="fa-solid fa-circle-up text-violet-400 mr-2"></i>Upload</span><span class="font-bold text-white">${formatBytes(d.up)}</span></div>
+                    <div class="bg-black/20 rounded-lg p-4 flex justify-between items-center"><span class="text-gray-400"><i class="fa-solid fa-database text-green-400 mr-2"></i>Total Used</span><span class="font-bold text-white">${formatBytes(total)}</span></div>
+                    <div class="bg-black/20 rounded-lg p-4 flex justify-between items-center"><span class="text-gray-400"><i class="fa-solid fa-calendar-xmark text-red-400 mr-2"></i>Expires</span><span class="font-bold ${expiryColorClass}">${expiryDisplay}</span></div>
                 </div>
             </div>`;
     };
 
-    // --- Render Plan Removed State ---
     const renderPlanRemovedHTML = (username) => {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
-
         const otherPlansAvailable = globalActivePlans.length > 1;
-        
-        // --- NEW: Handle Renewal even if removed (Expired/Inactive) ---
         const renewalActionHtml = `<button id="renew-removed-plan-btn" class="ai-button w-full rounded-lg mt-2 inline-block"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew This Plan</button>`;
-        
-        const switchHtml = otherPlansAvailable 
-            ? `<button id="switch-plan-btn" class="ai-button secondary w-full rounded-lg mt-2"><i class="fa-solid fa-repeat mr-2"></i>Switch Plan</button>`
-            : '';
+        const switchHtml = otherPlansAvailable ? `<button id="switch-plan-btn" class="ai-button secondary w-full rounded-lg mt-2"><i class="fa-solid fa-repeat mr-2"></i>Switch Plan</button>` : '';
 
         usageContainer.innerHTML = `
             <div class="result-card p-6 card-glass custom-radius space-y-4 reveal is-visible border border-amber-500/30">
@@ -298,31 +305,21 @@ export function renderProfilePage(renderFunc, params) {
                     <h3 class="text-xl font-bold text-white">Plan Expired / Inactive</h3>
                     <p class="text-sm text-gray-300 mt-1">We couldn't find active data for <span class="font-semibold text-amber-300">${username}</span>. It may have expired.</p>
                 </div>
-                <div class="pt-2 flex flex-col gap-2">
-                    ${renewalActionHtml}
-                    ${switchHtml}
-                </div>
+                <div class="pt-2 flex flex-col gap-2">${renewalActionHtml}${switchHtml}</div>
             </div>`;
 
-        // Add event listener for the new "Renew This Plan" button
         document.getElementById('renew-removed-plan-btn')?.addEventListener('click', () => {
-             // Find the plan object from globalActivePlans
              const plan = globalActivePlans.find(p => p.v2rayUsername === username);
-             if (plan) {
-                 handleRenewalChoice(globalActivePlans, plan);
-             } else {
-                 showToast({ title: "Error", message: "Could not identify plan details.", type: "error" });
-             }
+             if (plan) handleRenewalChoice(globalActivePlans, plan);
+             else showToast({ title: "Error", message: "Could not identify plan details.", type: "error" });
         });
 
         if (otherPlansAvailable) {
             document.getElementById('switch-plan-btn')?.addEventListener('click', () => {
                 const currentIndex = globalActivePlans.findIndex(p => p.v2rayUsername === username);
                 const nextIndex = (currentIndex + 1) % globalActivePlans.length;
-                
                 document.querySelector('#plan-menu .trigger-menu .text').textContent = globalActivePlans[nextIndex].v2rayUsername;
-                localStorage.setItem(`nexguard_last_plan_${user.username}`, globalActivePlans[nextIndex].v2rayUsername);
-                
+                localStorage.setItem(LAST_PLAN_KEY, globalActivePlans[nextIndex].v2rayUsername);
                 if (window.renderPlanDetailsInternal) window.renderPlanDetailsInternal(nextIndex);
             });
         }
@@ -331,19 +328,13 @@ export function renderProfilePage(renderFunc, params) {
     const loadUsageStats = (username, isSilent = false) => {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
+        if (!isSilent && !usageDataCache[username]) usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
         
-        if (!isSilent && !usageDataCache[username]) {
-            usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
-        }
-        
-        // This function now uses fetchClientData which detects 404s
         fetchClientData(username).then(result => {
             if (currentActivePlan && currentActivePlan.v2rayUsername === username) {
                 if (result.success && result.data) {
-                    // Update expiry and other stats live
                     renderUsageHTML(result.data, username);
                 } else if (result.isRemoved) {
-                    // **CRITICAL:** Show "Expired/Inactive" state with Renew button
                     renderPlanRemovedHTML(username);
                 } else if (!isSilent) {
                     usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-amber-400"><p>${result.message || 'Error loading usage.'}</p></div>`;
@@ -383,65 +374,36 @@ export function renderProfilePage(renderFunc, params) {
     const updateRenewButton = async (plan, activePlans) => {
         const container = document.getElementById("renew-button-container");
         if (!container) return;
-        
-        // Keep loading state if not cached
-        if (!usageDataCache[plan.v2rayUsername]) {
-             container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking status...</button>`;
-        }
+        if (!usageDataCache[plan.v2rayUsername]) container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking status...</button>`;
         
         try {
             const result = await fetchClientData(plan.v2rayUsername);
-            
-            // --- NEW LOGIC START ---
             let shouldEnableRenew = false;
             let btnText = "Renew / Change Plan";
             let btnClass = "ai-button";
 
             if (result.success) {
-                // Parse expiry time safely as an integer timestamp
                 const expiryTimestamp = parseInt(result.data.expiryTime, 10);
                 const now = Date.now();
-                
                 if (expiryTimestamp > 0) {
                     const fiveDaysInMs = 5 * 24 * 60 * 60 * 1000;
-                    const isExpired = now > expiryTimestamp;
-                    const isExpiringSoon = now >= (expiryTimestamp - fiveDaysInMs);
-
-                    if (isExpired) {
-                        shouldEnableRenew = true;
-                        btnText = "Renew Plan";
-                        btnClass = "ai-button bg-amber-500 hover:bg-amber-600 border-none text-white"; // Highlighted style
-                    } else if (isExpiringSoon) {
-                        shouldEnableRenew = true;
-                        btnText = "Renew Plan (Expiring Soon)";
-                    } else {
-                        // Not expired, not expiring soon
-                        shouldEnableRenew = false;
-                    }
-                } else {
-                    // Unlimited expiry
-                    shouldEnableRenew = false;
-                    btnText = "Does not expire";
-                }
+                    if (now > expiryTimestamp) { shouldEnableRenew = true; btnText = "Renew Plan"; btnClass = "ai-button bg-amber-500 hover:bg-amber-600 border-none text-white"; } 
+                    else if (now >= (expiryTimestamp - fiveDaysInMs)) { shouldEnableRenew = true; btnText = "Renew Plan (Expiring Soon)"; } 
+                    else { shouldEnableRenew = false; }
+                } else { shouldEnableRenew = false; btnText = "Does not expire"; }
             } else if (result.isRemoved) {
-                // **CRITICAL FIX**: If removed/not found, treat as Expired and ENABLE renewal
                 shouldEnableRenew = true;
                 btnText = "Renew Plan (Inactive/Expired)";
-                btnClass = "ai-button bg-red-600 hover:bg-red-700 border-none text-white"; // Alert style
+                btnClass = "ai-button bg-red-600 hover:bg-red-700 border-none text-white";
             }
 
-            // Render Button
             if (shouldEnableRenew) {
                 container.innerHTML = `<button id="renew-profile-btn" class="${btnClass} inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>${btnText}</button>`;
                 document.getElementById('renew-profile-btn')?.addEventListener('click', () => handleRenewalChoice(activePlans, plan));
             } else {
                 container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed text-gray-400 border-gray-600">${btnText}</button>`;
             }
-            // --- NEW LOGIC END ---
-
         } catch (e) {
-            console.error("Renew button update error", e);
-            // Fallback in case of error: Allow renewal to be safe
              container.innerHTML = `<button id="renew-profile-btn" class="ai-button secondary inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew Plan</button>`;
              document.getElementById('renew-profile-btn')?.addEventListener('click', () => handleRenewalChoice(activePlans, plan));
         }
@@ -469,11 +431,8 @@ export function renderProfilePage(renderFunc, params) {
             </div><div id="plan-details-container"></div>`;
         
         const existingMenu = document.querySelector('.plan-selector-container');
-        if (!existingMenu) {
-             statusContainer.innerHTML = containerHtml;
-        } else {
-             existingMenu.outerHTML = `<div class="plan-selector-container"><label class="plan-selector-label custom-radius">Viewing Plan:</label><ul class="fmenu custom-radius" id="plan-menu"><li class="fmenu-item custom-radius"><div class="trigger-menu custom-radius"><i class="fa-solid fa-server"></i><span class="text">${activePlans[activePlanIndex]?.v2rayUsername || 'Select Plan'}</span><i class="fa-solid fa-chevron-down arrow"></i></div><ul class="floating-menu">${planListItems}</ul></li></ul></div>`;
-        }
+        if (!existingMenu) statusContainer.innerHTML = containerHtml;
+        else existingMenu.outerHTML = `<div class="plan-selector-container"><label class="plan-selector-label custom-radius">Viewing Plan:</label><ul class="fmenu custom-radius" id="plan-menu"><li class="fmenu-item custom-radius"><div class="trigger-menu custom-radius"><i class="fa-solid fa-server"></i><span class="text">${activePlans[activePlanIndex]?.v2rayUsername || 'Select Plan'}</span><i class="fa-solid fa-chevron-down arrow"></i></div><ul class="floating-menu">${planListItems}</ul></li></ul></div>`;
 
         planMenuInstance = new SikFloatingMenu("#plan-menu");
         document.querySelector('#plan-menu .floating-menu')?.addEventListener('click', (e) => {
@@ -496,9 +455,7 @@ export function renderProfilePage(renderFunc, params) {
             lastKnownPlansStr = currentPlansStr;
 
             if (data.status === "approved" && data.activePlans?.length > 0) {
-                // Prefetch All
                 data.activePlans.forEach(p => fetchClientData(p.v2rayUsername));
-                
                 globalActivePlans = data.activePlans;
 
                 let currentIndex = 0;
@@ -522,81 +479,69 @@ export function renderProfilePage(renderFunc, params) {
                     document.getElementById("plan-info-container").innerHTML = `<span class="bg-blue-500/10 text-blue-300 px-2 py-1 rounded-full"><i class="fa-solid fa-rocket fa-fw mr-2"></i>${planName}</span><span class="bg-indigo-500/10 text-indigo-300 px-2 py-1 rounded-full"><i class="fa-solid fa-wifi fa-fw mr-2"></i>${connectionName}</span>`;
 
                     if(!document.getElementById('profile-tabs')) {
+                        // --- UPDATED: Added Tutorials Tab and Content Container ---
                         container.innerHTML = `
-                        <div id="profile-tabs" class="flex items-center gap-4 sm:gap-6 border-b border-white/10 mb-6 overflow-x-auto"><button data-tab="config" class="tab-btn active">V2Ray Config</button><button data-tab="usage" class="tab-btn">Usage Stats</button><button data-tab="orders" class="tab-btn">My Orders</button><button data-tab="settings" class="tab-btn">Account Settings</button></div>
-                        <div id="tab-config" class="tab-panel active"><div class="card-glass p-6 sm:p-8 custom-radius"><div class="grid md:grid-cols-2 gap-8 items-center"><div class="flex flex-col items-center text-center"><h3 class="text-lg font-semibold text-white mb-3">Scan with your V2Ray App</h3><div id="qrcode-container" class="w-44 h-44 p-3 bg-white rounded-lg cursor-pointer flex items-center justify-center shadow-lg shadow-blue-500/20"></div></div><div class="space-y-6"><div class="w-full"><label class="text-sm text-gray-400">V2Ray Config Link</label><div class="flex items-center gap-2 mt-2"><input type="text" readonly value="${plan.v2rayLink}" class="w-full bg-slate-800/50 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-300"><button id="copy-config-btn" class="ai-button secondary !text-sm !font-semibold flex-shrink-0 px-4 py-2 rounded-md">Copy</button></div></div><div class="w-full text-center border-t border-white/10 pt-6"><div id="renew-button-container"></div></div></div></div></div></div>
-                        <div id="tab-usage" class="tab-panel"></div><div id="tab-orders" class="tab-panel"></div><div id="tab-settings" class="tab-panel">
+                        <div id="profile-tabs" class="flex items-center gap-4 sm:gap-6 border-b border-white/10 mb-6 overflow-x-auto">
+                            <button data-tab="config" class="tab-btn active">V2Ray Config</button>
+                            <button data-tab="usage" class="tab-btn">Usage Stats</button>
+                            <button data-tab="orders" class="tab-btn">My Orders</button>
+                            <button data-tab="tutorials" class="tab-btn">Tutorials</button>
+                            <button data-tab="settings" class="tab-btn">Settings</button>
+                        </div>
+                        
+                        <div id="tab-config" class="tab-panel active">
                             <div class="card-glass p-6 sm:p-8 custom-radius">
-                                <div class="max-w-md mx-auto"><h3 class="text-xl font-bold text-white mb-6 font-['Orbitron'] text-center">Account Settings</h3><form id="profile-update-form" class="space-y-6"><div class="form-group"><input type="text" class="form-input" readonly value="${user.username}"><label class="form-label">Website Username</label></div><div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" placeholder=" "><label for="new-password" class="form-label">New Password</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i></div><button type="submit" class="ai-button w-full rounded-lg !mt-8">Save Changes</button></form></div>
+                                <div class="grid md:grid-cols-2 gap-8 items-center">
+                                    <div class="flex flex-col items-center text-center">
+                                        <h3 class="text-lg font-semibold text-white mb-3">Scan with your V2Ray App</h3>
+                                        <div id="qrcode-container" class="w-44 h-44 p-3 bg-white rounded-lg cursor-pointer flex items-center justify-center shadow-lg shadow-blue-500/20"></div>
+                                    </div>
+                                    <div class="space-y-6">
+                                        <div class="w-full">
+                                            <label class="text-sm text-gray-400">V2Ray Config Link</label>
+                                            <div class="flex items-center gap-2 mt-2">
+                                                <input type="text" readonly value="${plan.v2rayLink}" class="w-full bg-slate-800/50 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-300">
+                                                <button id="copy-config-btn" class="ai-button secondary !text-sm !font-semibold flex-shrink-0 px-4 py-2 rounded-md">Copy</button>
+                                            </div>
+                                        </div>
+                                        <div class="w-full text-center border-t border-white/10 pt-6">
+                                            <div id="renew-button-container"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="tab-usage" class="tab-panel"></div>
+                        <div id="tab-orders" class="tab-panel"></div>
+                        <div id="tab-tutorials" class="tab-panel"></div>
+                        
+                        <div id="tab-settings" class="tab-panel">
+                            <div class="card-glass p-6 sm:p-8 custom-radius">
+                                <div class="max-w-md mx-auto">
+                                    <h3 class="text-xl font-bold text-white mb-6 font-['Orbitron'] text-center">Account Settings</h3>
+                                    <form id="profile-update-form" class="space-y-6">
+                                        <div class="form-group"><input type="text" class="form-input" readonly value="${user.username}"><label class="form-label">Website Username</label></div>
+                                        <div class="form-group relative">
+                                            <input type="password" id="new-password" class="form-input pr-10" placeholder=" ">
+                                            <label for="new-password" class="form-label">New Password</label>
+                                            <span class="focus-border"><i></i></span>
+                                            <i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i>
+                                        </div>
+                                        <button type="submit" class="ai-button w-full rounded-lg !mt-8">Save Changes</button>
+                                    </form>
+                                </div>
                             </div>
                         </div>`;
 
-                        // Load Tutorials for User
-async function loadTutorials() {
-    try {
-        const res = await fetch('/api/user/tutorials', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        });
-        const { data } = await res.json();
-
-        const container = document.getElementById('content-tutorials');
-        
-        // Basic Container Setup
-        let htmlContent = `
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-8">
-                <div class="border-b border-gray-100 pb-4">
-                    <h2 class="text-xl font-bold text-gray-800">Tutorials & Guides</h2>
-                    <p class="text-sm text-gray-500">අපගේ සේවාවන් භාවිතා කරන ආකාරය පහතින් නරඹන්න.</p>
-                </div>
-        `;
-
-        // Loop through videos
-        if (data.length > 0) {
-            data.forEach(tut => {
-                htmlContent += `
-                    <div class="tutorial-item">
-                        <h3 class="font-semibold text-gray-700 mb-3 flex items-center">
-                            <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            ${tut.title}
-                        </h3>
-                        <div class="relative w-full max-w-4xl mx-auto rounded-lg overflow-hidden shadow-lg bg-black mb-6">
-                            <div class="relative pb-[56.25%] h-0">
-                                <iframe 
-                                    class="absolute top-0 left-0 w-full h-full rounded-lg"
-                                    src="https://www.youtube.com/embed/${tut.video_id}?rel=0&modestbranding=1" 
-                                    title="${tut.title}"
-                                    frameborder="0" 
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                    allowfullscreen>
-                                </iframe>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-        } else {
-            htmlContent += `<p class="text-gray-400 text-center">No tutorials available yet.</p>`;
-        }
-
-        htmlContent += `</div>`;
-        container.innerHTML = htmlContent;
-
-    } catch (error) {
-        console.error('Error loading tutorials:', error);
-    }
-}
-
-// Add this to your init or load function
-loadTutorials();
-                        
                         document.getElementById('profile-tabs').addEventListener('click', (e) => { 
                             if (e.target.tagName === 'BUTTON') {
                                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                                 document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
                                 e.target.classList.add('active');
-                                document.getElementById(`tab-${e.target.dataset.tab}`).classList.add('active');
-                                
                                 const tabId = e.target.dataset.tab;
+                                document.getElementById(`tab-${tabId}`).classList.add('active');
+                                
                                 if (!currentActivePlan) return;
 
                                 if(tabId === 'config') updateRenewButton(currentActivePlan, data.activePlans);
@@ -611,12 +556,17 @@ loadTutorials();
                                 if(tabId === 'orders') {
                                     if (ordersCache) { renderOrdersHTML(ordersCache); loadMyOrders(true); } else { loadMyOrders(false); }
                                 }
+                                // --- UPDATED: Load Tutorials when tab clicked ---
+                                if(tabId === 'tutorials') {
+                                    loadTutorials();
+                                }
                             }
                         });
                         
                         setupEventListeners();
                     }
 
+                    // Refreshes if tab is already active (polling/switching plans)
                     if (document.getElementById('tab-usage')?.classList.contains('active')) {
                          if (usageDataCache[plan.v2rayUsername]) {
                             renderUsageHTML(usageDataCache[plan.v2rayUsername], plan.v2rayUsername);
@@ -624,6 +574,9 @@ loadTutorials();
                         } else {
                             loadUsageStats(plan.v2rayUsername, false);
                         }
+                    }
+                    if (document.getElementById('tab-tutorials')?.classList.contains('active')) {
+                        loadTutorials();
                     }
 
                     const qrContainer = document.getElementById("qrcode-container");
@@ -658,11 +611,9 @@ loadTutorials();
         }
 
         // --- POLLING LOGIC ---
-        // Ensure UI updates even if only the underlying Usage Data (Expiry/Traffic) changed
         if (data.status === "approved" && data.activePlans?.length > 0) {
             if (currentActivePlan) {
                 if (document.getElementById('tab-usage')?.classList.contains('active')) {
-                    // Poll for fresh data including expiry and removal check
                     loadUsageStats(currentActivePlan.v2rayUsername, true); 
                 }
                 if (document.getElementById('tab-orders')?.classList.contains('active')) {
@@ -677,50 +628,30 @@ loadTutorials();
 
     const loadProfileData = async () => {
         try {
-            // Cache එකෙන් දත්ත තිබේදැයි බලන්න
             let cachedPlansStr = null;
             try { cachedPlansStr = localStorage.getItem(PLANS_CACHE_KEY); } catch(e){}
-            
-            // මුලින්ම Cache දත්ත පෙන්වන්න (එවිට Load වෙනකම් හිස්ව නොපෙනේ)
-            if (cachedPlansStr && !currentActivePlan) { // currentActivePlan නැත්නම් විතරක් UI update කරන්න
+            if (cachedPlansStr && !currentActivePlan) { 
                 try {
                     const cachedPlans = JSON.parse(cachedPlansStr);
                     if (Array.isArray(cachedPlans) && cachedPlans.length > 0) {
                         handleDataUpdate({ status: 'approved', activePlans: cachedPlans }, false);
                     }
-                } catch(e) { 
-                    localStorage.removeItem(PLANS_CACHE_KEY);
-                }
+                } catch(e) { localStorage.removeItem(PLANS_CACHE_KEY); }
             }
-
-            // Server එකෙන් අලුත් දත්ත ඉල්ලන්න
             const res = await apiFetch("/api/user/status");
-            
-            // 429 හෝ වෙනත් දෝෂයක් ආවොත්, UI එක වෙනස් නොකර නිකන් ඉන්න
-            if (!res.ok) {
-                console.warn("Skipping update due to server error:", res.status);
-                return; 
-            }
-
+            if (!res.ok) { console.warn("Skipping update due to server error:", res.status); return; }
             const data = await res.json();
-            
             if(data.success && data.activePlans) {
                 try { localStorage.setItem(PLANS_CACHE_KEY, JSON.stringify(data.activePlans)); } catch(e){}
                 handleDataUpdate(data, true);
             }
-
         } catch (e) { 
-            // Network Error එකක් ආවොත් Console එකට දාන්න, UI එක කඩන්න එපා
             console.error("Profile load error (Keeping previous state):", e); 
         }
     };
-loadProfileData();
+    loadProfileData();
 
-    // තත්පර 10කට වරක් දත්ත අලුත් කරන්න (Server එකට බර අඩුයි)
     profilePollingInterval = setInterval(() => {
-        // User මේ Tab එකේ සිටී නම් පමණක් දත්ත අලුත් කරන්න (Performance Fix)
-        if (!document.hidden) {
-            loadProfileData();
-        }
+        if (!document.hidden) loadProfileData();
     }, 10000);
 }
