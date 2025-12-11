@@ -481,44 +481,6 @@
         transform: scale(1);
       }
 
-      /* Tutorial Modal Specific Styles */
-      /* FIX: INCREASED Z-INDEX TO 99999 TO ENSURE IT'S ON TOP OF EVERYTHING */
-      .tutorial-modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background: rgba(0,0,0,0.85);
-          backdrop-filter: blur(5px);
-          z-index: 99999; /* Highest priority */
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          opacity: 0;
-          visibility: hidden;
-          transition: all 0.3s ease;
-      }
-      .tutorial-modal-overlay.active {
-          opacity: 1;
-          visibility: visible;
-      }
-      .tutorial-modal-content {
-          width: 90%;
-          max-width: 800px;
-          background: #0f172a;
-          border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 16px;
-          padding: 20px;
-          transform: scale(0.9);
-          transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-          position: relative;
-          box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-      }
-      .tutorial-modal-overlay.active .tutorial-modal-content {
-          transform: scale(1);
-      }
-
       /* Firefox */
       * {
         scrollbar-width: thin;
@@ -789,8 +751,6 @@
         <a href="/usage" class="nav-link text-lg p-3 flex items-center gap-3"><i class="fa-solid fa-chart-simple w-5 text-center"></i> Usage</a>
         <a href="/plans" class="nav-link text-lg p-3 flex items-center gap-3"><i class="fa-solid fa-rocket w-5 text-center"></i> Plans</a>
         
-        <a href="#" onclick="openUserTutorials(); return false;" class="nav-link text-lg p-3 flex items-center gap-3 text-blue-400"><i class="fa-brands fa-youtube w-5 text-center"></i> Tutorials</a>
-        
         <a href="/about" class="nav-link text-lg p-3 flex items-center gap-3"><i class="fa-solid fa-info-circle w-5 text-center"></i> About</a>
         <a href="/privacy" class="nav-link text-lg p-3 flex items-center gap-3"><i class="fa-solid fa-shield-halved w-5 text-center"></i> Privacy</a>
         <hr class="border-white/10 my-4" />
@@ -823,8 +783,6 @@
             <a href="/home" class="nav-link text-sm">Home</a>
             <a href="/usage" class="nav-link text-sm">Usage</a>
             <a href="/plans" class="nav-link text-sm">Plans</a>
-            
-            <a href="#" onclick="openUserTutorials(); return false;" class="nav-link text-sm text-blue-400 hover:text-blue-300 transition-colors">Tutorials</a>
             
             <a href="/about" class="nav-link text-sm">About</a>
             <a href="/privacy" class="nav-link text-sm">Privacy Policy</a>
@@ -861,96 +819,8 @@
       </div>
     </div>
 
-    <div id="user-tutorials-modal" class="tutorial-modal-overlay">
-        <div class="tutorial-modal-content glass-panel">
-            <button onclick="closeUserTutorials()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl z-50">
-                <i class="fa-solid fa-times"></i>
-            </button>
-            
-            <div class="text-center mb-6">
-                <h2 class="text-2xl font-bold text-white font-['Orbitron']">How to use NexGuard<span class="text-blue-500">LK</span></h2>
-            </div>
-            
-            <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden shadow-2xl border border-gray-700">
-                <iframe 
-                    id="userTutorialIframe"
-                    class="w-full h-full"
-                    src="about:blank" 
-                    title="NexGuard Tutorial" 
-                    frameborder="0" 
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                    allowfullscreen>
-                </iframe>
-            </div>
-            
-            <div class="mt-6 text-center">
-                <p class="text-sm text-gray-400">ඔබට ගැටලුවක් ඇත්නම් අපගේ WhatsApp සහාය ලබාගන්න.</p>
-                <a href="https://wa.me/9477xxxxxxx" target="_blank" class="inline-block mt-3 px-6 py-2 bg-green-600 hover:bg-green-500 text-white rounded-full text-sm font-medium transition-colors">
-                    <i class="fa-brands fa-whatsapp mr-2"></i> WhatsApp Support
-                </a>
-            </div>
-        </div>
-    </div>
-
     <script src="./js/effects.js"></script>
     <script type="module" src="./js/main.js"></script>
 
-    <script>
-        async function openUserTutorials() {
-            const modal = document.getElementById('user-tutorials-modal');
-            const iframe = document.getElementById('userTutorialIframe');
-            
-            if(modal) {
-                modal.classList.add('active');
-                document.body.classList.add('modal-open');
-                
-                // 1. Default Video ID (User provided)
-                let videoId = 'Rb4GcAPsuDo';
-
-                // 2. Optional: Try to fetch updated ID from backend (if configured)
-                try {
-                    // Adjust endpoint if your backend uses a different one
-                    const response = await fetch('/api/settings'); 
-                    if (response.ok) {
-                        const data = await response.json();
-                        // Check if admin has saved a video URL
-                        if (data.tutorial_video_url) {
-                            // Extract ID from saved URL
-                            const match = data.tutorial_video_url.match(/embed\/([\w-]{11})/);
-                            if (match) videoId = match[1];
-                        }
-                    }
-                } catch (e) {
-                    // Silently fail and use default
-                    console.log("Using default video ID");
-                }
-
-                // 3. Load Video (with mute=1 for autoplay policy)
-                if(!iframe.src || iframe.src === 'about:blank' || iframe.src === window.location.href) {
-                    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1`;
-                }
-            }
-        }
-
-        function closeUserTutorials() {
-            const modal = document.getElementById('user-tutorials-modal');
-            const iframe = document.getElementById('userTutorialIframe');
-            
-            if(modal) {
-                modal.classList.remove('active');
-                document.body.classList.remove('modal-open');
-                
-                // Stop the video by resetting src to blank
-                iframe.src = "about:blank"; 
-            }
-        }
-
-        // Close on clicking outside
-        document.getElementById('user-tutorials-modal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeUserTutorials();
-            }
-        });
-    </script>
   </body>
 </html>

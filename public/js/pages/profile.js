@@ -216,29 +216,7 @@ export function renderProfilePage(renderFunc, params) {
         }
     });
 
-    const loadTutorials = async () => {
-        const container = document.getElementById('tab-tutorials');
-        if (!container) return;
-        container.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
-        try {
-            const res = await apiFetch('/api/user/tutorials');
-            const result = await res.json();
-            const data = result.data || [];
-            let htmlContent = `<div class="card-glass p-6 custom-radius space-y-6"><div class="border-b border-white/10 pb-4"><h2 class="text-xl font-bold text-white font-['Orbitron']">Tutorials & Guides</h2><p class="text-sm text-gray-400">Learn how to use our services effectively.</p></div><div class="grid gap-6 md:grid-cols-2">`;
-            if (data.length > 0) {
-                data.forEach(tut => {
-                    htmlContent += `<div class="bg-black/30 rounded-lg overflow-hidden border border-white/5 hover:border-blue-500/30 transition-colors"><div class="p-3 border-b border-white/5"><h3 class="font-semibold text-gray-200 flex items-center text-sm"><i class="fa-brands fa-youtube text-red-500 mr-2"></i> ${tut.title}</h3></div><div class="relative w-full aspect-video bg-black"><iframe class="absolute top-0 left-0 w-full h-full" src="https://www.youtube.com/embed/${tut.video_id}?rel=0&modestbranding=1" title="${tut.title}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div></div>`;
-                });
-            } else {
-                htmlContent += `<div class="col-span-2 text-center py-8 text-gray-500">No tutorials available at the moment.</div>`;
-            }
-            htmlContent += `</div></div>`;
-            container.innerHTML = htmlContent;
-        } catch (error) {
-            console.error('Error loading tutorials:', error);
-            container.innerHTML = `<div class="text-red-400 text-center p-4">Failed to load tutorials.</div>`;
-        }
-    };
+    // --- REMOVED LOAD TUTORIALS FUNCTION ---
 
     const renderUsageHTML = (d, username) => {
         const usageContainer = document.getElementById("tab-usage");
@@ -548,13 +526,12 @@ export function renderProfilePage(renderFunc, params) {
                     document.getElementById("plan-info-container").innerHTML = `<span class="bg-blue-500/10 text-blue-300 px-2 py-1 rounded-full"><i class="fa-solid fa-rocket fa-fw mr-2"></i>${planName}</span><span class="bg-indigo-500/10 text-indigo-300 px-2 py-1 rounded-full"><i class="fa-solid fa-wifi fa-fw mr-2"></i>${connectionName}</span>`;
 
                     if(!document.getElementById('profile-tabs')) {
-                        // --- UPDATED: Added Tutorials Tab and Content Container ---
+                        // --- UPDATED: Removed Tutorials Tab ---
                         container.innerHTML = `
                         <div id="profile-tabs" class="flex items-center gap-4 sm:gap-6 border-b border-white/10 mb-6 overflow-x-auto">
                             <button data-tab="config" class="tab-btn active">V2Ray Config</button>
                             <button data-tab="usage" class="tab-btn">Usage Stats</button>
                             <button data-tab="orders" class="tab-btn">My Orders</button>
-                            <button data-tab="tutorials" class="tab-btn">Tutorials</button>
                             <button data-tab="settings" class="tab-btn">Settings</button>
                         </div>
                         
@@ -583,7 +560,6 @@ export function renderProfilePage(renderFunc, params) {
 
                         <div id="tab-usage" class="tab-panel"></div>
                         <div id="tab-orders" class="tab-panel"></div>
-                        <div id="tab-tutorials" class="tab-panel"></div>
                         
                         <div id="tab-settings" class="tab-panel">
                             <div class="card-glass p-6 sm:p-8 custom-radius">
@@ -625,10 +601,7 @@ export function renderProfilePage(renderFunc, params) {
                                 if(tabId === 'orders') {
                                     if (ordersCache) { renderOrdersHTML(ordersCache); loadMyOrders(true); } else { loadMyOrders(false); }
                                 }
-                                // --- UPDATED: Load Tutorials when tab clicked ---
-                                if(tabId === 'tutorials') {
-                                    loadTutorials();
-                                }
+                                // --- REMOVED TUTORIALS TAB CLICK LOGIC ---
                             }
                         });
                         
@@ -644,9 +617,8 @@ export function renderProfilePage(renderFunc, params) {
                             loadUsageStats(plan.v2rayUsername, false);
                         }
                     }
-                    if (document.getElementById('tab-tutorials')?.classList.contains('active')) {
-                        loadTutorials();
-                    }
+                    
+                    // --- REMOVED TUTORIALS REFRESH LOGIC ---
 
                     const qrContainer = document.getElementById("qrcode-container");
                     if(qrContainer) {
@@ -749,7 +721,7 @@ export function renderProfilePage(renderFunc, params) {
             console.error("Profile load error (Keeping previous state):", e); 
         }
     };
-loadProfileData();
+    loadProfileData();
 
     // තත්පර 10කට වරක් දත්ත අලුත් කරන්න (Server එකට බර අඩුයි)
     profilePollingInterval = setInterval(() => {
