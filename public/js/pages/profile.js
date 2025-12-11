@@ -730,6 +730,19 @@ export function renderProfilePage(renderFunc, params) {
                 try { localStorage.setItem(PLANS_CACHE_KEY, JSON.stringify(data.activePlans)); } catch(e){}
                 handleDataUpdate(data, true);
             }
+            if (data.success || data.activePlans) {
+                try { 
+                    if(data.activePlans) {
+                        localStorage.setItem(PLANS_CACHE_KEY, JSON.stringify(data.activePlans)); 
+                    }
+                } catch(e){}
+                
+                // Plan තිබුණත් නැතත් UI එක update කරන්න
+                handleDataUpdate(data, true);
+            } else {
+                // Server එකෙන් data හරියට අවේ නැතිනම් හෝ Plan නැතිනම් "No Plan" එක පෙන්වන්න
+                handleDataUpdate({ activePlans: [] }, true);
+            }
 
         } catch (e) { 
             // Network Error එකක් ආවොත් Console එකට දාන්න, UI එක කඩන්න එපා
