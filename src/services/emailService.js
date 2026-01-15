@@ -1,7 +1,7 @@
 const transporter = require('../config/mailer');
 
 /**
- * Brevo Mail හරහා email යැවීම සඳහා වන ප්‍රධාන function එක.
+ * Zoho Mail හරහා email යැවීම සඳහා වන ප්‍රධාන function එක.
  */
 const sendEmail = async (to, subject, html) => {
     try {
@@ -11,9 +11,11 @@ const sendEmail = async (to, subject, html) => {
             subject,
             html,
         });
-        console.log(`Email sent successfully to ${to} via Brevo.`);
+        // Log message එක Zoho ලෙස වෙනස් කළා
+        console.log(`Email sent successfully to ${to} via Zoho.`);
     } catch (error) {
-        console.error(`Error sending email via Brevo to ${to}:`, error);
+        // Error message එකත් Zoho ලෙස වෙනස් කළා
+        console.error(`Error sending email via Zoho to ${to}:`, error);
         throw new Error('Failed to send email.');
     }
 };
@@ -219,7 +221,7 @@ const generateUserNotFoundEmailContent = (triedEmail) => `
 
 // Export functions
 module.exports = {
-    // sendEmail, // Assuming this is commented out intentionally
+    sendEmail, // Uncommented and ready to use
     generateEmailTemplate,
     generateOtpEmailContent,
     generatePasswordResetEmailContent,
@@ -229,4 +231,3 @@ module.exports = {
     generateExpiryReminderEmailContent,
     generateUserNotFoundEmailContent,
 };
-

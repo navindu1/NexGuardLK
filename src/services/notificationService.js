@@ -2,8 +2,9 @@
 
 const supabase = require('../config/supabaseClient');
 const v2rayService = require('./v2rayService');
-const transporter = require('../config/mailer');
-const { generateEmailTemplate, generateExpiryReminderEmailContent } = require('./emailService');
+// කෙලින්ම transporter require කිරීම අයින් කළා
+// ඒ වෙනුවට emailService එකෙන් sendEmail ගන්නවා:
+const { sendEmail, generateEmailTemplate, generateExpiryReminderEmailContent } = require('./emailService');
 
 exports.sendExpiryReminders = async () => {
     console.log('[Cron Daily] Running sendExpiryReminders job...');
@@ -29,21 +30,19 @@ exports.sendExpiryReminders = async () => {
                     if (clientData && clientData.client && clientData.client.expiryTime > 0) {
                         const expiryDate = new Date(clientData.client.expiryTime);
 
-                        // Check if the plan expires within the next 24 hours but is not already expired
+                        // Expiry එකට පැය 24කට වඩා අඩු නම් Reminder එක යවන්න
                         if (expiryDate > now && expiryDate <= twentyFourHoursFromNow) {
                             console.log(`[Reminder] Plan for ${plan.v2rayUsername} is expiring soon. Sending email to ${user.email}.`);
                             
-                            const mailOptions = {
-                                from: `NexGuard Support <${process.env.EMAIL_SENDER}>`,
-                                to: user.email,
-                                subject: `Your NexGuard Plan is Expiring Soon!`,
-                                html: generateEmailTemplate(
-                                    "Your Plan is Expiring!",
-                                    `Don't lose your connection. Your plan for ${plan.v2rayUsername} is expiring soon.`,
-                                    generateExpiryReminderEmailContent(user.username, plan.v2rayUsername, expiryDate)
-                                ),
-                            };
-                            await transporter.sendMail(mailOptions);
+                            const subject = `Your NexGuard Plan is Expiring Soon!`;
+                            const htmlContent = generateEmailTemplate(
+                                "Your Plan is Expiring!",
+                                `Don't lose your connection. Your plan for ${plan.v2rayUsername} is expiring soon.`,
+                                generateExpiryReminderEmailContent(user.username, plan.v2rayUsername, expiryDate)
+                            );
+
+                            // මෙතන දැන් පාවිච්චි කරන්නේ අර අපි හදාගත්ත sendEmail function එක
+                            await sendEmail(user.email, subject, htmlContent);
                         }
                     }
                 } catch (innerError) {

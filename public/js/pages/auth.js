@@ -125,11 +125,6 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
                 <button type="submit" class="ai-button w-full rounded-lg">Verify & Create Account</button>
                 <p class="text-center text-sm">Didn't get the code? <span id="show-signup-again" class="auth-toggle-link">Go Back</span></p>
 
-<div id="otp-spam-warning" class="hidden mt-6 text-center reveal is-visible">
-    <p class="text-blue-500 b text-xs font-medium opacity-80 tracking-wide">
-        Please check your Spam / Junk Folder.
-    </p>
-</div>
                 </form>
             <form class="auth-form space-y-6" id="forgot-password-form">
                 <div class="text-center"><h1 class="text-2xl font-bold text-white font-['Orbitron']">Reset Password</h1><p class="text-sm text-gray-400 mt-1">Enter your email to receive a reset link.</p></div>
@@ -239,33 +234,47 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
                 if(warningBox) warningBox.classList.add("hidden");
 
                 switchAuthView(otpForm);
-
-                // --- START: Timer to show Spam Warning after 15 Seconds ---
-// public/js/pages/auth.js - signupForm event listener එක ඇතුළේ:
-
-// --- START: Timer to show Warning ---
-setTimeout(() => {
-    // Check if user is still on the OTP form
-    if (otpForm.classList.contains("active")) {
         
-        // Form එකේ යටින් පොඩි Text එක පෙන්වන්න
-        const warningBox = document.getElementById("otp-spam-warning");
-        if(warningBox) warningBox.classList.remove("hidden");
+        setTimeout(() => {
+                    // 1. තවමත් User ඉන්නේ OTP Form එකේද කියලා බලන්න
+                    if (otpForm.classList.contains("active")) {
 
-        // --- Show Toast Message Warning (10 Seconds) ---
-        showToast({
-            title: "Still Waiting?",
-            message: "Email delivery delays detected. Please check your Spam/Junk folder.",
-            type: "warning",
-            duration: 10000 // තත්පර 10ක් පෙන්වා තබයි
-        });
-    }
-}, 15000);
+                        // Toast එක පෙන්වන Function එක
+                        const showSpamToast = () => {
+                             showToast({
+                                title: "Still Waiting?",
+                                message: "Email delays detected. Please check your Spam/Junk folder.",
+                                type: "warning",
+                                duration: 20000 
+                            });
+                        };
+
+                        // 2. User දැන් ඉන්නේ අපේ Tab/App එක දිහා බලාගෙනද කියලා චෙක් කරනවා
+                        if (document.hidden) {
+                            // "එයා දැන් Screen එකේ නැහැ". එහෙනම් එයා ආපහු එනකම් Event Listener එකක් දාමු.
+                            const onVisible = () => {
+                                if (document.visibilityState === 'visible') {
+                                    // user ආපහු ආවා!
+                                    if (otpForm.classList.contains("active")) { 
+                                         showSpamToast();
+                                    }
+                                    document.removeEventListener('visibilitychange', onVisible);
+                                }
+                            };
+                            document.addEventListener('visibilitychange', onVisible);
+                        } else {
+                            // "එයා Screen එක දිහා බලාගෙනමයි ඉන්නේ" -> එහෙනම් කෙලින්ම පෙන්වන්න
+                            showSpamToast();
+                        }
+                    }
+                }, 15000); // තත්පර 15 කට පසු
+                // --- END: Timer ---
 
             } else {
                 showToast({ title: "Error", message: result.message || "An unknown error occurred.", type: "error" });
             }
         });
+
 
         otpForm?.addEventListener("submit", async(e) => {
             e.preventDefault();
