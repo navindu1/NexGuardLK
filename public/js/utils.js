@@ -1,7 +1,16 @@
 // File: public/js/utils.js
 
+// --- 1. RELOAD LOGIC (ස්ථිර විසඳුම) ---
+// පිටුව Reload වුනාට පස්සේ මැසේජ් එක පෙන්වන්න මේක පාවිච්චි කරන්න
+export function reloadWithToast(title, message, type = "success") {
+    const toastData = { title, message, type, timestamp: Date.now() };
+    localStorage.setItem('nexguard_pending_toast', JSON.stringify(toastData));
+    window.location.reload();
+}
+
+// --- 2. TOAST UI (OLD DESIGN) ---
 export function showToast({ title, message, type = "info", duration = 5000 }) {
-    // 1. Toast Container එක තිබේදැයි බලයි, නැත්නම් හදයි
+    // Container එක තිබේදැයි බලයි, නැත්නම් හදයි
     let container = document.getElementById("toast-container");
     if (!container) {
         container = document.createElement("div");
@@ -11,115 +20,127 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
             position: "fixed",
             top: "20px",
             right: "20px",
-            zIndex: "9999",
+            zIndex: "99999",
             display: "flex",
             flexDirection: "column",
-            gap: "10px",
-            pointerEvents: "none" // යට තියෙන දේවල් Click කරන්න පුළුවන් වෙන්න
+            gap: "15px",
+            pointerEvents: "none"
         });
         document.body.appendChild(container);
     }
 
-    // 2. Icons
+    // Icons (Old Design Icons)
     const icons = {
-        success: "fa-solid fa-check-circle",
-        error: "fa-solid fa-times-circle",
-        warning: "fa-solid fa-exclamation-triangle",
-        info: "fa-solid fa-info-circle"
+        success: "fa-solid fa-circle-check",
+        error: "fa-solid fa-circle-xmark",
+        warning: "fa-solid fa-triangle-exclamation",
+        info: "fa-solid fa-circle-info"
     };
 
-    // Colors for borders/backgrounds (Optional, used for Old Style feel)
+    // Colors (Old Design Colors)
     const typeColors = {
-        success: "#22c55e",
-        error: "#ef4444",
-        warning: "#f59e0b",
-        info: "#3b82f6"
+        success: "#2ecc71", // Green
+        error: "#e74c3c",   // Red
+        warning: "#f1c40f", // Yellow
+        info: "#3498db"     // Blue
     };
 
-    // 3. Toast Element එක හැදීම
     const toast = document.createElement("div");
     
-    // Toast Styles (Inline - Animation Stuck නොවෙන්න)
+    // --- OLD DESIGN STYLES ---
+    // සුදු පසුබිම, වම් පැත්තේ පාට තීරුව
     Object.assign(toast.style, {
         pointerEvents: "auto",
         minWidth: "300px",
         maxWidth: "400px",
-        background: "rgba(30, 41, 59, 0.95)", // Dark background
-        backdropFilter: "blur(10px)",
-        borderLeft: `4px solid ${typeColors[type] || typeColors.info}`,
-        borderRadius: "8px",
-        padding: "16px",
-        color: "white",
-        boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.5)",
+        background: "#ffffff", // සුදු පසුබිම (Old Style)
+        borderLeft: `5px solid ${typeColors[type] || typeColors.info}`, // වම් පැත්තේ පාට ඉර
+        borderRadius: "4px", // කොටු හැඩය (Old Style)
+        padding: "15px 20px",
+        boxShadow: "0 5px 15px rgba(0, 0, 0, 0.15)", // සාමාන්‍ය සෙවනැල්ල
         display: "flex",
-        alignItems: "center", // හරියටම මැදට (Vertically Center)
+        alignItems: "center", // මැදට කිරීම
         justifyContent: "space-between",
-        gap: "12px",
-        opacity: "0", // පටන් ගන්නකොට නොපෙනී
-        transform: "translateX(50px)", // දකුණේ ඉඳන් එන්න
-        transition: "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)", // Smooth Animation
-        marginBottom: "10px"
+        gap: "15px",
+        opacity: "0",
+        transform: "translateX(50px)",
+        transition: "all 0.3s ease-out",
+        fontFamily: "'Inter', sans-serif"
     });
     
-    // HTML Content (Icons Centered)
+    // HTML Content (Old Layout)
     toast.innerHTML = `
-        <div style="display: flex; align-items: center; justify-content: center; font-size: 20px; color: ${typeColors[type] || typeColors.info};">
+        <div style="font-size: 24px; color: ${typeColors[type] || typeColors.info}; display: flex; align-items: center;">
             <i class="${icons[type] || icons.info}"></i>
         </div>
         <div style="flex: 1;">
-            <p style="margin: 0; font-weight: 700; font-size: 14px; font-family: 'Orbitron', sans-serif; letter-spacing: 0.5px;">${title}</p>
-            <p style="margin: 4px 0 0; font-size: 13px; color: #cbd5e1; line-height: 1.4;">${message}</p>
+            <p style="margin: 0; font-weight: 700; font-size: 16px; color: #333;">${title}</p>
+            <p style="margin: 4px 0 0; font-size: 14px; color: #666; line-height: 1.4;">${message}</p>
         </div>
-        <button class="toast-close-btn" style="background: none; border: none; color: #94a3b8; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; transition: color 0.2s;">
-            <i class="fa-solid fa-xmark" style="font-size: 16px;"></i>
+        <button class="toast-close-btn" style="background: none; border: none; color: #999; cursor: pointer; font-size: 18px; padding: 5px; display: flex; align-items: center;">
+            <i class="fa-solid fa-xmark"></i>
         </button>
     `;
 
-    // 4. Remove Function (Stuck නොවෙන්න වගබලා ගනී)
-    let isRemoved = false;
+    // Remove Logic (Stuck නොවෙන විදිහට JS වලින්ම අයින් කරනවා)
     const removeToast = () => {
-        if (isRemoved) return;
-        isRemoved = true;
-        
-        // Hide Animation
         toast.style.opacity = "0";
-        toast.style.transform = "translateX(100%)"; // දකුණට යවන්න
-        
-        // DOM එකෙන් අයින් කිරීම (500ms කට පසු)
+        toast.style.transform = "translateX(100%)";
         setTimeout(() => {
-            if (toast.parentElement) {
-                toast.parentElement.removeChild(toast);
-            }
-        }, 500);
+            if (toast.parentElement) toast.parentElement.removeChild(toast);
+        }, 300);
     };
 
-    // Close Button Event
+    // Close Button Action
     const closeBtn = toast.querySelector(".toast-close-btn");
-    closeBtn.addEventListener("mouseover", () => closeBtn.style.color = "white");
-    closeBtn.addEventListener("mouseleave", () => closeBtn.style.color = "#94a3b8");
+    closeBtn.addEventListener("mouseover", () => closeBtn.style.color = "#333");
+    closeBtn.addEventListener("mouseleave", () => closeBtn.style.color = "#999");
     closeBtn.onclick = removeToast;
 
-    // 5. Append & Animate In
+    // Append to Container
     container.appendChild(toast);
     
-    // ඊළඟ Frame එකේදී පෙන්වන්න (Animation එක වැඩ කරන්න මේක ඕන)
+    // Animate In
     requestAnimationFrame(() => {
         toast.style.opacity = "1";
         toast.style.transform = "translateX(0)";
     });
 
-    // 6. Auto Remove Timer
+    // Auto Remove Timer
     if (duration > 0) {
-        const timer = setTimeout(removeToast, duration);
-        // Mouse එක උඩට ගෙනාවම Timer එක නවත්තන්න ඕන නම් මෙතන Code කරන්න පුළුවන්
-        // නමුත් Simpleව තියන්න දැනට ඒක දැම්මේ නෑ.
+        setTimeout(removeToast, duration);
     }
 
-    // *** වැදගත්ම දේ: අපි Toast Object එක return කරනවා, එතකොට ඕන නම් බලෙන්ම අයින් කරන්න පුළුවන් ***
     return { hide: removeToast };
 }
 
-// --- අනිත් Functions (කිසිම වෙනසක් නැත) ---
+// --- 3. AUTO CHECKER (RELOAD FIX) ---
+// Page එක Load වෙන හැම වෙලාවෙම පරණ මැසේජ් තියෙනවද බලනවා
+(function checkPendingToast() {
+    try {
+        const pending = localStorage.getItem('nexguard_pending_toast');
+        if (pending) {
+            localStorage.removeItem('nexguard_pending_toast'); // මකලා දානවා
+            const data = JSON.parse(pending);
+            
+            // විනාඩියකට වඩා පරණ මැසේජ් පෙන්වන්නේ නෑ
+            if (Date.now() - data.timestamp < 60000) {
+                setTimeout(() => {
+                    showToast({
+                        title: data.title,
+                        message: data.message,
+                        type: data.type,
+                        duration: 5000
+                    });
+                }, 500);
+            }
+        }
+    } catch (e) {
+        localStorage.removeItem('nexguard_pending_toast');
+    }
+})();
+
+// --- 4. OTHER UTILS (UNCHANGED) ---
 
 export function initAnimations() {
     const observer = new IntersectionObserver((entries) => {
