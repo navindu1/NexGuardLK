@@ -1,103 +1,78 @@
 // File: public/js/utils.js
 
-// --- 1. Updated showToast Function (Fixes stuck issue & centers close button) ---
-export function showToast({ title, message, type = "info", duration = 3000 }) {
+export function showToast({ title, message, type = "info", duration = 5000 }) {
+    // 1. Container එක තිබේදැයි බලයි, නැත්නම් හදයි (පරණ විදිහටම ID එක toast-container)
     let container = document.getElementById("toast-container");
     if (!container) {
         container = document.createElement("div");
         container.id = "toast-container";
-        // Top-Right placement
-        container.className = "fixed top-5 right-5 z-[9999] flex flex-col gap-3 pointer-events-none"; 
         document.body.appendChild(container);
     }
 
+    // 2. Icons (පරණ විදිහටම)
     const icons = {
-        success: '<i class="fa-solid fa-circle-check text-green-400 text-xl"></i>',
-        error: '<i class="fa-solid fa-circle-xmark text-red-400 text-xl"></i>',
-        warning: '<i class="fa-solid fa-triangle-exclamation text-yellow-400 text-xl"></i>',
-        info: '<i class="fa-solid fa-circle-info text-blue-400 text-xl"></i>'
-    };
-    const borderColors = {
-        success: "border-green-500/30",
-        error: "border-red-500/30",
-        warning: "border-yellow-500/30",
-        info: "border-blue-500/30"
+        success: "fa-solid fa-check-circle",
+        error: "fa-solid fa-times-circle",
+        warning: "fa-solid fa-exclamation-triangle",
+        info: "fa-solid fa-info-circle"
     };
 
+    // 3. Toast HTML Structure (ඔබේ පරණ Style එකට ගැලපෙන ලෙස)
     const toast = document.createElement("div");
-    // self-center ensures items align nicely
-    toast.className = `
-        pointer-events-auto relative flex items-center gap-4 p-4 rounded-xl border ${borderColors[type] || borderColors.info}
-        bg-[#1e283c]/95 backdrop-blur-xl shadow-2xl transform transition-all duration-500 ease-out translate-x-10 opacity-0
-        w-80 sm:w-96 overflow-hidden group
-    `;
-
+    toast.className = `toast toast--${type}`; // පරණ CSS Classes
+    
     toast.innerHTML = `
-        <div class="shrink-0">${icons[type] || icons.info}</div>
-        <div class="flex-1 min-w-0 flex flex-col justify-center">
-            ${title ? `<h3 class="text-white font-semibold text-sm font-['Orbitron'] mb-0.5 tracking-wide">${title}</h3>` : ''}
-            <p class="text-gray-300 text-xs leading-relaxed font-medium">${message}</p>
+        <div class="toast-icon">
+            <i class="${icons[type] || icons.info}"></i>
         </div>
-        <button class="shrink-0 self-center text-gray-500 hover:text-white transition-colors p-2 rounded-md hover:bg-white/10 ml-1">
-            <i class="fa-solid fa-xmark text-base"></i>
-        </button>
-        <div class="absolute bottom-0 left-0 h-0.5 bg-current opacity-30 w-full origin-left"></div>
+        <div class="toast-content">
+            <p class="toast-title">${title}</p>
+            <p class="toast-message">${message}</p>
+        </div>
+        <button class="toast-close-btn" type="button">&times;</button>
     `;
 
-    let timerId;
-    let remaining = duration;
-    let startTime = Date.now();
-    const progressBar = toast.querySelector(".absolute.bottom-0");
-    const closeBtn = toast.querySelector("button");
+    // 4. Toast එක එකතු කිරීම
+    container.appendChild(toast);
 
+    // Animation එක පටන් ගැනීම (show class එක එකතු කිරීම)
+    setTimeout(() => {
+        toast.classList.add("show");
+    }, 100);
+
+    // --- BUG FIX: හිරවෙන ප්‍රශ්නය විසඳීම ---
+    
+    // Toast එක අයින් කරන Function එක
     const removeToast = () => {
-        clearTimeout(timerId); 
-        toast.style.transform = "translateX(100%)";
-        toast.style.opacity = "0";
+        toast.classList.remove("show"); // Animation එක අයින් කරනවා
+        // CSS Transition එක ඉවර වුනාම Element එක අයින් කරනවා
         setTimeout(() => {
-            if (toast.parentElement) toast.remove();
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
         }, 500);
     };
 
-    closeBtn.onclick = removeToast;
-
-    container.appendChild(toast);
-    requestAnimationFrame(() => {
-        toast.style.transform = "translateX(0)";
-        toast.style.opacity = "1";
-    });
-
+    // Auto Close Timer (Duration එක ඉවර වුනාම අයින් කරන්න)
+    let dismissTimeout;
     if (duration > 0) {
-        progressBar.style.transition = `transform ${duration}ms linear`;
-        
-        const startTimer = () => {
-            startTime = Date.now();
-            timerId = setTimeout(removeToast, remaining);
-            progressBar.style.transitionDuration = `${remaining}ms`;
-            progressBar.style.transform = "scaleX(0)"; 
-        };
+        dismissTimeout = setTimeout(() => {
+            removeToast();
+        }, duration);
+    }
 
-        const pauseTimer = () => {
-            clearTimeout(timerId);
-            const elapsed = Date.now() - startTime;
-            remaining -= elapsed;
-            progressBar.style.transitionDuration = '0ms';
-            const currentScale = remaining / duration;
-            progressBar.style.transform = `scaleX(${currentScale})`; 
-        };
-
-        const resumeTimer = () => {
-            if (remaining > 0) startTimer();
-            else removeToast();
-        };
-
-        startTimer();
-        toast.addEventListener("mouseenter", pauseTimer);
-        toast.addEventListener("mouseleave", resumeTimer);
+    // Close Button එක එබුවම (Timer එක නවත්තලා අයින් කරන්න)
+    const closeBtn = toast.querySelector(".toast-close-btn");
+    if (closeBtn) {
+        closeBtn.addEventListener("click", () => {
+            if (dismissTimeout) clearTimeout(dismissTimeout); // පරණ Timer එක අයින් කරනවා (මේකයි වැදගත්ම දේ)
+            removeToast();
+        });
     }
 }
 
-// --- 2. Restored initAnimations Function ---
+// --- අනිත් Functions (Animation, Password Toggle, Menu etc.) එහෙමම තියන්න ---
+
 export function initAnimations() {
     const observer = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
@@ -121,7 +96,6 @@ export function initAnimations() {
     });
 }
 
-// --- 3. Restored togglePassword Function ---
 export function togglePassword(inputId, iconId) {
     const input = document.getElementById(inputId);
     const icon = document.getElementById(iconId);
@@ -138,7 +112,6 @@ export function togglePassword(inputId, iconId) {
     }
 }
 
-// --- 4. Restored SikFloatingMenu Class ---
 export class SikFloatingMenu {
     menuEl = null;
     constructor(_menu) {
@@ -200,7 +173,6 @@ export class SikFloatingMenu {
     }
 }
 
-// --- 5. Restored qrModalLogic Object ---
 export const qrModalLogic = {
     show: (qrDataUrl, connectionName) => {
         const qrModal = document.getElementById("qr-modal");
