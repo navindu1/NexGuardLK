@@ -178,35 +178,46 @@ export function renderProfilePage(renderFunc, params) {
         document.getElementById("link-account-form-profile")?.addEventListener("submit", async(e) => {
             e.preventDefault();
             const v2rayUsername = document.getElementById("existing-v2ray-username-profile").value;
-            if (!v2rayUsername) return showToast({ title: "Error", message: "Please enter your V2Ray username.", type: "error" });
+            
+            if (!v2rayUsername) {
+                return showToast({ title: "Error", message: "Please enter your V2Ray username.", type: "error" });
+            }
+
             const btn = e.target.querySelector("button");
             btn.disabled = true;
-            showToast({ title: "Linking...", message: "Please wait...", type: "info" });
-            const res = await apiFetch("/api/user/link-v2ray", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ v2rayUsername }) });
-            const result = await res.json();
-            btn.disabled = false;
-            // අලුත් කෝඩ් එක:
-if (res.ok) {
-    // Success Toast (Duration තත්පර 5ක් දෙනවා)
-    showToast({ 
-        title: "Success!", 
-        message: result.message, 
-        type: "success",
-        duration: 5000 
-    });
-    
-    // Reload එක තත්පර 2.5 කින් පරක්කු කරනවා (පරිශීලකයාට Notification එක පෙනෙන්න)
-    setTimeout(() => {
-        window.location.reload();
-    }, 2500);
-} else {
-    showToast({ 
-        title: "Linking Failed", 
-        message: result.message, 
-        type: "error",
-        duration: 5000 
-    });
-}
+
+            // 1. Linking මැසේජ් එක පෙන්වනවා (සහ ඒක අයින් කරන්න variable එකකට ගන්නවා)
+            // Duration එක 0 දාන්න පුළුවන් (අපි අතින් අයින් කරන නිසා), නැත්නම් 10000 වගේ දාන්න.
+            const loadingToast = showToast({ title: "Linking...", message: "Please wait while we check your account...", type: "info", duration: 10000 });
+
+            try {
+                const res = await apiFetch("/api/user/link-v2ray", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ v2rayUsername }) });
+                const result = await res.json();
+                
+                // 2. ප්‍රතිඵලය ආපු ගමන් කලින් මැසේජ් එක අයින් කරනවා!
+                if (loadingToast && typeof loadingToast.hide === 'function') {
+                    loadingToast.hide();
+                }
+
+                btn.disabled = false;
+
+                if (res.ok) {
+                    // 3. Success මැසේජ් එක (තත්පර 5ක් පෙනෙනවා)
+                    showToast({ title: "Success!", message: result.message, type: "success", duration: 5000 });
+                    
+                    // 4. Reload එක තත්පර 2.5 කින් කරනවා
+                    setTimeout(() => window.location.reload(), 2500);
+                } else {
+                    showToast({ title: "Linking Failed", message: result.message, type: "error" });
+                }
+            } catch (error) {
+                // Error එකක් ආවොත් කලින් එක අයින් කරන්න
+                if (loadingToast && typeof loadingToast.hide === 'function') {
+                    loadingToast.hide();
+                }
+                btn.disabled = false;
+                showToast({ title: "Error", message: "Something went wrong. Please try again.", type: "error" });
+            }
         });
     };
 
