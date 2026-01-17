@@ -1,16 +1,23 @@
 // File: public/js/utils.js
 
-// --- 1. RELOAD LOGIC (ස්ථිර විසඳුම) ---
-// පිටුව Reload වුනාට පස්සේ මැසේජ් එක පෙන්වන්න මේක පාවිච්චි කරන්න
+// --- 1. RELOAD LOGIC (පිටුව මාරු වන විට මැසේජ් පෙන්වීමට) ---
 export function reloadWithToast(title, message, type = "success") {
+    // මැසේජ් එක Browser එකේ Save කරගන්නවා
     const toastData = { title, message, type, timestamp: Date.now() };
     localStorage.setItem('nexguard_pending_toast', JSON.stringify(toastData));
-    window.location.reload();
+    
+    // Profile පිටුවට යවනවා (හෝ Reload කරනවා)
+    // Sign Up වලින් එනකොට කෙලින්ම Profile එකට යන්න මෙය උදව් වෙනවා
+    if (window.location.pathname !== "/profile") {
+        window.location.href = "/profile";
+    } else {
+        window.location.reload();
+    }
 }
 
-// --- 2. TOAST UI (OLD DESIGN) ---
+// --- 2. OLD DESIGN TOAST SYSTEM ---
 export function showToast({ title, message, type = "info", duration = 5000 }) {
-    // Container එක තිබේදැයි බලයි, නැත්නම් හදයි
+    // 1. Container එක තිබේදැයි බලයි, නැත්නම් හදයි
     let container = document.getElementById("toast-container");
     if (!container) {
         container = document.createElement("div");
@@ -20,7 +27,7 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
             position: "fixed",
             top: "20px",
             right: "20px",
-            zIndex: "99999",
+            zIndex: "999999", // උපරිම උඩින්
             display: "flex",
             flexDirection: "column",
             gap: "15px",
@@ -29,7 +36,7 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
         document.body.appendChild(container);
     }
 
-    // Icons (Old Design Icons)
+    // 2. Icons & Colors (Old Design)
     const icons = {
         success: "fa-solid fa-circle-check",
         error: "fa-solid fa-circle-xmark",
@@ -37,7 +44,6 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
         info: "fa-solid fa-circle-info"
     };
 
-    // Colors (Old Design Colors)
     const typeColors = {
         success: "#2ecc71", // Green
         error: "#e74c3c",   // Red
@@ -45,27 +51,28 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
         info: "#3498db"     // Blue
     };
 
+    // 3. Toast Element එක හැදීම
     const toast = document.createElement("div");
     
-    // --- OLD DESIGN STYLES ---
-    // සුදු පසුබිම, වම් පැත්තේ පාට තීරුව
+    // --- OLD DESIGN STYLES (White Background) ---
     Object.assign(toast.style, {
         pointerEvents: "auto",
-        minWidth: "300px",
-        maxWidth: "400px",
-        background: "#ffffff", // සුදු පසුබිම (Old Style)
+        minWidth: "320px",
+        maxWidth: "450px",
+        backgroundColor: "#ffffff", // සුදු පාට
         borderLeft: `5px solid ${typeColors[type] || typeColors.info}`, // වම් පැත්තේ පාට ඉර
-        borderRadius: "4px", // කොටු හැඩය (Old Style)
+        borderRadius: "4px", // කොටු හැඩය
         padding: "15px 20px",
-        boxShadow: "0 5px 15px rgba(0, 0, 0, 0.15)", // සාමාන්‍ය සෙවනැල්ල
+        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)", // සෙවනැල්ල
         display: "flex",
         alignItems: "center", // මැදට කිරීම
         justifyContent: "space-between",
         gap: "15px",
         opacity: "0",
         transform: "translateX(50px)",
-        transition: "all 0.3s ease-out",
-        fontFamily: "'Inter', sans-serif"
+        transition: "all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55)", // Bounce effect
+        fontFamily: "'Inter', sans-serif",
+        marginBottom: "10px"
     });
     
     // HTML Content (Old Layout)
@@ -74,20 +81,28 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
             <i class="${icons[type] || icons.info}"></i>
         </div>
         <div style="flex: 1;">
-            <p style="margin: 0; font-weight: 700; font-size: 16px; color: #333;">${title}</p>
-            <p style="margin: 4px 0 0; font-size: 14px; color: #666; line-height: 1.4;">${message}</p>
+            <p style="margin: 0; font-weight: 700; font-size: 16px; color: #333333;">${title}</p>
+            <p style="margin: 4px 0 0; font-size: 14px; color: #666666; line-height: 1.4;">${message}</p>
         </div>
-        <button class="toast-close-btn" style="background: none; border: none; color: #999; cursor: pointer; font-size: 18px; padding: 5px; display: flex; align-items: center;">
+        <button class="toast-close-btn" style="background: none; border: none; color: #999999; cursor: pointer; font-size: 18px; padding: 5px; display: flex; align-items: center; justify-content: center;">
             <i class="fa-solid fa-xmark"></i>
         </button>
     `;
 
-    // Remove Logic (Stuck නොවෙන විදිහට JS වලින්ම අයින් කරනවා)
+    // 4. Remove Function (Stuck නොවෙන විදිහට)
+    let isRemoved = false;
     const removeToast = () => {
+        if (isRemoved) return;
+        isRemoved = true;
+        
         toast.style.opacity = "0";
         toast.style.transform = "translateX(100%)";
+        
+        // 300ms කට පසු Element එක මකා දමයි
         setTimeout(() => {
-            if (toast.parentElement) toast.parentElement.removeChild(toast);
+            if (toast.parentElement) {
+                toast.parentElement.removeChild(toast);
+            }
         }, 300);
     };
 
@@ -100,13 +115,14 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
     // Append to Container
     container.appendChild(toast);
     
-    // Animate In
+    // Show Animation
     requestAnimationFrame(() => {
         toast.style.opacity = "1";
         toast.style.transform = "translateX(0)";
     });
 
-    // Auto Remove Timer
+    // 5. AUTO DISMISS TIMER (වැදගත්ම කොටස)
+    // Duration එක 0 ට වඩා වැඩි නම් අනිවාර්යයෙන්ම අයින් කරන්න
     if (duration > 0) {
         setTimeout(removeToast, duration);
     }
@@ -114,33 +130,34 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
     return { hide: removeToast };
 }
 
-// --- 3. AUTO CHECKER (RELOAD FIX) ---
-// Page එක Load වෙන හැම වෙලාවෙම පරණ මැසේජ් තියෙනවද බලනවා
+// --- 3. AUTO CHECKER (Sign Up -> Profile Stuck Fix) ---
+// Profile පිටුව Load වූ විගස මෙය ක්‍රියාත්මක වේ
 (function checkPendingToast() {
     try {
         const pending = localStorage.getItem('nexguard_pending_toast');
         if (pending) {
-            localStorage.removeItem('nexguard_pending_toast'); // මකලා දානවා
+            // මුලින්ම Storage එකෙන් මකනවා (Stuck වීම වළක්වයි)
+            localStorage.removeItem('nexguard_pending_toast');
+            
             const data = JSON.parse(pending);
             
-            // විනාඩියකට වඩා පරණ මැසේජ් පෙන්වන්නේ නෑ
-            if (Date.now() - data.timestamp < 60000) {
-                setTimeout(() => {
-                    showToast({
-                        title: data.title,
-                        message: data.message,
-                        type: data.type,
-                        duration: 5000
-                    });
-                }, 500);
-            }
+            // තත්පර 0.5 කට පසු පෙන්වයි (පිටුව සම්පූර්ණයෙන්ම Load වීමට ඉඩ දේ)
+            setTimeout(() => {
+                showToast({
+                    title: data.title,
+                    message: data.message,
+                    type: data.type,
+                    duration: 5000 // තත්පර 5කින් අනිවාර්යයෙන්ම යන්න
+                });
+            }, 500);
         }
     } catch (e) {
         localStorage.removeItem('nexguard_pending_toast');
     }
 })();
 
-// --- 4. OTHER UTILS (UNCHANGED) ---
+// --- 4. OTHER UTILS (Animation, Floating Menu, QR, Toggle Password) ---
+// මේවා වෙනස් කර නැත, එහෙමම තියන්න
 
 export function initAnimations() {
     const observer = new IntersectionObserver((entries) => {
