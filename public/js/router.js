@@ -55,6 +55,15 @@ export const router = async () => {
     }
     // --- END: Clear Existing Intervals ---
 
+    // ============================================================
+    // ✅ FIX: පිටුව මාරු වන විට හිරවී ඇති Toast Messages ඉවත් කිරීම
+    // ============================================================
+    const toastContainer = document.getElementById("toast-container");
+    if (toastContainer) {
+        toastContainer.innerHTML = '';
+    }
+    // ============================================================
+
     const pathName = window.location.pathname;
     const params = new URLSearchParams(window.location.search);
     let pageKey = pathName.substring(1).split('/')[0] || 'home';
