@@ -12,66 +12,65 @@ export function reloadWithToast(title, message, type = "success") {
     }
 }
 
-// --- 2. TOAST SYSTEM (UPDATED DESIGN - TAILWIND VERSION) ---
+// --- 2. TOAST SYSTEM (UPDATED DESIGN - BLUE NOTIFICATION STYLE) ---
 export function showToast({ title, message, type = "info", duration = 5000 }) {
     // 1. Container Setup
     let container = document.getElementById("toast-container");
     if (!container) {
         container = document.createElement("div");
         container.id = "toast-container";
-        // Tailwind classes: Fixed top-right, z-index high, flex column for stacking
-        container.className = "fixed top-5 right-5 z-[999999] flex flex-col gap-3 pointer-events-none";
+        // Fixed top center, high z-index, flex column for stacking
+        container.className = "fixed top-5 left-1/2 transform -translate-x-1/2 z-[999999] flex flex-col gap-3 pointer-events-none max-w-md";
         document.body.appendChild(container);
     }
 
-    // 2. Icons (SVG) & Colors
-    const icons = {
-        success: `<svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`,
-        error: `<svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`,
-        warning: `<svg class="w-6 h-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`,
-        info: `<svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`
+    // 2. Color configurations for different toast types
+    const typeConfig = {
+        success: {
+            bg: 'bg-green-600',
+            icon: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`
+        },
+        error: {
+            bg: 'bg-red-600',
+            icon: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`
+        },
+        warning: {
+            bg: 'bg-yellow-600',
+            icon: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`
+        },
+        info: {
+            bg: 'bg-blue-600',
+            icon: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`
+        }
     };
 
-    const borderColors = {
-        success: 'border-green-500',
-        error: 'border-red-500',
-        warning: 'border-yellow-500',
-        info: 'border-blue-500'
-    };
+    const config = typeConfig[type] || typeConfig.info;
 
     // 3. Create Toast Element
     const toast = document.createElement("div");
     
-    // Tailwind Styling: 
-    // - bg-white: White background
-    // - shadow-lg: Nice drop shadow
-    // - rounded-lg: Rounded corners
-    // - border-l-4: The colored left border
-    // - translate-x-full/opacity-0: Starting state for animation
-    toast.className = `pointer-events-auto flex items-start w-full max-w-sm p-4 bg-white rounded-lg shadow-xl dark:bg-gray-800 border-l-4 ${borderColors[type] || 'border-blue-500'} transform transition-all duration-300 translate-x-full opacity-0`;
+    // Tailwind Styling: Blue notification box design
+    toast.className = `pointer-events-auto flex items-start gap-3 w-full px-5 py-4 ${config.bg} rounded-lg shadow-xl transform transition-all duration-300 opacity-0 -translate-y-4`;
     
-    // HTML Structure
+    // HTML Structure - Matches the design from the image
     toast.innerHTML = `
-        <div class="flex-shrink-0 pt-0.5">
-            ${icons[type] || icons.info}
+        <div class="flex-shrink-0 text-white pt-0.5">
+            ${config.icon}
         </div>
-        <div class="ml-3 flex-1">
-            <p class="text-sm font-bold text-gray-900 dark:text-white leading-5">${title}</p>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 leading-5">${message}</p>
+        <div class="flex-1">
+            <p class="text-sm font-semibold text-white">${title}</p>
+            <p class="text-sm text-white/90 mt-1">${message}</p>
         </div>
-        <div class="ml-4 flex-shrink-0 flex">
-            <button class="toast-close-btn inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                <span class="sr-only">Close</span>
-                <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-                </svg>
-            </button>
-        </div>
+        <button class="toast-close-btn flex-shrink-0 text-white/60 hover:text-white transition-colors">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+        </button>
     `;
 
     // 4. Remove Function (Slide Out)
     const removeToast = () => {
-        toast.classList.add("translate-x-full", "opacity-0");
+        toast.classList.add("opacity-0", "-translate-y-4");
         setTimeout(() => {
             if (toast.parentElement) {
                 toast.remove();
@@ -86,9 +85,9 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
     // Append to Container
     container.appendChild(toast);
     
-    // Show Animation (Slide In)
+    // Show Animation (Fade In)
     requestAnimationFrame(() => {
-        toast.classList.remove("translate-x-full", "opacity-0");
+        toast.classList.remove("opacity-0", "-translate-y-4");
     });
 
     // 5. Auto Dismiss
