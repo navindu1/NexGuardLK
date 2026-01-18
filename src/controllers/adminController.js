@@ -9,6 +9,7 @@ const { generateEmailTemplate, generateRejectionEmailContent } = require('../ser
 // --- 1. DASHBOARD & STATS ---
 const getDashboardStats = async (req, res) => {
     try {
+        // Fetch counts for each status in parallel
         const [
             pendingResult,
             unconfirmedResult,
@@ -25,11 +26,13 @@ const getDashboardStats = async (req, res) => {
             supabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'reseller')
         ]);
 
+        // Error handling
         const errors = [pendingResult.error, unconfirmedResult.error, approvedResult.error, rejectedResult.error, usersResult.error, resellersResult.error].filter(Boolean);
         if (errors.length > 0) {
             throw new Error(errors.map(e => e.message).join(', '));
         }
 
+        // Construct stats object
         const stats = {
             pending: pendingResult.count || 0,
             unconfirmed: unconfirmedResult.count || 0,
@@ -61,6 +64,7 @@ const getOrders = async (req, res) => {
 const approveOrder = async (req, res) => {
     try {
         const { orderId } = req.body;
+        // --- CHANGED --- Call service with 'isAutoConfirm' as false for manual admin approval
         const result = await approveOrderService(orderId, false); 
         if (!result.success) return res.status(400).json(result);
         res.json(result);
@@ -73,6 +77,8 @@ const rejectOrder = async (req, res) => {
     try {
         const { orderId } = req.body;
 
+        // --- NEW: Enhanced Rejection Logic ---
+        // Fetch order details including status and final_username
         const { data: orderToReject, error: fetchError } = await supabase
             .from('orders')
             .select('receipt_path, website_username, plan_id, id, status, final_username')
@@ -83,6 +89,7 @@ const rejectOrder = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Order not found.' });
         }
 
+        // If the order was already processed (unconfirmed/approved) and has a v2ray user, delete it from the panel.
         if ((orderToReject.status === 'unconfirmed' || orderToReject.status === 'approved') && orderToReject.final_username) {
             try {
                 const clientData = await v2rayService.findV2rayClient(orderToReject.final_username);
@@ -91,12 +98,15 @@ const rejectOrder = async (req, res) => {
                     console.log(`Successfully deleted V2Ray client: ${orderToReject.final_username} for rejected order ${orderId}`);
                 }
             } catch (v2rayError) {
+                // Log the error but continue, so the order is still marked as rejected in our DB.
                 console.error(`Failed to delete V2Ray client ${orderToReject.final_username}. Please check manually. Error: ${v2rayError.message}`);
             }
         }
         
+        // Update order status to 'rejected' in our database
         await supabase.from('orders').update({ status: 'rejected' }).eq('id', orderId);
 
+        // Delete the receipt from storage
         if (orderToReject.receipt_path && orderToReject.receipt_path !== 'created_by_reseller') {
             try {
                 const urlParts = orderToReject.receipt_path.split('/');
@@ -109,6 +119,7 @@ const rejectOrder = async (req, res) => {
             }
         }
 
+        // Send rejection email to the user
         const { data: websiteUser } = await supabase
             .from("users")
             .select("email, username")
@@ -126,6 +137,7 @@ const rejectOrder = async (req, res) => {
                     generateRejectionEmailContent(websiteUser.username, orderToReject.plan_id, orderToReject.id)
                 ),
             };
+            // --- FIX APPLIED: Awaiting the sendMail function ---
             try {
                 await transporter.sendMail(mailOptions);
                 console.log(`Rejection email sent successfully to ${websiteUser.email}`);
@@ -166,17 +178,6 @@ const updateUserCredit = async (req, res) => {
     }
 };
 
-const deleteUser = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { error } = await supabase.from('users').delete().eq('id', id);
-        if (error) throw error;
-        res.json({ success: true, message: 'User deleted successfully.' });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to delete user.' });
-    }
-};
-
 // --- 4. CONNECTION & PACKAGE MANAGEMENT ---
 const getConnectionsAndPackages = async (req, res) => {
     try {
@@ -188,65 +189,35 @@ const getConnectionsAndPackages = async (req, res) => {
     }
 };
 
-// UPDATED: Fixed Error "Action Failed" when creating connections with multiple packages
 const createConnection = async (req, res) => {
     try {
-        let { name, icon, requires_package_choice, default_package, default_inbound_id, default_vless_template } = req.body;
-        
-        // Ensure boolean type for check
-        const isMultiPackage = requires_package_choice === 'true' || requires_package_choice === true;
-
-        // If 'Multiple Packages' is enabled, force default fields to null
-        // If not, sanitize default_inbound_id (handle empty string)
-        if (isMultiPackage) {
-            default_package = null;
-            default_inbound_id = null;
-            default_vless_template = null;
-        } else {
-            // If single package, ensure inbound_id is integer or null (never empty string)
-            default_inbound_id = default_inbound_id ? parseInt(default_inbound_id) : null;
-        }
-
-        const { data, error } = await supabase.from('connections').insert([{ 
-            name, 
-            icon, 
-            requires_package_choice: isMultiPackage, 
-            default_package, 
-            default_inbound_id, 
-            default_vless_template 
-        }]).select().single();
-
+        const { name, icon, requires_package_choice, default_package, default_inbound_id, default_vless_template } = req.body;
+        const { data, error } = await supabase.from('connections').insert([{ name, icon, requires_package_choice, default_package, default_inbound_id, default_vless_template }]).select().single();
         if (error) throw error;
         res.status(201).json({ success: true, message: 'Connection created successfully.', data });
     } catch (error) {
-        console.error("Create Connection Error:", error);
         res.status(500).json({ success: false, message: 'Failed to create connection.', error: error.message });
     }
 };
 
-// UPDATED: Fixed Error when updating connections
 const updateConnection = async (req, res) => {
     try {
         const { id } = req.params;
-        let { name, icon, requires_package_choice, default_package, default_inbound_id, default_vless_template } = req.body;
-
-        // Ensure boolean type
-        const isMultiPackage = requires_package_choice === 'true' || requires_package_choice === true;
+        const { name, icon, requires_package_choice, default_package, default_inbound_id, default_vless_template } = req.body;
 
         const updateData = {
             name,
             icon,
-            requires_package_choice: isMultiPackage
+            requires_package_choice
         };
 
-        if (isMultiPackage) {
+        if (requires_package_choice) {
             updateData.default_package = null;
             updateData.default_inbound_id = null;
             updateData.default_vless_template = null;
         } else {
             updateData.default_package = default_package;
-            // Handle empty string for integer field
-            updateData.default_inbound_id = default_inbound_id ? parseInt(default_inbound_id) : null;
+            updateData.default_inbound_id = default_inbound_id;
             updateData.default_vless_template = default_vless_template;
         }
 
@@ -261,7 +232,6 @@ const updateConnection = async (req, res) => {
         
         res.json({ success: true, message: 'Connection updated successfully.', data });
     } catch (error) {
-        console.error("Update Connection Error:", error);
         res.status(500).json({ success: false, message: 'Failed to update connection.' });
     }
 };
@@ -280,10 +250,7 @@ const deleteConnection = async (req, res) => {
 const createPackage = async (req, res) => {
     try {
         const { connection_id, name, template, inbound_id } = req.body;
-        // Ensure inbound_id is integer
-        const inboundIdInt = inbound_id ? parseInt(inbound_id) : null;
-        
-        const { data, error } = await supabase.from('packages').insert([{ connection_id, name, template, inbound_id: inboundIdInt }]).select().single();
+        const { data, error } = await supabase.from('packages').insert([{ connection_id, name, template, inbound_id }]).select().single();
         if (error) throw error;
         res.status(201).json({ success: true, message: 'Package created successfully.', data });
     } catch (error) {
@@ -295,10 +262,7 @@ const updatePackage = async (req, res) => {
     try {
         const { id } = req.params;
         const { name, template, inbound_id } = req.body;
-        // Ensure inbound_id is integer
-        const inboundIdInt = inbound_id ? parseInt(inbound_id) : null;
-
-        const { data, error } = await supabase.from('packages').update({ name, template, inbound_id: inboundIdInt }).eq('id', id).select().single();
+        const { data, error } = await supabase.from('packages').update({ name, template, inbound_id }).eq('id', id).select().single();
         if (error) throw error;
         res.json({ success: true, message: 'Package updated successfully.', data });
     } catch (error) {
@@ -553,29 +517,6 @@ const downloadOrdersReport = async (req, res) => {
     }
 };
 
-
-// Add this inside src/controllers/adminController.js
-
-const banUser = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { status } = req.body; // Expecting 'banned'
-        
-        // Update user status to 'banned'
-        const { error } = await supabase
-            .from('users')
-            .update({ status: status })
-            .eq('id', id);
-
-        if (error) throw error;
-        
-        res.json({ success: true, message: 'User banned successfully.' });
-    } catch (error) {
-        console.error("Ban User Error:", error);
-        res.status(500).json({ success: false, message: 'Failed to ban user.' });
-    }
-};
-
 module.exports = {
     getDashboardStats,
     getOrders,
@@ -583,7 +524,6 @@ module.exports = {
     rejectOrder,
     getUsers,
     updateUserCredit,
-    deleteUser,
     getResellers,
     getConnectionsAndPackages,
     createConnection,
@@ -597,7 +537,6 @@ module.exports = {
     deletePlan,
     getV2rayInbounds,
     getSettings,
-    banUser,
     updateSettings,
     getReportSummary,
     getChartData,

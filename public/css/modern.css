@@ -37,16 +37,13 @@ body.modal-open {
   z-index: 1;
 }
 
-/* MODIFIED: Liquid Glass Effect & Rounding */
+/* MODIFIED: Changed border-radius from 9999px to 1rem for a more professional look */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.03); /* Liquid transparent look */
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-top: 1px solid rgba(255, 255, 255, 0.2); /* Top highlight for liquid effect */
-  border-left: 1px solid rgba(255, 255, 255, 0.2); /* Left highlight */
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  border-radius: 20px !important; /* Fixed rounding as requested */
+  border-radius: 1rem; /* A modern, subtle curve */
 }
 
 .gradient-text {
@@ -55,6 +52,10 @@ body.modal-open {
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
+
+
+
 
 .page {
   animation: pageFadeIn 0.5s ease-out forwards;
@@ -75,6 +76,7 @@ body.modal-open {
     border-radius: 35px !important;
 }
 
+
 .ai-button {
   position: relative;
   background: var(--brand-gradient);
@@ -83,11 +85,12 @@ body.modal-open {
   overflow: hidden;
   font-family: "Orbitron", sans-serif;
   border-radius: 9999px;
-  padding: 0.5rem 1.5rem;
-  font-size: 0.875rem;
-  font-weight: 600;
+  /* NEW UNIFIED SIZE STYLES */
+  padding: 0.5rem 1.5rem; /* 8px vertical, 24px horizontal (py-2, px-6) */
+  font-size: 0.875rem;   /* 14px (text-sm) */
+  font-weight: 600;      /* semibold */
   text-align: center;
-  line-height: 1.5;
+  line-height: 1.5;      /* Ensure consistent line height */
 }
 
 .ai-button:hover:not(:disabled) {
@@ -109,7 +112,7 @@ body.modal-open {
   color: #a0aec0;
   transition: all 0.3s;
   padding: 4px 8px;
-  border-radius: 9999px;
+  border-radius: 9999px; /* Fully rounded */
 }
 
 .nav-link.active {
@@ -119,27 +122,20 @@ body.modal-open {
 
 .nav-link:hover {
   color: #ffffff;
-  background-color: rgba(59, 130, 246, 0.1);
-  text-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+  background-color: rgba(59, 130, 246, 0.1); /* Subtle blue background from theme */
+  text-shadow: 0 0 8px rgba(59, 130, 246, 0.5); /* Blue text glow */
 }
 
-/* MODIFIED: Liquid Glass Effect & Rounding for Cards */
+
+/* MODIFIED: Changed border-radius from 9999px to 1rem */
 .card {
   position: relative;
   transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
     box-shadow 0.4s ease;
   overflow: hidden;
-  
-  /* Liquid Glass Styles */
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-  border-left: 1px solid rgba(255, 255, 255, 0.2);
-  
+  border: 1px solid rgba(255, 255, 255, 0.1);
   transform-style: preserve-3d;
-  border-radius: 20px !important; /* Fixed rounding as requested */
+  border-radius: 1rem; /* A modern, subtle curve */
 }
 
 .card::before,
@@ -175,7 +171,7 @@ body.modal-open {
 }
 
 .card:hover {
-  transform: perspective(1000px) rotateX(2deg) rotateY(-2deg) scale(1.02); /* Reduced rotation for smoother feel */
+  transform: perspective(1000px) rotateX(5deg) rotateY(-5deg) scale(1.05);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
 }
 
@@ -212,7 +208,7 @@ body.modal-open {
   padding: 14px 12px 0 12px;
   transition: 0.4s;
   outline: none;
-  border-radius: 9999px;
+  border-radius: 9999px; /* Fully rounded */
 }
 
 .form-label {
@@ -242,7 +238,7 @@ body.modal-open {
   height: 2px;
   background-color: var(--brand-purple);
   transition: 0.4s;
-  border-radius: 9999px;
+  border-radius: 9999px; /* Fully rounded */
 }
 
 .form-input ~ .focus-border:after {
@@ -287,126 +283,120 @@ body.modal-open {
 
 /* Added for admin/reseller connection cards */
 .connection-card {
-    background: rgba(10, 8, 28, 0.4); /* More transparent */
-    backdrop-filter: blur(10px);
+    background: rgba(10, 8, 28, 0.6);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 20px !important; /* Consistent with other cards */
+    border-radius: 1rem; /* Consistent subtle rounding */
     margin-bottom: 1.5rem;
     overflow: hidden;
 }
 
-/* --- NAVBAR SCROLL ANIMATION --- */
+/* --- START: CLEANED UP AND UPDATED NAVBAR SCROLL ANIMATION --- */
 #main-header {
+    /* 1. Initial state (when at top of page) */
     background-color: transparent !important;
     border-color: transparent !important;
     box-shadow: none !important;
     backdrop-filter: blur(0px) !important;
+
+    /* 2. Animation for smooth transition */
     transition: all 0.4s ease-in-out;
 }
 
 #main-header.scrolled {
+    /* 3. Appearance when scrolled */
     backdrop-filter: blur(16px) !important;
+
+    /* 4. Updated, softer shadow */
     box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25), 0 0 40px rgba(59, 130, 246, 0.2) !important;
 }
+/* --- END: CLEANED UP AND UPDATED NAVBAR SCROLL ANIMATION --- */
 
 /* ======================================== */
-/* MODERN GLASS TOAST (LIQUID EFFECT)       */
+/* MODERN GLASS TOAST (CURVED STRIP FIX)    */
 /* ======================================== */
 
-/* Included .toast-notification class to match Admin JS */
-.toast, .toast-notification {
+/* Toast එකේ ප්‍රධාන හැඩය වෙනස් කිරීම */
+.toast {
   display: flex;
   align-items: flex-start;
   padding: 0.75rem;
   
-  /* Modern Asymmetric Shape: Square left, Round right */
+  /* වම් පැත්ත කොටු (0), දකුණු පැත්ත රවුම් (50px) */
   border-radius: 0 50px 50px 0 !important; 
   
-  /* Strong Glass Effect */
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-left: none; /* Left border handled by colored strip */
-  
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   color: #e0e0e0;
-  position: fixed; /* Fixed for toast notifications */
-  top: 20px;
-  right: 0; /* Changed to animate from right edge */
-  z-index: 9999;
-  
+  position: relative;
   overflow: hidden;
   transform: translateX(120%);
   opacity: 0;
   transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease-out;
   
-  padding-left: 16px; /* Space for the colored strip */
-  max-width: 400px;
+  /* වම් පැත්තේ පාට තීරුවට ඉඩ තැබීම */
+  padding-left: 12px; 
 }
 
-/* Colored Strip (Liquid Line) */
-.toast::before, .toast-notification::before {
+/* වම් පැත්තේ ඇති පාට තීරුව (Colored Strip) කෙලින් කිරීම */
+.toast::before {
   content: "";
   position: absolute;
   top: 0;
   left: 0;
   bottom: 0;
-  width: 5px;
-  border-radius: 0 !important;
+  width: 4px;
+  
+  /* පාට තීරුව කොටු කිරීම */
+  border-radius: 0 !important; 
 }
 
-.toast.show, .toast-notification.show {
-  transform: translateX(-20px); /* Slide in, stopping 20px from edge */
+.toast.show {
+  transform: translateX(0);
   opacity: 1;
 }
 
-/* --- VARIANT STYLES (Compatible with both .toast--type and .type classes) --- */
+/* --- 2. පාට තීරුව Curve වෙලා එන්න හැදීම (Inset Shadow Trick) --- */
+/* box-shadow: inset [width] 0 0 0 [color] */
+/* මේකෙන් වෙන්නේ පාට තීරුව බොඩර් එක ඇතුලෙන්ම හැදෙන නිසා ඒක රවුම් හැඩේටම එනවා */
 
-/* Success */
-.toast--success, .toast-notification.success {
-  box-shadow: inset 7px 0 0 0 #22c55e, 0 0 30px rgba(34, 197, 94, 0.2) !important;
+/* Success (Green) */
+.toast--success {
+  /* වම් පැත්තෙන් 6px කොළ පාට තීරුවක් + පිටුපසට සියුම් කොළ එළියක් */
+  box-shadow: inset 7px 0 0 0 #22c55e, 0 0 20px rgba(34, 197, 94, 0.15) !important;
+  border-left: 1px solid rgba(34, 197, 94, 0.3); /* වම් පැත්තේ Border එක ටිකක් පාට කළා */
 }
-.toast--success .toast-icon, .toast-notification.success .toast-icon { 
-    color: #4ade80; 
-    text-shadow: 0 0 15px rgba(34, 197, 94, 0.8); 
-}
+.toast--success .toast-icon { color: #4ade80; text-shadow: 0 0 12px rgba(34, 197, 94, 0.8); }
 
-/* Error */
-.toast--error, .toast-notification.error {
-  box-shadow: inset 7px 0 0 0 #ef4444, 0 0 30px rgba(239, 68, 68, 0.2) !important;
+/* Error (Red) */
+.toast--error {
+  box-shadow: inset 7px 0 0 0 #ef4444, 0 0 20px rgba(239, 68, 68, 0.15) !important;
+  border-left: 1px solid rgba(239, 68, 68, 0.3);
 }
-.toast--error .toast-icon, .toast-notification.error .toast-icon { 
-    color: #f87171; 
-    text-shadow: 0 0 15px rgba(239, 68, 68, 0.8); 
-}
+.toast--error .toast-icon { color: #f87171; text-shadow: 0 0 12px rgba(239, 68, 68, 0.8); }
 
-/* Warning */
-.toast--warning, .toast-notification.warning {
-  box-shadow: inset 7px 0 0 0 #f97316, 0 0 30px rgba(249, 115, 22, 0.2) !important;
+/* Warning (Orange) */
+.toast--warning {
+  box-shadow: inset 7px 0 0 0 #f97316, 0 0 20px rgba(249, 115, 22, 0.15) !important;
+  border-left: 1px solid rgba(249, 115, 22, 0.3);
 }
-.toast--warning .toast-icon, .toast-notification.warning .toast-icon { 
-    color: #fb923c; 
-    text-shadow: 0 0 15px rgba(249, 115, 22, 0.8); 
-}
+.toast--warning .toast-icon { color: #fb923c; text-shadow: 0 0 12px rgba(249, 115, 22, 0.8); }
 
-/* Info */
-.toast--info, .toast-notification.info {
-  box-shadow: inset 7px 0 0 0 #3b82f6, 0 0 30px rgba(59, 130, 246, 0.2) !important;
+/* Info (Blue) */
+.toast--info {
+  box-shadow: inset 7px 0 0 0 #3b82f6, 0 0 20px rgba(59, 130, 246, 0.15) !important;
+  border-left: 1px solid rgba(59, 130, 246, 0.3);
 }
-.toast--info .toast-icon, .toast-notification.info .toast-icon { 
-    color: #60a5fa; 
-    text-shadow: 0 0 15px rgba(59, 130, 246, 0.8); 
-}
+.toast--info .toast-icon { color: #60a5fa; text-shadow: 0 0 12px rgba(59, 130, 246, 0.8); }
 
 /* --- Content Styling --- */
 
 .toast-icon {
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   margin-right: 15px;
   display: flex;
   align-items: center;
-  margin-top: 2px;
 }
 
 .toast-content {
@@ -414,17 +404,15 @@ body.modal-open {
 }
 
 .toast-title {
-  font-family: 'Orbitron', sans-serif;
   font-weight: 700;
   font-size: 0.95rem;
-  margin: 0 0 4px 0;
+  margin: 0 0 2px 0;
   color: #ffffff;
   letter-spacing: 0.5px;
 }
 
 .toast-message {
-  font-family: 'Inter', sans-serif;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   margin: 0;
   color: #cbd5e1;
   line-height: 1.4;
@@ -441,13 +429,9 @@ body.modal-open {
   transition: all 0.2s;
   padding: 4px;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .toast-close-btn:hover {
   color: #ffffff;
   background: rgba(255,255,255,0.1);
-  transform: scale(1.1);
 }

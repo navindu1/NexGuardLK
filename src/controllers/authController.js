@@ -19,27 +19,14 @@ exports.register = async (req, res) => {
         return res.status(400).json({ success: false, message: "All fields are required." });
 
     try {
-        // UPDATED: Check for existing user by Username, Email OR WhatsApp
-        // We utilize 'maybeSingle()' to handle cases where no user exists without throwing an error
         const { data: existingUser } = await supabase
             .from("users")
-            .select("id, otp_code, status") // Fetch 'status' to check for bans
-            .or(`username.eq.${username},email.eq.${email},whatsapp.eq.${whatsapp}`)
-            .maybeSingle();
+            .select("id, otp_code")
+            .or(`username.eq.${username},email.eq.${email}`)
+            .single();
 
-        if (existingUser) {
-            // 1. Check if the user is BANNED
-            if (existingUser.status === 'banned') {
-                return res.status(403).json({ 
-                    success: false, 
-                    message: "මෙම ඊමේල් ලිපිනය හෝ දුරකථන අංකය තහනම් කර ඇත. (Account Banned)" 
-                });
-            }
-
-            // 2. Check if Account already exists and is verified (no otp_code means verified)
-            if (!existingUser.otp_code) {
-                return res.status(409).json({ success: false, message: "Username, email, or whatsapp number is already registered." });
-            }
+        if (existingUser && !existingUser.otp_code) {
+            return res.status(409).json({ success: false, message: "Username or email is already taken." });
         }
 
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -58,10 +45,8 @@ exports.register = async (req, res) => {
             otp_lockout_until: null,
             profile_picture: "assets/profilePhoto.jpg",
             active_plans: [],
-            status: 'active' // Default status
         };
         
-        // Use upsert to handle re-registration of unverified accounts or new accounts
         const { error } = await supabase.from("users").upsert({ id: existingUser?.id || uuidv4(), ...userData }, { onConflict: 'email' });
         if (error) throw error;
 
@@ -106,12 +91,8 @@ exports.verifyOtp = async (req, res) => {
             .single();
         
         if (error || !user) {
+            // ආරක්ෂක හේතූන් මත User කෙනෙක් නැති වුනත් වැරදි පණිවිඩයක්ම යවන්න (User Enumeration වැලැක්වීමට)
             return res.status(400).json({ success: false, message: "Invalid request or user not found." });
-        }
-
-        // Check Ban Status during verification as well
-        if (user.status === 'banned') {
-            return res.status(403).json({ success: false, message: "Account is banned." });
         }
 
         // 2. ගිණුම Lock වී ඇත්දැයි පරීක්ෂා කිරීම (Brute-force protection)
@@ -156,8 +137,7 @@ exports.verifyOtp = async (req, res) => {
                 otp_code: null, 
                 otp_expiry: null,
                 otp_attempts: 0,        // Reset attempts
-                otp_lockout_until: null, // Remove lock
-                status: 'active'        // Ensure status is active
+                otp_lockout_until: null // Remove lock
             })
             .eq("id", user.id);
 
@@ -191,15 +171,6 @@ exports.login = async (req, res) => {
         if (error || !user) {
             return res.status(401).json({ success: false, message: "Invalid username or password." });
         }
-
-        // UPDATED: Ban Check on Login
-        if (user.status === 'banned') {
-            return res.status(403).json({ 
-                success: false, 
-                message: "මෙම ගිණුම තහනම් කර ඇත. (Account Banned). Please contact support." 
-            });
-        }
-
         if (bcrypt.compareSync(password, user.password)) {
             const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, { expiresIn: "1d" });
             const userPayload = {
@@ -259,12 +230,6 @@ exports.resellerLogin = async (req, res) => {
         if (error || !reseller) {
             return res.status(401).json({ success: false, message: "Invalid credentials or not a reseller." });
         }
-
-        // UPDATED: Ban Check for Resellers
-        if (reseller.status === 'banned') {
-            return res.status(403).json({ success: false, message: "Reseller account is banned." });
-        }
-
         const isPasswordValid = bcrypt.compareSync(password, reseller.password);
         if (isPasswordValid) {
             const token = jwt.sign({ id: reseller.id, username: reseller.username, role: "reseller" }, process.env.JWT_SECRET, { expiresIn: "8h" });
@@ -291,11 +256,6 @@ exports.forgotPassword = async (req, res) => {
             .single();
 
         if (!user || userError) {
-            return res.json(genericResponse);
-        }
-
-        if (user.status === 'banned') {
-            // Silently fail for banned users (security best practice)
             return res.json(genericResponse);
         }
 
