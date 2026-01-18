@@ -12,122 +12,83 @@ export function reloadWithToast(title, message, type = "success") {
     }
 }
 
-// --- 2. TOAST SYSTEM (UPDATED DESIGN) ---
+// --- 2. TOAST SYSTEM (UPDATED DESIGN - TAILWIND VERSION) ---
 export function showToast({ title, message, type = "info", duration = 5000 }) {
     // 1. Container Setup
     let container = document.getElementById("toast-container");
     if (!container) {
         container = document.createElement("div");
         container.id = "toast-container";
-        Object.assign(container.style, {
-            position: "fixed",
-            top: "20px",
-            right: "20px",
-            zIndex: "999999",
-            display: "flex",
-            flexDirection: "column",
-            gap: "15px",
-            pointerEvents: "none"
-        });
+        // Tailwind classes: Fixed top-right, z-index high, flex column for stacking
+        container.className = "fixed top-5 right-5 z-[999999] flex flex-col gap-3 pointer-events-none";
         document.body.appendChild(container);
     }
 
-    // 2. Icons & Colors
+    // 2. Icons (SVG) & Colors
     const icons = {
-        success: "fa-solid fa-circle-check",
-        error: "fa-solid fa-circle-xmark",
-        warning: "fa-solid fa-triangle-exclamation",
-        info: "fa-solid fa-circle-info"
+        success: `<svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`,
+        error: `<svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`,
+        warning: `<svg class="w-6 h-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`,
+        info: `<svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`
     };
 
-    const typeColors = {
-        success: "#2ecc71", // Green
-        error: "#e74c3c",   // Red
-        warning: "#f1c40f", // Yellow
-        info: "#3498db"     // Blue
+    const borderColors = {
+        success: 'border-green-500',
+        error: 'border-red-500',
+        warning: 'border-yellow-500',
+        info: 'border-blue-500'
     };
 
     // 3. Create Toast Element
     const toast = document.createElement("div");
     
-    // --- STYLES (White Box + Center Alignment) ---
-    Object.assign(toast.style, {
-        pointerEvents: "auto",
-        minWidth: "320px",
-        maxWidth: "450px",
-        backgroundColor: "#ffffff",
-        borderLeft: `5px solid ${typeColors[type] || typeColors.info}`,
-        borderRadius: "4px",
-        padding: "12px 20px", // Padding එක තරමක් අඩු කලා ලස්සනට පෙනෙන්න
-        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-        display: "flex",
-        alignItems: "center", // *** මෙය තමයි Icon සහ Button මැදට ගන්නේ ***
-        justifyContent: "space-between",
-        gap: "15px",
-        opacity: "0",
-        transform: "translateX(50px)",
-        transition: "all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55)",
-        fontFamily: "'Inter', sans-serif",
-        marginBottom: "10px"
-    });
+    // Tailwind Styling: 
+    // - bg-white: White background
+    // - shadow-lg: Nice drop shadow
+    // - rounded-lg: Rounded corners
+    // - border-l-4: The colored left border
+    // - translate-x-full/opacity-0: Starting state for animation
+    toast.className = `pointer-events-auto flex items-start w-full max-w-sm p-4 bg-white rounded-lg shadow-xl dark:bg-gray-800 border-l-4 ${borderColors[type] || 'border-blue-500'} transform transition-all duration-300 translate-x-full opacity-0`;
     
-    // HTML Content
+    // HTML Structure
     toast.innerHTML = `
-        <div style="font-size: 24px; color: ${typeColors[type] || typeColors.info}; display: flex; align-items: center; justify-content: center;">
-            <i class="${icons[type] || icons.info}"></i>
+        <div class="flex-shrink-0 pt-0.5">
+            ${icons[type] || icons.info}
         </div>
-        
-        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
-            <p style="margin: 0; font-weight: 700; font-size: 16px; color: #333333; line-height: 1.2;">${title}</p>
-            <p style="margin: 4px 0 0; font-size: 14px; color: #666666; line-height: 1.4;">${message}</p>
+        <div class="ml-3 flex-1">
+            <p class="text-sm font-bold text-gray-900 dark:text-white leading-5">${title}</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 leading-5">${message}</p>
         </div>
-        
-        <button class="toast-close-btn" style="
-            background: none; 
-            border: none; 
-            color: #999999; 
-            cursor: pointer; 
-            font-size: 18px; 
-            padding: 5px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center;
-            transition: color 0.2s;
-            height: 100%;
-        ">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
+        <div class="ml-4 flex-shrink-0 flex">
+            <button class="toast-close-btn inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                <span class="sr-only">Close</span>
+                <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
     `;
 
-    // 4. Remove Function
-    let isRemoved = false;
+    // 4. Remove Function (Slide Out)
     const removeToast = () => {
-        if (isRemoved) return;
-        isRemoved = true;
-        
-        toast.style.opacity = "0";
-        toast.style.transform = "translateX(100%)";
-        
+        toast.classList.add("translate-x-full", "opacity-0");
         setTimeout(() => {
             if (toast.parentElement) {
-                toast.parentElement.removeChild(toast);
+                toast.remove();
             }
-        }, 300);
+        }, 300); // Matches transition duration
     };
 
-    // Close Button Events
+    // Close Button Event
     const closeBtn = toast.querySelector(".toast-close-btn");
-    closeBtn.addEventListener("mouseover", () => closeBtn.style.color = "#333");
-    closeBtn.addEventListener("mouseleave", () => closeBtn.style.color = "#999");
     closeBtn.onclick = removeToast;
 
     // Append to Container
     container.appendChild(toast);
     
-    // Show Animation
+    // Show Animation (Slide In)
     requestAnimationFrame(() => {
-        toast.style.opacity = "1";
-        toast.style.transform = "translateX(0)";
+        toast.classList.remove("translate-x-full", "opacity-0");
     });
 
     // 5. Auto Dismiss
