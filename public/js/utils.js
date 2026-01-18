@@ -12,19 +12,16 @@ export function reloadWithToast(title, message, type = "success") {
     }
 }
 
-// --- 2. NEW MODERN TOAST SYSTEM (Glassmorphism Design) ---
 export function showToast({ title, message, type = "info", duration = 5000 }) {
-    // 1. Container Setup (Container එක සොයාගැනීම හෝ අලුතින් සෑදීම)
+    // 1. Container Setup
     let container = document.getElementById("toast-container");
     if (!container) {
         container = document.createElement("div");
         container.id = "toast-container";
-        // සටහන: මෙහි Styles දැන් modern.css ගොනුවෙන් පාලනය වේ.
-        // (#toast-container ලෙස CSS එකේ ඇත)
         document.body.appendChild(container);
     }
 
-    // 2. Icon Mapping (FontAwesome අයිකන)
+    // 2. Icon Mapping
     const icons = {
         success: 'fa-solid fa-circle-check',
         error: 'fa-solid fa-circle-exclamation',
@@ -32,61 +29,56 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
         info: 'fa-solid fa-circle-info'
     };
 
-    // 3. Create Toast Element (modern.css හි ඇති Classes භාවිතා කිරීම)
+    // 3. Create Toast Element
     const toast = document.createElement("div");
-    
-    // 'toast' සහ 'toast--[type]' යන පන්ති (Classes) එකතු කිරීම
     toast.className = `toast toast--${type}`;
     
-    // HTML Structure (CSS වලට ගැලපෙන ලෙස)
+    // --- Modification: Center Items Vertically ---
+    // CSS ෆයිල් එකේ 'align-items: flex-start' තිබුණත්, 
+    // මෙතනින් අපි එය 'center' කර override කරනවා.
+    toast.style.alignItems = "center"; 
+    
     toast.innerHTML = `
-        <div class="toast-icon">
-            <i class="${icons[type] || icons.info}"></i>
+        <div class="toast-icon" style="margin-top: 0;"> <i class="${icons[type] || icons.info}"></i>
         </div>
         <div class="toast-content">
             <h3 class="toast-title">${title}</h3>
             <p class="toast-message">${message}</p>
         </div>
-        <button class="toast-close-btn">
+        <button class="toast-close-btn" style="align-self: center;">
             <i class="fa-solid fa-xmark"></i>
         </button>
     `;
 
-    // 4. Remove Function (Slide Out Animation)
+    // 4. Remove Function
     const removeToast = () => {
-        toast.classList.remove("show"); // CSS Transition මගින් ඉවත් වේ
+        toast.classList.remove("show");
         setTimeout(() => {
             if (toast.parentElement) {
                 toast.remove();
             }
-        }, 400); // 0.4s කාලයක් රැදී සිට ඉවත් වේ
+        }, 400);
     };
 
-    // Close Button Event
     const closeBtn = toast.querySelector(".toast-close-btn");
     if (closeBtn) {
         closeBtn.onclick = removeToast;
     }
 
-    // Append to Container
     container.appendChild(toast);
     
-    // Show Animation (Slide In)
-    // කුඩා කාල පරතරයකට පසු 'show' class එක එකතු කරයි
     requestAnimationFrame(() => {
         setTimeout(() => {
             toast.classList.add("show");
         }, 10);
     });
 
-    // 5. Auto Dismiss (ස්වයංක්‍රීයව ඉවත් වීම)
     if (duration > 0) {
         setTimeout(removeToast, duration);
     }
 
     return { hide: removeToast };
 }
-
 // --- 3. AUTO CHECKER (Sign Up -> Profile Stuck Fix) ---
 (function checkPendingToast() {
     try {
