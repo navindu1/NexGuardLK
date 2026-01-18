@@ -1,12 +1,10 @@
 // File: public/js/utils.js
 
-// --- 1. RELOAD LOGIC (පිටුව මාරු වන විට මැසේජ් පෙන්වීමට) ---
+// --- 1. RELOAD LOGIC ---
 export function reloadWithToast(title, message, type = "success") {
-    // මැසේජ් එක Browser එකේ Save කරගන්නවා
     const toastData = { title, message, type, timestamp: Date.now() };
     localStorage.setItem('nexguard_pending_toast', JSON.stringify(toastData));
     
-    // Profile පිටුවට යවනවා (හෝ Reload කරනවා)
     if (window.location.pathname !== "/profile") {
         window.location.href = "/profile";
     } else {
@@ -14,28 +12,27 @@ export function reloadWithToast(title, message, type = "success") {
     }
 }
 
-// --- 2. OLD DESIGN TOAST SYSTEM (UPDATED) ---
+// --- 2. TOAST SYSTEM (UPDATED DESIGN) ---
 export function showToast({ title, message, type = "info", duration = 5000 }) {
-    // 1. Container එක තිබේදැයි බලයි, නැත්නම් හදයි
+    // 1. Container Setup
     let container = document.getElementById("toast-container");
     if (!container) {
         container = document.createElement("div");
         container.id = "toast-container";
-        // Container Styles (Inline - ස්ථිරවම වැඩ කිරීමට)
         Object.assign(container.style, {
             position: "fixed",
             top: "20px",
             right: "20px",
-            zIndex: "999999", // උපරිම උඩින්
+            zIndex: "999999",
             display: "flex",
             flexDirection: "column",
             gap: "15px",
-            pointerEvents: "none" // Container එකට Click කල නොහැක (Toast වලට පුළුවන්)
+            pointerEvents: "none"
         });
         document.body.appendChild(container);
     }
 
-    // 2. Icons & Colors (Old Design)
+    // 2. Icons & Colors
     const icons = {
         success: "fa-solid fa-circle-check",
         error: "fa-solid fa-circle-xmark",
@@ -50,43 +47,54 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
         info: "#3498db"     // Blue
     };
 
-    // 3. Toast Element එක හැදීම
+    // 3. Create Toast Element
     const toast = document.createElement("div");
     
-    // --- OLD DESIGN STYLES (White Background) ---
-    // මැදට ගැනීමට වැදගත්ම දේ: alignItems: "center"
+    // --- STYLES (White Box + Center Alignment) ---
     Object.assign(toast.style, {
         pointerEvents: "auto",
         minWidth: "320px",
         maxWidth: "450px",
-        backgroundColor: "#ffffff", // සුදු පාට Background
-        borderLeft: `5px solid ${typeColors[type] || typeColors.info}`, // වම් පැත්තේ පාට ඉර
-        borderRadius: "4px", // කොටු හැඩය (Old Design)
-        padding: "15px 20px",
-        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)", // සෙවනැල්ල
-        display: "flex", 
-        alignItems: "center", // *** මෙන්න මේකෙන් තමා Icon සහ Button මැදට එන්නේ ***
+        backgroundColor: "#ffffff",
+        borderLeft: `5px solid ${typeColors[type] || typeColors.info}`,
+        borderRadius: "4px",
+        padding: "12px 20px", // Padding එක තරමක් අඩු කලා ලස්සනට පෙනෙන්න
+        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+        display: "flex",
+        alignItems: "center", // *** මෙය තමයි Icon සහ Button මැදට ගන්නේ ***
         justifyContent: "space-between",
         gap: "15px",
         opacity: "0",
         transform: "translateX(50px)",
-        transition: "all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55)", // Bounce effect
+        transition: "all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55)",
         fontFamily: "'Inter', sans-serif",
         marginBottom: "10px"
     });
     
     // HTML Content
     toast.innerHTML = `
-        <div style="font-size: 24px; color: ${typeColors[type] || typeColors.info}; display: flex; align-items: center;">
+        <div style="font-size: 24px; color: ${typeColors[type] || typeColors.info}; display: flex; align-items: center; justify-content: center;">
             <i class="${icons[type] || icons.info}"></i>
         </div>
         
-        <div style="flex: 1;">
-            <p style="margin: 0; font-weight: 700; font-size: 16px; color: #333333;">${title}</p>
+        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+            <p style="margin: 0; font-weight: 700; font-size: 16px; color: #333333; line-height: 1.2;">${title}</p>
             <p style="margin: 4px 0 0; font-size: 14px; color: #666666; line-height: 1.4;">${message}</p>
         </div>
         
-        <button class="toast-close-btn" style="background: none; border: none; color: #999999; cursor: pointer; font-size: 18px; padding: 5px; display: flex; align-items: center; justify-content: center; transition: color 0.2s;">
+        <button class="toast-close-btn" style="
+            background: none; 
+            border: none; 
+            color: #999999; 
+            cursor: pointer; 
+            font-size: 18px; 
+            padding: 5px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            transition: color 0.2s;
+            height: 100%;
+        ">
             <i class="fa-solid fa-xmark"></i>
         </button>
     `;
@@ -122,7 +130,7 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
         toast.style.transform = "translateX(0)";
     });
 
-    // 5. AUTO DISMISS TIMER
+    // 5. Auto Dismiss
     if (duration > 0) {
         setTimeout(removeToast, duration);
     }
@@ -130,7 +138,7 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
     return { hide: removeToast };
 }
 
-// --- 3. AUTO CHECKER (Sign Up -> Profile Stuck Fix) ---
+// --- 3. AUTO CHECKER ---
 (function checkPendingToast() {
     try {
         const pending = localStorage.getItem('nexguard_pending_toast');
@@ -151,7 +159,7 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
     }
 })();
 
-// --- 4. OTHER UTILS ---
+// --- 4. OTHER UTILS (Animation, Password, Menu, QR) ---
 
 export function initAnimations() {
     const observer = new IntersectionObserver((entries) => {
