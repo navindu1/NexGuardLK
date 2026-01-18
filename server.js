@@ -59,7 +59,7 @@ app.post('/api/cron', (req, res) => {
 });
 
 // Daily Cron Job Endpoint (for less frequent tasks)
-app.post('/api/daily-cron', (req, res) => {
+app.post('/api/daily-cron', async (req, res) => { // 1. මෙතනට 'async' දාන්න
     const providedSecret = req.headers['authorization']?.split(' ')[1];
     if (providedSecret !== process.env.DAILY_CRON_SECRET) {
         console.warn('Unauthorized DAILY cron job attempt.');
@@ -67,7 +67,7 @@ app.post('/api/daily-cron', (req, res) => {
     }
     
     console.log('Daily Cron Job triggered: Running daily tasks...');
-    sendExpiryReminders();
+    await sendExpiryReminders(); 
     
     res.status(200).send('Daily cron job executed successfully.');
 });
