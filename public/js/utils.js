@@ -7,7 +7,6 @@ export function reloadWithToast(title, message, type = "success") {
     localStorage.setItem('nexguard_pending_toast', JSON.stringify(toastData));
     
     // Profile පිටුවට යවනවා (හෝ Reload කරනවා)
-    // Sign Up වලින් එනකොට කෙලින්ම Profile එකට යන්න මෙය උදව් වෙනවා
     if (window.location.pathname !== "/profile") {
         window.location.href = "/profile";
     } else {
@@ -15,7 +14,7 @@ export function reloadWithToast(title, message, type = "success") {
     }
 }
 
-// --- 2. OLD DESIGN TOAST SYSTEM ---
+// --- 2. OLD DESIGN TOAST SYSTEM (UPDATED) ---
 export function showToast({ title, message, type = "info", duration = 5000 }) {
     // 1. Container එක තිබේදැයි බලයි, නැත්නම් හදයි
     let container = document.getElementById("toast-container");
@@ -31,7 +30,7 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
             display: "flex",
             flexDirection: "column",
             gap: "15px",
-            pointerEvents: "none"
+            pointerEvents: "none" // Container එකට Click කල නොහැක (Toast වලට පුළුවන්)
         });
         document.body.appendChild(container);
     }
@@ -55,17 +54,18 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
     const toast = document.createElement("div");
     
     // --- OLD DESIGN STYLES (White Background) ---
+    // මැදට ගැනීමට වැදගත්ම දේ: alignItems: "center"
     Object.assign(toast.style, {
         pointerEvents: "auto",
         minWidth: "320px",
         maxWidth: "450px",
-        backgroundColor: "#ffffff", // සුදු පාට
+        backgroundColor: "#ffffff", // සුදු පාට Background
         borderLeft: `5px solid ${typeColors[type] || typeColors.info}`, // වම් පැත්තේ පාට ඉර
-        borderRadius: "4px", // කොටු හැඩය
+        borderRadius: "4px", // කොටු හැඩය (Old Design)
         padding: "15px 20px",
         boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)", // සෙවනැල්ල
-        display: "flex",
-        alignItems: "center", // මැදට කිරීම
+        display: "flex", 
+        alignItems: "center", // *** මෙන්න මේකෙන් තමා Icon සහ Button මැදට එන්නේ ***
         justifyContent: "space-between",
         gap: "15px",
         opacity: "0",
@@ -75,21 +75,23 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
         marginBottom: "10px"
     });
     
-    // HTML Content (Old Layout)
+    // HTML Content
     toast.innerHTML = `
         <div style="font-size: 24px; color: ${typeColors[type] || typeColors.info}; display: flex; align-items: center;">
             <i class="${icons[type] || icons.info}"></i>
         </div>
+        
         <div style="flex: 1;">
             <p style="margin: 0; font-weight: 700; font-size: 16px; color: #333333;">${title}</p>
             <p style="margin: 4px 0 0; font-size: 14px; color: #666666; line-height: 1.4;">${message}</p>
         </div>
-        <button class="toast-close-btn" style="background: none; border: none; color: #999999; cursor: pointer; font-size: 18px; padding: 5px; display: flex; align-items: center; justify-content: center;">
+        
+        <button class="toast-close-btn" style="background: none; border: none; color: #999999; cursor: pointer; font-size: 18px; padding: 5px; display: flex; align-items: center; justify-content: center; transition: color 0.2s;">
             <i class="fa-solid fa-xmark"></i>
         </button>
     `;
 
-    // 4. Remove Function (Stuck නොවෙන විදිහට)
+    // 4. Remove Function
     let isRemoved = false;
     const removeToast = () => {
         if (isRemoved) return;
@@ -98,7 +100,6 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
         toast.style.opacity = "0";
         toast.style.transform = "translateX(100%)";
         
-        // 300ms කට පසු Element එක මකා දමයි
         setTimeout(() => {
             if (toast.parentElement) {
                 toast.parentElement.removeChild(toast);
@@ -106,7 +107,7 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
         }, 300);
     };
 
-    // Close Button Action
+    // Close Button Events
     const closeBtn = toast.querySelector(".toast-close-btn");
     closeBtn.addEventListener("mouseover", () => closeBtn.style.color = "#333");
     closeBtn.addEventListener("mouseleave", () => closeBtn.style.color = "#999");
@@ -121,8 +122,7 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
         toast.style.transform = "translateX(0)";
     });
 
-    // 5. AUTO DISMISS TIMER (වැදගත්ම කොටස)
-    // Duration එක 0 ට වඩා වැඩි නම් අනිවාර්යයෙන්ම අයින් කරන්න
+    // 5. AUTO DISMISS TIMER
     if (duration > 0) {
         setTimeout(removeToast, duration);
     }
@@ -131,23 +131,18 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
 }
 
 // --- 3. AUTO CHECKER (Sign Up -> Profile Stuck Fix) ---
-// Profile පිටුව Load වූ විගස මෙය ක්‍රියාත්මක වේ
 (function checkPendingToast() {
     try {
         const pending = localStorage.getItem('nexguard_pending_toast');
         if (pending) {
-            // මුලින්ම Storage එකෙන් මකනවා (Stuck වීම වළක්වයි)
             localStorage.removeItem('nexguard_pending_toast');
-            
             const data = JSON.parse(pending);
-            
-            // තත්පර 0.5 කට පසු පෙන්වයි (පිටුව සම්පූර්ණයෙන්ම Load වීමට ඉඩ දේ)
             setTimeout(() => {
                 showToast({
                     title: data.title,
                     message: data.message,
                     type: data.type,
-                    duration: 5000 // තත්පර 5කින් අනිවාර්යයෙන්ම යන්න
+                    duration: 5000
                 });
             }, 500);
         }
@@ -156,8 +151,7 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
     }
 })();
 
-// --- 4. OTHER UTILS (Animation, Floating Menu, QR, Toggle Password) ---
-// මේවා වෙනස් කර නැත, එහෙමම තියන්න
+// --- 4. OTHER UTILS ---
 
 export function initAnimations() {
     const observer = new IntersectionObserver((entries) => {
@@ -207,14 +201,18 @@ export class SikFloatingMenu {
         this.closeAll();
         item.classList.add('open');
         let list = item.closest('li').querySelector(".floating-menu");
-        list.style.setProperty("max-height", (list.querySelectorAll('li').length * list.querySelectorAll('li')[0].offsetHeight + 10) + 'px');
-        list.style.setProperty("opacity", "1");
+        if(list) {
+            list.style.setProperty("max-height", (list.querySelectorAll('li').length * list.querySelectorAll('li')[0].offsetHeight + 10) + 'px');
+            list.style.setProperty("opacity", "1");
+        }
     }
     _close(item) {
         let list = item.closest('li').querySelector(".floating-menu");
         item.classList.remove('open');
-        list.style.removeProperty("max-height");
-        list.style.removeProperty("opacity");
+        if(list) {
+            list.style.removeProperty("max-height");
+            list.style.removeProperty("opacity");
+        }
     }
     closeAll() {
         let opened = this.menuEl.querySelectorAll('.trigger-menu.open');
@@ -237,18 +235,24 @@ export const qrModalLogic = {
         const qrModal = document.getElementById("qr-modal");
         const qrModalContent = document.getElementById("modal-qr-code");
         const qrModalConnectionName = document.getElementById("modal-connection-name");
-        qrModalContent.innerHTML = "";
-        const img = document.createElement("img");
-        img.src = qrDataUrl;
-        qrModalContent.appendChild(img);
-        qrModalConnectionName.textContent = connectionName;
-        qrModal.style.display = "flex";
-        document.body.classList.add("modal-open");
+        if(qrModalContent) {
+            qrModalContent.innerHTML = "";
+            const img = document.createElement("img");
+            img.src = qrDataUrl;
+            qrModalContent.appendChild(img);
+        }
+        if(qrModalConnectionName) qrModalConnectionName.textContent = connectionName;
+        if(qrModal) {
+            qrModal.style.display = "flex";
+            document.body.classList.add("modal-open");
+        }
     },
     close: () => {
         const qrModal = document.getElementById("qr-modal");
-        qrModal.style.display = "none";
-        document.body.classList.remove("modal-open");
+        if(qrModal) {
+            qrModal.style.display = "none";
+            document.body.classList.remove("modal-open");
+        }
     },
     init: () => {
         const qrModal = document.getElementById("qr-modal");
