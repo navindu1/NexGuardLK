@@ -5,6 +5,12 @@
   --glow-color: rgba(168, 85, 247, 0.7);
   --brand-purple: #a855f7;
   --brand-gradient: linear-gradient(90deg, #818cf8, #a78bfa, #f472b6);
+  
+  /* --- NEW: Liquid Glass Variables --- */
+  --glass-border: rgba(255, 255, 255, 0.15);
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-shine: rgba(255, 255, 255, 0.05);
+  --liquid-radius: 24px; /* More rounded corners for liquid feel */
 }
 
 html {
@@ -37,13 +43,17 @@ body.modal-open {
   z-index: 1;
 }
 
-/* MODIFIED: Changed border-radius from 9999px to 1rem for a more professional look */
+/* --- UPDATED: Liquid Glass Panel Effect --- */
 .glass-panel {
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  border-radius: 1rem; /* A modern, subtle curve */
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px) saturate(180%); /* Higher blur + saturation */
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  box-shadow: 
+    0 8px 32px 0 rgba(0, 0, 0, 0.37),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05); /* Inner shine */
+  border-radius: var(--liquid-radius); /* Updated Radius */
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .gradient-text {
@@ -52,10 +62,6 @@ body.modal-open {
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
-
-
-
-
 
 .page {
   animation: pageFadeIn 0.5s ease-out forwards;
@@ -76,7 +82,9 @@ body.modal-open {
     border-radius: 35px !important;
 }
 
+/* --- BUTTONS --- */
 
+/* Original AI Button */
 .ai-button {
   position: relative;
   background: var(--brand-gradient);
@@ -85,12 +93,11 @@ body.modal-open {
   overflow: hidden;
   font-family: "Orbitron", sans-serif;
   border-radius: 9999px;
-  /* NEW UNIFIED SIZE STYLES */
-  padding: 0.5rem 1.5rem; /* 8px vertical, 24px horizontal (py-2, px-6) */
-  font-size: 0.875rem;   /* 14px (text-sm) */
-  font-weight: 600;      /* semibold */
+  padding: 0.5rem 1.5rem;
+  font-size: 0.875rem; 
+  font-weight: 600;      
   text-align: center;
-  line-height: 1.5;      /* Ensure consistent line height */
+  line-height: 1.5;      
 }
 
 .ai-button:hover:not(:disabled) {
@@ -107,12 +114,29 @@ body.modal-open {
   background: rgba(168, 85, 247, 0.2);
 }
 
+/* NEW: Generic Glossy Button (merged) */
+.btn {
+  border-radius: 99px; /* Pill shape */
+  padding: 10px 20px;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(4px);
+  /* Fallback styles if not overridden by bootstrap/tailwind classes */
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.btn-primary { background: var(--brand-purple); border-color: var(--brand-purple); }
+.btn-secondary { background: rgba(255, 255, 255, 0.1); }
+.btn-danger { background: #ef4444; border-color: #ef4444; }
+
 .nav-link {
   position: relative;
   color: #a0aec0;
   transition: all 0.3s;
   padding: 4px 8px;
-  border-radius: 9999px; /* Fully rounded */
+  border-radius: 9999px;
 }
 
 .nav-link.active {
@@ -122,12 +146,11 @@ body.modal-open {
 
 .nav-link:hover {
   color: #ffffff;
-  background-color: rgba(59, 130, 246, 0.1); /* Subtle blue background from theme */
-  text-shadow: 0 0 8px rgba(59, 130, 246, 0.5); /* Blue text glow */
+  background-color: rgba(59, 130, 246, 0.1);
+  text-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
 }
 
-
-/* MODIFIED: Changed border-radius from 9999px to 1rem */
+/* --- CARDS --- */
 .card {
   position: relative;
   transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
@@ -135,7 +158,7 @@ body.modal-open {
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.1);
   transform-style: preserve-3d;
-  border-radius: 1rem; /* A modern, subtle curve */
+  border-radius: var(--liquid-radius); /* Updated to match liquid theme */
 }
 
 .card::before,
@@ -191,24 +214,31 @@ body.modal-open {
   transform: translateY(0) scale(1);
 }
 
+/* --- FORMS & INPUTS --- */
+
 .form-group {
   position: relative;
   margin-top: 2.5rem;
   width: 100%;
 }
 
-.form-input {
-  font-size: 14px;
-  color: #e0e0e0;
-  width: 100%;
-  height: 48px;
-  letter-spacing: 1px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background-color: rgba(0, 0, 0, 0.3);
-  padding: 14px 12px 0 12px;
-  transition: 0.4s;
-  outline: none;
-  border-radius: 9999px; /* Fully rounded */
+/* UPDATED: Deep Glass Input Style (Replaces old .form-input) */
+.input-dark, input[type="text"], input[type="number"], input[type="password"], textarea, .form-input {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 16px !important;
+    color: white !important;
+    transition: all 0.3s ease;
+    padding: 14px 12px;
+    width: 100%;
+    outline: none;
+    letter-spacing: 1px;
+}
+
+.input-dark:focus, input:focus, textarea:focus, .form-input:focus {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+    border-color: var(--brand-purple) !important;
+    box-shadow: 0 0 15px rgba(168, 85, 247, 0.2);
 }
 
 .form-label {
@@ -221,217 +251,146 @@ body.modal-open {
   pointer-events: none;
 }
 
+/* Label Animation adjustments for new input style */
 .form-input:focus ~ .form-label,
 .form-input:not(:placeholder-shown) ~ .form-label {
-  top: 6px;
+  top: -20px; /* Moved up outside the input */
   font-size: 11px;
   color: var(--brand-purple);
-}
-
-.form-input ~ .focus-border:before,
-.form-input ~ .focus-border:after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: 0;
-  height: 2px;
-  background-color: var(--brand-purple);
-  transition: 0.4s;
-  border-radius: 9999px; /* Fully rounded */
-}
-
-.form-input ~ .focus-border:after {
-  top: auto;
-  bottom: 0;
-}
-
-.form-input ~ .focus-border i:before,
-.form-input ~ .focus-border i:after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 2px;
-  height: 0;
-  background-color: var(--brand-purple);
-  transition: 0.6s;
-}
-
-.form-input ~ .focus-border i:after {
-  left: auto;
-  right: 0;
 }
 
 .navbar {
   border-radius: 9999px
 }
 
-.form-input:focus ~ .focus-border:before,
-.form-input:focus ~ .focus-border:after {
-  left: 0;
-  width: 100%;
-  transition: 0.4s;
-}
-
-.form-input:focus ~ .focus-border i:before,
-.form-input:focus ~ .focus-border i:after {
-  top: 0;
-  height: 100%;
-  transition: 0.6s;
-}
-
-/* Added for admin/reseller connection cards */
+/* --- CONNECTION CARDS (UPDATED) --- */
 .connection-card {
-    background: rgba(10, 8, 28, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 1rem; /* Consistent subtle rounding */
+    background: linear-gradient(145deg, rgba(10, 8, 28, 0.6), rgba(20, 20, 40, 0.4));
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--liquid-radius);
     margin-bottom: 1.5rem;
     overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
 }
 
-/* --- START: CLEANED UP AND UPDATED NAVBAR SCROLL ANIMATION --- */
+.connection-header {
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 1.25rem 1.5rem;
+}
+
+/* --- TABLES (NEW) --- */
+.responsive-table tr {
+    border-radius: 12px; 
+}
+.responsive-table td:first-child { border-top-left-radius: 12px; border-bottom-left-radius: 12px; }
+.responsive-table td:last-child { border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
+
+/* --- HEADER ANIMATION --- */
 #main-header {
-    /* 1. Initial state (when at top of page) */
     background-color: transparent !important;
     border-color: transparent !important;
     box-shadow: none !important;
     backdrop-filter: blur(0px) !important;
-
-    /* 2. Animation for smooth transition */
     transition: all 0.4s ease-in-out;
 }
 
 #main-header.scrolled {
-    /* 3. Appearance when scrolled */
     backdrop-filter: blur(16px) !important;
-
-    /* 4. Updated, softer shadow */
     box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25), 0 0 40px rgba(59, 130, 246, 0.2) !important;
 }
-/* --- END: CLEANED UP AND UPDATED NAVBAR SCROLL ANIMATION --- */
 
-/* ======================================== */
-/* MODERN GLASS TOAST (CURVED STRIP FIX)    */
-/* ======================================== */
-
-/* Toast එකේ ප්‍රධාන හැඩය වෙනස් කිරීම */
-.toast {
-  display: flex;
-  align-items: flex-start;
-  padding: 0.75rem;
-  
-  /* වම් පැත්ත කොටු (0), දකුණු පැත්ත රවුම් (50px) */
-  border-radius: 0 50px 50px 0 !important; 
-  
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  color: #e0e0e0;
-  position: relative;
-  overflow: hidden;
-  transform: translateX(120%);
-  opacity: 0;
-  transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease-out;
-  
-  /* වම් පැත්තේ පාට තීරුවට ඉඩ තැබීම */
-  padding-left: 12px; 
+/* --- TOAST NOTIFICATION (NEW LIQUID STYLE) --- */
+/* This replaces the old square-left/round-right style to match image_611a48.png */
+#toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
-/* වම් පැත්තේ ඇති පාට තීරුව (Colored Strip) කෙලින් කිරීම */
-.toast::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: 4px;
-  
-  /* පාට තීරුව කොටු කිරීම */
-  border-radius: 0 !important; 
+.toast {
+    display: flex;
+    align-items: center;
+    padding: 16px 20px;
+    min-width: 320px;
+    background: rgba(18, 18, 24, 0.85); /* Darker base */
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px; /* Fully rounded capsule shape */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    color: #fff;
+    transform: translateX(120%);
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    position: relative;
+    overflow: hidden;
 }
 
 .toast.show {
-  transform: translateX(0);
-  opacity: 1;
+    transform: translateX(0);
+    opacity: 1;
 }
 
-/* --- 2. පාට තීරුව Curve වෙලා එන්න හැදීම (Inset Shadow Trick) --- */
-/* box-shadow: inset [width] 0 0 0 [color] */
-/* මේකෙන් වෙන්නේ පාට තීරුව බොඩර් එක ඇතුලෙන්ම හැදෙන නිසා ඒක රවුම් හැඩේටම එනවා */
-
-/* Success (Green) */
-.toast--success {
-  /* වම් පැත්තෙන් 6px කොළ පාට තීරුවක් + පිටුපසට සියුම් කොළ එළියක් */
-  box-shadow: inset 7px 0 0 0 #22c55e, 0 0 20px rgba(34, 197, 94, 0.15) !important;
-  border-left: 1px solid rgba(34, 197, 94, 0.3); /* වම් පැත්තේ Border එක ටිකක් පාට කළා */
+/* The Left Glow Strip (Straight line, but inside rounded container) */
+.toast::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 6px;
+    height: 100%;
+    background: currentColor; 
+    box-shadow: 0 0 15px currentColor;
+    border-radius: 0; /* Stripe itself is straight */
 }
-.toast--success .toast-icon { color: #4ade80; text-shadow: 0 0 12px rgba(34, 197, 94, 0.8); }
 
-/* Error (Red) */
-.toast--error {
-  box-shadow: inset 7px 0 0 0 #ef4444, 0 0 20px rgba(239, 68, 68, 0.15) !important;
-  border-left: 1px solid rgba(239, 68, 68, 0.3);
-}
-.toast--error .toast-icon { color: #f87171; text-shadow: 0 0 12px rgba(239, 68, 68, 0.8); }
-
-/* Warning (Orange) */
-.toast--warning {
-  box-shadow: inset 7px 0 0 0 #f97316, 0 0 20px rgba(249, 115, 22, 0.15) !important;
-  border-left: 1px solid rgba(249, 115, 22, 0.3);
-}
-.toast--warning .toast-icon { color: #fb923c; text-shadow: 0 0 12px rgba(249, 115, 22, 0.8); }
-
-/* Info (Blue) */
-.toast--info {
-  box-shadow: inset 7px 0 0 0 #3b82f6, 0 0 20px rgba(59, 130, 246, 0.15) !important;
-  border-left: 1px solid rgba(59, 130, 246, 0.3);
-}
-.toast--info .toast-icon { color: #60a5fa; text-shadow: 0 0 12px rgba(59, 130, 246, 0.8); }
-
-/* --- Content Styling --- */
+.toast--success { color: #22c55e; }
+.toast--error { color: #ef4444; }
+.toast--warning { color: #f97316; }
+.toast--info { color: #3b82f6; }
 
 .toast-icon {
-  font-size: 1.4rem;
-  margin-right: 15px;
-  display: flex;
-  align-items: center;
+    font-size: 1.5rem;
+    margin-right: 15px;
+    filter: drop-shadow(0 0 8px currentColor);
+    color: inherit; /* Takes color from toast class */
 }
 
 .toast-content {
-  flex-grow: 1;
+    flex: 1;
+    color: #e2e8f0;
 }
 
 .toast-title {
-  font-weight: 700;
-  font-size: 0.95rem;
-  margin: 0 0 2px 0;
-  color: #ffffff;
-  letter-spacing: 0.5px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 2px;
+    color: #fff;
 }
 
 .toast-message {
-  font-size: 0.8rem;
-  margin: 0;
-  color: #cbd5e1;
-  line-height: 1.4;
-  opacity: 0.9;
+    font-size: 0.85rem;
+    color: #94a3b8;
 }
 
 .toast-close-btn {
-  margin-left: 12px;
-  background: transparent;
-  border: none;
-  color: #94a3b8;
-  font-size: 1.2rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  padding: 4px;
-  border-radius: 50%;
+    background: none;
+    border: none;
+    color: #64748b;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: color 0.2s;
+    margin-left: 10px;
 }
+.toast-close-btn:hover { color: #fff; }
 
-.toast-close-btn:hover {
-  color: #ffffff;
-  background: rgba(255,255,255,0.1);
+/* Modal Adjustments */
+.modal .glass-panel {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }

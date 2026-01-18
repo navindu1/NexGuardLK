@@ -178,6 +178,18 @@ const updateUserCredit = async (req, res) => {
     }
 };
 
+// --- NEW: Delete User Function ---
+const deleteUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { error } = await supabase.from('users').delete().eq('id', id);
+        if (error) throw error;
+        res.json({ success: true, message: 'User deleted successfully.' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to delete user.' });
+    }
+};
+
 // --- 4. CONNECTION & PACKAGE MANAGEMENT ---
 const getConnectionsAndPackages = async (req, res) => {
     try {
@@ -524,6 +536,7 @@ module.exports = {
     rejectOrder,
     getUsers,
     updateUserCredit,
+    deleteUser, // Exported the new function
     getResellers,
     getConnectionsAndPackages,
     createConnection,

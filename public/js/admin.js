@@ -1,3 +1,4 @@
+// File: public/js/admin.js
 document.addEventListener("DOMContentLoaded", () => {
 
     // --- Vanta Background Animation ---
@@ -127,9 +128,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    // --- FIX: Auto Reload Default Logic ---
     const setupAutoReload = () => {
-        const isEnabled = localStorage.getItem('autoReloadEnabled') === 'true';
+        // Default to TRUE if not present in localStorage (first visit)
+        const savedState = localStorage.getItem('autoReloadEnabled');
+        const isEnabled = savedState === null ? true : (savedState === 'true');
+        
         if (autoReloadCheckbox) autoReloadCheckbox.checked = isEnabled;
+        
         clearInterval(autoReloadInterval);
         if (isEnabled) {
             autoReloadInterval = setInterval(() => {
@@ -289,20 +295,25 @@ document.addEventListener("DOMContentLoaded", () => {
             <tbody>${filteredUsers.map(user => {
             const roleSpecificData = role === 'user' ? `<td data-label="Active Plans">${(user.active_plans || []).length}</td>` : `<td data-label="Credit">LKR ${parseFloat(user.credit_balance || 0).toFixed(2)}</td>`;
             const roleSpecificButtons = role === 'reseller' ? `<button class="btn btn-primary add-credit-btn" data-id="${user.id}" data-username="${user.username}"><i class="fa-solid fa-coins"></i></button>` : '';
+            // --- FIX: Added 'ban-user-btn' class ---
             return `<tr class="border-b border-slate-800 hover:bg-slate-800/50">
                     <td data-label="Username">${user.username}</td>
                     <td data-label="Contact"><div>${user.email}</div><div class="text-xs text-slate-400">${user.whatsapp || ''}</div></td>
                     ${roleSpecificData}
-                    <td data-label="Actions" class="actions-cell"><div class="flex justify-center gap-2">${roleSpecificButtons}<button class="btn btn-danger" data-id="${user.id}"><i class="fa-solid fa-user-slash"></i></button></div></td>
+                    <td data-label="Actions" class="actions-cell"><div class="flex justify-center gap-2">${roleSpecificButtons}<button class="btn btn-danger ban-user-btn" data-id="${user.id}"><i class="fa-solid fa-user-slash"></i></button></div></td>
                 </tr>`}).join('')}
             </tbody></table></div>`;
     }
 
     function renderConnections() {
         contentTitle.textContent = `Connections & Packages`;
+        
+        // --- FIX: BUTTON VISIBILITY ---
         searchBarContainer.classList.add('hidden');
-        addNewBtn.classList.add('hidden');
-        addNewBtn.dataset.type = 'connection';
+        addNewBtn.classList.remove('hidden'); // Force show button
+        addNewBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Add Connection'; // Set text
+        addNewBtn.dataset.type = 'connection'; // Set type
+        // -----------------------------
 
         const connections = dataCache.connections || [];
         if (connections.length === 0) {
@@ -918,6 +929,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 const amount = prompt(`Add credit for ${button.dataset.username}:`);
                 if (amount && !isNaN(parseFloat(amount))) {
                     await handleAction(`/users/credit`, { userId: id, amount: parseFloat(amount) }, 'Credit Added', 'POST', button);
+                }
+            }
+            // --- FIX: User Ban Handler ---
+            else if (button.classList.contains('ban-user-btn')) {
+                if(confirm('Are you sure you want to BAN/DELETE this user? This action cannot be undone.')) {
+                    await handleAction(`/users/${id}`, null, 'User Banned/Deleted Successfully', 'DELETE', button);
                 }
             }
             // --- Generate Share Image Button ---
