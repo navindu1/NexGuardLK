@@ -1,6 +1,6 @@
 // File: public/js/utils.js
 
-// --- 1. RELOAD LOGIC ---
+// --- 1. RELOAD LOGIC (පිටුව මාරු වන විට මැසේජ් පෙන්වීමට) ---
 export function reloadWithToast(title, message, type = "success") {
     const toastData = { title, message, type, timestamp: Date.now() };
     localStorage.setItem('nexguard_pending_toast', JSON.stringify(toastData));
@@ -12,85 +12,74 @@ export function reloadWithToast(title, message, type = "success") {
     }
 }
 
-// --- 2. TOAST SYSTEM (UPDATED DESIGN - BLUE NOTIFICATION STYLE) ---
+// --- 2. NEW MODERN TOAST SYSTEM (Glassmorphism Design) ---
 export function showToast({ title, message, type = "info", duration = 5000 }) {
-    // 1. Container Setup
+    // 1. Container Setup (Container එක සොයාගැනීම හෝ අලුතින් සෑදීම)
     let container = document.getElementById("toast-container");
     if (!container) {
         container = document.createElement("div");
         container.id = "toast-container";
-        // Fixed top center, high z-index, flex column for stacking
-        container.className = "fixed top-5 left-1/2 transform -translate-x-1/2 z-[999999] flex flex-col gap-3 pointer-events-none max-w-md";
+        // සටහන: මෙහි Styles දැන් modern.css ගොනුවෙන් පාලනය වේ.
+        // (#toast-container ලෙස CSS එකේ ඇත)
         document.body.appendChild(container);
     }
 
-    // 2. Color configurations for different toast types
-    const typeConfig = {
-        success: {
-            bg: 'bg-green-600',
-            icon: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`
-        },
-        error: {
-            bg: 'bg-red-600',
-            icon: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`
-        },
-        warning: {
-            bg: 'bg-yellow-600',
-            icon: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`
-        },
-        info: {
-            bg: 'bg-blue-600',
-            icon: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`
-        }
+    // 2. Icon Mapping (FontAwesome අයිකන)
+    const icons = {
+        success: 'fa-solid fa-circle-check',
+        error: 'fa-solid fa-circle-exclamation',
+        warning: 'fa-solid fa-triangle-exclamation',
+        info: 'fa-solid fa-circle-info'
     };
 
-    const config = typeConfig[type] || typeConfig.info;
-
-    // 3. Create Toast Element
+    // 3. Create Toast Element (modern.css හි ඇති Classes භාවිතා කිරීම)
     const toast = document.createElement("div");
     
-    // Tailwind Styling: Blue notification box design
-    toast.className = `pointer-events-auto flex items-start gap-3 w-full px-5 py-4 ${config.bg} rounded-lg shadow-xl transform transition-all duration-300 opacity-0 -translate-y-4`;
+    // 'toast' සහ 'toast--[type]' යන පන්ති (Classes) එකතු කිරීම
+    toast.className = `toast toast--${type}`;
     
-    // HTML Structure - Matches the design from the image
+    // HTML Structure (CSS වලට ගැලපෙන ලෙස)
     toast.innerHTML = `
-        <div class="flex-shrink-0 text-white pt-0.5">
-            ${config.icon}
+        <div class="toast-icon">
+            <i class="${icons[type] || icons.info}"></i>
         </div>
-        <div class="flex-1">
-            <p class="text-sm font-semibold text-white">${title}</p>
-            <p class="text-sm text-white/90 mt-1">${message}</p>
+        <div class="toast-content">
+            <h3 class="toast-title">${title}</h3>
+            <p class="toast-message">${message}</p>
         </div>
-        <button class="toast-close-btn flex-shrink-0 text-white/60 hover:text-white transition-colors">
-            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-            </svg>
+        <button class="toast-close-btn">
+            <i class="fa-solid fa-xmark"></i>
         </button>
     `;
 
-    // 4. Remove Function (Slide Out)
+    // 4. Remove Function (Slide Out Animation)
     const removeToast = () => {
-        toast.classList.add("opacity-0", "-translate-y-4");
+        toast.classList.remove("show"); // CSS Transition මගින් ඉවත් වේ
         setTimeout(() => {
             if (toast.parentElement) {
                 toast.remove();
             }
-        }, 300); // Matches transition duration
+        }, 400); // 0.4s කාලයක් රැදී සිට ඉවත් වේ
     };
 
     // Close Button Event
     const closeBtn = toast.querySelector(".toast-close-btn");
-    closeBtn.onclick = removeToast;
+    if (closeBtn) {
+        closeBtn.onclick = removeToast;
+    }
 
     // Append to Container
     container.appendChild(toast);
     
-    // Show Animation (Fade In)
+    // Show Animation (Slide In)
+    // කුඩා කාල පරතරයකට පසු 'show' class එක එකතු කරයි
     requestAnimationFrame(() => {
-        toast.classList.remove("opacity-0", "-translate-y-4");
+        setTimeout(() => {
+            toast.classList.add("show");
+        }, 10);
     });
 
-    // 5. Auto Dismiss
+    // 5. Auto Dismiss (ස්වයංක්‍රීයව ඉවත් වීම)
     if (duration > 0) {
         setTimeout(removeToast, duration);
     }
@@ -98,13 +87,14 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
     return { hide: removeToast };
 }
 
-// --- 3. AUTO CHECKER ---
+// --- 3. AUTO CHECKER (Sign Up -> Profile Stuck Fix) ---
 (function checkPendingToast() {
     try {
         const pending = localStorage.getItem('nexguard_pending_toast');
         if (pending) {
             localStorage.removeItem('nexguard_pending_toast');
             const data = JSON.parse(pending);
+            
             setTimeout(() => {
                 showToast({
                     title: data.title,
@@ -119,7 +109,7 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
     }
 })();
 
-// --- 4. OTHER UTILS (Animation, Password, Menu, QR) ---
+// --- 4. OTHER UTILS (Animation, Floating Menu, QR, Toggle Password) ---
 
 export function initAnimations() {
     const observer = new IntersectionObserver((entries) => {
@@ -203,21 +193,26 @@ export const qrModalLogic = {
         const qrModal = document.getElementById("qr-modal");
         const qrModalContent = document.getElementById("modal-qr-code");
         const qrModalConnectionName = document.getElementById("modal-connection-name");
-        if(qrModalContent) {
+        
+        if (qrModalContent) {
             qrModalContent.innerHTML = "";
             const img = document.createElement("img");
             img.src = qrDataUrl;
             qrModalContent.appendChild(img);
         }
-        if(qrModalConnectionName) qrModalConnectionName.textContent = connectionName;
-        if(qrModal) {
+        
+        if (qrModalConnectionName) {
+            qrModalConnectionName.textContent = connectionName;
+        }
+
+        if (qrModal) {
             qrModal.style.display = "flex";
             document.body.classList.add("modal-open");
         }
     },
     close: () => {
         const qrModal = document.getElementById("qr-modal");
-        if(qrModal) {
+        if (qrModal) {
             qrModal.style.display = "none";
             document.body.classList.remove("modal-open");
         }
