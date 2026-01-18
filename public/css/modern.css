@@ -5,12 +5,6 @@
   --glow-color: rgba(168, 85, 247, 0.7);
   --brand-purple: #a855f7;
   --brand-gradient: linear-gradient(90deg, #818cf8, #a78bfa, #f472b6);
-  
-  /* --- NEW: Liquid Glass Variables --- */
-  --glass-border: rgba(255, 255, 255, 0.15);
-  --glass-bg: rgba(255, 255, 255, 0.03);
-  --glass-shine: rgba(255, 255, 255, 0.05);
-  --liquid-radius: 24px; /* More rounded corners for liquid feel */
 }
 
 html {
@@ -43,17 +37,16 @@ body.modal-open {
   z-index: 1;
 }
 
-/* --- UPDATED: Liquid Glass Panel Effect --- */
+/* MODIFIED: Liquid Glass Effect & Rounding */
 .glass-panel {
-  background: var(--glass-bg);
-  backdrop-filter: blur(24px) saturate(180%); /* Higher blur + saturation */
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid var(--glass-border);
-  box-shadow: 
-    0 8px 32px 0 rgba(0, 0, 0, 0.37),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.05); /* Inner shine */
-  border-radius: var(--liquid-radius); /* Updated Radius */
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  background: rgba(255, 255, 255, 0.03); /* Liquid transparent look */
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid rgba(255, 255, 255, 0.2); /* Top highlight for liquid effect */
+  border-left: 1px solid rgba(255, 255, 255, 0.2); /* Left highlight */
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  border-radius: 20px !important; /* Fixed rounding as requested */
 }
 
 .gradient-text {
@@ -82,9 +75,6 @@ body.modal-open {
     border-radius: 35px !important;
 }
 
-/* --- BUTTONS --- */
-
-/* Original AI Button */
 .ai-button {
   position: relative;
   background: var(--brand-gradient);
@@ -94,10 +84,10 @@ body.modal-open {
   font-family: "Orbitron", sans-serif;
   border-radius: 9999px;
   padding: 0.5rem 1.5rem;
-  font-size: 0.875rem; 
-  font-weight: 600;      
+  font-size: 0.875rem;
+  font-weight: 600;
   text-align: center;
-  line-height: 1.5;      
+  line-height: 1.5;
 }
 
 .ai-button:hover:not(:disabled) {
@@ -113,23 +103,6 @@ body.modal-open {
 .ai-button.secondary:hover {
   background: rgba(168, 85, 247, 0.2);
 }
-
-/* NEW: Generic Glossy Button (merged) */
-.btn {
-  border-radius: 99px; /* Pill shape */
-  padding: 10px 20px;
-  text-transform: uppercase;
-  font-size: 0.75rem;
-  letter-spacing: 0.5px;
-  backdrop-filter: blur(4px);
-  /* Fallback styles if not overridden by bootstrap/tailwind classes */
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  border: 1px solid rgba(255,255,255,0.1);
-}
-.btn-primary { background: var(--brand-purple); border-color: var(--brand-purple); }
-.btn-secondary { background: rgba(255, 255, 255, 0.1); }
-.btn-danger { background: #ef4444; border-color: #ef4444; }
 
 .nav-link {
   position: relative;
@@ -150,15 +123,23 @@ body.modal-open {
   text-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
 }
 
-/* --- CARDS --- */
+/* MODIFIED: Liquid Glass Effect & Rounding for Cards */
 .card {
   position: relative;
   transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
     box-shadow 0.4s ease;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  
+  /* Liquid Glass Styles */
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+  
   transform-style: preserve-3d;
-  border-radius: var(--liquid-radius); /* Updated to match liquid theme */
+  border-radius: 20px !important; /* Fixed rounding as requested */
 }
 
 .card::before,
@@ -194,7 +175,7 @@ body.modal-open {
 }
 
 .card:hover {
-  transform: perspective(1000px) rotateX(5deg) rotateY(-5deg) scale(1.05);
+  transform: perspective(1000px) rotateX(2deg) rotateY(-2deg) scale(1.02); /* Reduced rotation for smoother feel */
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
 }
 
@@ -214,31 +195,24 @@ body.modal-open {
   transform: translateY(0) scale(1);
 }
 
-/* --- FORMS & INPUTS --- */
-
 .form-group {
   position: relative;
   margin-top: 2.5rem;
   width: 100%;
 }
 
-/* UPDATED: Deep Glass Input Style (Replaces old .form-input) */
-.input-dark, input[type="text"], input[type="number"], input[type="password"], textarea, .form-input {
-    background-color: rgba(0, 0, 0, 0.3) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    border-radius: 16px !important;
-    color: white !important;
-    transition: all 0.3s ease;
-    padding: 14px 12px;
-    width: 100%;
-    outline: none;
-    letter-spacing: 1px;
-}
-
-.input-dark:focus, input:focus, textarea:focus, .form-input:focus {
-    background-color: rgba(0, 0, 0, 0.5) !important;
-    border-color: var(--brand-purple) !important;
-    box-shadow: 0 0 15px rgba(168, 85, 247, 0.2);
+.form-input {
+  font-size: 14px;
+  color: #e0e0e0;
+  width: 100%;
+  height: 48px;
+  letter-spacing: 1px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 14px 12px 0 12px;
+  transition: 0.4s;
+  outline: none;
+  border-radius: 9999px;
 }
 
 .form-label {
@@ -251,43 +225,77 @@ body.modal-open {
   pointer-events: none;
 }
 
-/* Label Animation adjustments for new input style */
 .form-input:focus ~ .form-label,
 .form-input:not(:placeholder-shown) ~ .form-label {
-  top: -20px; /* Moved up outside the input */
+  top: 6px;
   font-size: 11px;
   color: var(--brand-purple);
+}
+
+.form-input ~ .focus-border:before,
+.form-input ~ .focus-border:after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background-color: var(--brand-purple);
+  transition: 0.4s;
+  border-radius: 9999px;
+}
+
+.form-input ~ .focus-border:after {
+  top: auto;
+  bottom: 0;
+}
+
+.form-input ~ .focus-border i:before,
+.form-input ~ .focus-border i:after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 2px;
+  height: 0;
+  background-color: var(--brand-purple);
+  transition: 0.6s;
+}
+
+.form-input ~ .focus-border i:after {
+  left: auto;
+  right: 0;
 }
 
 .navbar {
   border-radius: 9999px
 }
 
-/* --- CONNECTION CARDS (UPDATED) --- */
+.form-input:focus ~ .focus-border:before,
+.form-input:focus ~ .focus-border:after {
+  left: 0;
+  width: 100%;
+  transition: 0.4s;
+}
+
+.form-input:focus ~ .focus-border i:before,
+.form-input:focus ~ .focus-border i:after {
+  top: 0;
+  height: 100%;
+  transition: 0.6s;
+}
+
+/* Added for admin/reseller connection cards */
 .connection-card {
-    background: linear-gradient(145deg, rgba(10, 8, 28, 0.6), rgba(20, 20, 40, 0.4));
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: var(--liquid-radius);
+    background: rgba(10, 8, 28, 0.4); /* More transparent */
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px !important; /* Consistent with other cards */
     margin-bottom: 1.5rem;
     overflow: hidden;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
 }
 
-.connection-header {
-    background: rgba(255, 255, 255, 0.03);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    padding: 1.25rem 1.5rem;
-}
-
-/* --- TABLES (NEW) --- */
-.responsive-table tr {
-    border-radius: 12px; 
-}
-.responsive-table td:first-child { border-top-left-radius: 12px; border-bottom-left-radius: 12px; }
-.responsive-table td:last-child { border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
-
-/* --- HEADER ANIMATION --- */
+/* --- NAVBAR SCROLL ANIMATION --- */
 #main-header {
     background-color: transparent !important;
     border-color: transparent !important;
@@ -301,96 +309,145 @@ body.modal-open {
     box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25), 0 0 40px rgba(59, 130, 246, 0.2) !important;
 }
 
-/* --- TOAST NOTIFICATION (NEW LIQUID STYLE) --- */
-/* This replaces the old square-left/round-right style to match image_611a48.png */
-#toast-container {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 10000;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+/* ======================================== */
+/* MODERN GLASS TOAST (LIQUID EFFECT)       */
+/* ======================================== */
+
+/* Included .toast-notification class to match Admin JS */
+.toast, .toast-notification {
+  display: flex;
+  align-items: flex-start;
+  padding: 0.75rem;
+  
+  /* Modern Asymmetric Shape: Square left, Round right */
+  border-radius: 0 50px 50px 0 !important; 
+  
+  /* Strong Glass Effect */
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: none; /* Left border handled by colored strip */
+  
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  color: #e0e0e0;
+  position: fixed; /* Fixed for toast notifications */
+  top: 20px;
+  right: 0; /* Changed to animate from right edge */
+  z-index: 9999;
+  
+  overflow: hidden;
+  transform: translateX(120%);
+  opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease-out;
+  
+  padding-left: 16px; /* Space for the colored strip */
+  max-width: 400px;
 }
 
-.toast {
-    display: flex;
-    align-items: center;
-    padding: 16px 20px;
-    min-width: 320px;
-    background: rgba(18, 18, 24, 0.85); /* Darker base */
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 20px; /* Fully rounded capsule shape */
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    color: #fff;
-    transform: translateX(120%);
-    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-    position: relative;
-    overflow: hidden;
+/* Colored Strip (Liquid Line) */
+.toast::before, .toast-notification::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 5px;
+  border-radius: 0 !important;
 }
 
-.toast.show {
-    transform: translateX(0);
-    opacity: 1;
+.toast.show, .toast-notification.show {
+  transform: translateX(-20px); /* Slide in, stopping 20px from edge */
+  opacity: 1;
 }
 
-/* The Left Glow Strip (Straight line, but inside rounded container) */
-.toast::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 6px;
-    height: 100%;
-    background: currentColor; 
-    box-shadow: 0 0 15px currentColor;
-    border-radius: 0; /* Stripe itself is straight */
+/* --- VARIANT STYLES (Compatible with both .toast--type and .type classes) --- */
+
+/* Success */
+.toast--success, .toast-notification.success {
+  box-shadow: inset 7px 0 0 0 #22c55e, 0 0 30px rgba(34, 197, 94, 0.2) !important;
+}
+.toast--success .toast-icon, .toast-notification.success .toast-icon { 
+    color: #4ade80; 
+    text-shadow: 0 0 15px rgba(34, 197, 94, 0.8); 
 }
 
-.toast--success { color: #22c55e; }
-.toast--error { color: #ef4444; }
-.toast--warning { color: #f97316; }
-.toast--info { color: #3b82f6; }
+/* Error */
+.toast--error, .toast-notification.error {
+  box-shadow: inset 7px 0 0 0 #ef4444, 0 0 30px rgba(239, 68, 68, 0.2) !important;
+}
+.toast--error .toast-icon, .toast-notification.error .toast-icon { 
+    color: #f87171; 
+    text-shadow: 0 0 15px rgba(239, 68, 68, 0.8); 
+}
+
+/* Warning */
+.toast--warning, .toast-notification.warning {
+  box-shadow: inset 7px 0 0 0 #f97316, 0 0 30px rgba(249, 115, 22, 0.2) !important;
+}
+.toast--warning .toast-icon, .toast-notification.warning .toast-icon { 
+    color: #fb923c; 
+    text-shadow: 0 0 15px rgba(249, 115, 22, 0.8); 
+}
+
+/* Info */
+.toast--info, .toast-notification.info {
+  box-shadow: inset 7px 0 0 0 #3b82f6, 0 0 30px rgba(59, 130, 246, 0.2) !important;
+}
+.toast--info .toast-icon, .toast-notification.info .toast-icon { 
+    color: #60a5fa; 
+    text-shadow: 0 0 15px rgba(59, 130, 246, 0.8); 
+}
+
+/* --- Content Styling --- */
 
 .toast-icon {
-    font-size: 1.5rem;
-    margin-right: 15px;
-    filter: drop-shadow(0 0 8px currentColor);
-    color: inherit; /* Takes color from toast class */
+  font-size: 1.5rem;
+  margin-right: 15px;
+  display: flex;
+  align-items: center;
+  margin-top: 2px;
 }
 
 .toast-content {
-    flex: 1;
-    color: #e2e8f0;
+  flex-grow: 1;
 }
 
 .toast-title {
-    font-weight: 700;
-    font-size: 0.95rem;
-    margin-bottom: 2px;
-    color: #fff;
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin: 0 0 4px 0;
+  color: #ffffff;
+  letter-spacing: 0.5px;
 }
 
 .toast-message {
-    font-size: 0.85rem;
-    color: #94a3b8;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  margin: 0;
+  color: #cbd5e1;
+  line-height: 1.4;
+  opacity: 0.9;
 }
 
 .toast-close-btn {
-    background: none;
-    border: none;
-    color: #64748b;
-    font-size: 1.2rem;
-    cursor: pointer;
-    transition: color 0.2s;
-    margin-left: 10px;
+  margin-left: 12px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.toast-close-btn:hover { color: #fff; }
 
-/* Modal Adjustments */
-.modal .glass-panel {
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+.toast-close-btn:hover {
+  color: #ffffff;
+  background: rgba(255,255,255,0.1);
+  transform: scale(1.1);
 }

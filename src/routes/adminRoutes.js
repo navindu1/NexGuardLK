@@ -1,4 +1,3 @@
-// File: src/routes/adminRoutes.js
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
@@ -18,9 +17,8 @@ router.post('/orders/reject', adminController.rejectOrder);
 // Users & Resellers
 router.get('/users', adminController.getUsers);
 router.post('/users/credit', adminController.updateUserCredit);
-// --- NEW: Route to delete/ban user ---
-router.delete('/users/:id', adminController.deleteUser);
-// -------------------------------------
+// NEW: User Ban Route (මෙය අලුතින් එකතු කරන ලදි)
+router.put('/users/:id/ban', adminController.banUser);
 router.get('/resellers', adminController.getResellers);
 
 // Connections Routes
@@ -33,10 +31,13 @@ router.delete('/connections/:id', adminController.deleteConnection);
 router.post('/packages', adminController.createPackage);
 router.put('/packages/:id', adminController.updatePackage);
 router.delete('/packages/:id', adminController.deletePackage);
+
+// Reports Routes
 router.get('/reports/chart-data', adminController.getChartData);
 router.get('/reports/download', adminController.downloadOrdersReport);
 router.get('/reports/summary', adminController.getReportSummary);
 
+// Tutorial Routes
 router.post('/tutorials', adminController.addTutorial);
 router.delete('/tutorials/:id', adminController.deleteTutorial);
 
@@ -44,9 +45,12 @@ router.delete('/tutorials/:id', adminController.deleteTutorial);
 router.get('/plans', adminController.getPlans);
 router.post('/plans', adminController.createPlan);
 router.delete('/plans/:id', adminController.deletePlan);
+
+// Settings Routes
 router.get('/settings', adminController.getSettings);
 router.post('/settings', adminController.updateSettings);
 
+// V2Ray Routes
 router.get('/inbounds', adminController.getV2rayInbounds); 
 
 module.exports = router;

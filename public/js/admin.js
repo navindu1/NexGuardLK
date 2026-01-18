@@ -1,4 +1,3 @@
-// File: public/js/admin.js
 document.addEventListener("DOMContentLoaded", () => {
 
     // --- Vanta Background Animation ---
@@ -65,6 +64,7 @@ document.addEventListener("DOMContentLoaded", () => {
         window.location.href = '/admin/login';
     }
 
+    // UPDATED: Toast Notification to match Website/Liquid Glass Design
     function showToast({ title, message, type = "info", duration = 5000 }) {
         let container = document.getElementById("toast-container");
         if (!container) {
@@ -74,15 +74,17 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         const icons = {
-            success: "fa-solid fa-check-circle",
-            error: "fa-solid fa-times-circle",
-            warning: "fa-solid fa-exclamation-triangle",
-            info: "fa-solid fa-info-circle",
+            success: "fa-solid fa-circle-check",
+            error: "fa-solid fa-circle-xmark",
+            warning: "fa-solid fa-triangle-exclamation",
+            info: "fa-solid fa-circle-info",
         };
         const iconClass = icons[type] || icons.info;
 
         const toast = document.createElement("div");
-        toast.className = `toast toast--${type}`;
+        // Using 'toast-notification' class for the new CSS styles
+        toast.className = `toast-notification ${type}`;
+        
         toast.innerHTML = `
             <div class="toast-icon"><i class="${iconClass}"></i></div>
             <div class="toast-content">
@@ -93,12 +95,16 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
 
         container.appendChild(toast);
-        setTimeout(() => toast.classList.add("show"), 100);
+        
+        // Trigger animation
+        requestAnimationFrame(() => {
+            toast.classList.add("show");
+        });
 
         const removeToast = () => {
             clearTimeout(dismissTimeout);
             toast.classList.remove("show");
-            setTimeout(() => toast.parentNode?.removeChild(toast), 500);
+            setTimeout(() => toast.remove(), 300);
         };
 
         const dismissTimeout = setTimeout(removeToast, duration);
@@ -128,14 +134,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // --- FIX: Auto Reload Default Logic ---
     const setupAutoReload = () => {
-        // Default to TRUE if not present in localStorage (first visit)
-        const savedState = localStorage.getItem('autoReloadEnabled');
-        const isEnabled = savedState === null ? true : (savedState === 'true');
-        
+        const isEnabled = localStorage.getItem('autoReloadEnabled') === 'true';
         if (autoReloadCheckbox) autoReloadCheckbox.checked = isEnabled;
-        
         clearInterval(autoReloadInterval);
         if (isEnabled) {
             autoReloadInterval = setInterval(() => {
@@ -281,7 +282,7 @@ document.addEventListener("DOMContentLoaded", () => {
         contentTitle.textContent = `${title} Management`;
         searchBarContainer.classList.remove('hidden');
         searchInput.placeholder = `Search ${title}s...`;
-        addNewBtn.classList.add('hidden');
+        addNewBtn.classList.add('hidden'); // Users tab does not need Add New button
         const filteredUsers = (users || []).filter(u => u.role === role && (u.username.toLowerCase().includes(searchInput.value.toLowerCase()) || (u.email || '').toLowerCase().includes(searchInput.value.toLowerCase())));
         if (filteredUsers.length === 0) {
             contentContainer.innerHTML = `<div class="glass-panel p-6 text-center rounded-lg">No ${title.toLowerCase()}s found.</div>`;
@@ -295,25 +296,24 @@ document.addEventListener("DOMContentLoaded", () => {
             <tbody>${filteredUsers.map(user => {
             const roleSpecificData = role === 'user' ? `<td data-label="Active Plans">${(user.active_plans || []).length}</td>` : `<td data-label="Credit">LKR ${parseFloat(user.credit_balance || 0).toFixed(2)}</td>`;
             const roleSpecificButtons = role === 'reseller' ? `<button class="btn btn-primary add-credit-btn" data-id="${user.id}" data-username="${user.username}"><i class="fa-solid fa-coins"></i></button>` : '';
-            // --- FIX: Added 'ban-user-btn' class ---
+            // Added 'ban-user-btn' class for the Ban action
             return `<tr class="border-b border-slate-800 hover:bg-slate-800/50">
                     <td data-label="Username">${user.username}</td>
                     <td data-label="Contact"><div>${user.email}</div><div class="text-xs text-slate-400">${user.whatsapp || ''}</div></td>
                     ${roleSpecificData}
-                    <td data-label="Actions" class="actions-cell"><div class="flex justify-center gap-2">${roleSpecificButtons}<button class="btn btn-danger ban-user-btn" data-id="${user.id}"><i class="fa-solid fa-user-slash"></i></button></div></td>
+                    <td data-label="Actions" class="actions-cell"><div class="flex justify-center gap-2">${roleSpecificButtons}<button class="btn btn-danger ban-user-btn" data-id="${user.id}" title="Ban User"><i class="fa-solid fa-user-slash"></i></button></div></td>
                 </tr>`}).join('')}
             </tbody></table></div>`;
     }
 
     function renderConnections() {
         contentTitle.textContent = `Connections & Packages`;
-        
-        // --- FIX: BUTTON VISIBILITY ---
         searchBarContainer.classList.add('hidden');
-        addNewBtn.classList.remove('hidden'); // Force show button
-        addNewBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Add Connection'; // Set text
-        addNewBtn.dataset.type = 'connection'; // Set type
-        // -----------------------------
+        
+        // UPDATED: Show Add New button for Connections
+        addNewBtn.classList.remove('hidden');
+        addNewBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Add Connection';
+        addNewBtn.dataset.type = 'connection';
 
         const connections = dataCache.connections || [];
         if (connections.length === 0) {
@@ -389,6 +389,8 @@ document.addEventListener("DOMContentLoaded", () => {
         currentView = 'plans';
         contentTitle.textContent = `Plan Management`;
         searchBarContainer.classList.add('hidden');
+        
+        // UPDATED: Show Add New button for Plans
         addNewBtn.classList.remove('hidden');
         addNewBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Add Plan';
         addNewBtn.dataset.type = 'plan';
@@ -651,7 +653,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // 1. Helper to extract ID
     function extractYouTubeId(input) {
-        // Regex patterns for different YouTube URL formats
         const patterns = [
             /embed\/([\w-]{11})/,          // Embed URL
             /[?&]v=([\w-]{11})/,           // Standard URL
@@ -669,14 +670,12 @@ document.addEventListener("DOMContentLoaded", () => {
     // 2. Load Tutorials (using User API route with Admin Token)
     async function loadAdminTutorials() {
         try {
-            // Note: If you have a specific admin endpoint, use it. Falling back to public/user endpoint for display.
             const token = localStorage.getItem('nexguard_admin_token');
             const response = await fetch('/api/user/tutorials', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             
             if (!response.ok) {
-                // If endpoint doesn't exist, we just show empty to avoid error flood
                 throw new Error("Failed to fetch tutorials");
             }
 
@@ -711,7 +710,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (!title || !videoInput) return showToast({ title: "Error", message: "Please fill all fields", type: "error" });
 
-        // Extract ID
         const video_id = extractYouTubeId(videoInput);
         if (!video_id) {
             return showToast({ title: "Invalid Video", message: "Could not detect a valid YouTube Video ID. Please check the URL.", type: "error" });
@@ -766,8 +764,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // --- NEW: HOME VIDEO LOGIC (Requires Settings Table/Endpoint) ---
-
     // 5. Update Home Page Video Link
     async function updateVideoLink() {
         const input = document.getElementById('youtubeLinkInput');
@@ -779,7 +775,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const videoId = extractYouTubeId(rawUrl);
         if (!videoId) return showToast({ title: "Error", message: "Invalid YouTube URL", type: "error" });
 
-        // Convert to Embed URL with autoplay parameters
         const embedUrl = `https://www.youtube.com/embed/${videoId}?rel=0&autoplay=1`;
         
         const button = document.querySelector('button[onclick="updateVideoLink()"]');
@@ -930,11 +925,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (amount && !isNaN(parseFloat(amount))) {
                     await handleAction(`/users/credit`, { userId: id, amount: parseFloat(amount) }, 'Credit Added', 'POST', button);
                 }
-            }
-            // --- FIX: User Ban Handler ---
-            else if (button.classList.contains('ban-user-btn')) {
-                if(confirm('Are you sure you want to BAN/DELETE this user? This action cannot be undone.')) {
-                    await handleAction(`/users/${id}`, null, 'User Banned/Deleted Successfully', 'DELETE', button);
+            // UPDATED: Ban User Handler
+            } else if (button.classList.contains('ban-user-btn')) {
+                if (confirm('Are you sure you want to BAN this user? They will not be able to log in or create new accounts with this email/phone.')) {
+                    await handleAction(`/users/${id}/ban`, { status: 'banned' }, 'User Banned Successfully', 'PUT', button);
                 }
             }
             // --- Generate Share Image Button ---
