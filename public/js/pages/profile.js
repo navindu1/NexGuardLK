@@ -577,7 +577,7 @@ export function renderProfilePage(renderFunc, params) {
                                         <div class="w-full">
                                             <label class="text-sm text-gray-400">V2Ray Config Link</label>
                                             <div class="flex items-center gap-2 mt-2">
-                                                <input type="text" readonly value="${plan.v2rayLink}" class="w-full bg-slate-800/50 border border-slate-700 rounded-md px-3 py-2 text-sm text-slate-300">
+                                                <input type="text" readonly value="${plan.v2rayLink}" style="border-radius: 50px;" class="w-full bg-slate-800/50 border border-slate-700 px-3 py-2 text-sm text-slate-300">
                                                 <button id="copy-config-btn" class="ai-button secondary !text-sm !font-semibold flex-shrink-0 px-4 py-2 rounded-md">Copy</button>
                                             </div>
                                         </div>
