@@ -76,9 +76,12 @@ exports.createOrder = async (req, res) => {
         }
 
         // --- 4. SMART RENEWAL vs CHANGE DETECTION ---
-        // We check if the user is staying on the SAME Inbound (Renewal) or moving to a NEW one (Change).
-        
-        let isRenewalBool = (isRenewal === "true" || isRenewal === true);
+        // Robust check for explicit "false" (Change Plan) vs "true" (Renew)
+        // This handles strings "true"/"false", booleans, and undefined.
+        const isExplicitChange = String(isRenewal).toLowerCase() === "false" || isRenewal === false;
+        const isExplicitRenewal = String(isRenewal).toLowerCase() === "true" || isRenewal === true;
+
+        let isRenewalBool = isExplicitRenewal; 
 
         if (old_v2ray_username) {
             try {
@@ -90,10 +93,18 @@ exports.createOrder = async (req, res) => {
 
                     if (currentInboundId === newInboundId) {
                         // Same Inbound:
-                        // FIX: Do NOT force isRenewalBool = true here. 
-                        // If user requested "Change Plan" (isRenewalBool = false), we must respect it.
-                        // We only log the detection but do not override the user's intent.
-                        console.log(`[Order Logic] Same Inbound (${currentInboundId}). Keeping User Intent: ${isRenewalBool ? 'RENEWAL' : 'CHANGE'}.`);
+                        if (isExplicitChange) {
+                            // User EXPLICITLY requested "Change Plan" (New Key), even on same inbound.
+                            // We respect their wish.
+                            isRenewalBool = false;
+                            console.log(`[Order Logic] Same Inbound (${currentInboundId}). User explicitly requested CHANGE.`);
+                        } else {
+                            // User is on same inbound and did NOT explicitly say "Change".
+                            // Assume "Renew" (or Upgrade/Downgrade keeping same key).
+                            // This fixes the issue where "Renew" button might send undefined/missing flag.
+                            isRenewalBool = true;
+                            console.log(`[Order Logic] Same Inbound (${currentInboundId}). Auto-detecting as RENEWAL.`);
+                        }
                     } else {
                         // Different Inbound: MUST be a Change/Migration (New User will be created)
                         console.log(`[Order Logic] Inbound Change (${currentInboundId} -> ${newInboundId}). Forcing CHANGE.`);
