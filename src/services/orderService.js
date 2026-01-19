@@ -200,7 +200,7 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
             }
 
         } else if (order.status === 'unconfirmed') {
-             // ... (Logic for unconfirmed orders remains same) ...
+            // --- Logic for Finalizing 'unconfirmed' Orders ---
             finalUsername = order.final_username;
             if (!finalUsername) throw new Error(`Critical: final_username is missing for unconfirmed order ${orderId}.`);
 
@@ -289,12 +289,9 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
             }
         }
 
-        // --- OLD CLEANUP LOGIC ---
-        // Keeps old cleanup logic for cases where usernames were different (e.g., Change Plan from 'user1' to 'user2')
-        // But skips if we already deleted it above.
+        // --- OLD CLEANUP LOGIC (RETAINED FOR SAFETY) ---
+        // Only run if usernames are DIFFERENT (Same username cleanup is handled at start)
         if (order.old_v2ray_username && finalStatus === 'approved' && !order.is_renewal) { 
-             // Only attempt delete if the usernames were DIFFERENT. 
-             // If they were same, we already deleted it at the top.
              if (order.old_v2ray_username.toLowerCase() !== finalUsername.toLowerCase()) {
                 try {
                     const oldClientData = await v2rayService.findV2rayClient(order.old_v2ray_username);
@@ -325,10 +322,11 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
     }
 };
 
+/**
+ * AUTO CONFIRM LOGIC (RESTORED)
+ * This function checks for pending orders that match 'auto_approve_' settings and processes them.
+ */
 exports.processAutoConfirmableOrders = async () => {
-    // ... (Existing implementation for auto confirm remains same) ...
-    // Since you only asked for the approveOrder logic change, I am focusing on that.
-    // The previous implementation of this function is preserved implicitly.
     try {
         const { data: settings, error: settingsError } = await supabase.from('settings').select('*');
         if (settingsError) throw settingsError;
@@ -339,6 +337,7 @@ exports.processAutoConfirmableOrders = async () => {
 
         if (enabledSettings.length === 0) return;
 
+        // Process orders created up to 1 minute ago (changed from 10 to ensure quick pickup)
         const tenMinutesAgo = new Date(Date.now() - 1 * 60 * 1000).toISOString();
         
         const { data: ordersToProcess, error: ordersError } = await supabase
@@ -353,6 +352,7 @@ exports.processAutoConfirmableOrders = async () => {
         if (ordersToProcess && ordersToProcess.length > 0) {
             console.log(`[Auto-Confirm] Found ${ordersToProcess.length} order(s) to process.`);
             for (const order of ordersToProcess) {
+                // Runs approveOrder with isAutoConfirm = true
                 const approvalResult = await exports.approveOrder(order.id, true);
                 if (approvalResult.success) {
                     console.log(`[Auto-Confirm] Order ${order.id} processed successfully.`);
