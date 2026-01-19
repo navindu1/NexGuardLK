@@ -89,12 +89,14 @@ exports.createOrder = async (req, res) => {
                     const newInboundId = parseInt(targetInboundId);
 
                     if (currentInboundId === newInboundId) {
-                        // Same Inbound: Treat as Renewal/Upgrade to keep the same UUID/Config
-                        console.log(`[Order Logic] Same Inbound (${currentInboundId}). Treating as RENEWAL.`);
-                        isRenewalBool = true;
+                        // Same Inbound:
+                        // FIX: Do NOT force isRenewalBool = true here. 
+                        // If user requested "Change Plan" (isRenewalBool = false), we must respect it.
+                        // We only log the detection but do not override the user's intent.
+                        console.log(`[Order Logic] Same Inbound (${currentInboundId}). Keeping User Intent: ${isRenewalBool ? 'RENEWAL' : 'CHANGE'}.`);
                     } else {
-                        // Different Inbound: Treat as Change/Migration (New User will be created)
-                        console.log(`[Order Logic] Inbound Change (${currentInboundId} -> ${newInboundId}). Treating as CHANGE.`);
+                        // Different Inbound: MUST be a Change/Migration (New User will be created)
+                        console.log(`[Order Logic] Inbound Change (${currentInboundId} -> ${newInboundId}). Forcing CHANGE.`);
                         isRenewalBool = false; 
                     }
                 } else {
