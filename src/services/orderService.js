@@ -76,7 +76,7 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
             console.log(`[Order Processing] Status is 'pending' for order ${orderId}. Proceeding with V2Ray operations.`);
 
             if (order.is_renewal) {
-                // --- Renewal Logic ---
+                // --- Renewal Logic (UNCHANGED) ---
                 const clientInPanel = await v2rayService.findV2rayClient(order.username);
                 if (!clientInPanel) {
                     return { success: false, message: `Renewal failed: User '${order.username}' not found in the panel.` };
@@ -85,7 +85,6 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                 const now = Date.now();
                 const currentExpiryTime = clientInPanel.client.expiryTime || 0;
                 
-                // --- LIMIT FIX: Calculate correct Data Limit from the Plan ---
                 const totalGBValue = (planDetails.total_gb || 0) * 1024 * 1024 * 1024;
 
                 if (currentExpiryTime > now) {
@@ -97,8 +96,8 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                         conn_id: order.conn_id,
                         inbound_id: inboundId,
                         vless_template: vlessTemplate,
-                        pkg: order.pkg, // Save package info
-                        total_gb: planDetails.total_gb // Save GB info for queued activation
+                        pkg: order.pkg,
+                        total_gb: planDetails.total_gb
                     };
                     
                     const { error: queueError } = await supabase.from('renewal_queue').insert({
@@ -113,7 +112,6 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                         throw new Error('Failed to queue renewal.');
                     }
 
-                    // Update Status to 'queued_for_renewal' and STOP here
                     await supabase.from("orders").update({ status: 'queued_for_renewal', final_username: order.username }).eq("id", orderId);
                     return { success: true, message: `Plan is still active. Renewal for ${order.username} has been queued successfully.` };
 
@@ -123,12 +121,11 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
 
                     const expiryTime = Date.now() + 30 * 24 * 60 * 60 * 1000;
 
-                    // Update existing client with NEW limit and expiry
                     const updatedClientSettings = {
-                        id: clientInPanel.client.id,          // Keep UUID
-                        email: clientInPanel.client.email,    // Keep Email
-                        total: totalGBValue,                  // Apply New Data Limit
-                        expiryTime: expiryTime,               // Apply New Expiry
+                        id: clientInPanel.client.id,
+                        email: clientInPanel.client.email,
+                        total: totalGBValue,
+                        expiryTime: expiryTime,
                         enable: true,
                         limitIp: clientInPanel.client.limitIp || 0,
                         flow: clientInPanel.client.flow || "",
@@ -146,11 +143,38 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                     finalUsername = clientInPanel.client.email;
                 }
             } else {
-                // --- New User Logic ---
+                // --- New User Logic OR Plan Change Logic ---
                 finalUsername = order.username;
+
+                // ================================================================
+                // [NEW LOGIC START] PLAN CHANGE HANDLER
+                // ================================================================
+                // If this is a Plan Change (indicated by old_v2ray_username) AND the user wants 
+                // to keep the SAME username, we MUST delete the old user first to avoid conflicts.
+                if (order.old_v2ray_username && 
+                    order.old_v2ray_username.toLowerCase() === finalUsername.toLowerCase()) {
+                    
+                    console.log(`[Plan Change] User matches old username (${finalUsername}). Attempting to remove old client first.`);
+                    
+                    try {
+                        const oldClientData = await v2rayService.findV2rayClient(order.old_v2ray_username);
+                        if (oldClientData) {
+                            await v2rayService.deleteClient(oldClientData.inboundId, oldClientData.client.id);
+                            console.log(`[Plan Change] Successfully deleted old user '${order.old_v2ray_username}' to free up username.`);
+                        }
+                    } catch (cleanupError) {
+                        console.error(`[Plan Change Warning] Failed to delete old user '${order.old_v2ray_username}':`, cleanupError.message);
+                        // We proceed anyway; if deletion failed, the conflict check below might rename the user.
+                    }
+                }
+                // ================================================================
+                // [NEW LOGIC END]
+                // ================================================================
+
                 const allPanelClients = await v2rayService.getAllClients();
 
                 // Handle potential username conflicts
+                // (This will now only trigger if the deletion above failed, or if it's a totally new user with a taken name)
                 if (allPanelClients.has(finalUsername.toLowerCase())) {
                     let counter = 1;
                     let newUsername;
@@ -176,27 +200,21 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
             }
 
         } else if (order.status === 'unconfirmed') {
-            // --- Logic for Finalizing 'unconfirmed' Orders ---
+             // ... (Logic for unconfirmed orders remains same) ...
             finalUsername = order.final_username;
-
-            if (!finalUsername) {
-                 throw new Error(`Critical: final_username is missing for unconfirmed order ${orderId}.`);
-            }
+            if (!finalUsername) throw new Error(`Critical: final_username is missing for unconfirmed order ${orderId}.`);
 
              const clientInPanel = await v2rayService.findV2rayClient(finalUsername);
-             if (!clientInPanel) {
-                  throw new Error(`Critical: V2Ray client ${finalUsername} not found in panel.`);
-             }
+             if (!clientInPanel) throw new Error(`Critical: V2Ray client ${finalUsername} not found in panel.`);
+             
              clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientInPanel.client);
-             if (!clientLink) {
-                  throw new Error(`Could not regenerate client link for ${finalUsername} (Order: ${orderId}).`);
-             }
+             if (!clientLink) throw new Error(`Could not regenerate client link for ${finalUsername} (Order: ${orderId}).`);
+
         } else {
-             console.error(`[Order Processing Error] Order ${orderId} has an unexpected status: ${order.status}. Aborting.`);
              return { success: false, message: `Order has an unexpected status: ${order.status}` };
         }
 
-        // --- Common Logic for Finalizing ---
+        // --- Common Logic for Finalizing (Database Updates) ---
 
         if (finalUsername && clientLink) {
             let updatedActivePlans = websiteUser.active_plans || [];
@@ -205,6 +223,7 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
             if (order.is_renewal) {
                 planIndex = updatedActivePlans.findIndex(p => p.v2rayUsername.toLowerCase() === finalUsername.toLowerCase());
             } else if (order.old_v2ray_username) {
+                // If it was a plan change, look for the old username in the array to replace it
                 planIndex = updatedActivePlans.findIndex(p => p.v2rayUsername.toLowerCase() === order.old_v2ray_username.toLowerCase());
             }
 
@@ -249,18 +268,16 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
              throw new Error(`Failed to update order status for ${orderId}: ${orderUpdateError.message}`);
         }
 
+        // Send Email
         if (finalStatus === 'approved' && websiteUser.email) {
             const emailSubject = `Your NexGuard Plan is ${order.is_renewal ? "Renewed" : "Activated"}!`;
-            const emailTitle = `Plan ${order.is_renewal ? "Renewed" : "Activated"}!`;
-            const emailPreheader = `Your ${order.plan_id} plan is ready.`;
-
             const mailOptions = {
                 from: `NexGuard Orders <${process.env.EMAIL_SENDER}>`,
                 to: websiteUser.email,
                 subject: emailSubject,
                 html: generateEmailTemplate(
-                    emailTitle,
-                    emailPreheader,
+                    `Plan ${order.is_renewal ? "Renewed" : "Activated"}!`,
+                    `Your ${order.plan_id} plan is ready.`,
                     generateApprovalEmailContent(websiteUser.username, order.plan_id, finalUsername)
                 )
             };
@@ -272,15 +289,22 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
             }
         }
 
+        // --- OLD CLEANUP LOGIC ---
+        // Keeps old cleanup logic for cases where usernames were different (e.g., Change Plan from 'user1' to 'user2')
+        // But skips if we already deleted it above.
         if (order.old_v2ray_username && finalStatus === 'approved' && !order.is_renewal) { 
-             try {
-                  const oldClientData = await v2rayService.findV2rayClient(order.old_v2ray_username);
-                  if (oldClientData) {
-                       await v2rayService.deleteClient(oldClientData.inboundId, oldClientData.client.id);
-                       console.log(`[Plan Change Cleanup] Successfully deleted old user: ${order.old_v2ray_username}`);
-                  }
-             } catch (cleanupError) {
-                  console.error(`[Cleanup Warning] Failed to delete old user: ${cleanupError.message}`);
+             // Only attempt delete if the usernames were DIFFERENT. 
+             // If they were same, we already deleted it at the top.
+             if (order.old_v2ray_username.toLowerCase() !== finalUsername.toLowerCase()) {
+                try {
+                    const oldClientData = await v2rayService.findV2rayClient(order.old_v2ray_username);
+                    if (oldClientData) {
+                        await v2rayService.deleteClient(oldClientData.inboundId, oldClientData.client.id);
+                        console.log(`[Plan Change Cleanup] Successfully deleted old user: ${order.old_v2ray_username}`);
+                    }
+                } catch (cleanupError) {
+                    console.error(`[Cleanup Warning] Failed to delete old user: ${cleanupError.message}`);
+                }
              }
         }
 
@@ -301,8 +325,10 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
     }
 };
 
-// ... (Rest of the file: processAutoConfirmableOrders remains unchanged) ...
 exports.processAutoConfirmableOrders = async () => {
+    // ... (Existing implementation for auto confirm remains same) ...
+    // Since you only asked for the approveOrder logic change, I am focusing on that.
+    // The previous implementation of this function is preserved implicitly.
     try {
         const { data: settings, error: settingsError } = await supabase.from('settings').select('*');
         if (settingsError) throw settingsError;
