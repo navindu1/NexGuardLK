@@ -55,6 +55,8 @@ export function renderProfilePage(renderFunc, params) {
         profilePollingInterval = null;
     }
 
+    let initialTabCheckDone = false;
+
     if (window.renderPlanDetailsInternal) window.renderPlanDetailsInternal = null;
     
     lastKnownPlansStr = ""; 
@@ -669,6 +671,18 @@ export function renderProfilePage(renderFunc, params) {
                 };
 
                 window.renderPlanDetailsInternal(currentIndex);
+
+                if (!initialTabCheckDone) {
+                            const tabParam = params.get('tab'); // URL එකෙන් tab නම ගන්නවා
+                            if (tabParam) {
+                                // අදාළ data-tab නම ඇති button එක සොයාගැනීම
+                                const targetBtn = document.querySelector(`.tab-btn[data-tab="${tabParam}"]`);
+                                if (targetBtn) {
+                                    targetBtn.click(); // එම Button එක Click කරවන්න
+                                }
+                            }
+                            initialTabCheckDone = true; // මෙය එක් වරක් පමණක් සිදු කිරීමට
+                        }
 
             } else if (data.status === "pending") {
                 statusContainer.innerHTML = `<div class="card-glass p-8 rounded-xl text-center"><i class="fa-solid fa-clock text-4xl text-amber-400 mb-4 animate-pulse"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Order Pending Approval</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">Your order is currently being reviewed. Your profile will update here once approved.</p></div>`;
