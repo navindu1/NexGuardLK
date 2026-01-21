@@ -329,3 +329,43 @@ exports.getTutorials = async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 };
+
+
+exports.unlinkPlan = async (req, res) => {
+    try {
+        const { v2rayUsername } = req.body;
+        const userId = req.user.id;
+
+        if (!v2rayUsername) return res.status(400).json({ success: false, message: 'Username is required.' });
+
+        // 1. Get current user plans
+        const { data: user, error } = await supabase.from('users').select('active_plans').eq('id', userId).single();
+        
+        if (error || !user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+        const currentPlans = user.active_plans || [];
+        
+        // 2. Filter out the plan to remove
+        const updatedPlans = currentPlans.filter(plan => 
+            plan.v2rayUsername && plan.v2rayUsername.toLowerCase() !== v2rayUsername.toLowerCase()
+        );
+
+        if (currentPlans.length === updatedPlans.length) {
+            return res.status(400).json({ success: false, message: 'Plan not found in your account.' });
+        }
+
+        // 3. Update DB
+        const { error: updateError } = await supabase
+            .from('users')
+            .update({ active_plans: updatedPlans })
+            .eq('id', userId);
+
+        if (updateError) throw updateError;
+
+        res.json({ success: true, message: 'Plan removed successfully.' });
+
+    } catch (error) {
+        console.error("Unlink error:", error);
+        res.status(500).json({ success: false, message: 'Failed to remove plan.' });
+    }
+};
