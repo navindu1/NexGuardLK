@@ -16,16 +16,11 @@ let globalActivePlans = [];
 
 // --- SMART DATA FETCHER (REAL-TIME UPDATES) ---
 const fetchClientData = async (username) => {
-    // Add unique timestamp to prevent browser caching
     const timestamp = new Date().getTime();
-    
-    // Force headers to ensure no caching occurs
-    // We add 'r' (random) parameter as an extra layer of cache busting
     const promise = apiFetch(`/api/check-usage/${username}?_=${timestamp}&r=${Math.random()}`, {
         headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0' }
     })
     .then(res => {
-        // Handle 404 (User removed/expired from panel)
         if (res.status === 404) {
             return { success: false, isRemoved: true }; 
         }
@@ -33,7 +28,6 @@ const fetchClientData = async (username) => {
     })
     .then(result => {
         if (result.success) {
-            // Update Cache with fresh data
             usageDataCache[username] = result.data;
             try { 
                 localStorage.setItem('nexguard_usage_cache', JSON.stringify(usageDataCache)); 
@@ -45,7 +39,6 @@ const fetchClientData = async (username) => {
         console.error(`Fetch error for ${username}:`, err);
         return { success: false, isError: true };
     });
-
     return promise;
 };
 
@@ -72,7 +65,6 @@ const unlinkPlan = async (v2rayUsername) => {
     showToast({ title: "Removing...", message: "Processing removal.", type: "info" });
     
     try {
-        // Call backend removal endpoint
         const res = await apiFetch("/api/user/unlink", { 
             method: "POST", 
             headers: { "Content-Type": "application/json" }, 
@@ -100,16 +92,11 @@ export function renderProfilePage(renderFunc, params) {
     }
 
     let initialTabCheckDone = false;
-
     if (window.renderPlanDetailsInternal) window.renderPlanDetailsInternal = null;
-    
     lastKnownPlansStr = ""; 
 
     const user = JSON.parse(localStorage.getItem("nexguard_user"));
-    if (!user) {
-        navigateTo("/login");
-        return;
-    }
+    if (!user) { navigateTo("/login"); return; }
 
     const PLANS_CACHE_KEY = `nexguard_plans_cache_${user.username}`;
     const LAST_PLAN_KEY = `nexguard_last_plan_${user.username}`;
@@ -165,7 +152,6 @@ export function renderProfilePage(renderFunc, params) {
         .tab-btn.active { border-bottom-color: var(--brand-blue); color: #fff; } 
         .tab-panel { display: none; } 
         .tab-panel.active { display: block; animation: pageFadeIn 0.5s; }
-        
         .help-modal-overlay { opacity: 0; visibility: hidden; transition: opacity 0.3s ease-out, visibility 0.3s ease-out; background: rgba(0, 0, 0, 0.2); z-index: 9999; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 1rem; }
         .help-modal-overlay.visible { opacity: 1; visibility: visible; }
         .help-modal-content { opacity: 0; transform: scale(0.90); transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -176,7 +162,6 @@ export function renderProfilePage(renderFunc, params) {
         ul.fmenu { display: inline-block; list-style: none; padding: 0; margin: 0; white-space: nowrap; position: relative; overflow: visible !important; }
         ul.fmenu > li.fmenu-item { position: relative; overflow: visible !important; }
         
-        /* Dropdown Size Fix */
         ul.fmenu .trigger-menu { display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; height: 44px; padding: 0 1.2rem; border-radius: 999px; background-color: rgba(30, 41, 59, 0.9); border: 1px solid rgba(255, 255, 255, 0.2); cursor: pointer; transition: all ease 0.3s; min-width: 180px; overflow: visible !important; }
         ul.fmenu .trigger-menu:hover, ul.fmenu .trigger-menu.open { border-color: var(--brand-blue); box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
         ul.fmenu .trigger-menu i { color: #9ca3af; font-size: 0.9rem; transition: color ease 0.3s; }
@@ -193,7 +178,7 @@ export function renderProfilePage(renderFunc, params) {
     let profilePictureUrl = (user.profilePicture || "/assets/profilePhoto.jpg").replace("public/", "");
     if (profilePictureUrl && !profilePictureUrl.startsWith('/')) profilePictureUrl = '/' + profilePictureUrl;
     
-    const baseHtml = `<div id="page-profile" class="page space-y-8"><div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left reveal"><div class="relative flex-shrink-0"><img id="profile-pic-img" src="${profilePictureUrl}" alt="Profile Picture" class="w-24 h-24 rounded-full border-4 border-blue-500/50 object-cover shadow-lg"><label for="avatar-upload" class="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-500 transition shadow-md"><i class="fa-solid fa-camera text-white"></i><input type="file" id="avatar-upload" class="hidden" accept="image/*"></label></div><div class="flex-grow"><h2 class="text-3xl font-bold font-['Orbitron'] text-white">${user.username}</h2><p class="text-gray-400">${user.email}</p><div id="plan-info-container" class="text-xs sm:text-sm mt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2"></div></div></div><div id="user-status-content" class="reveal"><div class="flex flex-col items-center justify-center min-h-[40vh]"><div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-3xl text-blue-400"></i><p class="mt-4 text-lg font-semibold text-blue-300 animate-pulse">Loading Your Data...</p><p class="text-sm text-gray-500 mt-1">Please wait while we fetch your profile information.</p></div></div></div></div> ${modalHtml} ${linkAccountModalHtml}`;
+    const baseHtml = `<div id="page-profile" class="page space-y-8"><div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left reveal"><div class="relative flex-shrink-0"><img id="profile-pic-img" src="${profilePictureUrl}" alt="Profile Picture" class="w-24 h-24 rounded-full border-4 border-blue-500/50 object-cover shadow-lg"><label for="avatar-upload" class="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-500 transition shadow-md"><i class="fa-solid fa-camera text-white"></i><input type="file" id="avatar-upload" class="hidden" accept="image/*"></label></div><div class="flex-grow"><h2 class="text-3xl font-bold font-['Orbitron'] text-white">${user.username}</h2><p class="text-gray-400">${user.email}</p><div id="plan-info-container" class="text-xs sm:text-sm mt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2"></div></div></div><div id="user-status-content" class="reveal"><div class="flex flex-col items-center justify-center min-h-[40vh]"><div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-3xl text-blue-400"></i><p class="mt-4 text-lg font-semibold text-blue-300 animate-pulse">Loading Your Data...</p></div></div></div></div> ${modalHtml} ${linkAccountModalHtml}`;
     
     renderFunc(pageStyles + baseHtml);
     const statusContainer = document.getElementById("user-status-content");
@@ -366,7 +351,7 @@ export function renderProfilePage(renderFunc, params) {
             </div>`;
     };
 
-    // --- REJECTED HTML + REMOVE BUTTON (Corrected Size & Centered) ---
+    // --- REJECTED HTML + REMOVE BUTTON (FIXED: Small Button, No Flash) ---
     const renderPlanRejectedHTML = (username) => {
         const usageContainer = document.getElementById("tab-usage");
         const configContainer = document.getElementById("tab-config");
@@ -390,10 +375,10 @@ export function renderProfilePage(renderFunc, params) {
             usageContainer.innerHTML = rejectedHtml;
             document.getElementById('remove-rejected-btn')?.addEventListener('click', () => unlinkPlan(username));
         }
-        if (configContainer) configContainer.innerHTML = rejectedHtml; 
+        if (configContainer) configContainer.innerHTML = rejectedHtml; // Immediately overwrite config tab
     };
 
-    // --- REMOVED/EXPIRED HTML + REMOVE BUTTON ---
+    // --- REMOVED/EXPIRED HTML + REMOVE BUTTON (FIXED: Small Button) ---
     const renderPlanRemovedHTML = (username) => {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
@@ -402,7 +387,7 @@ export function renderProfilePage(renderFunc, params) {
         const renewalActionHtml = `<button id="renew-removed-plan-btn" class="ai-button w-full rounded-lg mt-2 inline-block"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew This Plan</button>`;
         const switchHtml = otherPlansAvailable ? `<button id="switch-plan-btn" class="ai-button secondary w-full rounded-lg mt-2"><i class="fa-solid fa-repeat mr-2"></i>Switch Plan</button>` : '';
         
-        // Remove button is distinct and smaller
+        // Remove button - Centered & Small
         const removeHtml = `<div class="text-center mt-3"><button id="remove-expired-btn" class="ai-button secondary w-auto inline-flex items-center justify-center px-6 py-2 text-sm rounded-lg text-red-400 border-red-500/30 hover:bg-red-900/30"><i class="fa-solid fa-trash-can mr-2"></i>Remove</button></div>`;
 
         usageContainer.innerHTML = `
@@ -442,7 +427,8 @@ export function renderProfilePage(renderFunc, params) {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
         
-        // --- FLICKER PREVENTION: Check Rejection First ---
+        // --- FLICKER PREVENTION START ---
+        // Check order status BEFORE showing cached usage data
         let isKnownRejected = false;
         if(ordersCache) {
              isKnownRejected = ordersCache.some(o => 
@@ -455,6 +441,7 @@ export function renderProfilePage(renderFunc, params) {
             renderPlanRejectedHTML(username);
             return; 
         }
+        // --------------------------------
 
         if (!isSilent && !usageDataCache[username]) {
             usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
@@ -556,16 +543,16 @@ export function renderProfilePage(renderFunc, params) {
                     btnText = "Does not expire";
                 }
             } else if (result.isRemoved) {
-                
                 if (!ordersCache) await ensureOrdersLoaded();
-
                 let isRejected = false;
                 if(ordersCache) {
                     isRejected = ordersCache.some(o => o.final_username === plan.v2rayUsername && o.status === 'rejected');
                 }
                 
                 if (isRejected) {
-                     // If rejected, don't show renew button in config tab (optional, can just show message)
+                     // If rejected, remove Renew Button from Config Tab (Only show Rejected Message)
+                     // But we already overwrote the Config Tab content in renderPlanDetailsInternal if rejected.
+                     // So this part might not even be reached if we handle it early.
                      container.innerHTML = `<span class="text-red-400 font-bold border border-red-500/50 px-3 py-1 rounded bg-red-900/20">Plan Rejected</span>`;
                      return;
                 } else {
@@ -739,10 +726,10 @@ export function renderProfilePage(renderFunc, params) {
                         setupEventListeners();
                     }
 
-                    // --- IMMEDIATELY RENDER CONTENT FOR CONFIG TAB ---
-                    // If rejected, show the rejection message INSTEAD of the config card
+                    // --- LOGIC TO SHOW REJECTED IMMEDIATELY IN CONFIG TAB (No Flash) ---
                     const configTab = document.getElementById("tab-config");
                     if (isImmediateRejected) {
+                        // Render Rejected View
                         const rejectedHtml = `
                             <div class="result-card p-6 card-glass custom-radius space-y-4 reveal is-visible border border-red-500/50 bg-red-900/10">
                                 <div class="text-center">
@@ -760,7 +747,7 @@ export function renderProfilePage(renderFunc, params) {
                         configTab.innerHTML = rejectedHtml;
                         document.getElementById('remove-rejected-btn-cfg')?.addEventListener('click', () => unlinkPlan(plan.v2rayUsername));
                     } else {
-                        // Show Normal Config
+                        // Render Standard Config View
                         configTab.innerHTML = `
                             <div class="card-glass p-6 sm:p-8 custom-radius">
                                 <div class="grid md:grid-cols-2 gap-8 items-center">
@@ -797,7 +784,7 @@ export function renderProfilePage(renderFunc, params) {
                         if(copyBtn) {
                             const newBtn = copyBtn.cloneNode(true);
                             copyBtn.parentNode.replaceChild(newBtn, copyBtn);
-                            newBtn.addEventListener('click', () => { navigator.clipboard.writeText(plan.v2rayLink); showToast({ title: 'Success', message: 'Link Copied Successfully!', type: 'success' }); });
+                            newBtn.addEventListener('click', () => { navigator.clipboard.writeText(plan.v2rayLink); showToast({ title: 'Success', message: 'Link Copied!', type: 'success' }); });
                         }
                         updateRenewButton(plan, data.activePlans);
                     }
