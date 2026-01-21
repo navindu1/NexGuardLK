@@ -1,16 +1,9 @@
-const supabase = require('../config/supabaseClient');
+const supabase = require('../config/supabaseClient'); // මෙය පමණක් තබාගන්න
 const v2rayService = require('../services/v2rayService');
 const bcrypt = require('bcryptjs');
 const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-
-const { createClient } = require('@supabase/supabase-js');
-
-// Initialize Supabase (Ensure these ENV variables are set in Vercel)
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY; // Use Service Role key for backend actions
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Plan configuration
 const planConfig = {
