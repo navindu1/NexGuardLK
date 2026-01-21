@@ -79,7 +79,6 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                 // --- Renewal Logic ---
                 const clientInPanel = await v2rayService.findV2rayClient(order.username);
                 if (!clientInPanel) {
-                    // If user is not found for renewal, we return an error.
                     return { success: false, message: `Renewal failed: User '${order.username}' not found in the panel.` };
                 }
 
@@ -180,10 +179,11 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                 const expiryTime = Date.now() + 30 * 24 * 60 * 60 * 1000;
                 const totalGBValue = (planDetails.total_gb || 0) * 1024 * 1024 * 1024;
 
+                // --- FIX APPLIED HERE: Changed 'totalGB' to 'total' ---
                 const clientSettings = { 
                     id: uuidv4(), 
                     email: finalUsername, 
-                    total: totalGBValue, // --- FIX: Changed 'totalGB' to 'total'
+                    total: totalGBValue, // CORRECTED: 'total' is the correct key for X-UI/3x-UI
                     expiryTime, 
                     enable: true, 
                     limitIp: 1 
@@ -334,7 +334,6 @@ exports.processAutoConfirmableOrders = async () => {
 
         if (enabledSettings.length === 0) return;
 
-        // Process orders created up to 1 minute ago
         const tenMinutesAgo = new Date(Date.now() - 1 * 60 * 1000).toISOString();
         
         const { data: ordersToProcess, error: ordersError } = await supabase
