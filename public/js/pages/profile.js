@@ -16,12 +16,16 @@ let globalActivePlans = [];
 
 // --- SMART DATA FETCHER (REAL-TIME UPDATES) ---
 const fetchClientData = async (username) => {
+    // Add unique timestamp to prevent browser caching
     const timestamp = new Date().getTime();
     
+    // Force headers to ensure no caching occurs
+    // We add 'r' (random) parameter as an extra layer of cache busting
     const promise = apiFetch(`/api/check-usage/${username}?_=${timestamp}&r=${Math.random()}`, {
         headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0' }
     })
     .then(res => {
+        // Handle 404 (User removed/expired from panel)
         if (res.status === 404) {
             return { success: false, isRemoved: true }; 
         }
@@ -29,6 +33,7 @@ const fetchClientData = async (username) => {
     })
     .then(result => {
         if (result.success) {
+            // Update Cache with fresh data
             usageDataCache[username] = result.data;
             try { 
                 localStorage.setItem('nexguard_usage_cache', JSON.stringify(usageDataCache)); 
@@ -42,6 +47,22 @@ const fetchClientData = async (username) => {
     });
 
     return promise;
+};
+
+// --- NEW: Helper to ensure orders are loaded ---
+const ensureOrdersLoaded = async () => {
+    if (ordersCache) return ordersCache; // Already loaded
+    try {
+        const res = await apiFetch("/api/user/orders");
+        const data = await res.json();
+        if (data.orders) {
+            ordersCache = data.orders;
+            return ordersCache;
+        }
+    } catch (e) {
+        console.error("Failed to background fetch orders:", e);
+    }
+    return [];
 };
 
 export function renderProfilePage(renderFunc, params) {
@@ -354,27 +375,17 @@ export function renderProfilePage(renderFunc, params) {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
         
-        // --- FLICKER PREVENTION START ---
-        // Check if we KNOW this order is rejected before showing any cached data or loading spinner
-        let isKnownRejected = false;
-        if(ordersCache) {
-             isKnownRejected = ordersCache.some(o => 
-                 (o.final_username === username || (currentActivePlan && o.plan_id === currentActivePlan.planId && o.status === 'rejected')) && 
-                 o.status === 'rejected'
-             );
-        }
-
-        if (isKnownRejected) {
-            renderPlanRejectedHTML(username);
-            return; // Stop here to prevent fetching/showing cached data
-        }
-        // --- FLICKER PREVENTION END ---
+        // --- FLICKER PREVENTION START (UPDATED) ---
+        // Check local cache if available, BUT don't trust it fully if removed
+        // We rely on the fetchClientData callback to do the heavy lifting
+        // ------------------------------------------
 
         if (!isSilent && !usageDataCache[username]) {
             usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
         }
         
-        fetchClientData(username).then(result => {
+        // This function now uses fetchClientData which detects 404s
+        fetchClientData(username).then(async result => {
             if (currentActivePlan && currentActivePlan.v2rayUsername === username) {
                 if (result.success && result.data) {
                     renderUsageHTML(result.data, username);
@@ -384,6 +395,12 @@ export function renderProfilePage(renderFunc, params) {
                     delete usageDataCache[username];
                     try { localStorage.setItem('nexguard_usage_cache', JSON.stringify(usageDataCache)); } catch(e){}
                     // ----------------------------------------------
+
+                    // --- FORCE CHECK REJECTION STATUS (AUTO BACKGROUND FETCH) ---
+                    // If orders are not loaded, load them NOW to check status
+                    if (!ordersCache) {
+                        await ensureOrdersLoaded();
+                    }
 
                     let isRejected = false;
                     if(ordersCache) {
@@ -471,6 +488,10 @@ export function renderProfilePage(renderFunc, params) {
                     btnText = "Does not expire";
                 }
             } else if (result.isRemoved) {
+                
+                // Force check rejection here too just in case
+                if (!ordersCache) await ensureOrdersLoaded();
+
                 // Check if rejected
                 let isRejected = false;
                 if(ordersCache) {
