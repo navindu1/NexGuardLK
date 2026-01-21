@@ -16,11 +16,15 @@ let globalActivePlans = [];
 
 // --- SMART DATA FETCHER (REAL-TIME UPDATES) ---
 const fetchClientData = async (username) => {
+    // Add unique timestamp to prevent browser caching
     const timestamp = new Date().getTime();
+    
+    // Force headers to ensure no caching occurs
     const promise = apiFetch(`/api/check-usage/${username}?_=${timestamp}&r=${Math.random()}`, {
         headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0' }
     })
     .then(res => {
+        // Handle 404 (User removed/expired from panel)
         if (res.status === 404) {
             return { success: false, isRemoved: true }; 
         }
@@ -28,6 +32,7 @@ const fetchClientData = async (username) => {
     })
     .then(result => {
         if (result.success) {
+            // Update Cache with fresh data
             usageDataCache[username] = result.data;
             try { 
                 localStorage.setItem('nexguard_usage_cache', JSON.stringify(usageDataCache)); 
@@ -39,6 +44,7 @@ const fetchClientData = async (username) => {
         console.error(`Fetch error for ${username}:`, err);
         return { success: false, isError: true };
     });
+
     return promise;
 };
 
@@ -92,11 +98,16 @@ export function renderProfilePage(renderFunc, params) {
     }
 
     let initialTabCheckDone = false;
+
     if (window.renderPlanDetailsInternal) window.renderPlanDetailsInternal = null;
+    
     lastKnownPlansStr = ""; 
 
     const user = JSON.parse(localStorage.getItem("nexguard_user"));
-    if (!user) { navigateTo("/login"); return; }
+    if (!user) {
+        navigateTo("/login");
+        return;
+    }
 
     const PLANS_CACHE_KEY = `nexguard_plans_cache_${user.username}`;
     const LAST_PLAN_KEY = `nexguard_last_plan_${user.username}`;
@@ -152,6 +163,7 @@ export function renderProfilePage(renderFunc, params) {
         .tab-btn.active { border-bottom-color: var(--brand-blue); color: #fff; } 
         .tab-panel { display: none; } 
         .tab-panel.active { display: block; animation: pageFadeIn 0.5s; }
+        
         .help-modal-overlay { opacity: 0; visibility: hidden; transition: opacity 0.3s ease-out, visibility 0.3s ease-out; background: rgba(0, 0, 0, 0.2); z-index: 9999; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 1rem; }
         .help-modal-overlay.visible { opacity: 1; visibility: visible; }
         .help-modal-content { opacity: 0; transform: scale(0.90); transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -162,6 +174,7 @@ export function renderProfilePage(renderFunc, params) {
         ul.fmenu { display: inline-block; list-style: none; padding: 0; margin: 0; white-space: nowrap; position: relative; overflow: visible !important; }
         ul.fmenu > li.fmenu-item { position: relative; overflow: visible !important; }
         
+        /* Dropdown Size Fix */
         ul.fmenu .trigger-menu { display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; height: 44px; padding: 0 1.2rem; border-radius: 999px; background-color: rgba(30, 41, 59, 0.9); border: 1px solid rgba(255, 255, 255, 0.2); cursor: pointer; transition: all ease 0.3s; min-width: 180px; overflow: visible !important; }
         ul.fmenu .trigger-menu:hover, ul.fmenu .trigger-menu.open { border-color: var(--brand-blue); box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
         ul.fmenu .trigger-menu i { color: #9ca3af; font-size: 0.9rem; transition: color ease 0.3s; }
@@ -351,7 +364,7 @@ export function renderProfilePage(renderFunc, params) {
             </div>`;
     };
 
-    // --- REJECTED HTML + REMOVE BUTTON (FIXED: Small Button, No Flash) ---
+    // --- REJECTED HTML + REMOVE BUTTON (FIXED: Small Button) ---
     const renderPlanRejectedHTML = (username) => {
         const usageContainer = document.getElementById("tab-usage");
         const configContainer = document.getElementById("tab-config");
@@ -375,10 +388,10 @@ export function renderProfilePage(renderFunc, params) {
             usageContainer.innerHTML = rejectedHtml;
             document.getElementById('remove-rejected-btn')?.addEventListener('click', () => unlinkPlan(username));
         }
-        if (configContainer) configContainer.innerHTML = rejectedHtml; // Immediately overwrite config tab
+        if (configContainer) configContainer.innerHTML = rejectedHtml; 
     };
 
-    // --- REMOVED/EXPIRED HTML + REMOVE BUTTON (FIXED: Small Button) ---
+    // --- REMOVED/EXPIRED HTML + REMOVE BUTTON ---
     const renderPlanRemovedHTML = (username) => {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
@@ -550,9 +563,6 @@ export function renderProfilePage(renderFunc, params) {
                 }
                 
                 if (isRejected) {
-                     // If rejected, remove Renew Button from Config Tab (Only show Rejected Message)
-                     // But we already overwrote the Config Tab content in renderPlanDetailsInternal if rejected.
-                     // So this part might not even be reached if we handle it early.
                      container.innerHTML = `<span class="text-red-400 font-bold border border-red-500/50 px-3 py-1 rounded bg-red-900/20">Plan Rejected</span>`;
                      return;
                 } else {
@@ -669,6 +679,7 @@ export function renderProfilePage(renderFunc, params) {
                     document.getElementById("plan-info-container").innerHTML = `<span class="bg-blue-500/10 text-blue-300 px-2 py-1 rounded-full"><i class="fa-solid fa-rocket fa-fw mr-2"></i>${planName}</span><span class="bg-indigo-500/10 text-indigo-300 px-2 py-1 rounded-full"><i class="fa-solid fa-wifi fa-fw mr-2"></i>${connectionName}</span>`;
 
                     if(!document.getElementById('profile-tabs')) {
+                        // --- CHANGED: SHOW TABS IMMEDIATELY ---
                         container.innerHTML = `
                         <div id="profile-tabs" class="flex items-center gap-4 sm:gap-6 border-b border-white/10 mb-6 overflow-x-auto">
                             <button data-tab="config" class="tab-btn active">V2Ray Config</button>
@@ -677,7 +688,14 @@ export function renderProfilePage(renderFunc, params) {
                             <button data-tab="settings" class="tab-btn">Settings</button>
                         </div>
                         
-                        <div id="tab-config" class="tab-panel active"></div>
+                        <div id="tab-config" class="tab-panel active">
+                            <div class="card-glass p-8 text-center custom-radius flex flex-col items-center justify-center min-h-[300px]">
+                                <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-400 mb-4"></i>
+                                <h3 class="text-xl font-bold text-white font-['Orbitron'] animate-pulse">Checking Plan Details...</h3>
+                                <p class="text-sm text-gray-400 mt-2">Verifying status with server</p>
+                            </div>
+                        </div>
+                        
                         <div id="tab-usage" class="tab-panel"></div>
                         <div id="tab-orders" class="tab-panel"></div>
                         
@@ -728,6 +746,7 @@ export function renderProfilePage(renderFunc, params) {
 
                     // --- LOGIC TO SHOW REJECTED IMMEDIATELY IN CONFIG TAB (No Flash) ---
                     const configTab = document.getElementById("tab-config");
+                    
                     if (isImmediateRejected) {
                         // Render Rejected View
                         const rejectedHtml = `
