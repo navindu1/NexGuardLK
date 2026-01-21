@@ -16,34 +16,24 @@ let globalActivePlans = [];
 
 // --- SMART DATA FETCHER (REAL-TIME UPDATES) ---
 const fetchClientData = async (username) => {
-    // Add unique timestamp to prevent browser caching
     const timestamp = new Date().getTime();
-    
-    // Force headers to ensure no caching occurs
-    const promise = apiFetch(`/api/check-usage/${username}?_=${timestamp}&r=${Math.random()}`, {
-        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0' }
-    })
-    .then(res => {
+    try {
+        const res = await apiFetch(`/api/check-usage/${username}?_=${timestamp}&r=${Math.random()}`, {
+            headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0' }
+        });
         if (res.status === 404) {
             return { success: false, isRemoved: true }; 
         }
-        return res.json();
-    })
-    .then(result => {
+        const result = await res.json();
         if (result.success) {
             usageDataCache[username] = result.data;
-            try { 
-                localStorage.setItem('nexguard_usage_cache', JSON.stringify(usageDataCache)); 
-            } catch(e){}
+            try { localStorage.setItem('nexguard_usage_cache', JSON.stringify(usageDataCache)); } catch(e){}
         }
         return result;
-    })
-    .catch(err => {
+    } catch (err) {
         console.error(`Fetch error for ${username}:`, err);
         return { success: false, isError: true };
-    });
-
-    return promise;
+    }
 };
 
 // --- HELPER: Ensure Orders Loaded (For Rejection Check) ---
@@ -96,16 +86,11 @@ export function renderProfilePage(renderFunc, params) {
     }
 
     let initialTabCheckDone = false;
-
     if (window.renderPlanDetailsInternal) window.renderPlanDetailsInternal = null;
-    
     lastKnownPlansStr = ""; 
 
     const user = JSON.parse(localStorage.getItem("nexguard_user"));
-    if (!user) {
-        navigateTo("/login");
-        return;
-    }
+    if (!user) { navigateTo("/login"); return; }
 
     const PLANS_CACHE_KEY = `nexguard_plans_cache_${user.username}`;
     const LAST_PLAN_KEY = `nexguard_last_plan_${user.username}`;
@@ -161,7 +146,6 @@ export function renderProfilePage(renderFunc, params) {
         .tab-btn.active { border-bottom-color: var(--brand-blue); color: #fff; } 
         .tab-panel { display: none; } 
         .tab-panel.active { display: block; animation: pageFadeIn 0.5s; }
-        
         .help-modal-overlay { opacity: 0; visibility: hidden; transition: opacity 0.3s ease-out, visibility 0.3s ease-out; background: rgba(0, 0, 0, 0.2); z-index: 9999; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 1rem; }
         .help-modal-overlay.visible { opacity: 1; visibility: visible; }
         .help-modal-content { opacity: 0; transform: scale(0.90); transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -171,7 +155,6 @@ export function renderProfilePage(renderFunc, params) {
         .plan-selector-label { font-size: 0.875rem; font-weight: 600; color: #d1d5db; flex-shrink: 0; }
         ul.fmenu { display: inline-block; list-style: none; padding: 0; margin: 0; white-space: nowrap; position: relative; overflow: visible !important; }
         ul.fmenu > li.fmenu-item { position: relative; overflow: visible !important; }
-        
         ul.fmenu .trigger-menu { display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; height: 44px; padding: 0 1.2rem; border-radius: 999px; background-color: rgba(30, 41, 59, 0.9); border: 1px solid rgba(255, 255, 255, 0.2); cursor: pointer; transition: all ease 0.3s; min-width: 180px; overflow: visible !important; }
         ul.fmenu .trigger-menu:hover, ul.fmenu .trigger-menu.open { border-color: var(--brand-blue); box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
         ul.fmenu .trigger-menu i { color: #9ca3af; font-size: 0.9rem; transition: color ease 0.3s; }
@@ -223,7 +206,7 @@ export function renderProfilePage(renderFunc, params) {
             });
         }
 
-        // Link Account Modal
+        // Link Account Modal (New - Triggered by "Add More")
         const linkModal = document.getElementById('link-account-modal');
         if (linkModal) {
             const closeLinkModal = () => { linkModal.classList.remove('visible'); document.body.classList.remove('modal-open'); };
@@ -361,6 +344,7 @@ export function renderProfilePage(renderFunc, params) {
             </div>`;
     };
 
+    // --- REJECTED HTML + REMOVE BUTTON ---
     const renderPlanRejectedHTML = (username) => {
         const usageContainer = document.getElementById("tab-usage");
         const configContainer = document.getElementById("tab-config");
@@ -390,6 +374,7 @@ export function renderProfilePage(renderFunc, params) {
         }
     };
 
+    // --- REMOVED/EXPIRED HTML + REMOVE BUTTON ---
     const renderPlanRemovedHTML = (username) => {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
@@ -398,6 +383,7 @@ export function renderProfilePage(renderFunc, params) {
         const renewalActionHtml = `<button id="renew-removed-plan-btn" class="ai-button w-full rounded-lg mt-2 inline-block"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew This Plan</button>`;
         const switchHtml = otherPlansAvailable ? `<button id="switch-plan-btn" class="ai-button secondary w-full rounded-lg mt-2"><i class="fa-solid fa-repeat mr-2"></i>Switch Plan</button>` : '';
         
+        // Remove button - Centered & Small
         const removeHtml = `<div class="text-center mt-3"><button id="remove-expired-btn" class="ai-button secondary w-auto inline-flex items-center justify-center px-6 py-2 text-sm rounded-lg text-red-400 border-red-500/30 hover:bg-red-900/30"><i class="fa-solid fa-trash-can mr-2"></i>Remove</button></div>`;
 
         usageContainer.innerHTML = `
@@ -437,6 +423,7 @@ export function renderProfilePage(renderFunc, params) {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
         
+        // --- FLICKER PREVENTION START ---
         let isKnownRejected = false;
         if(ordersCache) {
              isKnownRejected = ordersCache.some(o => 
@@ -449,6 +436,7 @@ export function renderProfilePage(renderFunc, params) {
             renderPlanRejectedHTML(username);
             return; 
         }
+        // --------------------------------
 
         if (!isSilent && !usageDataCache[username]) {
             usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
@@ -459,9 +447,11 @@ export function renderProfilePage(renderFunc, params) {
                 if (result.success && result.data) {
                     renderUsageHTML(result.data, username);
                 } else if (result.isRemoved) {
+                    // Clean Cache
                     delete usageDataCache[username];
                     try { localStorage.setItem('nexguard_usage_cache', JSON.stringify(usageDataCache)); } catch(e){}
                     
+                    // Force Check Rejection
                     if (!ordersCache) await ensureOrdersLoaded();
 
                     let isRejected = false;
@@ -516,6 +506,7 @@ export function renderProfilePage(renderFunc, params) {
         const container = document.getElementById("renew-button-container");
         if (!container) return;
         
+        // --- BUTTON FIX: Show Active Immediately ---
         if (!usageDataCache[plan.v2rayUsername]) {
              container.innerHTML = `<button id="renew-profile-btn" class="ai-button bg-amber-500 hover:bg-amber-600 border-none text-white inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew Plan</button>`;
              document.getElementById('renew-profile-btn')?.addEventListener('click', () => handleRenewalChoice(activePlans, plan));
@@ -530,17 +521,13 @@ export function renderProfilePage(renderFunc, params) {
             if (result.success) {
                 const expiryTimestamp = parseInt(result.data.expiryTime, 10);
                 const now = Date.now();
-                
                 if (expiryTimestamp > 0) {
                     const fiveDaysInMs = 5 * 24 * 60 * 60 * 1000;
-                    const isExpired = now > expiryTimestamp;
-                    const isExpiringSoon = now >= (expiryTimestamp - fiveDaysInMs);
-
-                    if (isExpired) {
+                    if (now > expiryTimestamp) {
                         shouldEnableRenew = true;
                         btnText = "Renew Plan";
                         btnClass = "ai-button bg-amber-500 hover:bg-amber-600 border-none text-white";
-                    } else if (isExpiringSoon) {
+                    } else if (now >= (expiryTimestamp - fiveDaysInMs)) {
                         shouldEnableRenew = true;
                         btnText = "Renew Plan (Expiring Soon)";
                     } else {
@@ -587,6 +574,7 @@ export function renderProfilePage(renderFunc, params) {
             `<li><a href="#" data-plan-index="${index}">${plan.v2rayUsername}</a></li>`
         ).join('');
 
+        // --- CHANGED: "Add More +" (New Trigger) ---
         planListItems += `<li class="border-t border-white/10 mt-1 pt-1"><a href="#" id="link-new-account-option" class="text-blue-300 hover:text-blue-200"><i class="fa-solid fa-plus-circle mr-2"></i>Add More +</a></li>`;
 
         const containerHtml = `
@@ -639,6 +627,7 @@ export function renderProfilePage(renderFunc, params) {
             lastKnownPlansStr = currentPlansStr;
 
             if (data.status === "approved" && data.activePlans?.length > 0) {
+                // Ensure orders loaded for instant rejection checks
                 ensureOrdersLoaded().then(() => {
                     data.activePlans.forEach(p => fetchClientData(p.v2rayUsername));
                 });
@@ -661,12 +650,18 @@ export function renderProfilePage(renderFunc, params) {
                     const container = document.getElementById("plan-details-container");
                     if(!plan) return;
                     
+                    // --- CHANGED: IMMEDIATE REJECTION CHECK (Prevent Flash) ---
+                    let isImmediateRejected = false;
+                    if(ordersCache) {
+                        isImmediateRejected = ordersCache.some(o => o.final_username === plan.v2rayUsername && o.status === 'rejected');
+                    }
+
                     const connectionName = appData.connections.find(c => c.name === plan.connId)?.name || plan.connId || 'N/A';
                     const planName = appData.plans[plan.planId]?.name || plan.planId;
                     document.getElementById("plan-info-container").innerHTML = `<span class="bg-blue-500/10 text-blue-300 px-2 py-1 rounded-full"><i class="fa-solid fa-rocket fa-fw mr-2"></i>${planName}</span><span class="bg-indigo-500/10 text-indigo-300 px-2 py-1 rounded-full"><i class="fa-solid fa-wifi fa-fw mr-2"></i>${connectionName}</span>`;
 
-                    // --- FORCE SHOW TABS IMMEDIATELY ---
                     if(!document.getElementById('profile-tabs')) {
+                        // --- CHANGED: SHOW TABS IMMEDIATELY ---
                         container.innerHTML = `
                         <div id="profile-tabs" class="flex items-center gap-4 sm:gap-6 border-b border-white/10 mb-6 overflow-x-auto">
                             <button data-tab="config" class="tab-btn active">V2Ray Config</button>
@@ -706,34 +701,34 @@ export function renderProfilePage(renderFunc, params) {
 
                         document.getElementById('profile-tabs').addEventListener('click', (e) => { 
                             if (e.target.tagName === 'BUTTON') {
-                                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                                document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-                                e.target.classList.add('active');
-                                const tabId = e.target.dataset.tab;
-                                document.getElementById(`tab-${tabId}`).classList.add('active');
-                                
+                                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+                                e.target.classList.add('active'); const tabId = e.target.dataset.tab; document.getElementById(`tab-${tabId}`).classList.add('active');
                                 if (!currentActivePlan) return;
-
                                 if(tabId === 'config') updateRenewButton(currentActivePlan, data.activePlans);
-                                if(tabId === 'usage') {
-                                    if (usageDataCache[currentActivePlan.v2rayUsername]) {
-                                        renderUsageHTML(usageDataCache[currentActivePlan.v2rayUsername], currentActivePlan.v2rayUsername);
-                                        loadUsageStats(currentActivePlan.v2rayUsername, true); 
-                                    } else {
-                                        loadUsageStats(currentActivePlan.v2rayUsername, false); 
-                                    }
-                                }
-                                if(tabId === 'orders') {
-                                    if (ordersCache) { renderOrdersHTML(ordersCache); loadMyOrders(true); } else { loadMyOrders(false); }
-                                }
+                                if(tabId === 'usage') { if (usageDataCache[currentActivePlan.v2rayUsername]) { renderUsageHTML(usageDataCache[currentActivePlan.v2rayUsername], currentActivePlan.v2rayUsername); loadUsageStats(currentActivePlan.v2rayUsername, true); } else { loadUsageStats(currentActivePlan.v2rayUsername, false); } }
+                                if(tabId === 'orders') { if (ordersCache) { renderOrdersHTML(ordersCache); loadMyOrders(true); } else { loadMyOrders(false); } }
                             }
                         });
                         setupEventListeners();
+                    } else {
+                        // --- IMPORTANT: FORCE LOADING STATE IF TABS ALREADY EXIST ---
+                        // This handles the "switch plan" scenario where we want to show loading again
+                        const configTab = document.getElementById("tab-config");
+                        if(configTab) {
+                             configTab.innerHTML = `
+                            <div class="card-glass p-8 text-center custom-radius flex flex-col items-center justify-center min-h-[300px]">
+                                <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-400 mb-4"></i>
+                                <h3 class="text-xl font-bold text-white font-['Orbitron'] animate-pulse">Checking Plan Details...</h3>
+                                <p class="text-sm text-gray-400 mt-2">Verifying status with server</p>
+                            </div>`;
+                        }
                     }
 
-                    // --- CHECK REJECTION ---
+                    // --- CHECK REJECTION (ASYNC) & UPDATE UI ---
                     if (!ordersCache) await ensureOrdersLoaded();
-                    let isImmediateRejected = false;
+                    
+                    // RE-EVALUATE REJECTION AFTER AWAIT
+                    isImmediateRejected = false; // Reset to avoid redeclaration error
                     if(ordersCache) {
                         isImmediateRejected = ordersCache.some(o => o.final_username === plan.v2rayUsername && o.status === 'rejected');
                     }
@@ -741,6 +736,7 @@ export function renderProfilePage(renderFunc, params) {
                     const configTab = document.getElementById("tab-config");
                     
                     if (isImmediateRejected) {
+                        // Render Rejected View
                         const rejectedHtml = `
                             <div class="result-card p-6 card-glass custom-radius space-y-4 reveal is-visible border border-red-500/50 bg-red-900/10">
                                 <div class="text-center">
@@ -758,7 +754,7 @@ export function renderProfilePage(renderFunc, params) {
                         configTab.innerHTML = rejectedHtml;
                         document.getElementById('remove-rejected-btn-cfg')?.addEventListener('click', () => unlinkPlan(plan.v2rayUsername));
                     } else {
-                        // Render Config
+                        // Render Standard Config View
                         configTab.innerHTML = `
                             <div class="card-glass p-6 sm:p-8 custom-radius">
                                 <div class="grid md:grid-cols-2 gap-8 items-center">
@@ -853,7 +849,8 @@ export function renderProfilePage(renderFunc, params) {
 
     const loadProfileData = async () => {
         try {
-            ensureOrdersLoaded(); 
+            // Pre-fetch orders to ensure fast rejection check
+            ensureOrdersLoaded();
 
             let cachedPlansStr = null;
             try { cachedPlansStr = localStorage.getItem(PLANS_CACHE_KEY); } catch(e){}
