@@ -5,6 +5,13 @@ const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
+const { createClient } = require('@supabase/supabase-js');
+
+// Initialize Supabase (Ensure these ENV variables are set in Vercel)
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY; // Use Service Role key for backend actions
+const supabase = createClient(supabaseUrl, supabaseKey);
+
 // Plan configuration
 const planConfig = {
     "100GB": { totalGB: 100 },
@@ -334,18 +341,34 @@ exports.getTutorials = async (req, res) => {
 exports.unlinkPlan = async (req, res) => {
     try {
         const { v2rayUsername } = req.body;
-        const userId = req.user.id;
+        
+        // Check if user ID exists from middleware
+        const userId = req.user ? req.user.id : null; 
+        if (!userId) {
+            console.error("Auth Error: No user ID found in request");
+            return res.status(401).json({ success: false, message: 'Unauthorized' });
+        }
 
-        if (!v2rayUsername) return res.status(400).json({ success: false, message: 'Username is required.' });
+        if (!v2rayUsername) {
+            return res.status(400).json({ success: false, message: 'Username is required.' });
+        }
 
         // 1. Get current user plans
-        const { data: user, error } = await supabase.from('users').select('active_plans').eq('id', userId).single();
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('active_plans')
+            .eq('id', userId)
+            .single();
         
-        if (error || !user) return res.status(404).json({ success: false, message: 'User not found.' });
+        if (error || !user) {
+            console.error("DB Error:", error);
+            return res.status(404).json({ success: false, message: 'User not found.' });
+        }
 
         const currentPlans = user.active_plans || [];
         
         // 2. Filter out the plan to remove
+        // We use lowercase comparison to be safe
         const updatedPlans = currentPlans.filter(plan => 
             plan.v2rayUsername && plan.v2rayUsername.toLowerCase() !== v2rayUsername.toLowerCase()
         );
@@ -360,12 +383,14 @@ exports.unlinkPlan = async (req, res) => {
             .update({ active_plans: updatedPlans })
             .eq('id', userId);
 
-        if (updateError) throw updateError;
+        if (updateError) {
+            throw updateError;
+        }
 
-        res.json({ success: true, message: 'Plan removed successfully.' });
+        return res.json({ success: true, message: 'Plan removed successfully.' });
 
     } catch (error) {
-        console.error("Unlink error:", error);
-        res.status(500).json({ success: false, message: 'Failed to remove plan.' });
+        console.error("Unlink Critical Error:", error);
+        return res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 };
