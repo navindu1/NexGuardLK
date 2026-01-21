@@ -16,12 +16,16 @@ let globalActivePlans = [];
 
 // --- SMART DATA FETCHER (REAL-TIME UPDATES) ---
 const fetchClientData = async (username) => {
+    // Add unique timestamp to prevent browser caching
     const timestamp = new Date().getTime();
     
+    // Force headers to ensure no caching occurs
+    // We add 'r' (random) parameter as an extra layer of cache busting
     const promise = apiFetch(`/api/check-usage/${username}?_=${timestamp}&r=${Math.random()}`, {
         headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0' }
     })
     .then(res => {
+        // Handle 404 (User removed/expired from panel)
         if (res.status === 404) {
             return { success: false, isRemoved: true }; 
         }
@@ -29,6 +33,7 @@ const fetchClientData = async (username) => {
     })
     .then(result => {
         if (result.success) {
+            // Update Cache with fresh data
             usageDataCache[username] = result.data;
             try { 
                 localStorage.setItem('nexguard_usage_cache', JSON.stringify(usageDataCache)); 
@@ -44,9 +49,9 @@ const fetchClientData = async (username) => {
     return promise;
 };
 
-// --- Helper to ensure orders are loaded ---
+// --- NEW: Helper to ensure orders are loaded ---
 const ensureOrdersLoaded = async () => {
-    if (ordersCache) return ordersCache;
+    if (ordersCache) return ordersCache; // Already loaded
     try {
         const res = await apiFetch("/api/user/orders");
         const data = await res.json();
@@ -84,7 +89,7 @@ export function renderProfilePage(renderFunc, params) {
     // --- HTML Templates ---
     
     // 1. Help Modal
-    const helpModalHtml = `
+    const modalHtml = `
         <div id="help-modal" class="help-modal-overlay">
             <div class="help-modal-content grease-glass p-6 space-y-4 w-full max-w-md">
                 <div class="flex justify-between items-start">
@@ -150,7 +155,7 @@ export function renderProfilePage(renderFunc, params) {
         ul.fmenu { display: inline-block; list-style: none; padding: 0; margin: 0; white-space: nowrap; position: relative; overflow: visible !important; }
         ul.fmenu > li.fmenu-item { position: relative; overflow: visible !important; }
         
-        /* FIXED WIDTH DROPDOWN */
+        /* FIXED WIDTH DROPDOWN & SIZE FIX */
         ul.fmenu .trigger-menu { display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; height: 44px; padding: 0 1.2rem; border-radius: 999px; background-color: rgba(30, 41, 59, 0.9); border: 1px solid rgba(255, 255, 255, 0.2); cursor: pointer; transition: all ease 0.3s; min-width: 180px; overflow: visible !important; }
         ul.fmenu .trigger-menu:hover, ul.fmenu .trigger-menu.open { border-color: var(--brand-blue); box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
         ul.fmenu .trigger-menu i { color: #9ca3af; font-size: 0.9rem; transition: color ease 0.3s; }
@@ -167,11 +172,12 @@ export function renderProfilePage(renderFunc, params) {
     let profilePictureUrl = (user.profilePicture || "/assets/profilePhoto.jpg").replace("public/", "");
     if (profilePictureUrl && !profilePictureUrl.startsWith('/')) profilePictureUrl = '/' + profilePictureUrl;
     
-    const baseHtml = `<div id="page-profile" class="page space-y-8"><div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left reveal"><div class="relative flex-shrink-0"><img id="profile-pic-img" src="${profilePictureUrl}" alt="Profile Picture" class="w-24 h-24 rounded-full border-4 border-blue-500/50 object-cover shadow-lg"><label for="avatar-upload" class="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-500 transition shadow-md"><i class="fa-solid fa-camera text-white"></i><input type="file" id="avatar-upload" class="hidden" accept="image/*"></label></div><div class="flex-grow"><h2 class="text-3xl font-bold font-['Orbitron'] text-white">${user.username}</h2><p class="text-gray-400">${user.email}</p><div id="plan-info-container" class="text-xs sm:text-sm mt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2"></div></div></div><div id="user-status-content" class="reveal"><div class="flex flex-col items-center justify-center min-h-[40vh]"><div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-3xl text-blue-400"></i><p class="mt-4 text-lg font-semibold text-blue-300 animate-pulse">Loading Your Data...</p></div></div></div></div> ${modalHtml} ${linkAccountModalHtml}`;
+    const baseHtml = `<div id="page-profile" class="page space-y-8"><div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left reveal"><div class="relative flex-shrink-0"><img id="profile-pic-img" src="${profilePictureUrl}" alt="Profile Picture" class="w-24 h-24 rounded-full border-4 border-blue-500/50 object-cover shadow-lg"><label for="avatar-upload" class="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-500 transition shadow-md"><i class="fa-solid fa-camera text-white"></i><input type="file" id="avatar-upload" class="hidden" accept="image/*"></label></div><div class="flex-grow"><h2 class="text-3xl font-bold font-['Orbitron'] text-white">${user.username}</h2><p class="text-gray-400">${user.email}</p><div id="plan-info-container" class="text-xs sm:text-sm mt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2"></div></div></div><div id="user-status-content" class="reveal"><div class="flex flex-col items-center justify-center min-h-[40vh]"><div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-3xl text-blue-400"></i><p class="mt-4 text-lg font-semibold text-blue-300 animate-pulse">Loading Your Data...</p><p class="text-sm text-gray-500 mt-1">Please wait while we fetch your profile information.</p></div></div></div></div> ${modalHtml} ${linkAccountModalHtml}`;
     
     renderFunc(pageStyles + baseHtml);
     const statusContainer = document.getElementById("user-status-content");
     qrModalLogic.init();
+
 
     const pendingMsg = localStorage.getItem("pendingLinkSuccess");
     if (pendingMsg) {
@@ -186,9 +192,8 @@ export function renderProfilePage(renderFunc, params) {
         if (storedCache) usageDataCache = JSON.parse(storedCache);
     } catch(e) { console.warn("Cache parse error", e); }
 
-    // --- SETUP EVENT LISTENERS (Includes New Modal Logic) ---
     const setupEventListeners = () => {
-        // Help Modal Logic
+        // Help Modal
         const helpModal = document.getElementById('help-modal');
         if (helpModal) {
             const openModal = () => { helpModal.classList.add('visible'); document.body.classList.add('modal-open'); };
@@ -203,7 +208,7 @@ export function renderProfilePage(renderFunc, params) {
             });
         }
 
-        // Link Account Modal Logic (NEW)
+        // Link Account Modal (NEW)
         const linkModal = document.getElementById('link-account-modal');
         if (linkModal) {
             const closeLinkModal = () => { linkModal.classList.remove('visible'); document.body.classList.remove('modal-open'); };
@@ -258,6 +263,12 @@ export function renderProfilePage(renderFunc, params) {
         });
 
         document.getElementById('profile-password-toggle')?.addEventListener('click', () => togglePassword('new-password', 'profile-password-toggle'));
+        
+        document.getElementById("link-account-form-profile")?.addEventListener("submit", async(e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector("button");
+            if(btn) btn.click();
+        });
     };
 
     document.getElementById("avatar-upload")?.addEventListener("change", async(e) => {
@@ -288,9 +299,12 @@ export function renderProfilePage(renderFunc, params) {
 
         const total = d.down + d.up;
         const percent = d.total > 0 ? Math.min((total / d.total) * 100, 100) : 0;
+        
         const formatBytes = (b = 0, d = 2) => {
-            const k = 1024; const s = ['B', 'KB', 'MB', 'GB', 'TB'];
-            if (b === 0) return '0 B'; const i = Math.floor(Math.log(b) / Math.log(k));
+            const k = 1024;
+            const s = ['B', 'KB', 'MB', 'GB', 'TB'];
+            if (b === 0) return '0 B';
+            const i = Math.floor(Math.log(b) / Math.log(k));
             return `${parseFloat((b / k ** i).toFixed(d))} ${s[i]}`;
         };
 
@@ -306,23 +320,29 @@ export function renderProfilePage(renderFunc, params) {
                 status = `<span class="font-bold text-red-500">EXPIRED</span>`;
                 expiryColorClass = 'text-red-400';
             } else {
-                expiryDisplay = new Date(expiryTimestamp).toLocaleDateString('en-CA');
+                const expiryDate = new Date(expiryTimestamp);
+                expiryDisplay = expiryDate.toLocaleDateString('en-CA');
             }
         }
 
         usageContainer.innerHTML = `
             <div class="result-card p-4 sm:p-6 card-glass custom-radius space-y-5 reveal is-visible">
                 <div class="flex justify-between items-center pb-3 border-b border-white/10">
-                    <h3 class="text-lg font-semibold text-white flex items-center min-w-0"><i class="fa-solid fa-satellite-dish mr-3 text-blue-400 flex-shrink-0"></i><span class="truncate" title="${username}">Client: ${username}</span></h3>
+                    <h3 class="text-lg font-semibold text-white flex items-center min-w-0">
+                        <i class="fa-solid fa-satellite-dish mr-3 text-blue-400 flex-shrink-0"></i>
+                        <span class="truncate" title="${username}">Client: ${username}</span>
+                    </h3>
                     <div id="rt-status">${status}</div>
                 </div>
                 ${d.total > 0 ? `<div class="space-y-2"><div class="flex justify-between items-baseline text-sm"><span class="font-medium text-gray-300">Data Quota Usage</span><span id="rt-percent" class="font-bold text-white">${percent.toFixed(1)}%</span></div><div class="w-full bg-black/30 rounded-full h-2.5"><div id="rt-bar" class="progress-bar-inner bg-gradient-to-r from-sky-500 to-blue-500 h-2.5 rounded-full" style="width: ${percent}%"></div></div></div>` : ''}
+                
                 <div class="space-y-4 text-sm sm:hidden">
                     <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-circle-down text-sky-400 text-lg w-5 text-center"></i><span>Download</span></div><p class="font-semibold text-white text-base">${formatBytes(d.down)}</p></div>
                     <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-circle-up text-violet-400 text-lg w-5 text-center"></i><span>Upload</span></div><p class="font-semibold text-white text-base">${formatBytes(d.up)}</p></div>
                     <div class="flex justify-between items-center border-b border-white/10 pb-3"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-database text-green-400 text-lg w-5 text-center"></i><span>Total Used</span></div><p class="font-semibold text-white text-base">${formatBytes(total)}</p></div>
                     <div class="flex justify-between items-center"><div class="flex items-center gap-3 text-gray-300"><i class="fa-solid fa-calendar-xmark text-red-400 text-lg w-5 text-center"></i><span>Expires On</span></div><p class="font-medium ${expiryColorClass} text-base">${expiryDisplay}</p></div>
                 </div>
+
                 <div class="hidden sm:grid sm:grid-cols-2 gap-4 text-sm">
                     <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-circle-down text-sky-400 mr-2"></i><span>Download</span></div><p class="text-2xl font-bold text-white mt-1">${formatBytes(d.down)}</p></div>
                     <div class="bg-black/20 rounded-lg p-4"><div class="flex items-center text-gray-400"><i class="fa-solid fa-circle-up text-violet-400 mr-2"></i><span>Upload</span></div><p class="text-2xl font-bold text-white mt-1">${formatBytes(d.up)}</p></div>
@@ -335,22 +355,48 @@ export function renderProfilePage(renderFunc, params) {
     const renderPlanRejectedHTML = (username) => {
         const usageContainer = document.getElementById("tab-usage");
         const configContainer = document.getElementById("tab-config");
+
         const rejectedHtml = `
             <div class="result-card p-6 card-glass custom-radius space-y-4 reveal is-visible border border-red-500/50 bg-red-900/10">
-                <div class="text-center"><i class="fa-solid fa-ban text-4xl text-red-500 mb-3"></i><h3 class="text-xl font-bold text-white">Your Plan Rejected By Admin</h3><p class="text-sm text-gray-300 mt-2">Unfortunately, your plan <span class="font-semibold text-red-300">${username}</span> has been rejected.</p><p class="text-xs text-gray-400 mt-1">Please check your orders tab or contact support for more details.</p></div>
+                <div class="text-center">
+                    <i class="fa-solid fa-ban text-4xl text-red-500 mb-3"></i>
+                    <h3 class="text-xl font-bold text-white">Your Plan Rejected By Admin</h3>
+                    <p class="text-sm text-gray-300 mt-2">Unfortunately, your plan <span class="font-semibold text-red-300">${username}</span> has been rejected.</p>
+                    <p class="text-xs text-gray-400 mt-1">Please check your orders tab or contact support for more details.</p>
+                </div>
             </div>`;
+
         if (usageContainer) usageContainer.innerHTML = rejectedHtml;
-        if (configContainer) configContainer.innerHTML = rejectedHtml; 
+        if (configContainer) configContainer.innerHTML = rejectedHtml; // Hide config for rejected users
     };
 
     const renderPlanRemovedHTML = (username) => {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
+
         const otherPlansAvailable = globalActivePlans.length > 1;
         const renewalActionHtml = `<button id="renew-removed-plan-btn" class="ai-button w-full rounded-lg mt-2 inline-block"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew This Plan</button>`;
         const switchHtml = otherPlansAvailable ? `<button id="switch-plan-btn" class="ai-button secondary w-full rounded-lg mt-2"><i class="fa-solid fa-repeat mr-2"></i>Switch Plan</button>` : '';
-        usageContainer.innerHTML = `<div class="result-card p-6 card-glass custom-radius space-y-4 reveal is-visible border border-amber-500/30"><div class="text-center"><i class="fa-solid fa-triangle-exclamation text-4xl text-amber-400 mb-3"></i><h3 class="text-xl font-bold text-white">Plan Expired / Inactive</h3><p class="text-sm text-gray-300 mt-1">We couldn't find active data for <span class="font-semibold text-amber-300">${username}</span>. It may have expired.</p></div><div class="pt-2 flex flex-col gap-2">${renewalActionHtml}${switchHtml}</div></div>`;
-        document.getElementById('renew-removed-plan-btn')?.addEventListener('click', () => { const plan = globalActivePlans.find(p => p.v2rayUsername === username); if (plan) handleRenewalChoice(globalActivePlans, plan); else showToast({ title: "Error", message: "Could not identify plan details.", type: "error" }); });
+
+        usageContainer.innerHTML = `
+            <div class="result-card p-6 card-glass custom-radius space-y-4 reveal is-visible border border-amber-500/30">
+                <div class="text-center">
+                    <i class="fa-solid fa-triangle-exclamation text-4xl text-amber-400 mb-3"></i>
+                    <h3 class="text-xl font-bold text-white">Plan Expired / Inactive</h3>
+                    <p class="text-sm text-gray-300 mt-1">We couldn't find active data for <span class="font-semibold text-amber-300">${username}</span>. It may have expired.</p>
+                </div>
+                <div class="pt-2 flex flex-col gap-2">
+                    ${renewalActionHtml}
+                    ${switchHtml}
+                </div>
+            </div>`;
+
+        document.getElementById('renew-removed-plan-btn')?.addEventListener('click', () => {
+             const plan = globalActivePlans.find(p => p.v2rayUsername === username);
+             if (plan) handleRenewalChoice(globalActivePlans, plan);
+             else showToast({ title: "Error", message: "Could not identify plan details.", type: "error" });
+        });
+
         if (otherPlansAvailable) {
             document.getElementById('switch-plan-btn')?.addEventListener('click', () => {
                 const currentIndex = globalActivePlans.findIndex(p => p.v2rayUsername === username);
@@ -366,11 +412,20 @@ export function renderProfilePage(renderFunc, params) {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
         
+        // --- FLICKER PREVENTION START (UPDATED) ---
         let isKnownRejected = false;
         if(ordersCache) {
-             isKnownRejected = ordersCache.some(o => (o.final_username === username || (currentActivePlan && o.plan_id === currentActivePlan.planId && o.status === 'rejected')) && o.status === 'rejected');
+             isKnownRejected = ordersCache.some(o => 
+                 (o.final_username === username || (currentActivePlan && o.plan_id === currentActivePlan.planId && o.status === 'rejected')) && 
+                 o.status === 'rejected'
+             );
         }
-        if (isKnownRejected) { renderPlanRejectedHTML(username); return; }
+
+        if (isKnownRejected) {
+            renderPlanRejectedHTML(username);
+            return; 
+        }
+        // ------------------------------------------
 
         if (!isSilent && !usageDataCache[username]) {
             usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
@@ -383,10 +438,25 @@ export function renderProfilePage(renderFunc, params) {
                 } else if (result.isRemoved) {
                     delete usageDataCache[username];
                     try { localStorage.setItem('nexguard_usage_cache', JSON.stringify(usageDataCache)); } catch(e){}
-                    if (!ordersCache) await ensureOrdersLoaded();
+                    
+                    // Force background fetch for orders if missing (Critical Fix)
+                    if (!ordersCache) {
+                        await ensureOrdersLoaded();
+                    }
+
                     let isRejected = false;
-                    if(ordersCache) { isRejected = ordersCache.some(o => (o.final_username === username || (o.plan_id === currentActivePlan.planId && o.status === 'rejected')) && o.status === 'rejected'); }
-                    if (isRejected) renderPlanRejectedHTML(username); else renderPlanRemovedHTML(username);
+                    if(ordersCache) {
+                         isRejected = ordersCache.some(o => 
+                             (o.final_username === username || (o.plan_id === currentActivePlan.planId && o.status === 'rejected')) && 
+                             o.status === 'rejected'
+                         );
+                    }
+
+                    if (isRejected) {
+                        renderPlanRejectedHTML(username);
+                    } else {
+                        renderPlanRemovedHTML(username);
+                    }
                 } else if (!isSilent) {
                     usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-amber-400"><p>${result.message || 'Error loading usage.'}</p></div>`;
                 }
@@ -400,7 +470,10 @@ export function renderProfilePage(renderFunc, params) {
         const html = (orders.length > 0) ? orders.map(order => {
             const displayStatus = order.status === 'queued_for_renewal' ? 'Queued' : order.status;
             const statusColors = { pending: "text-amber-400", approved: "text-green-400", rejected: "text-red-400", queued_for_renewal: "text-blue-300" };
-            return `<div class="card-glass p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 custom-radius"><div><p class="font-bold text-white">${appData.plans[order.plan_id]?.name || order.plan_id} <span class="text-gray-400 font-normal">for</span> ${appData.connections.find(c => c.name === order.conn_id)?.name || order.conn_id}</p><p class="text-xs text-gray-400 mt-1">Ordered on: ${new Date(order.created_at).toLocaleDateString()}</p></div><div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'}"><span>${displayStatus}</span></div></div>`;
+            return `<div class="card-glass p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 custom-radius">
+                <div><p class="font-bold text-white">${appData.plans[order.plan_id]?.name || order.plan_id} <span class="text-gray-400 font-normal">for</span> ${appData.connections.find(c => c.name === order.conn_id)?.name || order.conn_id}</p><p class="text-xs text-gray-400 mt-1">Ordered on: ${new Date(order.created_at).toLocaleDateString()}</p></div>
+                <div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'}"><span>${displayStatus}</span></div>
+            </div>`;
         }).join('') : `<div class="card-glass p-8 custom-radius text-center"><i class="fa-solid fa-box-open text-4xl text-gray-400 mb-4"></i><h3 class="font-bold text-white">No Orders</h3></div>`;
         container.innerHTML = `<div class="space-y-3">${html}</div>`;
     }
@@ -423,7 +496,7 @@ export function renderProfilePage(renderFunc, params) {
         const container = document.getElementById("renew-button-container");
         if (!container) return;
         
-        // --- OPTIMISTIC UI: Show "Renew Plan" immediately (Fix for "Checking..." state) ---
+        // --- BUTTON FIX: Show Default ACTIVE Button Immediately (No Checking/Disabled State) ---
         if (!usageDataCache[plan.v2rayUsername]) {
              container.innerHTML = `<button id="renew-profile-btn" class="ai-button bg-amber-500 hover:bg-amber-600 border-none text-white inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew Plan</button>`;
              document.getElementById('renew-profile-btn')?.addEventListener('click', () => handleRenewalChoice(activePlans, plan));
@@ -438,18 +511,44 @@ export function renderProfilePage(renderFunc, params) {
             if (result.success) {
                 const expiryTimestamp = parseInt(result.data.expiryTime, 10);
                 const now = Date.now();
+                
                 if (expiryTimestamp > 0) {
                     const fiveDaysInMs = 5 * 24 * 60 * 60 * 1000;
-                    if (now > expiryTimestamp) { shouldEnableRenew = true; btnText = "Renew Plan"; btnClass = "ai-button bg-amber-500 hover:bg-amber-600 border-none text-white"; } 
-                    else if (now >= (expiryTimestamp - fiveDaysInMs)) { shouldEnableRenew = true; btnText = "Renew Plan (Expiring Soon)"; }
-                } else { btnText = "Does not expire"; }
+                    const isExpired = now > expiryTimestamp;
+                    const isExpiringSoon = now >= (expiryTimestamp - fiveDaysInMs);
+
+                    if (isExpired) {
+                        shouldEnableRenew = true;
+                        btnText = "Renew Plan";
+                        btnClass = "ai-button bg-amber-500 hover:bg-amber-600 border-none text-white";
+                    } else if (isExpiringSoon) {
+                        shouldEnableRenew = true;
+                        btnText = "Renew Plan (Expiring Soon)";
+                    } else {
+                        shouldEnableRenew = false;
+                    }
+                } else {
+                    shouldEnableRenew = false;
+                    btnText = "Does not expire";
+                }
             } else if (result.isRemoved) {
-                if (!ordersCache) await ensureOrdersLoaded();
-                let isRejected = false;
-                if(ordersCache) { isRejected = ordersCache.some(o => o.final_username === plan.v2rayUsername && o.status === 'rejected'); }
                 
-                if (isRejected) { container.innerHTML = `<span class="text-red-400 font-bold border border-red-500/50 px-3 py-1 rounded bg-red-900/20">Plan Rejected</span>`; return; } 
-                else { shouldEnableRenew = true; btnText = "Renew Plan (Inactive/Expired)"; btnClass = "ai-button bg-red-600 hover:bg-red-700 border-none text-white"; }
+                // Force check rejection
+                if (!ordersCache) await ensureOrdersLoaded();
+
+                let isRejected = false;
+                if(ordersCache) {
+                    isRejected = ordersCache.some(o => o.final_username === plan.v2rayUsername && o.status === 'rejected');
+                }
+                
+                if (isRejected) {
+                     container.innerHTML = `<span class="text-red-400 font-bold border border-red-500/50 px-3 py-1 rounded bg-red-900/20">Plan Rejected</span>`;
+                     return;
+                } else {
+                    shouldEnableRenew = true;
+                    btnText = "Renew Plan (Inactive/Expired)";
+                    btnClass = "ai-button bg-red-600 hover:bg-red-700 border-none text-white"; 
+                }
             }
 
             if (shouldEnableRenew) {
@@ -458,7 +557,9 @@ export function renderProfilePage(renderFunc, params) {
             } else {
                 container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed text-gray-400 border-gray-600">${btnText}</button>`;
             }
+
         } catch (e) {
+            console.error("Renew button update error", e);
              container.innerHTML = `<button id="renew-profile-btn" class="ai-button secondary inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew Plan</button>`;
              document.getElementById('renew-profile-btn')?.addEventListener('click', () => handleRenewalChoice(activePlans, plan));
         }
@@ -489,8 +590,11 @@ export function renderProfilePage(renderFunc, params) {
             </div><div id="plan-details-container"></div>`;
         
         const existingMenu = document.querySelector('.plan-selector-container');
-        if (!existingMenu) statusContainer.innerHTML = containerHtml;
-        else existingMenu.outerHTML = `<div class="plan-selector-container"><label class="plan-selector-label custom-radius">Viewing Plan:</label><ul class="fmenu custom-radius" id="plan-menu"><li class="fmenu-item custom-radius"><div class="trigger-menu custom-radius"><i class="fa-solid fa-server"></i><span class="text">${activePlans[activePlanIndex]?.v2rayUsername || 'Select Plan'}</span><i class="fa-solid fa-chevron-down arrow"></i></div><ul class="floating-menu">${planListItems}</ul></li></ul></div>`;
+        if (!existingMenu) {
+             statusContainer.innerHTML = containerHtml;
+        } else {
+             existingMenu.outerHTML = `<div class="plan-selector-container"><label class="plan-selector-label custom-radius">Viewing Plan:</label><ul class="fmenu custom-radius" id="plan-menu"><li class="fmenu-item custom-radius"><div class="trigger-menu custom-radius"><i class="fa-solid fa-server"></i><span class="text">${activePlans[activePlanIndex]?.v2rayUsername || 'Select Plan'}</span><i class="fa-solid fa-chevron-down arrow"></i></div><ul class="floating-menu">${planListItems}</ul></li></ul></div>`;
+        }
 
         planMenuInstance = new SikFloatingMenu("#plan-menu");
         
