@@ -16,16 +16,12 @@ let globalActivePlans = [];
 
 // --- SMART DATA FETCHER (REAL-TIME UPDATES) ---
 const fetchClientData = async (username) => {
-    // Add unique timestamp to prevent browser caching
     const timestamp = new Date().getTime();
     
-    // Force headers to ensure no caching occurs
-    // We add 'r' (random) parameter as an extra layer of cache busting
     const promise = apiFetch(`/api/check-usage/${username}?_=${timestamp}&r=${Math.random()}`, {
         headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0' }
     })
     .then(res => {
-        // Handle 404 (User removed/expired from panel)
         if (res.status === 404) {
             return { success: false, isRemoved: true }; 
         }
@@ -33,7 +29,6 @@ const fetchClientData = async (username) => {
     })
     .then(result => {
         if (result.success) {
-            // Update Cache with fresh data
             usageDataCache[username] = result.data;
             try { 
                 localStorage.setItem('nexguard_usage_cache', JSON.stringify(usageDataCache)); 
@@ -136,8 +131,6 @@ export function renderProfilePage(renderFunc, params) {
 
     const pendingMsg = localStorage.getItem("pendingLinkSuccess");
     if (pendingMsg) {
-        // Reload වෙලා ආවට පස්සේ මෙතනින් තමයි මැසේජ් එක පෙන්වන්නේ.
-        // එතකොට කිසිම වෙලාවක හිර වෙන්නේ නැහැ.
         setTimeout(() => {
             showToast({ 
                 title: "Success!", 
@@ -145,11 +138,10 @@ export function renderProfilePage(renderFunc, params) {
                 type: "success", 
                 duration: 5000 
             });
-            localStorage.removeItem("pendingLinkSuccess"); // වැඩේ ඉවර නිසා මකලා දානවා
-        }, 500); // පොඩි පරක්කුවක් දෙනවා පිටුව හරියට Load වෙනකම්
+            localStorage.removeItem("pendingLinkSuccess");
+        }, 500);
     }
 
-    // --- Restore Usage Cache safely ---
     try {
         const storedCache = localStorage.getItem('nexguard_usage_cache');
         if (storedCache) usageDataCache = JSON.parse(storedCache);
@@ -201,7 +193,6 @@ export function renderProfilePage(renderFunc, params) {
             const btn = e.target.querySelector("button");
             btn.disabled = true;
             
-            // Linking මැසේජ් එක තත්පර 2කින් යන්න දාමු (Reload එකට කලින්)
             showToast({ title: "Linking...", message: "Please wait...", type: "info", duration: 2000 });
             
             try {
@@ -209,9 +200,6 @@ export function renderProfilePage(renderFunc, params) {
                 const result = await res.json();
                 
                 if (res.ok) {
-                    // *** ප්‍රධාන වෙනස මෙන්න ***
-                    // දැන්ම Success මැසේජ් එක පෙන්වන්නේ නැහැ.
-                    // අපි ඒක localStorage එකේ සේව් කරලා, කෙලින්ම Reload කරනවා.
                     localStorage.setItem("pendingLinkSuccess", result.message || "Your V2Ray account has been successfully linked!");
                     window.location.reload(); 
                 } else {
@@ -262,22 +250,18 @@ export function renderProfilePage(renderFunc, params) {
             return `${parseFloat((b / k ** i).toFixed(d))} ${s[i]}`;
         };
 
-        // --- EXPIRY LOGIC (UPDATED) ---
         const now = Date.now();
         const expiryTimestamp = parseInt(d.expiryTime, 10);
-        
         let expiryDisplay = '<span class="text-300">Unlimited</span>';
         let expiryColorClass = 'text-white';
         let status = d.enable ? `<span class="font-semibold text-green-400">ONLINE</span>` : `<span class="font-semibold text-red-400">OFFLINE</span>`;
 
         if (expiryTimestamp > 0) {
             if (now > expiryTimestamp) {
-                // EXPIRED STATE: Show ONLY "EXPIRED" in red
                 expiryDisplay = `<span class="font-bold text-red-500 tracking-wide">EXPIRED</span>`;
                 status = `<span class="font-bold text-red-500">EXPIRED</span>`;
                 expiryColorClass = 'text-red-400';
             } else {
-                // ACTIVE STATE
                 const expiryDate = new Date(expiryTimestamp);
                 expiryDisplay = expiryDate.toLocaleDateString('en-CA');
             }
@@ -310,8 +294,6 @@ export function renderProfilePage(renderFunc, params) {
             </div>`;
     };
 
-    // --- NEW: Render Plan Rejected State ---
-    // This function handles the UI when a plan is rejected
     const renderPlanRejectedHTML = (username) => {
         const usageContainer = document.getElementById("tab-usage");
         const configContainer = document.getElementById("tab-config");
@@ -327,22 +309,16 @@ export function renderProfilePage(renderFunc, params) {
             </div>`;
 
         if (usageContainer) usageContainer.innerHTML = rejectedHtml;
-        if (configContainer) configContainer.innerHTML = rejectedHtml; // Overwrite Config tab to hide links
+        if (configContainer) configContainer.innerHTML = rejectedHtml; 
     };
 
-    // --- Render Plan Removed (Expired) State ---
     const renderPlanRemovedHTML = (username) => {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
 
         const otherPlansAvailable = globalActivePlans.length > 1;
-        
-        // --- Handle Renewal even if removed (Expired/Inactive) ---
         const renewalActionHtml = `<button id="renew-removed-plan-btn" class="ai-button w-full rounded-lg mt-2 inline-block"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew This Plan</button>`;
-        
-        const switchHtml = otherPlansAvailable 
-            ? `<button id="switch-plan-btn" class="ai-button secondary w-full rounded-lg mt-2"><i class="fa-solid fa-repeat mr-2"></i>Switch Plan</button>`
-            : '';
+        const switchHtml = otherPlansAvailable ? `<button id="switch-plan-btn" class="ai-button secondary w-full rounded-lg mt-2"><i class="fa-solid fa-repeat mr-2"></i>Switch Plan</button>` : '';
 
         usageContainer.innerHTML = `
             <div class="result-card p-6 card-glass custom-radius space-y-4 reveal is-visible border border-amber-500/30">
@@ -357,25 +333,18 @@ export function renderProfilePage(renderFunc, params) {
                 </div>
             </div>`;
 
-        // Add event listener for the new "Renew This Plan" button
         document.getElementById('renew-removed-plan-btn')?.addEventListener('click', () => {
-             // Find the plan object from globalActivePlans
              const plan = globalActivePlans.find(p => p.v2rayUsername === username);
-             if (plan) {
-                 handleRenewalChoice(globalActivePlans, plan);
-             } else {
-                 showToast({ title: "Error", message: "Could not identify plan details.", type: "error" });
-             }
+             if (plan) handleRenewalChoice(globalActivePlans, plan);
+             else showToast({ title: "Error", message: "Could not identify plan details.", type: "error" });
         });
 
         if (otherPlansAvailable) {
             document.getElementById('switch-plan-btn')?.addEventListener('click', () => {
                 const currentIndex = globalActivePlans.findIndex(p => p.v2rayUsername === username);
                 const nextIndex = (currentIndex + 1) % globalActivePlans.length;
-                
                 document.querySelector('#plan-menu .trigger-menu .text').textContent = globalActivePlans[nextIndex].v2rayUsername;
                 localStorage.setItem(`nexguard_last_plan_${user.username}`, globalActivePlans[nextIndex].v2rayUsername);
-                
                 if (window.renderPlanDetailsInternal) window.renderPlanDetailsInternal(nextIndex);
             });
         }
@@ -385,21 +354,39 @@ export function renderProfilePage(renderFunc, params) {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
         
+        // --- FLICKER PREVENTION START ---
+        // Check if we KNOW this order is rejected before showing any cached data or loading spinner
+        let isKnownRejected = false;
+        if(ordersCache) {
+             isKnownRejected = ordersCache.some(o => 
+                 (o.final_username === username || (currentActivePlan && o.plan_id === currentActivePlan.planId && o.status === 'rejected')) && 
+                 o.status === 'rejected'
+             );
+        }
+
+        if (isKnownRejected) {
+            renderPlanRejectedHTML(username);
+            return; // Stop here to prevent fetching/showing cached data
+        }
+        // --- FLICKER PREVENTION END ---
+
         if (!isSilent && !usageDataCache[username]) {
             usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
         }
         
-        // This function now uses fetchClientData which detects 404s
         fetchClientData(username).then(result => {
             if (currentActivePlan && currentActivePlan.v2rayUsername === username) {
                 if (result.success && result.data) {
-                    // Update expiry and other stats live
                     renderUsageHTML(result.data, username);
                 } else if (result.isRemoved) {
-                    // Check if the plan is rejected first
+                    
+                    // --- CLEAN CACHE TO PREVENT FUTURE FLICKERS ---
+                    delete usageDataCache[username];
+                    try { localStorage.setItem('nexguard_usage_cache', JSON.stringify(usageDataCache)); } catch(e){}
+                    // ----------------------------------------------
+
                     let isRejected = false;
                     if(ordersCache) {
-                         // Find any order matching this username/plan that is 'rejected'
                          isRejected = ordersCache.some(o => 
                              (o.final_username === username || (o.plan_id === currentActivePlan.planId && o.status === 'rejected')) && 
                              o.status === 'rejected'
@@ -407,10 +394,8 @@ export function renderProfilePage(renderFunc, params) {
                     }
 
                     if (isRejected) {
-                        // **SHOW REJECTED MESSAGE** in both Usage and Config tabs
                         renderPlanRejectedHTML(username);
                     } else {
-                        // **SHOW EXPIRED MESSAGE**
                         renderPlanRemovedHTML(username);
                     }
                 } else if (!isSilent) {
@@ -452,21 +437,17 @@ export function renderProfilePage(renderFunc, params) {
         const container = document.getElementById("renew-button-container");
         if (!container) return;
         
-        // Keep loading state if not cached
         if (!usageDataCache[plan.v2rayUsername]) {
              container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Checking status...</button>`;
         }
         
         try {
             const result = await fetchClientData(plan.v2rayUsername);
-            
-            // --- NEW LOGIC START ---
             let shouldEnableRenew = false;
             let btnText = "Renew / Change Plan";
             let btnClass = "ai-button";
 
             if (result.success) {
-                // Parse expiry time safely as an integer timestamp
                 const expiryTimestamp = parseInt(result.data.expiryTime, 10);
                 const now = Date.now();
                 
@@ -478,50 +459,43 @@ export function renderProfilePage(renderFunc, params) {
                     if (isExpired) {
                         shouldEnableRenew = true;
                         btnText = "Renew Plan";
-                        btnClass = "ai-button bg-amber-500 hover:bg-amber-600 border-none text-white"; // Highlighted style
+                        btnClass = "ai-button bg-amber-500 hover:bg-amber-600 border-none text-white";
                     } else if (isExpiringSoon) {
                         shouldEnableRenew = true;
                         btnText = "Renew Plan (Expiring Soon)";
                     } else {
-                        // Not expired, not expiring soon
                         shouldEnableRenew = false;
                     }
                 } else {
-                    // Unlimited expiry
                     shouldEnableRenew = false;
                     btnText = "Does not expire";
                 }
             } else if (result.isRemoved) {
-                // Check if rejected to disable renewal button
+                // Check if rejected
                 let isRejected = false;
                 if(ordersCache) {
                     isRejected = ordersCache.some(o => o.final_username === plan.v2rayUsername && o.status === 'rejected');
                 }
                 
                 if (isRejected) {
-                     // If rejected, DO NOT SHOW renew button in Config tab (or show disabled message)
                      container.innerHTML = `<span class="text-red-400 font-bold border border-red-500/50 px-3 py-1 rounded bg-red-900/20">Plan Rejected</span>`;
                      return;
                 } else {
-                    // **CRITICAL FIX**: If removed/not found but NOT rejected, treat as Expired and ENABLE renewal
                     shouldEnableRenew = true;
                     btnText = "Renew Plan (Inactive/Expired)";
-                    btnClass = "ai-button bg-red-600 hover:bg-red-700 border-none text-white"; // Alert style
+                    btnClass = "ai-button bg-red-600 hover:bg-red-700 border-none text-white"; 
                 }
             }
 
-            // Render Button
             if (shouldEnableRenew) {
                 container.innerHTML = `<button id="renew-profile-btn" class="${btnClass} inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>${btnText}</button>`;
                 document.getElementById('renew-profile-btn')?.addEventListener('click', () => handleRenewalChoice(activePlans, plan));
             } else {
                 container.innerHTML = `<button disabled class="ai-button secondary inline-block rounded-lg cursor-not-allowed text-gray-400 border-gray-600">${btnText}</button>`;
             }
-            // --- NEW LOGIC END ---
 
         } catch (e) {
             console.error("Renew button update error", e);
-            // Fallback in case of error: Allow renewal to be safe
              container.innerHTML = `<button id="renew-profile-btn" class="ai-button secondary inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew Plan</button>`;
              document.getElementById('renew-profile-btn')?.addEventListener('click', () => handleRenewalChoice(activePlans, plan));
         }
@@ -576,9 +550,7 @@ export function renderProfilePage(renderFunc, params) {
             lastKnownPlansStr = currentPlansStr;
 
             if (data.status === "approved" && data.activePlans?.length > 0) {
-                // Prefetch All
                 data.activePlans.forEach(p => fetchClientData(p.v2rayUsername));
-                
                 globalActivePlans = data.activePlans;
 
                 let currentIndex = 0;
@@ -602,7 +574,6 @@ export function renderProfilePage(renderFunc, params) {
                     document.getElementById("plan-info-container").innerHTML = `<span class="bg-blue-500/10 text-blue-300 px-2 py-1 rounded-full"><i class="fa-solid fa-rocket fa-fw mr-2"></i>${planName}</span><span class="bg-indigo-500/10 text-indigo-300 px-2 py-1 rounded-full"><i class="fa-solid fa-wifi fa-fw mr-2"></i>${connectionName}</span>`;
 
                     if(!document.getElementById('profile-tabs')) {
-                        // --- UPDATED: Removed Tutorials Tab ---
                         container.innerHTML = `
                         <div id="profile-tabs" class="flex items-center gap-4 sm:gap-6 border-b border-white/10 mb-6 overflow-x-auto">
                             <button data-tab="config" class="tab-btn active">V2Ray Config</button>
@@ -677,14 +648,12 @@ export function renderProfilePage(renderFunc, params) {
                                 if(tabId === 'orders') {
                                     if (ordersCache) { renderOrdersHTML(ordersCache); loadMyOrders(true); } else { loadMyOrders(false); }
                                 }
-                                // --- REMOVED TUTORIALS TAB CLICK LOGIC ---
                             }
                         });
                         
                         setupEventListeners();
                     }
 
-                    // Refreshes if tab is already active (polling/switching plans)
                     if (document.getElementById('tab-usage')?.classList.contains('active')) {
                          if (usageDataCache[plan.v2rayUsername]) {
                             renderUsageHTML(usageDataCache[plan.v2rayUsername], plan.v2rayUsername);
@@ -694,8 +663,6 @@ export function renderProfilePage(renderFunc, params) {
                         }
                     }
                     
-                    // --- REMOVED TUTORIALS REFRESH LOGIC ---
-
                     const qrContainer = document.getElementById("qrcode-container");
                     if(qrContainer) {
                         qrContainer.innerHTML = "";
@@ -718,15 +685,14 @@ export function renderProfilePage(renderFunc, params) {
                 window.renderPlanDetailsInternal(currentIndex);
 
                 if (!initialTabCheckDone) {
-                            const tabParam = params.get('tab'); // URL එකෙන් tab නම ගන්නවා
+                            const tabParam = params.get('tab');
                             if (tabParam) {
-                                // අදාළ data-tab නම ඇති button එක සොයාගැනීම
                                 const targetBtn = document.querySelector(`.tab-btn[data-tab="${tabParam}"]`);
                                 if (targetBtn) {
-                                    targetBtn.click(); // එම Button එක Click කරවන්න
+                                    targetBtn.click();
                                 }
                             }
-                            initialTabCheckDone = true; // මෙය එක් වරක් පමණක් සිදු කිරීමට
+                            initialTabCheckDone = true;
                         }
 
             } else if (data.status === "pending") {
@@ -739,12 +705,9 @@ export function renderProfilePage(renderFunc, params) {
             }
         }
 
-        // --- POLLING LOGIC ---
-        // Ensure UI updates even if only the underlying Usage Data (Expiry/Traffic) changed
         if (data.status === "approved" && data.activePlans?.length > 0) {
             if (currentActivePlan) {
                 if (document.getElementById('tab-usage')?.classList.contains('active')) {
-                    // Poll for fresh data including expiry and removal check
                     loadUsageStats(currentActivePlan.v2rayUsername, true); 
                 }
                 if (document.getElementById('tab-orders')?.classList.contains('active')) {
@@ -759,12 +722,10 @@ export function renderProfilePage(renderFunc, params) {
 
     const loadProfileData = async () => {
         try {
-            // Cache එකෙන් දත්ත තිබේදැයි බලන්න
             let cachedPlansStr = null;
             try { cachedPlansStr = localStorage.getItem(PLANS_CACHE_KEY); } catch(e){}
             
-            // මුලින්ම Cache දත්ත පෙන්වන්න (එවිට Load වෙනකම් හිස්ව නොපෙනේ)
-            if (cachedPlansStr && !currentActivePlan) { // currentActivePlan නැත්නම් විතරක් UI update කරන්න
+            if (cachedPlansStr && !currentActivePlan) {
                 try {
                     const cachedPlans = JSON.parse(cachedPlansStr);
                     if (Array.isArray(cachedPlans) && cachedPlans.length > 0) {
@@ -775,10 +736,7 @@ export function renderProfilePage(renderFunc, params) {
                 }
             }
 
-            // Server එකෙන් අලුත් දත්ත ඉල්ලන්න
             const res = await apiFetch("/api/user/status");
-            
-            // 429 හෝ වෙනත් දෝෂයක් ආවොත්, UI එක වෙනස් නොකර නිකන් ඉන්න
             if (!res.ok) {
                 console.warn("Skipping update due to server error:", res.status);
                 return; 
@@ -797,23 +755,18 @@ export function renderProfilePage(renderFunc, params) {
                     }
                 } catch(e){}
                 
-                // Plan තිබුණත් නැතත් UI එක update කරන්න
                 handleDataUpdate(data, true);
             } else {
-                // Server එකෙන් data හරියට අවේ නැතිනම් හෝ Plan නැතිනම් "No Plan" එක පෙන්වන්න
                 handleDataUpdate({ activePlans: [] }, true);
             }
 
         } catch (e) { 
-            // Network Error එකක් ආවොත් Console එකට දාන්න, UI එක කඩන්න එපා
             console.error("Profile load error (Keeping previous state):", e); 
         }
     };
     loadProfileData();
 
-    // තත්පර 10කට වරක් දත්ත අලුත් කරන්න (Server එකට බර අඩුයි)
     profilePollingInterval = setInterval(() => {
-        // User මේ Tab එකේ සිටී නම් පමණක් දත්ත අලුත් කරන්න (Performance Fix)
         if (!document.hidden) {
             loadProfileData();
         }
