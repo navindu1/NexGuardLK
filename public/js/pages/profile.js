@@ -247,8 +247,6 @@ export function renderProfilePage(renderFunc, params) {
         }
     });
 
-    // --- REMOVED LOAD TUTORIALS FUNCTION ---
-
     const renderUsageHTML = (d, username) => {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
@@ -312,14 +310,34 @@ export function renderProfilePage(renderFunc, params) {
             </div>`;
     };
 
-    // --- Render Plan Removed State ---
+    // --- NEW: Render Plan Rejected State ---
+    // This function handles the UI when a plan is rejected
+    const renderPlanRejectedHTML = (username) => {
+        const usageContainer = document.getElementById("tab-usage");
+        const configContainer = document.getElementById("tab-config");
+
+        const rejectedHtml = `
+            <div class="result-card p-6 card-glass custom-radius space-y-4 reveal is-visible border border-red-500/50 bg-red-900/10">
+                <div class="text-center">
+                    <i class="fa-solid fa-ban text-4xl text-red-500 mb-3"></i>
+                    <h3 class="text-xl font-bold text-white">Your Plan Rejected By Admin</h3>
+                    <p class="text-sm text-gray-300 mt-2">Unfortunately, your plan <span class="font-semibold text-red-300">${username}</span> has been rejected.</p>
+                    <p class="text-xs text-gray-400 mt-1">Please check your orders tab or contact support for more details.</p>
+                </div>
+            </div>`;
+
+        if (usageContainer) usageContainer.innerHTML = rejectedHtml;
+        if (configContainer) configContainer.innerHTML = rejectedHtml; // Overwrite Config tab to hide links
+    };
+
+    // --- Render Plan Removed (Expired) State ---
     const renderPlanRemovedHTML = (username) => {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
 
         const otherPlansAvailable = globalActivePlans.length > 1;
         
-        // --- NEW: Handle Renewal even if removed (Expired/Inactive) ---
+        // --- Handle Renewal even if removed (Expired/Inactive) ---
         const renewalActionHtml = `<button id="renew-removed-plan-btn" class="ai-button w-full rounded-lg mt-2 inline-block"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew This Plan</button>`;
         
         const switchHtml = otherPlansAvailable 
@@ -378,8 +396,23 @@ export function renderProfilePage(renderFunc, params) {
                     // Update expiry and other stats live
                     renderUsageHTML(result.data, username);
                 } else if (result.isRemoved) {
-                    // **CRITICAL:** Show "Expired/Inactive" state with Renew button
-                    renderPlanRemovedHTML(username);
+                    // Check if the plan is rejected first
+                    let isRejected = false;
+                    if(ordersCache) {
+                         // Find any order matching this username/plan that is 'rejected'
+                         isRejected = ordersCache.some(o => 
+                             (o.final_username === username || (o.plan_id === currentActivePlan.planId && o.status === 'rejected')) && 
+                             o.status === 'rejected'
+                         );
+                    }
+
+                    if (isRejected) {
+                        // **SHOW REJECTED MESSAGE** in both Usage and Config tabs
+                        renderPlanRejectedHTML(username);
+                    } else {
+                        // **SHOW EXPIRED MESSAGE**
+                        renderPlanRemovedHTML(username);
+                    }
                 } else if (!isSilent) {
                     usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-amber-400"><p>${result.message || 'Error loading usage.'}</p></div>`;
                 }
@@ -459,10 +492,22 @@ export function renderProfilePage(renderFunc, params) {
                     btnText = "Does not expire";
                 }
             } else if (result.isRemoved) {
-                // **CRITICAL FIX**: If removed/not found, treat as Expired and ENABLE renewal
-                shouldEnableRenew = true;
-                btnText = "Renew Plan (Inactive/Expired)";
-                btnClass = "ai-button bg-red-600 hover:bg-red-700 border-none text-white"; // Alert style
+                // Check if rejected to disable renewal button
+                let isRejected = false;
+                if(ordersCache) {
+                    isRejected = ordersCache.some(o => o.final_username === plan.v2rayUsername && o.status === 'rejected');
+                }
+                
+                if (isRejected) {
+                     // If rejected, DO NOT SHOW renew button in Config tab (or show disabled message)
+                     container.innerHTML = `<span class="text-red-400 font-bold border border-red-500/50 px-3 py-1 rounded bg-red-900/20">Plan Rejected</span>`;
+                     return;
+                } else {
+                    // **CRITICAL FIX**: If removed/not found but NOT rejected, treat as Expired and ENABLE renewal
+                    shouldEnableRenew = true;
+                    btnText = "Renew Plan (Inactive/Expired)";
+                    btnClass = "ai-button bg-red-600 hover:bg-red-700 border-none text-white"; // Alert style
+                }
             }
 
             // Render Button
