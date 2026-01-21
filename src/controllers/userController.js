@@ -1,4 +1,4 @@
-const supabase = require('../config/supabaseClient'); // මෙය පමණක් තබාගන්න
+const supabase = require('../config/supabaseClient');
 const v2rayService = require('../services/v2rayService');
 const bcrypt = require('bcryptjs');
 const fs = require('fs');
@@ -12,7 +12,6 @@ const planConfig = {
     "300GB": { totalGB: 300 },
     "Unlimited": { totalGB: 0 },
 };
-
 
 exports.getUserStatus = async (req, res) => {
     try {
@@ -42,68 +41,40 @@ exports.getUserStatus = async (req, res) => {
             return res.json({ success: true, status: "no_plan" });
         }
         
-        // --- START: NEW VERIFICATION AND CLEANUP LOGIC (UPDATED) ---
-
-        // 1. Fetch all client details from the V2Ray panel in one go for efficiency.
+        // --- START: VERIFICATION LOGIC ---
         const allPanelClientsMap = await v2rayService.getAllClientDetails();
-        
         const verifiedActivePlans = [];
-        // let plansChanged = false; // DISABLED: We don't want to auto-delete plans anymore
 
-        // 2. Loop through each plan stored in our database for the user.
         for (const plan of user.active_plans) {
             const v2rayUsernameLower = plan.v2rayUsername.toLowerCase();
             
-            // 3. Check if the plan's username exists in the live data from the V2Ray panel.
             if (allPanelClientsMap.has(v2rayUsernameLower)) {
-                // If it exists, get the live details from the panel.
                 const clientDetails = allPanelClientsMap.get(v2rayUsernameLower);
-                
-                // Add live data like expiryTime to the plan object to show the user.
                 const enrichedPlan = {
                     ...plan,
                     expiryTime: clientDetails.expiryTime || 0
                 };
                 verifiedActivePlans.push(enrichedPlan);
             } else {
-                // 4. If the plan is NOT in the V2Ray panel (e.g. Expired & Deleted), 
-                // we STILL keep it in the list so the user sees it (as "Removed" or "Expired") instead of it vanishing.
-                // We assume expiry is 0 or past to indicate issue if needed, but keeping original object is safest.
+                // If not in panel, keep it but mark as expired/removed (expiryTime: 0)
                 verifiedActivePlans.push({
                     ...plan,
-                    expiryTime: 0 // Indicate it might be invalid/expired
+                    expiryTime: 0 
                 });
-                
-                // Previously, we marked this for deletion. Now we KEEP it.
-                // plansChanged = true; 
-                console.log(`[Status Check] Plan '${plan.v2rayUsername}' not found in panel, but keeping in profile.`);
+                console.log(`[Status Check] Plan '${plan.v2rayUsername}' not found in panel, keeping as inactive.`);
             }
         }
-
-        /* // --- DISABLED AUTO-CLEANUP ---
-        // This block previously deleted plans from the database if they weren't in the panel.
-        // We removed it so users can still see their expired/removed plans and renew them if supported.
-        
-        if (plansChanged) {
-            const plansToSave = verifiedActivePlans.map(({ expiryTime, ...rest }) => rest);
-            await supabase
-                .from("users")
-                .update({ active_plans: plansToSave })
-                .eq("id", user.id);
-        }
-        */
         
         if (verifiedActivePlans.length === 0) {
             return res.json({ success: true, status: "no_plan" });
         }
 
-        // 6. Return all plans (including those missing from panel) to the user.
         return res.json({
             success: true,
             status: "approved",
             activePlans: verifiedActivePlans,
         });
-        // --- END: NEW VERIFICATION AND CLEANUP LOGIC ---
+        // --- END: VERIFICATION LOGIC ---
 
     } catch (error) {
         console.error(`[Status Check Error] User: ${req.user.username}, Error: ${error.message}`);
@@ -271,14 +242,14 @@ exports.linkV2rayAccount = async (req, res) => {
         }
 
         const newPlan = {
-        v2rayUsername: clientData.client.email || trimmedUsername,
-        v2rayLink,
-        planId: detectedPlanId,
-        connId: detectedConnId,
-        pkg: finalPackage ? finalPackage.name : null, // <--- ADD THIS LINE
-        activatedAt: new Date().toISOString(),
-        orderId: "linked-" + uuidv4(),
-    };
+            v2rayUsername: clientData.client.email || trimmedUsername,
+            v2rayLink,
+            planId: detectedPlanId,
+            connId: detectedConnId,
+            pkg: finalPackage ? finalPackage.name : null,
+            activatedAt: new Date().toISOString(),
+            orderId: "linked-" + uuidv4(),
+        };
     
         const updatedPlans = [...currentPlans, newPlan];
 
@@ -294,7 +265,6 @@ exports.linkV2rayAccount = async (req, res) => {
         return res.status(500).json({ success: false, message: "An unexpected error occurred. Please try again later or contact support." });
     }
 };
-
 
 exports.updatePassword = async (req, res) => {
     const { newPassword } = req.body;
@@ -315,7 +285,6 @@ exports.updatePassword = async (req, res) => {
     }
 };
 
-// Get all tutorials
 exports.getTutorials = async (req, res) => {
     try {
         const { data, error } = await supabase
@@ -330,15 +299,12 @@ exports.getTutorials = async (req, res) => {
     }
 };
 
-
 exports.unlinkPlan = async (req, res) => {
     try {
         const { v2rayUsername } = req.body;
-        
-        // Check if user ID exists from middleware
         const userId = req.user ? req.user.id : null; 
+        
         if (!userId) {
-            console.error("Auth Error: No user ID found in request");
             return res.status(401).json({ success: false, message: 'Unauthorized' });
         }
 
@@ -346,7 +312,6 @@ exports.unlinkPlan = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Username is required.' });
         }
 
-        // 1. Get current user plans
         const { data: user, error } = await supabase
             .from('users')
             .select('active_plans')
@@ -360,8 +325,6 @@ exports.unlinkPlan = async (req, res) => {
 
         const currentPlans = user.active_plans || [];
         
-        // 2. Filter out the plan to remove
-        // We use lowercase comparison to be safe
         const updatedPlans = currentPlans.filter(plan => 
             plan.v2rayUsername && plan.v2rayUsername.toLowerCase() !== v2rayUsername.toLowerCase()
         );
@@ -370,7 +333,6 @@ exports.unlinkPlan = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Plan not found in your account.' });
         }
 
-        // 3. Update DB
         const { error: updateError } = await supabase
             .from('users')
             .update({ active_plans: updatedPlans })

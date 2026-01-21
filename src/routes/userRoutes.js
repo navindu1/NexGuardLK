@@ -27,6 +27,8 @@ router.get('/tutorials', authenticateToken, userController.getTutorials);
 
 // Update the user's password
 router.post("/update-password", authenticateToken, userController.updatePassword);
-router.post('/unlink', authMiddleware, userController.unlinkPlan);
+
+// --- FIX IS HERE: Changed 'authMiddleware' to 'authenticateToken' ---
+router.post('/unlink', authenticateToken, userController.unlinkPlan);
 
 module.exports = router;
