@@ -16,12 +16,16 @@ let globalActivePlans = [];
 
 // --- SMART DATA FETCHER (REAL-TIME UPDATES) ---
 const fetchClientData = async (username) => {
+    // Add unique timestamp to prevent browser caching
     const timestamp = new Date().getTime();
     
+    // Force headers to ensure no caching occurs
+    // We add 'r' (random) parameter as an extra layer of cache busting
     const promise = apiFetch(`/api/check-usage/${username}?_=${timestamp}&r=${Math.random()}`, {
         headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0' }
     })
     .then(res => {
+        // Handle 404 (User removed/expired from panel)
         if (res.status === 404) {
             return { success: false, isRemoved: true }; 
         }
@@ -29,6 +33,7 @@ const fetchClientData = async (username) => {
     })
     .then(result => {
         if (result.success) {
+            // Update Cache with fresh data
             usageDataCache[username] = result.data;
             try { 
                 localStorage.setItem('nexguard_usage_cache', JSON.stringify(usageDataCache)); 
@@ -67,8 +72,7 @@ const unlinkPlan = async (v2rayUsername) => {
     showToast({ title: "Removing...", message: "Processing removal.", type: "info" });
     
     try {
-        // Try to call backend endpoint if exists, otherwise fallback to local hide
-        // Assuming /api/user/unlink exists or we simulate it
+        // Call backend removal endpoint
         const res = await apiFetch("/api/user/unlink", { 
             method: "POST", 
             headers: { "Content-Type": "application/json" }, 
@@ -81,9 +85,6 @@ const unlinkPlan = async (v2rayUsername) => {
             showToast({ title: "Success", message: "Plan removed successfully.", type: "success" });
             window.location.reload();
         } else {
-            // Fallback: If backend route missing, try to force refresh or show error
-            // Often "unlink" is just removing from 'active_plans' column in DB.
-            console.warn("Backend unlink failed, trying reload:", result);
             showToast({ title: "Error", message: result.message || "Failed to remove plan.", type: "error" });
         }
     } catch (e) {
@@ -198,16 +199,10 @@ export function renderProfilePage(renderFunc, params) {
     const statusContainer = document.getElementById("user-status-content");
     qrModalLogic.init();
 
-
     const pendingMsg = localStorage.getItem("pendingLinkSuccess");
     if (pendingMsg) {
         setTimeout(() => {
-            showToast({ 
-                title: "Success!", 
-                message: pendingMsg, 
-                type: "success", 
-                duration: 5000 
-            });
+            showToast({ title: "Success!", message: pendingMsg, type: "success", duration: 5000 });
             localStorage.removeItem("pendingLinkSuccess");
         }, 500);
     }
@@ -288,12 +283,6 @@ export function renderProfilePage(renderFunc, params) {
         });
 
         document.getElementById('profile-password-toggle')?.addEventListener('click', () => togglePassword('new-password', 'profile-password-toggle'));
-        
-        document.getElementById("link-account-form-profile")?.addEventListener("submit", async(e) => {
-            e.preventDefault();
-            const btn = e.target.querySelector("button");
-            if(btn) btn.click();
-        });
     };
 
     document.getElementById("avatar-upload")?.addEventListener("change", async(e) => {
@@ -377,7 +366,7 @@ export function renderProfilePage(renderFunc, params) {
             </div>`;
     };
 
-    // --- REJECTED HTML + REMOVE BUTTON ---
+    // --- REJECTED HTML + REMOVE BUTTON (Corrected Size & Centered) ---
     const renderPlanRejectedHTML = (username) => {
         const usageContainer = document.getElementById("tab-usage");
         const configContainer = document.getElementById("tab-config");
@@ -391,8 +380,8 @@ export function renderProfilePage(renderFunc, params) {
                     <p class="text-xs text-gray-400 mt-1">Please check your orders tab or contact support for more details.</p>
                 </div>
                 <div class="pt-2 text-center">
-                    <button id="remove-rejected-btn" class="ai-button secondary w-full rounded-lg text-red-400 hover:text-red-300 border-red-500/30 hover:bg-red-900/30">
-                        <i class="fa-solid fa-trash-can mr-2"></i>Remove from Dashboard
+                    <button id="remove-rejected-btn" class="ai-button secondary w-auto inline-flex items-center justify-center px-6 py-2 text-sm rounded-lg text-red-400 hover:text-red-300 border-red-500/30 hover:bg-red-900/30">
+                        <i class="fa-solid fa-trash-can mr-2"></i>Remove
                     </button>
                 </div>
             </div>`;
@@ -412,7 +401,9 @@ export function renderProfilePage(renderFunc, params) {
         const otherPlansAvailable = globalActivePlans.length > 1;
         const renewalActionHtml = `<button id="renew-removed-plan-btn" class="ai-button w-full rounded-lg mt-2 inline-block"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew This Plan</button>`;
         const switchHtml = otherPlansAvailable ? `<button id="switch-plan-btn" class="ai-button secondary w-full rounded-lg mt-2"><i class="fa-solid fa-repeat mr-2"></i>Switch Plan</button>` : '';
-        const removeHtml = `<button id="remove-expired-btn" class="ai-button secondary w-full rounded-lg mt-2 text-red-400 border-red-500/30 hover:bg-red-900/30"><i class="fa-solid fa-trash-can mr-2"></i>Remove Plan</button>`;
+        
+        // Remove button is distinct and smaller
+        const removeHtml = `<div class="text-center mt-3"><button id="remove-expired-btn" class="ai-button secondary w-auto inline-flex items-center justify-center px-6 py-2 text-sm rounded-lg text-red-400 border-red-500/30 hover:bg-red-900/30"><i class="fa-solid fa-trash-can mr-2"></i>Remove</button></div>`;
 
         usageContainer.innerHTML = `
             <div class="result-card p-6 card-glass custom-radius space-y-4 reveal is-visible border border-amber-500/30">
@@ -451,8 +442,7 @@ export function renderProfilePage(renderFunc, params) {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
         
-        // --- FLICKER PREVENTION START ---
-        // Check order status before rendering loading spinner or cached data
+        // --- FLICKER PREVENTION: Check Rejection First ---
         let isKnownRejected = false;
         if(ordersCache) {
              isKnownRejected = ordersCache.some(o => 
@@ -465,7 +455,6 @@ export function renderProfilePage(renderFunc, params) {
             renderPlanRejectedHTML(username);
             return; 
         }
-        // --------------------------------
 
         if (!isSilent && !usageDataCache[username]) {
             usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
@@ -535,7 +524,7 @@ export function renderProfilePage(renderFunc, params) {
         const container = document.getElementById("renew-button-container");
         if (!container) return;
         
-        // --- BUTTON FIX: Instant Active State (Optimistic) ---
+        // --- BUTTON FIX: Show Active Immediately ---
         if (!usageDataCache[plan.v2rayUsername]) {
              container.innerHTML = `<button id="renew-profile-btn" class="ai-button bg-amber-500 hover:bg-amber-600 border-none text-white inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew Plan</button>`;
              document.getElementById('renew-profile-btn')?.addEventListener('click', () => handleRenewalChoice(activePlans, plan));
@@ -567,13 +556,16 @@ export function renderProfilePage(renderFunc, params) {
                     btnText = "Does not expire";
                 }
             } else if (result.isRemoved) {
+                
                 if (!ordersCache) await ensureOrdersLoaded();
+
                 let isRejected = false;
                 if(ordersCache) {
                     isRejected = ordersCache.some(o => o.final_username === plan.v2rayUsername && o.status === 'rejected');
                 }
                 
                 if (isRejected) {
+                     // If rejected, don't show renew button in config tab (optional, can just show message)
                      container.innerHTML = `<span class="text-red-400 font-bold border border-red-500/50 px-3 py-1 rounded bg-red-900/20">Plan Rejected</span>`;
                      return;
                 } else {
@@ -603,7 +595,7 @@ export function renderProfilePage(renderFunc, params) {
             `<li><a href="#" data-plan-index="${index}">${plan.v2rayUsername}</a></li>`
         ).join('');
 
-        // --- CHANGED: "Add More +" instead of "Link Old Account" ---
+        // --- CHANGED: "Add More +" (New Trigger) ---
         planListItems += `<li class="border-t border-white/10 mt-1 pt-1"><a href="#" id="link-new-account-option" class="text-blue-300 hover:text-blue-200"><i class="fa-solid fa-plus-circle mr-2"></i>Add More +</a></li>`;
 
         const containerHtml = `
@@ -656,7 +648,11 @@ export function renderProfilePage(renderFunc, params) {
             lastKnownPlansStr = currentPlansStr;
 
             if (data.status === "approved" && data.activePlans?.length > 0) {
-                data.activePlans.forEach(p => fetchClientData(p.v2rayUsername));
+                // Ensure orders loaded for instant rejection checks
+                ensureOrdersLoaded().then(() => {
+                    data.activePlans.forEach(p => fetchClientData(p.v2rayUsername));
+                });
+                
                 globalActivePlans = data.activePlans;
 
                 let currentIndex = 0;
@@ -675,6 +671,12 @@ export function renderProfilePage(renderFunc, params) {
                     const container = document.getElementById("plan-details-container");
                     if(!plan) return;
                     
+                    // --- CHANGED: IMMEDIATE REJECTION CHECK (Prevent Flash) ---
+                    let isImmediateRejected = false;
+                    if(ordersCache) {
+                        isImmediateRejected = ordersCache.some(o => o.final_username === plan.v2rayUsername && o.status === 'rejected');
+                    }
+
                     const connectionName = appData.connections.find(c => c.name === plan.connId)?.name || plan.connId || 'N/A';
                     const planName = appData.plans[plan.planId]?.name || plan.planId;
                     document.getElementById("plan-info-container").innerHTML = `<span class="bg-blue-500/10 text-blue-300 px-2 py-1 rounded-full"><i class="fa-solid fa-rocket fa-fw mr-2"></i>${planName}</span><span class="bg-indigo-500/10 text-indigo-300 px-2 py-1 rounded-full"><i class="fa-solid fa-wifi fa-fw mr-2"></i>${connectionName}</span>`;
@@ -688,29 +690,7 @@ export function renderProfilePage(renderFunc, params) {
                             <button data-tab="settings" class="tab-btn">Settings</button>
                         </div>
                         
-                        <div id="tab-config" class="tab-panel active">
-                            <div class="card-glass p-6 sm:p-8 custom-radius">
-                                <div class="grid md:grid-cols-2 gap-8 items-center">
-                                    <div class="flex flex-col items-center text-center">
-                                        <h3 class="text-lg font-semibold text-white mb-3">Scan with your V2Ray App</h3>
-                                        <div id="qrcode-container" class="w-44 h-44 p-3 bg-white rounded-lg cursor-pointer flex items-center justify-center shadow-lg shadow-blue-500/20"></div>
-                                    </div>
-                                    <div class="space-y-6">
-                                        <div class="w-full">
-                                            <label class="text-sm text-gray-400">V2Ray Config Link</label>
-                                            <div class="flex items-center gap-2 mt-2">
-                                                <input type="text" readonly value="${plan.v2rayLink}" style="border-radius: 50px;" class="w-full bg-slate-800/50 border border-slate-700 px-3 py-2 text-sm text-slate-300">
-                                                <button id="copy-config-btn" class="ai-button secondary !text-sm !font-semibold flex-shrink-0 px-4 py-2 rounded-md">Copy</button>
-                                            </div>
-                                        </div>
-                                        <div class="w-full text-center border-t border-white/10 pt-6">
-                                            <div id="renew-button-container"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
+                        <div id="tab-config" class="tab-panel active"></div>
                         <div id="tab-usage" class="tab-panel"></div>
                         <div id="tab-orders" class="tab-panel"></div>
                         
@@ -756,8 +736,70 @@ export function renderProfilePage(renderFunc, params) {
                                 }
                             }
                         });
-                        
                         setupEventListeners();
+                    }
+
+                    // --- IMMEDIATELY RENDER CONTENT FOR CONFIG TAB ---
+                    // If rejected, show the rejection message INSTEAD of the config card
+                    const configTab = document.getElementById("tab-config");
+                    if (isImmediateRejected) {
+                        const rejectedHtml = `
+                            <div class="result-card p-6 card-glass custom-radius space-y-4 reveal is-visible border border-red-500/50 bg-red-900/10">
+                                <div class="text-center">
+                                    <i class="fa-solid fa-ban text-4xl text-red-500 mb-3"></i>
+                                    <h3 class="text-xl font-bold text-white">Your Plan Rejected By Admin</h3>
+                                    <p class="text-sm text-gray-300 mt-2">Unfortunately, your plan <span class="font-semibold text-red-300">${plan.v2rayUsername}</span> has been rejected.</p>
+                                    <p class="text-xs text-gray-400 mt-1">Please check your orders tab or contact support for more details.</p>
+                                </div>
+                                <div class="pt-2 text-center">
+                                    <button id="remove-rejected-btn-cfg" class="ai-button secondary w-auto inline-flex items-center justify-center px-6 py-2 text-sm rounded-lg text-red-400 hover:text-red-300 border-red-500/30 hover:bg-red-900/30">
+                                        <i class="fa-solid fa-trash-can mr-2"></i>Remove
+                                    </button>
+                                </div>
+                            </div>`;
+                        configTab.innerHTML = rejectedHtml;
+                        document.getElementById('remove-rejected-btn-cfg')?.addEventListener('click', () => unlinkPlan(plan.v2rayUsername));
+                    } else {
+                        // Show Normal Config
+                        configTab.innerHTML = `
+                            <div class="card-glass p-6 sm:p-8 custom-radius">
+                                <div class="grid md:grid-cols-2 gap-8 items-center">
+                                    <div class="flex flex-col items-center text-center">
+                                        <h3 class="text-lg font-semibold text-white mb-3">Scan with your V2Ray App</h3>
+                                        <div id="qrcode-container" class="w-44 h-44 p-3 bg-white rounded-lg cursor-pointer flex items-center justify-center shadow-lg shadow-blue-500/20"></div>
+                                    </div>
+                                    <div class="space-y-6">
+                                        <div class="w-full">
+                                            <label class="text-sm text-gray-400">V2Ray Config Link</label>
+                                            <div class="flex items-center gap-2 mt-2">
+                                                <input type="text" readonly value="${plan.v2rayLink}" style="border-radius: 50px;" class="w-full bg-slate-800/50 border border-slate-700 px-3 py-2 text-sm text-slate-300">
+                                                <button id="copy-config-btn" class="ai-button secondary !text-sm !font-semibold flex-shrink-0 px-4 py-2 rounded-md">Copy</button>
+                                            </div>
+                                        </div>
+                                        <div class="w-full text-center border-t border-white/10 pt-6">
+                                            <div id="renew-button-container"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>`;
+                        
+                        const qrContainer = document.getElementById("qrcode-container");
+                        if(qrContainer) {
+                            qrContainer.innerHTML = "";
+                            try {
+                                new QRCode(qrContainer, { text: plan.v2rayLink, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.L });
+                                qrContainer.onclick = () => { const img = qrContainer.querySelector('img'); if(img) qrModalLogic.show(img.src, plan.v2rayUsername); };
+                            } catch(e) {}
+                        }
+                        const linkInput = document.querySelector('input[readonly]');
+                        if(linkInput) linkInput.value = plan.v2rayLink;
+                        const copyBtn = document.getElementById('copy-config-btn');
+                        if(copyBtn) {
+                            const newBtn = copyBtn.cloneNode(true);
+                            copyBtn.parentNode.replaceChild(newBtn, copyBtn);
+                            newBtn.addEventListener('click', () => { navigator.clipboard.writeText(plan.v2rayLink); showToast({ title: 'Success', message: 'Link Copied Successfully!', type: 'success' }); });
+                        }
+                        updateRenewButton(plan, data.activePlans);
                     }
 
                     if (document.getElementById('tab-usage')?.classList.contains('active')) {
@@ -768,27 +810,12 @@ export function renderProfilePage(renderFunc, params) {
                             loadUsageStats(plan.v2rayUsername, false);
                         }
                     }
-                    
-                    const qrContainer = document.getElementById("qrcode-container");
-                    if(qrContainer) {
-                        qrContainer.innerHTML = "";
-                        try {
-                            new QRCode(qrContainer, { text: plan.v2rayLink, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.L });
-                            qrContainer.onclick = () => { const img = qrContainer.querySelector('img'); if(img) qrModalLogic.show(img.src, plan.v2rayUsername); };
-                        } catch(e) {}
-                    }
-                    const linkInput = document.querySelector('input[readonly]');
-                    if(linkInput) linkInput.value = plan.v2rayLink;
-                    const copyBtn = document.getElementById('copy-config-btn');
-                    if(copyBtn) {
-                        const newBtn = copyBtn.cloneNode(true);
-                        copyBtn.parentNode.replaceChild(newBtn, copyBtn);
-                        newBtn.addEventListener('click', () => { navigator.clipboard.writeText(plan.v2rayLink); showToast({ title: 'Success', message: 'Link Copied Successfully!', type: 'success' }); });
-                    }
-                    updateRenewButton(plan, data.activePlans);
                 };
 
-                window.renderPlanDetailsInternal(currentIndex);
+                // PRE-LOAD ORDERS THEN RENDER
+                ensureOrdersLoaded().then(() => {
+                    window.renderPlanDetailsInternal(currentIndex);
+                });
 
                 if (!initialTabCheckDone) {
                             const tabParam = params.get('tab');
@@ -828,6 +855,9 @@ export function renderProfilePage(renderFunc, params) {
 
     const loadProfileData = async () => {
         try {
+            // Pre-fetch orders to ensure fast rejection check
+            ensureOrdersLoaded();
+
             let cachedPlansStr = null;
             try { cachedPlansStr = localStorage.getItem(PLANS_CACHE_KEY); } catch(e){}
             
