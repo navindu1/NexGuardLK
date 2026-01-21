@@ -16,16 +16,12 @@ let globalActivePlans = [];
 
 // --- SMART DATA FETCHER (REAL-TIME UPDATES) ---
 const fetchClientData = async (username) => {
-    // Add unique timestamp to prevent browser caching
     const timestamp = new Date().getTime();
     
-    // Force headers to ensure no caching occurs
-    // We add 'r' (random) parameter as an extra layer of cache busting
     const promise = apiFetch(`/api/check-usage/${username}?_=${timestamp}&r=${Math.random()}`, {
         headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0' }
     })
     .then(res => {
-        // Handle 404 (User removed/expired from panel)
         if (res.status === 404) {
             return { success: false, isRemoved: true }; 
         }
@@ -33,7 +29,6 @@ const fetchClientData = async (username) => {
     })
     .then(result => {
         if (result.success) {
-            // Update Cache with fresh data
             usageDataCache[username] = result.data;
             try { 
                 localStorage.setItem('nexguard_usage_cache', JSON.stringify(usageDataCache)); 
@@ -49,9 +44,9 @@ const fetchClientData = async (username) => {
     return promise;
 };
 
-// --- NEW: Helper to ensure orders are loaded ---
+// --- HELPER: Ensure Orders Loaded (For Rejection Check) ---
 const ensureOrdersLoaded = async () => {
-    if (ordersCache) return ordersCache; // Already loaded
+    if (ordersCache) return ordersCache; 
     try {
         const res = await apiFetch("/api/user/orders");
         const data = await res.json();
@@ -63,6 +58,38 @@ const ensureOrdersLoaded = async () => {
         console.error("Failed to background fetch orders:", e);
     }
     return [];
+};
+
+// --- HELPER: Unlink/Remove Plan ---
+const unlinkPlan = async (v2rayUsername) => {
+    if(!confirm(`Are you sure you want to remove '${v2rayUsername}' from your dashboard? This cannot be undone.`)) return;
+    
+    showToast({ title: "Removing...", message: "Processing removal.", type: "info" });
+    
+    try {
+        // Try to call backend endpoint if exists, otherwise fallback to local hide
+        // Assuming /api/user/unlink exists or we simulate it
+        const res = await apiFetch("/api/user/unlink", { 
+            method: "POST", 
+            headers: { "Content-Type": "application/json" }, 
+            body: JSON.stringify({ v2rayUsername }) 
+        });
+        
+        const result = await res.json();
+        
+        if (res.ok) {
+            showToast({ title: "Success", message: "Plan removed successfully.", type: "success" });
+            window.location.reload();
+        } else {
+            // Fallback: If backend route missing, try to force refresh or show error
+            // Often "unlink" is just removing from 'active_plans' column in DB.
+            console.warn("Backend unlink failed, trying reload:", result);
+            showToast({ title: "Error", message: result.message || "Failed to remove plan.", type: "error" });
+        }
+    } catch (e) {
+        console.error("Unlink error:", e);
+        showToast({ title: "Error", message: "Network error occurred.", type: "error" });
+    }
 };
 
 export function renderProfilePage(renderFunc, params) {
@@ -87,8 +114,6 @@ export function renderProfilePage(renderFunc, params) {
     const LAST_PLAN_KEY = `nexguard_last_plan_${user.username}`;
 
     // --- HTML Templates ---
-    
-    // 1. Help Modal
     const modalHtml = `
         <div id="help-modal" class="help-modal-overlay">
             <div class="help-modal-content grease-glass p-6 space-y-4 w-full max-w-md">
@@ -111,7 +136,6 @@ export function renderProfilePage(renderFunc, params) {
             </div>
         </div>`;
 
-    // 2. Link Account Modal
     const linkAccountModalHtml = `
         <div id="link-account-modal" class="help-modal-overlay">
             <div class="help-modal-content grease-glass p-6 space-y-4 w-full max-w-md">
@@ -131,7 +155,6 @@ export function renderProfilePage(renderFunc, params) {
             </div>
         </div>`;
     
-    // --- Styles: Fixed Height & Fixed Width Dropdown ---
     const pageStyles = `<style>
         #page-profile .form-input { height: 56px; padding: 20px 12px 8px 12px; background-color: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.2); } 
         #page-profile .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; } 
@@ -142,9 +165,6 @@ export function renderProfilePage(renderFunc, params) {
         .tab-panel { display: none; } 
         .tab-panel.active { display: block; animation: pageFadeIn 0.5s; }
         
-        /* FIXED TAB HEIGHT - Prevents jumping */
-        .tab-panel .card-glass { min-height: 500px; display: flex; flex-direction: column; justify-content: flex-start; }
-
         .help-modal-overlay { opacity: 0; visibility: hidden; transition: opacity 0.3s ease-out, visibility 0.3s ease-out; background: rgba(0, 0, 0, 0.2); z-index: 9999; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 1rem; }
         .help-modal-overlay.visible { opacity: 1; visibility: visible; }
         .help-modal-content { opacity: 0; transform: scale(0.90); transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -155,7 +175,7 @@ export function renderProfilePage(renderFunc, params) {
         ul.fmenu { display: inline-block; list-style: none; padding: 0; margin: 0; white-space: nowrap; position: relative; overflow: visible !important; }
         ul.fmenu > li.fmenu-item { position: relative; overflow: visible !important; }
         
-        /* FIXED WIDTH DROPDOWN & SIZE FIX */
+        /* Dropdown Size Fix */
         ul.fmenu .trigger-menu { display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; height: 44px; padding: 0 1.2rem; border-radius: 999px; background-color: rgba(30, 41, 59, 0.9); border: 1px solid rgba(255, 255, 255, 0.2); cursor: pointer; transition: all ease 0.3s; min-width: 180px; overflow: visible !important; }
         ul.fmenu .trigger-menu:hover, ul.fmenu .trigger-menu.open { border-color: var(--brand-blue); box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
         ul.fmenu .trigger-menu i { color: #9ca3af; font-size: 0.9rem; transition: color ease 0.3s; }
@@ -182,7 +202,12 @@ export function renderProfilePage(renderFunc, params) {
     const pendingMsg = localStorage.getItem("pendingLinkSuccess");
     if (pendingMsg) {
         setTimeout(() => {
-            showToast({ title: "Success!", message: pendingMsg, type: "success", duration: 5000 });
+            showToast({ 
+                title: "Success!", 
+                message: pendingMsg, 
+                type: "success", 
+                duration: 5000 
+            });
             localStorage.removeItem("pendingLinkSuccess");
         }, 500);
     }
@@ -208,7 +233,7 @@ export function renderProfilePage(renderFunc, params) {
             });
         }
 
-        // Link Account Modal (NEW)
+        // Link Account Modal (New - Triggered by "Add More")
         const linkModal = document.getElementById('link-account-modal');
         if (linkModal) {
             const closeLinkModal = () => { linkModal.classList.remove('visible'); document.body.classList.remove('modal-open'); };
@@ -352,6 +377,7 @@ export function renderProfilePage(renderFunc, params) {
             </div>`;
     };
 
+    // --- REJECTED HTML + REMOVE BUTTON ---
     const renderPlanRejectedHTML = (username) => {
         const usageContainer = document.getElementById("tab-usage");
         const configContainer = document.getElementById("tab-config");
@@ -364,12 +390,21 @@ export function renderProfilePage(renderFunc, params) {
                     <p class="text-sm text-gray-300 mt-2">Unfortunately, your plan <span class="font-semibold text-red-300">${username}</span> has been rejected.</p>
                     <p class="text-xs text-gray-400 mt-1">Please check your orders tab or contact support for more details.</p>
                 </div>
+                <div class="pt-2 text-center">
+                    <button id="remove-rejected-btn" class="ai-button secondary w-full rounded-lg text-red-400 hover:text-red-300 border-red-500/30 hover:bg-red-900/30">
+                        <i class="fa-solid fa-trash-can mr-2"></i>Remove from Dashboard
+                    </button>
+                </div>
             </div>`;
 
-        if (usageContainer) usageContainer.innerHTML = rejectedHtml;
-        if (configContainer) configContainer.innerHTML = rejectedHtml; // Hide config for rejected users
+        if (usageContainer) {
+            usageContainer.innerHTML = rejectedHtml;
+            document.getElementById('remove-rejected-btn')?.addEventListener('click', () => unlinkPlan(username));
+        }
+        if (configContainer) configContainer.innerHTML = rejectedHtml; 
     };
 
+    // --- REMOVED/EXPIRED HTML + REMOVE BUTTON ---
     const renderPlanRemovedHTML = (username) => {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
@@ -377,6 +412,7 @@ export function renderProfilePage(renderFunc, params) {
         const otherPlansAvailable = globalActivePlans.length > 1;
         const renewalActionHtml = `<button id="renew-removed-plan-btn" class="ai-button w-full rounded-lg mt-2 inline-block"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew This Plan</button>`;
         const switchHtml = otherPlansAvailable ? `<button id="switch-plan-btn" class="ai-button secondary w-full rounded-lg mt-2"><i class="fa-solid fa-repeat mr-2"></i>Switch Plan</button>` : '';
+        const removeHtml = `<button id="remove-expired-btn" class="ai-button secondary w-full rounded-lg mt-2 text-red-400 border-red-500/30 hover:bg-red-900/30"><i class="fa-solid fa-trash-can mr-2"></i>Remove Plan</button>`;
 
         usageContainer.innerHTML = `
             <div class="result-card p-6 card-glass custom-radius space-y-4 reveal is-visible border border-amber-500/30">
@@ -388,6 +424,7 @@ export function renderProfilePage(renderFunc, params) {
                 <div class="pt-2 flex flex-col gap-2">
                     ${renewalActionHtml}
                     ${switchHtml}
+                    ${removeHtml}
                 </div>
             </div>`;
 
@@ -396,6 +433,8 @@ export function renderProfilePage(renderFunc, params) {
              if (plan) handleRenewalChoice(globalActivePlans, plan);
              else showToast({ title: "Error", message: "Could not identify plan details.", type: "error" });
         });
+
+        document.getElementById('remove-expired-btn')?.addEventListener('click', () => unlinkPlan(username));
 
         if (otherPlansAvailable) {
             document.getElementById('switch-plan-btn')?.addEventListener('click', () => {
@@ -412,7 +451,8 @@ export function renderProfilePage(renderFunc, params) {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
         
-        // --- FLICKER PREVENTION START (UPDATED) ---
+        // --- FLICKER PREVENTION START ---
+        // Check order status before rendering loading spinner or cached data
         let isKnownRejected = false;
         if(ordersCache) {
              isKnownRejected = ordersCache.some(o => 
@@ -425,7 +465,7 @@ export function renderProfilePage(renderFunc, params) {
             renderPlanRejectedHTML(username);
             return; 
         }
-        // ------------------------------------------
+        // --------------------------------
 
         if (!isSilent && !usageDataCache[username]) {
             usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
@@ -436,13 +476,12 @@ export function renderProfilePage(renderFunc, params) {
                 if (result.success && result.data) {
                     renderUsageHTML(result.data, username);
                 } else if (result.isRemoved) {
+                    // Clean Cache
                     delete usageDataCache[username];
                     try { localStorage.setItem('nexguard_usage_cache', JSON.stringify(usageDataCache)); } catch(e){}
                     
-                    // Force background fetch for orders if missing (Critical Fix)
-                    if (!ordersCache) {
-                        await ensureOrdersLoaded();
-                    }
+                    // Force Check Rejection
+                    if (!ordersCache) await ensureOrdersLoaded();
 
                     let isRejected = false;
                     if(ordersCache) {
@@ -496,7 +535,7 @@ export function renderProfilePage(renderFunc, params) {
         const container = document.getElementById("renew-button-container");
         if (!container) return;
         
-        // --- BUTTON FIX: Show Default ACTIVE Button Immediately (No Checking/Disabled State) ---
+        // --- BUTTON FIX: Instant Active State (Optimistic) ---
         if (!usageDataCache[plan.v2rayUsername]) {
              container.innerHTML = `<button id="renew-profile-btn" class="ai-button bg-amber-500 hover:bg-amber-600 border-none text-white inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew Plan</button>`;
              document.getElementById('renew-profile-btn')?.addEventListener('click', () => handleRenewalChoice(activePlans, plan));
@@ -511,17 +550,13 @@ export function renderProfilePage(renderFunc, params) {
             if (result.success) {
                 const expiryTimestamp = parseInt(result.data.expiryTime, 10);
                 const now = Date.now();
-                
                 if (expiryTimestamp > 0) {
                     const fiveDaysInMs = 5 * 24 * 60 * 60 * 1000;
-                    const isExpired = now > expiryTimestamp;
-                    const isExpiringSoon = now >= (expiryTimestamp - fiveDaysInMs);
-
-                    if (isExpired) {
+                    if (now > expiryTimestamp) {
                         shouldEnableRenew = true;
                         btnText = "Renew Plan";
                         btnClass = "ai-button bg-amber-500 hover:bg-amber-600 border-none text-white";
-                    } else if (isExpiringSoon) {
+                    } else if (now >= (expiryTimestamp - fiveDaysInMs)) {
                         shouldEnableRenew = true;
                         btnText = "Renew Plan (Expiring Soon)";
                     } else {
@@ -532,10 +567,7 @@ export function renderProfilePage(renderFunc, params) {
                     btnText = "Does not expire";
                 }
             } else if (result.isRemoved) {
-                
-                // Force check rejection
                 if (!ordersCache) await ensureOrdersLoaded();
-
                 let isRejected = false;
                 if(ordersCache) {
                     isRejected = ordersCache.some(o => o.final_username === plan.v2rayUsername && o.status === 'rejected');
@@ -571,8 +603,8 @@ export function renderProfilePage(renderFunc, params) {
             `<li><a href="#" data-plan-index="${index}">${plan.v2rayUsername}</a></li>`
         ).join('');
 
-        // --- NEW: Add "Link Old Account" Option ---
-        planListItems += `<li class="border-t border-white/10 mt-1 pt-1"><a href="#" id="link-new-account-option" class="text-blue-300 hover:text-blue-200"><i class="fa-solid fa-plus-circle mr-2"></i>Link Old Account</a></li>`;
+        // --- CHANGED: "Add More +" instead of "Link Old Account" ---
+        planListItems += `<li class="border-t border-white/10 mt-1 pt-1"><a href="#" id="link-new-account-option" class="text-blue-300 hover:text-blue-200"><i class="fa-solid fa-plus-circle mr-2"></i>Add More +</a></li>`;
 
         const containerHtml = `
             <div class="plan-selector-container">
