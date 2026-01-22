@@ -322,23 +322,20 @@ const downloadOrdersReport = async (req, res) => {
     } catch (error) { res.status(500).send('Failed to generate report.'); }
 };
 
-// --- FIX: Correct Supabase Ban Implementation ---
 const banUser = async (req, res) => {
     try {
         const { userId } = req.body;
         
-        // Update user status in Supabase (Make sure 'status' column exists in your users table)
+        // Supabase update එක
         const { data, error } = await supabase
             .from('users')
-            .update({ status: 'banned' })
+            .update({ status: 'banned' }) // 'status' column එක තිබිය යුතුමයි
             .eq('id', userId)
             .select();
 
-        if (error) throw error;
-
-        // If no user found/updated
-        if (!data || data.length === 0) {
-            return res.status(404).json({ success: false, message: "User not found." });
+        if (error) {
+            console.error("Supabase Error:", error); // Terminal එකේ Error එක බලන්න මෙය උදව් වේ
+            throw error;
         }
 
         return res.json({ success: true, message: "User banned successfully." });
