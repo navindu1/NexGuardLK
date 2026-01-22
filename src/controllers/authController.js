@@ -1,5 +1,3 @@
-// File Path: src/controllers/authController.js
-
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
@@ -13,7 +11,7 @@ const MAX_OTP_ATTEMPTS = 5;
 // Lock කරන කාලය (විනාඩි 15)
 const LOCKOUT_TIME_MS = 15 * 60 * 1000; 
 
-// --- REGISTER CONTROLLER (Fixed with Specific Ban Messages) ---
+// --- REGISTER CONTROLLER ---
 exports.register = async (req, res) => {
     const { username, email, whatsapp, password } = req.body;
     
@@ -34,23 +32,24 @@ exports.register = async (req, res) => {
         if (existingUsers && existingUsers.length > 0) {
             // Loop through results to find specific match
             for (const user of existingUsers) {
-                // --- BAN CHECK LOGIC ---
+                
+                // --- SPECIFIC BAN MESSAGE LOGIC ---
                 if (user.status === 'banned') {
                     if (user.email === email) {
-                        return res.status(403).json({ success: false, message: "Your Email Address is Banned." });
+                        return res.status(403).json({ success: false, message: "Your Email Address is Banned by Admin." });
                     }
                     if (user.whatsapp === whatsapp) {
-                        return res.status(403).json({ success: false, message: "Your Phone Number is Banned." });
+                        return res.status(403).json({ success: false, message: "Your Phone Number is Banned by Admin." });
                     }
                     if (user.username === username) {
-                        return res.status(403).json({ success: false, message: "This Username is Banned." });
+                        return res.status(403).json({ success: false, message: "This Username is Banned by Admin." });
                     }
-                    // Generic ban message fallback
-                    return res.status(403).json({ success: false, message: "This account details are banned." });
+                    // Generic fallback
+                    return res.status(403).json({ success: false, message: "This account has been banned by Admin." });
                 }
 
                 // --- NORMAL DUPLICATE CHECK ---
-                // If not banned, but verified (otp_code is null), prevent duplicate
+                // If not banned, but verified (otp_code is null or matches), prevent duplicate
                 if (!user.otp_code) {
                     if (user.email === email) return res.status(409).json({ success: false, message: "Email is already registered." });
                     if (user.username === username) return res.status(409).json({ success: false, message: "Username is already taken." });
@@ -77,11 +76,10 @@ exports.register = async (req, res) => {
             active_plans: [],
         };
         
-        // Use an existing ID if found (unverified user update), or generate new UUID
+        // Find existing unverified user to update OR generate new ID
         let targetUserId = uuidv4();
-        // Try to find if there is a pending verification user to update instead of creating new
-        const pendingUser = existingUsers?.find(u => u.otp_code !== null);
-        if (pendingUser) targetUserId = pendingUser.id;
+        const unverifiedUser = existingUsers?.find(u => u.email === email && u.otp_code !== null);
+        if (pendingUser) targetUserId = unverifiedUser.id;
 
         const { error } = await supabase
             .from("users")
@@ -185,7 +183,7 @@ exports.verifyOtp = async (req, res) => {
     }
 };
 
-// --- LOGIN CONTROLLER (Corrected) ---
+// --- LOGIN CONTROLLER ---
 exports.login = async (req, res) => {
     const { email, password } = req.body;
 
