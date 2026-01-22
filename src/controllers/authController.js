@@ -16,81 +16,99 @@ const LOCKOUT_TIME_MS = 15 * 60 * 1000;
 // --- REGISTER CONTROLLER (Fixed & Merged) ---
 exports.register = async (req, res) => {
     const { username, email, whatsapp, password } = req.body;
+    
     if (!username || !email || !whatsapp || !password)
         return res.status(400).json({ success: false, message: "All fields are required." });
 
     try {
-        // 1. Check if user exists
-        const { data: existingUser, error: findError } = await supabase
+        // 1. Check if user exists (checking email OR whatsapp OR username)
+        const { data: existingUsers, error: findError } = await supabase
             .from("users")
-            .select("id, otp_code, status")
-            .or(`username.eq.${username},email.eq.${email}`)
-            .single();
+            .select("id, email, whatsapp, username, status, otp_code")
+            .or(`email.eq.${email},whatsapp.eq.${whatsapp},username.eq.${username}`);
 
-        // 2. Ban Check Logic (Ban වී ඇත්නම් Register වීමට නොදීම)
-        if (existingUser && existingUser.status === 'banned') {
-            return res.status(403).json({ 
-                success: false, 
-                message: "This account has been banned. You cannot create a new account with this email or username." 
-            });
+        if (findError && findError.code !== 'PGRST116') { // Ignore 'not found' error
+             console.error("DB Check Error:", findError);
         }
 
-        // 3. Already Registered Check
-        if (existingUser && !existingUser.otp_code) {
-            return res.status(409).json({ success: false, message: "Username or email is already taken." });
+        if (existingUsers && existingUsers.length > 0) {
+            // Loop through results to find specific match
+            for (const user of existingUsers) {
+                // --- BAN CHECK LOGIC ---
+                if (user.status === 'banned') {
+                    if (user.email === email) {
+                        return res.status(403).json({ success: false, message: "Your Email Address is Banned." });
+                    }
+                    if (user.whatsapp === whatsapp) {
+                        return res.status(403).json({ success: false, message: "Your Phone Number is Banned." });
+                    }
+                    // If matched by username but banned
+                    return res.status(403).json({ success: false, message: "This account is banned." });
+                }
+
+                // --- NORMAL DUPLICATE CHECK ---
+                // If not banned, but verified (otp_code is null), prevent duplicate
+                if (!user.otp_code) {
+                    if (user.email === email) return res.status(409).json({ success: false, message: "Email is already registered." });
+                    if (user.username === username) return res.status(409).json({ success: false, message: "Username is already taken." });
+                }
+            }
         }
 
+        // ... (ඉතිරි සාමාන්‍ය ලියාපදිංචි කිරීමේ කේතය - OTP යැවීම ආදිය) ...
+        // මෙතැන් සිට පහළට පරණ කේතයේ ඇති OTP සෑදීම සහ Email යැවීමේ කොටස එලෙසම තබන්න.
+        
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const hashedPassword = bcrypt.hashSync(password, 10);
-        const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+        const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); 
 
         const userData = {
-            username,
-            email,
-            whatsapp,
+            username, email, whatsapp,
             password: hashedPassword,
             otp_code: otp,
             otp_expiry: otpExpiry.toISOString(),
             otp_attempts: 0,
             otp_lockout_until: null,
             profile_picture: "assets/profilePhoto.jpg",
-            status: "active", // Default status
+            status: "active",
             active_plans: [],
         };
         
-        // Upsert user data
+        // Upsert allows updating an unverified user or creating a new one
+        // Note: Using upsert on ID might be tricky if ID isn't known for new users. 
+        // Safer to just insert or update based on email/username logic handled above.
+        // For simplicity with Supabase:
+        
+        // Find existing unverified user to update OR create new
+        let targetUserId = uuidv4();
+        const unverifiedUser = existingUsers?.find(u => u.email === email && u.otp_code !== null);
+        if(unverifiedUser) targetUserId = unverifiedUser.id;
+
         const { error } = await supabase
             .from("users")
-            .upsert({ id: existingUser?.id || uuidv4(), ...userData }, { onConflict: 'email' });
+            .upsert({ id: targetUserId, ...userData }, { onConflict: 'email' });
         
         if (error) throw error;
 
-        // Send OTP Email
+        // Send Email logic (Keep your existing email code here)
         const mailOptions = {
             from: `NexGuard <${process.env.EMAIL_SENDER}>`,
             to: email,
             subject: "Your NexGuard Verification Code",
-            html: generateEmailTemplate(
-                "Verify Your Email",
-                "Your OTP is inside.",
-                generateOtpEmailContent(username, otp)
-            ),
+            html: generateEmailTemplate("Verify Your Email", "Your OTP is inside.", generateOtpEmailContent(username, otp)),
         };
 
         try {
             await transporter.sendMail(mailOptions);
-            res.status(200).json({
-                success: true,
-                message: `An OTP has been sent to ${email}. Please verify to complete registration.`,
-            });
+            res.status(200).json({ success: true, message: `An OTP has been sent to ${email}.` });
         } catch (emailError) {
-            console.error(`CRITICAL: FAILED to send OTP email to ${email}:`, emailError);
-            return res.status(500).json({ success: false, message: "Could not send verification email. Please try again later." });
+            console.error("Email send failed:", emailError);
+            return res.status(500).json({ success: false, message: "Failed to send email." });
         }
 
     } catch (error) {
-        console.error("Error in /api/auth/register:", error);
-        return res.status(500).json({ success: false, message: "Database error during registration." });
+        console.error("Register Error:", error);
+        return res.status(500).json({ success: false, message: "Registration failed." });
     }
 };
 

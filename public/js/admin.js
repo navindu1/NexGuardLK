@@ -239,29 +239,47 @@ document.addEventListener("DOMContentLoaded", () => {
         searchBarContainer.classList.remove('hidden');
         searchInput.placeholder = `Search ${title}s...`;
         addNewBtn.classList.add('hidden');
+        
         const filteredUsers = (users || []).filter(u => u.role === role && (u.username.toLowerCase().includes(searchInput.value.toLowerCase()) || (u.email || '').toLowerCase().includes(searchInput.value.toLowerCase())));
+        
         if (filteredUsers.length === 0) {
             contentContainer.innerHTML = `<div class="glass-panel p-6 text-center rounded-lg">No ${title.toLowerCase()}s found.</div>`;
             return;
         }
+        
         const tableHeaders = role === 'user' ? `<th class="p-3 text-left font-semibold">Active Plans</th>` : `<th class="p-3 text-left font-semibold">Credit Balance</th>`;
         
         contentContainer.innerHTML = `<div class="glass-panel rounded-xl overflow-hidden"><table class="min-w-full text-sm responsive-table">
             <thead class="border-b border-slate-700 bg-slate-900/50"><tr>
-                <th class="p-3 text-left font-semibold">Username</th><th class="p-3 text-left font-semibold">Contact</th>${tableHeaders}<th class="p-3 text-center font-semibold">Actions</th>
+                <th class="p-3 text-left font-semibold">Username</th><th class="p-3 text-left font-semibold">Contact</th>${tableHeaders}<th class="p-3 text-center font-semibold">Status & Actions</th>
             </tr></thead>
             <tbody>${filteredUsers.map(user => {
             const roleSpecificData = role === 'user' ? `<td data-label="Active Plans">${(user.active_plans || []).length}</td>` : `<td data-label="Credit">LKR ${parseFloat(user.credit_balance || 0).toFixed(2)}</td>`;
             const roleSpecificButtons = role === 'reseller' ? `<button class="btn btn-primary add-credit-btn" data-id="${user.id}" data-username="${user.username}"><i class="fa-solid fa-coins"></i></button>` : '';
             
-            return `<tr class="border-b border-slate-800 hover:bg-slate-800/50">
-                    <td data-label="Username">${user.username}</td>
+            // --- NEW: Ban Status Logic ---
+            const isBanned = user.status === 'banned';
+            const rowClass = isBanned ? 'bg-red-900/20 border-red-500/30' : 'border-b border-slate-800 hover:bg-slate-800/50';
+            const statusBadge = isBanned 
+                ? `<span class="px-2 py-1 rounded bg-red-600 text-white text-xs font-bold uppercase ml-2">Banned</span>` 
+                : `<span class="px-2 py-1 rounded bg-green-600/20 text-green-400 text-xs font-bold uppercase ml-2">Active</span>`;
+            
+            const banButton = isBanned
+                ? `<button class="btn btn-secondary cursor-not-allowed opacity-50" disabled title="User is already banned"><i class="fa-solid fa-ban"></i></button>`
+                : `<button class="btn btn-danger ban-user-btn" data-id="${user.id}" title="Ban User"><i class="fa-solid fa-user-slash"></i></button>`;
+
+            return `<tr class="${rowClass} transition-colors">
+                    <td data-label="Username">
+                        <div class="flex items-center">
+                            ${user.username} ${statusBadge}
+                        </div>
+                    </td>
                     <td data-label="Contact"><div>${user.email}</div><div class="text-xs text-slate-400">${user.whatsapp || ''}</div></td>
                     ${roleSpecificData}
                     <td data-label="Actions" class="actions-cell">
                         <div class="flex justify-center gap-2">
                             ${roleSpecificButtons}
-                            <button class="btn btn-danger ban-user-btn" data-id="${user.id}" title="Ban User"><i class="fa-solid fa-user-slash"></i></button>
+                            ${banButton}
                         </div>
                     </td>
                 </tr>`}).join('')}
