@@ -13,25 +13,36 @@ const MAX_OTP_ATTEMPTS = 5;
 // Lock කරන කාලය (විනාඩි 15)
 const LOCKOUT_TIME_MS = 15 * 60 * 1000; 
 
+// --- REGISTER CONTROLLER (Fixed & Merged) ---
 exports.register = async (req, res) => {
     const { username, email, whatsapp, password } = req.body;
     if (!username || !email || !whatsapp || !password)
         return res.status(400).json({ success: false, message: "All fields are required." });
 
     try {
-        const { data: existingUser } = await supabase
+        // 1. Check if user exists
+        const { data: existingUser, error: findError } = await supabase
             .from("users")
-            .select("id, otp_code")
+            .select("id, otp_code, status")
             .or(`username.eq.${username},email.eq.${email}`)
             .single();
 
+        // 2. Ban Check Logic (Ban වී ඇත්නම් Register වීමට නොදීම)
+        if (existingUser && existingUser.status === 'banned') {
+            return res.status(403).json({ 
+                success: false, 
+                message: "This account has been banned. You cannot create a new account with this email or username." 
+            });
+        }
+
+        // 3. Already Registered Check
         if (existingUser && !existingUser.otp_code) {
             return res.status(409).json({ success: false, message: "Username or email is already taken." });
         }
 
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const hashedPassword = bcrypt.hashSync(password, 10);
-        const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // විනාඩි 10 කින් කල් ඉකුත් වේ
+        const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
         const userData = {
             username,
@@ -40,16 +51,21 @@ exports.register = async (req, res) => {
             password: hashedPassword,
             otp_code: otp,
             otp_expiry: otpExpiry.toISOString(),
-            // අලුත් OTP එකක් යවන විට පරණ වැරදි උත්සාහයන් (Attempts) ඉවත් කරන්න
             otp_attempts: 0,
             otp_lockout_until: null,
             profile_picture: "assets/profilePhoto.jpg",
+            status: "active", // Default status
             active_plans: [],
         };
         
-        const { error } = await supabase.from("users").upsert({ id: existingUser?.id || uuidv4(), ...userData }, { onConflict: 'email' });
+        // Upsert user data
+        const { error } = await supabase
+            .from("users")
+            .upsert({ id: existingUser?.id || uuidv4(), ...userData }, { onConflict: 'email' });
+        
         if (error) throw error;
 
+        // Send OTP Email
         const mailOptions = {
             from: `NexGuard <${process.env.EMAIL_SENDER}>`,
             to: email,
@@ -63,7 +79,6 @@ exports.register = async (req, res) => {
 
         try {
             await transporter.sendMail(mailOptions);
-            console.log(`OTP email sent successfully to ${email}`);
             res.status(200).json({
                 success: true,
                 message: `An OTP has been sent to ${email}. Please verify to complete registration.`,
@@ -83,7 +98,6 @@ exports.verifyOtp = async (req, res) => {
     const { email, otp } = req.body;
     
     try {
-        // 1. User දත්ත ලබා ගැනීම
         const { data: user, error } = await supabase
             .from("users")
             .select("*")
@@ -91,11 +105,9 @@ exports.verifyOtp = async (req, res) => {
             .single();
         
         if (error || !user) {
-            // ආරක්ෂක හේතූන් මත User කෙනෙක් නැති වුනත් වැරදි පණිවිඩයක්ම යවන්න (User Enumeration වැලැක්වීමට)
             return res.status(400).json({ success: false, message: "Invalid request or user not found." });
         }
 
-        // 2. ගිණුම Lock වී ඇත්දැයි පරීක්ෂා කිරීම (Brute-force protection)
         if (user.otp_lockout_until && new Date() < new Date(user.otp_lockout_until)) {
             const waitMinutes = Math.ceil((new Date(user.otp_lockout_until) - new Date()) / 60000);
             return res.status(429).json({ 
@@ -104,18 +116,15 @@ exports.verifyOtp = async (req, res) => {
             });
         }
 
-        // 3. OTP කල් ඉකුත් වී ඇත්දැයි බැලීම
         if (!user.otp_code || new Date() > new Date(user.otp_expiry)) {
             return res.status(400).json({ success: false, message: "OTP has expired. Please register again." });
         }
 
-        // 4. OTP එක වැරදි නම්
         if (user.otp_code !== otp) {
             const newAttempts = (user.otp_attempts || 0) + 1;
             let updateData = { otp_attempts: newAttempts };
             let message = "Invalid OTP code.";
 
-            // වැරදි වාර ගණන 5 පැනුවොත් Lock කරන්න
             if (newAttempts >= MAX_OTP_ATTEMPTS) {
                 updateData.otp_lockout_until = new Date(Date.now() + LOCKOUT_TIME_MS).toISOString();
                 message = "Too many failed attempts. Account locked for 15 minutes.";
@@ -123,21 +132,17 @@ exports.verifyOtp = async (req, res) => {
                 message = `Invalid OTP. You have ${MAX_OTP_ATTEMPTS - newAttempts} attempts remaining.`;
             }
 
-            // DB Update (Attempts count)
             await supabase.from("users").update(updateData).eq("id", user.id);
-            
             return res.status(400).json({ success: false, message: message });
         }
 
-        // 5. OTP නිවැරදි නම් (Success Path)
-        // සියලුම වැරදි උත්සාහයන් reset කරන්න
         const { error: updateError } = await supabase
             .from("users")
             .update({ 
                 otp_code: null, 
                 otp_expiry: null,
-                otp_attempts: 0,        // Reset attempts
-                otp_lockout_until: null // Remove lock
+                otp_attempts: 0,
+                otp_lockout_until: null 
             })
             .eq("id", user.id);
 
@@ -159,18 +164,30 @@ exports.verifyOtp = async (req, res) => {
     }
 };
 
+// --- LOGIN CONTROLLER (Fixed Syntax & Ban Check) ---
 exports.login = async (req, res) => {
-    const { username, password } = req.body;
+    const { email, password } = req.body;
+
     try {
+        // Fix: Use Supabase syntax instead of User.findOne
         const { data: user, error } = await supabase
             .from("users")
             .select("*")
-            .ilike("username", username)
+            .eq("email", email)
             .single();
 
         if (error || !user) {
             return res.status(401).json({ success: false, message: "Invalid username or password." });
         }
+
+        // Ban Check Logic
+        if (user.status === 'banned') {
+            return res.status(403).json({ 
+                success: false, 
+                message: "Your account has been banned. Please contact support." 
+            });
+        }
+
         if (bcrypt.compareSync(password, user.password)) {
             const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, { expiresIn: "1d" });
             const userPayload = {
@@ -184,9 +201,9 @@ exports.login = async (req, res) => {
         } else {
             res.status(401).json({ success: false, message: "Invalid username or password." });
         }
-    } catch (err) {
-        console.error("Login error:", err);
-        res.status(500).json({ success: false, message: "An internal server error occurred." });
+    } catch (error) {
+        console.error("Login Error:", error);
+        return res.status(500).json({ success: false, message: "Login failed due to server error." });
     }
 };
 
@@ -245,7 +262,6 @@ exports.resellerLogin = async (req, res) => {
 
 exports.forgotPassword = async (req, res) => {
     const { email } = req.body;
-    // Security: Do not reveal if the email exists or not to prevent user enumeration
     const genericResponse = { message: 'If an account with that email exists, a password reset link has been sent.' };
 
     try {
@@ -261,7 +277,7 @@ exports.forgotPassword = async (req, res) => {
 
         const resetToken = crypto.randomBytes(32).toString('hex');
         const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-        const resetExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+        const resetExpiry = new Date(Date.now() + 10 * 60 * 1000); 
 
         const { error: updateError } = await supabase
             .from("users")

@@ -1,4 +1,4 @@
-// File: public/js/utils.js
+import { showToast } from './utils.js';// File: public/js/utils.js
 
 // --- 1. RELOAD LOGIC (පිටුව මාරු වන විට මැසේජ් පෙන්වීමට) ---
 export function reloadWithToast(title, message, type = "success") {
@@ -9,6 +9,32 @@ export function reloadWithToast(title, message, type = "success") {
         window.location.href = "/profile";
     } else {
         window.location.reload();
+    }
+}
+
+
+async function banUser(userId) {
+    if (!confirm("Are you sure you want to ban this user?")) return;
+
+    try {
+        const response = await fetch('/api/admin/ban-user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: userId })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            // මෙන්න අලුත් Toast එක භාවිතා කරන තැන
+            showToast({ title: "Success", message: "User banned successfully!", type: "success" });
+            setTimeout(() => location.reload(), 1500); // තත්පර 1.5 කට පසු reload කරන්න
+        } else {
+            showToast({ title: "Error", message: result.message || "Failed to ban user.", type: "error" });
+        }
+    } catch (error) {
+        console.error("Error:", error);
+        showToast({ title: "Error", message: "Something went wrong!", type: "error" });
     }
 }
 

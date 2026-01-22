@@ -322,8 +322,36 @@ const downloadOrdersReport = async (req, res) => {
     } catch (error) { res.status(500).send('Failed to generate report.'); }
 };
 
+// --- FIX: Correct Supabase Ban Implementation ---
+const banUser = async (req, res) => {
+    try {
+        const { userId } = req.body;
+        
+        // Update user status in Supabase (Make sure 'status' column exists in your users table)
+        const { data, error } = await supabase
+            .from('users')
+            .update({ status: 'banned' })
+            .eq('id', userId)
+            .select();
+
+        if (error) throw error;
+
+        // If no user found/updated
+        if (!data || data.length === 0) {
+            return res.status(404).json({ success: false, message: "User not found." });
+        }
+
+        return res.json({ success: true, message: "User banned successfully." });
+
+    } catch (error) {
+        console.error("Error banning user:", error);
+        return res.status(500).json({ success: false, message: "Server error." });
+    }
+};
+
 module.exports = {
     getDashboardStats, getOrders, approveOrder, rejectOrder, getUsers, updateUserCredit, getResellers,
     getConnectionsAndPackages, createConnection, updateConnection, deleteConnection, createPackage, updatePackage, deletePackage,
-    getPlans, createPlan, deletePlan, getV2rayInbounds, getSettings, updateSettings, getReportSummary, getChartData, downloadOrdersReport, addTutorial, deleteTutorial
+    getPlans, createPlan, deletePlan, getV2rayInbounds, getSettings, updateSettings, getReportSummary, getChartData, downloadOrdersReport, addTutorial, deleteTutorial,
+    banUser // --- Added banUser to exports ---
 };

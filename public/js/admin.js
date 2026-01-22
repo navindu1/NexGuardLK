@@ -282,6 +282,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
         const tableHeaders = role === 'user' ? `<th class="p-3 text-left font-semibold">Active Plans</th>` : `<th class="p-3 text-left font-semibold">Credit Balance</th>`;
+        
         contentContainer.innerHTML = `<div class="glass-panel rounded-xl overflow-hidden"><table class="min-w-full text-sm responsive-table">
             <thead class="border-b border-slate-700 bg-slate-900/50"><tr>
                 <th class="p-3 text-left font-semibold">Username</th><th class="p-3 text-left font-semibold">Contact</th>${tableHeaders}<th class="p-3 text-center font-semibold">Actions</th>
@@ -289,11 +290,18 @@ document.addEventListener("DOMContentLoaded", () => {
             <tbody>${filteredUsers.map(user => {
             const roleSpecificData = role === 'user' ? `<td data-label="Active Plans">${(user.active_plans || []).length}</td>` : `<td data-label="Credit">LKR ${parseFloat(user.credit_balance || 0).toFixed(2)}</td>`;
             const roleSpecificButtons = role === 'reseller' ? `<button class="btn btn-primary add-credit-btn" data-id="${user.id}" data-username="${user.username}"><i class="fa-solid fa-coins"></i></button>` : '';
+            
+            // --- FIX IS HERE: Added 'ban-user-btn' class ---
             return `<tr class="border-b border-slate-800 hover:bg-slate-800/50">
                     <td data-label="Username">${user.username}</td>
                     <td data-label="Contact"><div>${user.email}</div><div class="text-xs text-slate-400">${user.whatsapp || ''}</div></td>
                     ${roleSpecificData}
-                    <td data-label="Actions" class="actions-cell"><div class="flex justify-center gap-2">${roleSpecificButtons}<button class="btn btn-danger" data-id="${user.id}"><i class="fa-solid fa-user-slash"></i></button></div></td>
+                    <td data-label="Actions" class="actions-cell">
+                        <div class="flex justify-center gap-2">
+                            ${roleSpecificButtons}
+                            <button class="btn btn-danger ban-user-btn" data-id="${user.id}" title="Ban User"><i class="fa-solid fa-user-slash"></i></button>
+                        </div>
+                    </td>
                 </tr>`}).join('')}
             </tbody></table></div>`;
     }
@@ -919,6 +927,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (amount && !isNaN(parseFloat(amount))) {
                     await handleAction(`/users/credit`, { userId: id, amount: parseFloat(amount) }, 'Credit Added', 'POST', button);
                 }
+            } 
+            // --- FIX IS HERE: Handled 'ban-user-btn' clicks ---
+            else if (button.classList.contains('ban-user-btn')) {
+                await banUser(id); 
             }
             // --- Generate Share Image Button ---
             else if (button.classList.contains('generate-share-img-btn')) {
@@ -1003,6 +1015,38 @@ document.addEventListener("DOMContentLoaded", () => {
         handleAction(endpoint, data, successMessage, method, formModalSaveBtn);
         formModal.classList.remove('active');
     });
+
+    // Ban User Function
+    async function banUser(userId) {
+        // තහවුරු කරගැනීම (Confirmation)
+        if (!confirm("Are you sure you want to ban this user? They will not be able to create new accounts.")) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/admin/ban-user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` // Added Token for security
+                },
+                body: JSON.stringify({ userId: userId })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showToast({ title: "Success", message: "User has been banned successfully!", type: "success" });
+                // අදාළ පේළිය update කිරීම හෝ පිටුව reload කිරීම
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showToast({ title: "Error", message: result.message || "Failed to ban user.", type: "error" });
+            }
+        } catch (error) {
+            console.error("Error banning user:", error);
+            showToast({ title: "Error", message: "Something went wrong!", type: "error" });
+        }
+    }
 
     async function renderSettingsModal() {
         const settingsContent = document.getElementById('settings-modal-content');
