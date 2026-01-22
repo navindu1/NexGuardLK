@@ -1,3 +1,6 @@
+// File: public/js/admin.js
+import { showToast } from './utils.js'; // Import the new design toast
+
 document.addEventListener("DOMContentLoaded", () => {
 
     // --- Vanta Background Animation ---
@@ -23,10 +26,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const loginForm = document.getElementById('admin-login-form');
     if (loginForm) {
-        return; // Login page logic handled elsewhere
+        return; 
     }
 
-    // --- ADMIN DASHBOARD AUTH CHECK ---
     const token = localStorage.getItem('nexguard_admin_token');
     if (!token) {
         window.location.href = '/admin/login';
@@ -64,45 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
         window.location.href = '/admin/login';
     }
 
-    function showToast({ title, message, type = "info", duration = 5000 }) {
-        let container = document.getElementById("toast-container");
-        if (!container) {
-            container = document.createElement("div");
-            container.id = "toast-container";
-            document.body.appendChild(container);
-        }
-
-        const icons = {
-            success: "fa-solid fa-check-circle",
-            error: "fa-solid fa-times-circle",
-            warning: "fa-solid fa-exclamation-triangle",
-            info: "fa-solid fa-info-circle",
-        };
-        const iconClass = icons[type] || icons.info;
-
-        const toast = document.createElement("div");
-        toast.className = `toast toast--${type}`;
-        toast.innerHTML = `
-            <div class="toast-icon"><i class="${iconClass}"></i></div>
-            <div class="toast-content">
-                <p class="toast-title">${title}</p>
-                <p class="toast-message">${message}</p>
-            </div>
-            <button class="toast-close-btn" type="button">&times;</button>
-        `;
-
-        container.appendChild(toast);
-        setTimeout(() => toast.classList.add("show"), 100);
-
-        const removeToast = () => {
-            clearTimeout(dismissTimeout);
-            toast.classList.remove("show");
-            setTimeout(() => toast.parentNode?.removeChild(toast), 500);
-        };
-
-        const dismissTimeout = setTimeout(removeToast, duration);
-        toast.querySelector(".toast-close-btn").addEventListener("click", removeToast);
-    }
+    // REMOVED LOCAL showToast FUNCTION TO USE THE ONE FROM utils.js
 
     async function apiFetch(url, options = {}) {
         const defaultOptions = { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } };
@@ -141,7 +105,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
-    // --- Helper to load images for Canvas ---
     function loadImage(url) {
         return new Promise((resolve, reject) => {
             const img = new Image();
@@ -291,7 +254,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const roleSpecificData = role === 'user' ? `<td data-label="Active Plans">${(user.active_plans || []).length}</td>` : `<td data-label="Credit">LKR ${parseFloat(user.credit_balance || 0).toFixed(2)}</td>`;
             const roleSpecificButtons = role === 'reseller' ? `<button class="btn btn-primary add-credit-btn" data-id="${user.id}" data-username="${user.username}"><i class="fa-solid fa-coins"></i></button>` : '';
             
-            // --- FIX IS HERE: Added 'ban-user-btn' class ---
             return `<tr class="border-b border-slate-800 hover:bg-slate-800/50">
                     <td data-label="Username">${user.username}</td>
                     <td data-label="Contact"><div>${user.email}</div><div class="text-xs text-slate-400">${user.whatsapp || ''}</div></td>
@@ -306,6 +268,7 @@ document.addEventListener("DOMContentLoaded", () => {
             </tbody></table></div>`;
     }
 
+    // ... (renderConnections, renderPlans functions remain same) ...
     function renderConnections() {
         contentTitle.textContent = `Connections & Packages`;
         searchBarContainer.classList.add('hidden');

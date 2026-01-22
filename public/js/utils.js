@@ -1,6 +1,6 @@
-import { showToast } from './utils.js';// File: public/js/utils.js
+// File: public/js/utils.js
 
-// --- 1. RELOAD LOGIC (පිටුව මාරු වන විට මැසේජ් පෙන්වීමට) ---
+// --- 1. RELOAD LOGIC ---
 export function reloadWithToast(title, message, type = "success") {
     const toastData = { title, message, type, timestamp: Date.now() };
     localStorage.setItem('nexguard_pending_toast', JSON.stringify(toastData));
@@ -12,34 +12,8 @@ export function reloadWithToast(title, message, type = "success") {
     }
 }
 
-
-async function banUser(userId) {
-    if (!confirm("Are you sure you want to ban this user?")) return;
-
-    try {
-        const response = await fetch('/api/admin/ban-user', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: userId })
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            // මෙන්න අලුත් Toast එක භාවිතා කරන තැන
-            showToast({ title: "Success", message: "User banned successfully!", type: "success" });
-            setTimeout(() => location.reload(), 1500); // තත්පර 1.5 කට පසු reload කරන්න
-        } else {
-            showToast({ title: "Error", message: result.message || "Failed to ban user.", type: "error" });
-        }
-    } catch (error) {
-        console.error("Error:", error);
-        showToast({ title: "Error", message: "Something went wrong!", type: "error" });
-    }
-}
-
+// --- 2. TOAST NOTIFICATION ---
 export function showToast({ title, message, type = "info", duration = 5000 }) {
-    // 1. Container Setup
     let container = document.getElementById("toast-container");
     if (!container) {
         container = document.createElement("div");
@@ -47,7 +21,6 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
         document.body.appendChild(container);
     }
 
-    // 2. Icon Mapping
     const icons = {
         success: 'fa-solid fa-circle-check',
         error: 'fa-solid fa-circle-exclamation',
@@ -55,18 +28,12 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
         info: 'fa-solid fa-circle-info'
     };
 
-    // 3. Create Toast Element
     const toast = document.createElement("div");
     toast.className = `toast toast--${type}`;
-    
-    // --- Modification: Center Items Vertically ---
-    // CSS ෆයිල් එකේ 'align-items: flex-start' තිබුණත්, 
-    // මෙතනින් අපි එය 'center' කර override කරනවා.
     toast.style.alignItems = "center"; 
     
     toast.innerHTML = `
-        <div class="toast-icon" style="margin-top: 0;"> <i class="${icons[type] || icons.info}"></i>
-        </div>
+        <div class="toast-icon" style="margin-top: 0;"> <i class="${icons[type] || icons.info}"></i></div>
         <div class="toast-content">
             <h3 class="toast-title">${title}</h3>
             <p class="toast-message">${message}</p>
@@ -76,27 +43,18 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
         </button>
     `;
 
-    // 4. Remove Function
     const removeToast = () => {
         toast.classList.remove("show");
         setTimeout(() => {
-            if (toast.parentElement) {
-                toast.remove();
-            }
+            if (toast.parentElement) toast.remove();
         }, 400);
     };
 
-    const closeBtn = toast.querySelector(".toast-close-btn");
-    if (closeBtn) {
-        closeBtn.onclick = removeToast;
-    }
-
+    toast.querySelector(".toast-close-btn").onclick = removeToast;
     container.appendChild(toast);
     
     requestAnimationFrame(() => {
-        setTimeout(() => {
-            toast.classList.add("show");
-        }, 10);
+        setTimeout(() => toast.classList.add("show"), 10);
     });
 
     if (duration > 0) {
@@ -105,14 +63,14 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
 
     return { hide: removeToast };
 }
-// --- 3. AUTO CHECKER (Sign Up -> Profile Stuck Fix) ---
+
+// --- 3. AUTO CHECKER ---
 (function checkPendingToast() {
     try {
         const pending = localStorage.getItem('nexguard_pending_toast');
         if (pending) {
             localStorage.removeItem('nexguard_pending_toast');
             const data = JSON.parse(pending);
-            
             setTimeout(() => {
                 showToast({
                     title: data.title,
@@ -127,8 +85,7 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
     }
 })();
 
-// --- 4. OTHER UTILS (Animation, Floating Menu, QR, Toggle Password) ---
-
+// --- 4. OTHER UTILS ---
 export function initAnimations() {
     const observer = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
