@@ -13,7 +13,7 @@ const MAX_OTP_ATTEMPTS = 5;
 // Lock කරන කාලය (විනාඩි 15)
 const LOCKOUT_TIME_MS = 15 * 60 * 1000; 
 
-// --- REGISTER CONTROLLER (Fixed & Merged) ---
+// --- REGISTER CONTROLLER (Fixed with Specific Ban Messages) ---
 exports.register = async (req, res) => {
     const { username, email, whatsapp, password } = req.body;
     
@@ -27,7 +27,7 @@ exports.register = async (req, res) => {
             .select("id, email, whatsapp, username, status, otp_code")
             .or(`email.eq.${email},whatsapp.eq.${whatsapp},username.eq.${username}`);
 
-        if (findError && findError.code !== 'PGRST116') { // Ignore 'not found' error
+        if (findError && findError.code !== 'PGRST116') { 
              console.error("DB Check Error:", findError);
         }
 
@@ -42,8 +42,11 @@ exports.register = async (req, res) => {
                     if (user.whatsapp === whatsapp) {
                         return res.status(403).json({ success: false, message: "Your Phone Number is Banned." });
                     }
-                    // If matched by username but banned
-                    return res.status(403).json({ success: false, message: "This account is banned." });
+                    if (user.username === username) {
+                        return res.status(403).json({ success: false, message: "This Username is Banned." });
+                    }
+                    // Generic ban message fallback
+                    return res.status(403).json({ success: false, message: "This account details are banned." });
                 }
 
                 // --- NORMAL DUPLICATE CHECK ---
@@ -55,15 +58,15 @@ exports.register = async (req, res) => {
             }
         }
 
-        // ... (ඉතිරි සාමාන්‍ය ලියාපදිංචි කිරීමේ කේතය - OTP යැවීම ආදිය) ...
-        // මෙතැන් සිට පහළට පරණ කේතයේ ඇති OTP සෑදීම සහ Email යැවීමේ කොටස එලෙසම තබන්න.
-        
+        // --- PROCEED WITH REGISTRATION ---
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const hashedPassword = bcrypt.hashSync(password, 10);
-        const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); 
+        const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
         const userData = {
-            username, email, whatsapp,
+            username, 
+            email, 
+            whatsapp,
             password: hashedPassword,
             otp_code: otp,
             otp_expiry: otpExpiry.toISOString(),
@@ -74,15 +77,11 @@ exports.register = async (req, res) => {
             active_plans: [],
         };
         
-        // Upsert allows updating an unverified user or creating a new one
-        // Note: Using upsert on ID might be tricky if ID isn't known for new users. 
-        // Safer to just insert or update based on email/username logic handled above.
-        // For simplicity with Supabase:
-        
-        // Find existing unverified user to update OR create new
+        // Use an existing ID if found (unverified user update), or generate new UUID
         let targetUserId = uuidv4();
-        const unverifiedUser = existingUsers?.find(u => u.email === email && u.otp_code !== null);
-        if(unverifiedUser) targetUserId = unverifiedUser.id;
+        // Try to find if there is a pending verification user to update instead of creating new
+        const pendingUser = existingUsers?.find(u => u.otp_code !== null);
+        if (pendingUser) targetUserId = pendingUser.id;
 
         const { error } = await supabase
             .from("users")
@@ -90,25 +89,29 @@ exports.register = async (req, res) => {
         
         if (error) throw error;
 
-        // Send Email logic (Keep your existing email code here)
+        // Send Email logic
         const mailOptions = {
             from: `NexGuard <${process.env.EMAIL_SENDER}>`,
             to: email,
             subject: "Your NexGuard Verification Code",
-            html: generateEmailTemplate("Verify Your Email", "Your OTP is inside.", generateOtpEmailContent(username, otp)),
+            html: generateEmailTemplate(
+                "Verify Your Email", 
+                "Your OTP is inside.", 
+                generateOtpEmailContent(username, otp)
+            ),
         };
 
         try {
             await transporter.sendMail(mailOptions);
-            res.status(200).json({ success: true, message: `An OTP has been sent to ${email}.` });
+            res.status(200).json({ success: true, message: `An OTP has been sent to ${email}. Please verify.` });
         } catch (emailError) {
             console.error("Email send failed:", emailError);
-            return res.status(500).json({ success: false, message: "Failed to send email." });
+            return res.status(500).json({ success: false, message: "Failed to send verification email." });
         }
 
     } catch (error) {
         console.error("Register Error:", error);
-        return res.status(500).json({ success: false, message: "Registration failed." });
+        return res.status(500).json({ success: false, message: "Registration failed due to server error." });
     }
 };
 
@@ -182,12 +185,11 @@ exports.verifyOtp = async (req, res) => {
     }
 };
 
-// --- LOGIN CONTROLLER (Fixed Syntax & Ban Check) ---
+// --- LOGIN CONTROLLER (Corrected) ---
 exports.login = async (req, res) => {
     const { email, password } = req.body;
 
     try {
-        // Fix: Use Supabase syntax instead of User.findOne
         const { data: user, error } = await supabase
             .from("users")
             .select("*")
