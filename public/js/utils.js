@@ -30,6 +30,7 @@ export function showToast({ title, message, type = "info", duration = 5000 }) {
 
     const toast = document.createElement("div");
     toast.className = `toast toast--${type}`;
+    // Center items vertically
     toast.style.alignItems = "center"; 
     
     toast.innerHTML = `
