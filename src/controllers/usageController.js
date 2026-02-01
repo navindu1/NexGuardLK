@@ -2,6 +2,26 @@
 
 const v2rayService = require('../services/v2rayService');
 
+// Database එකේ ඇති rules අනුව තොරතුරු ලබා ගන්නා function එක
+async function getDynamicConnectionDetails(remark) {
+    try {
+        const { data: rules, error } = await supabase.from('network_rules').select('*');
+        
+        if (error || !rules) return null;
+
+        const lowerRemark = remark.toLowerCase();
+        for (const rule of rules) {
+            if (lowerRemark.includes(rule.keyword.toLowerCase())) {
+                return rule;
+            }
+        }
+        return null;
+    } catch (err) {
+        console.error("Error fetching network rules:", err);
+        return null;
+    }
+}
+
 exports.checkUsage = async (req, res) => {
     const username = req.params.username;
     if (!username) {

@@ -261,16 +261,26 @@ exports.getAllClientDetails = async () => {
     return simplifiedMap;
 };
 
-exports.generateV2rayConfigLink = (linkTemplate, client) => {
-    if (!linkTemplate || !client || !client.id || !client.email) return null;
-    
+exports.generateV2rayLink = (client, inbound) => {
     const uuid = client.id;
-    const remark = encodeURIComponent(client.email);
-    
-    if (!linkTemplate.includes("{uuid}") || !linkTemplate.includes("{remark}")) {
-        console.error(`VLESS template is invalid. It must contain {uuid} and {remark} placeholders.`);
-        return null;
+    const remark = client.email; // පද්ධතියේ remark එක ලෙස භාවිතා කරන්නේ මෙයයි
+    const address = "nexguardlk.store";
+    const port = 443;
+
+    let sni = "aka.ms"; // Default SNI
+    let displayName = "Connection";
+
+    // Remark එක පරීක්ෂා කර SNI සහ නම තීරණය කිරීම
+    if (remark.includes('HBB') || remark.includes('router')) {
+        sni = "aka.ms";
+        displayName = "Dialog HBB Connection";
+    } else if (remark.includes('Sim')) {
+        sni = "tiktok.com";
+        displayName = "Dialog Sim Connection";
     }
+
+    // Link එක සෑදීම
+    const link = `vless://${uuid}@${address}:${port}?type=tcp&encryption=none&security=tls&fp=chrome&alpn=h2%2Chttp%2F1.1&allowInsecure=1&sni=${sni}#${displayName}-${remark}`;
     
-    return linkTemplate.replace("{uuid}", uuid).replace("{remark}", remark);
+    return link;
 };

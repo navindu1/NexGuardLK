@@ -138,6 +138,29 @@ exports.updateProfilePicture = async (req, res) => {
     }
 };
 
+// File Path: src/controllers/usageController.js
+
+// --- පවතින Imports වලට පසුව මෙම Helper Function එක එක් කරන්න ---
+async function getDynamicConnectionDetails(remark) {
+    try {
+        const { data: rules, error } = await supabase.from('network_rules').select('*');
+        if (error || !rules) return null;
+
+        const lowerRemark = remark.toLowerCase();
+        // Remark එකේ keyword එක තිබේදැයි බලයි
+        for (const rule of rules) {
+            if (lowerRemark.includes(rule.keyword.toLowerCase())) {
+                return rule;
+            }
+        }
+        return null;
+    } catch (err) {
+        console.error("Error fetching network rules:", err);
+        return null;
+    }
+}
+
+// --- යාවත්කාලීන කරන ලද linkV2rayAccount function එක ---
 exports.linkV2rayAccount = async (req, res) => {
     const { v2rayUsername } = req.body;
     
@@ -205,9 +228,9 @@ exports.linkV2rayAccount = async (req, res) => {
                 } else {
                     const clientUsername = clientData.client.email || trimmedUsername;
                     for (const pkg of packages) {
-                        const remark = pkg.template.split('#')[1];
-                        if (remark) {
-                            const prefix = remark.split('{remark}')[0];
+                        const remarkPart = pkg.template.split('#')[1];
+                        if (remarkPart) {
+                            const prefix = remarkPart.split('{remark}')[0];
                             if (clientUsername.toLowerCase().startsWith(prefix.toLowerCase())) {
                                 finalPackage = pkg;
                                 break;
@@ -225,11 +248,40 @@ exports.linkV2rayAccount = async (req, res) => {
         }
 
         if (!detectedConnId || !vlessTemplate) {
-            return res.status(404).json({ success: false, message: `No matching connection configuration found for this V2Ray account (Inbound: ${inboundId}). Please contact support.` });
+            return res.status(404).json({ success: false, message: `No matching configuration found for Inbound: ${inboundId}.` });
         }
 
-        const v2rayLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientData.client);
-        if (!v2rayLink) throw new Error('Generated link is empty');
+        // --- START: DYNAMIC RULE LOGIC (New) ---
+        const clientEmail = clientData.client.email || trimmedUsername;
+        const netRule = await getDynamicConnectionDetails(clientEmail);
+
+        let finalSni = "aka.ms"; // Default SNI
+        let finalNetworkName = "Standard Connection";
+
+        if (netRule) {
+            finalSni = netRule.sni;
+            finalNetworkName = netRule.display_name;
+        }
+
+        // මුලින්ම පවතින template එකෙන් link එක සාදා ගනී
+        let v2rayLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientData.client);
+        
+        if (v2rayLink && netRule) {
+            // URL කොටස සහ Fragment (#) කොටස වෙන් කර ගනී
+            const [urlPart, fragmentPart] = v2rayLink.split('#');
+            
+            // SNI එක ස්වයංක්‍රීයව replace කිරීම
+            let updatedUrl = urlPart;
+            if (updatedUrl.includes('sni=')) {
+                updatedUrl = updatedUrl.replace(/sni=[^&]+/, `sni=${finalSni}`);
+            } else {
+                updatedUrl += `&sni=${finalSni}`;
+            }
+
+            // නව Config Link එක සාදා ගැනීම (Display Name එක Fragment එකට එක් කරයි)
+            v2rayLink = `${updatedUrl}#${finalNetworkName}-${clientEmail}`;
+        }
+        // --- END: DYNAMIC RULE LOGIC ---
 
         let detectedPlanId = "Unlimited";
         const totalBytes = clientData.client.total || 0;
@@ -242,8 +294,9 @@ exports.linkV2rayAccount = async (req, res) => {
         }
 
         const newPlan = {
-            v2rayUsername: clientData.client.email || trimmedUsername,
+            v2rayUsername: clientEmail,
             v2rayLink,
+            networkDisplayName: finalNetworkName, // පසුව Usage පෙන්වීමට පහසු වීමට එක් කරන ලදී
             planId: detectedPlanId,
             connId: detectedConnId,
             pkg: finalPackage ? finalPackage.name : null,
@@ -261,8 +314,8 @@ exports.linkV2rayAccount = async (req, res) => {
         });
         
     } catch (error) {
-        console.error(`[Link V2Ray] CRITICAL ERROR:`, { user: req.user?.username, v2rayUsername: trimmedUsername, error: error.message, stack: error.stack });
-        return res.status(500).json({ success: false, message: "An unexpected error occurred. Please try again later or contact support." });
+        console.error(`[Link V2Ray] CRITICAL ERROR:`, { user: req.user?.username, v2rayUsername: trimmedUsername, error: error.message });
+        return res.status(500).json({ success: false, message: "An unexpected error occurred." });
     }
 };
 
