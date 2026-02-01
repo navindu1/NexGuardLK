@@ -70,30 +70,31 @@ export const apiFetch = async (url, options = {}) => {
         options.headers['Authorization'] = `Bearer ${token}`;
     }
     
-    try {
-        const response = await fetch(url, options);
+    // api.js හි apiFetch function එක තුළ මෙසේ වෙනස් කරන්න:
+try {
+    const response = await fetch(url, options);
 
-        // --- UPDATE: Register සහ OTP verify වලදී 403 status එක check කිරීමෙන් ඉවත් කරන ලදී ---
-        const isAuthRoute = url === '/api/auth/login' || 
-                            url === '/api/auth/register' || 
-                            url === '/api/auth/verify-otp';
+    // Auth route එකක්දැයි පරීක්ෂා කිරීම (වඩාත් නිවැරදි ක්‍රමය)
+    const isAuthRoute = url.includes('/api/auth/login') || 
+                        url.includes('/api/auth/register') || 
+                        url.includes('/api/auth/verify-otp');
 
-        if ((response.status === 401 || response.status === 403) && !isAuthRoute) {
-            showToast({
-                title: "Session Expired",
-                message: "Login Expired. Please Login Again.",
-                type: "warning"
-            });
-            setTimeout(() => {
-                clearSession();
-                navigateTo('/login');
-            }, 2000);
-            return Promise.reject(new Error("Token expired or invalid"));
-        }
-        return response;
-    } catch (error) {
-        return Promise.reject(error);
+    if ((response.status === 401 || response.status === 403) && !isAuthRoute) {
+        showToast({
+            title: "Session Expired",
+            message: "Login Expired. Please Login Again.",
+            type: "warning"
+        });
+        setTimeout(() => {
+            clearSession();
+            navigateTo('/login');
+        }, 2000);
+        return Promise.reject(new Error("Token expired or invalid"));
     }
+    return response; // මෙතැනදී response එක කෙලින්ම return කරයි
+} catch (error) {
+    return Promise.reject(error);
+}
 };
 
 export const loadPlans = async () => {

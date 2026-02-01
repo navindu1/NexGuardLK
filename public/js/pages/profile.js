@@ -587,7 +587,7 @@ export function renderProfilePage(renderFunc, params) {
         ).join('');
 
         // --- CHANGED: "Add More +" (New Trigger) ---
-        planListItems += `<li class="border-t border-white/10 mt-1 pt-1"><a href="#" id="link-new-account-option" class="text-blue-300 hover:text-blue-200"><i class="fa-solid fa-plus-circle mr-2"></i>Add More +</a></li>`;
+        planListItems += `<li class="border-t border-white/10 mt-1 pt-1"><a href="#" id="link-new-account-option" class="text-blue-300 hover:text-blue-200"><i class="fa-solid fa-plus-circle mr-2"></i>Add More</a></li>`;
 
         const containerHtml = `
             <div class="plan-selector-container">
