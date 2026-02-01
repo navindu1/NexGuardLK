@@ -261,26 +261,29 @@ exports.getAllClientDetails = async () => {
     return simplifiedMap;
 };
 
+/**
+ * Generates a V2Ray config link using a template and client data.
+ * Dynamic rules will be applied in the controller before showing to user.
+ */
+exports.generateV2rayConfigLink = (template, client) => {
+    if (!template || !client) return null;
+
+    // UUID (id) සහ Email (remark) template එකට ආදේශ කිරීම
+    let link = template
+        .replace('{uuid}', client.id)
+        .replace('{remark}', client.email);
+
+    return link;
+};
+
+// පරණ generateV2rayLink function එක තිබේ නම් එය ඉවත් කරන්න හෝ මෙය භාවිතා කරන්න
 exports.generateV2rayLink = (client, inbound) => {
+    // Controller එකේදී අපි මෙය dynamic ලෙස හසුරුවන නිසා මෙහිදී සරලව සකසමු
     const uuid = client.id;
-    const remark = client.email; // පද්ධතියේ remark එක ලෙස භාවිතා කරන්නේ මෙයයි
+    const remark = client.email;
     const address = "nexguardlk.store";
     const port = 443;
 
-    let sni = "aka.ms"; // Default SNI
-    let displayName = "Connection";
-
-    // Remark එක පරීක්ෂා කර SNI සහ නම තීරණය කිරීම
-    if (remark.includes('HBB') || remark.includes('router')) {
-        sni = "aka.ms";
-        displayName = "Dialog HBB Connection";
-    } else if (remark.includes('Sim')) {
-        sni = "tiktok.com";
-        displayName = "Dialog Sim Connection";
-    }
-
-    // Link එක සෑදීම
-    const link = `vless://${uuid}@${address}:${port}?type=tcp&encryption=none&security=tls&fp=chrome&alpn=h2%2Chttp%2F1.1&allowInsecure=1&sni=${sni}#${displayName}-${remark}`;
-    
-    return link;
+    // Default link එක (මෙය controller එකෙන් පසුව update කරනු ලබයි)
+    return `vless://${uuid}@${address}:${port}?type=tcp&encryption=none&security=tls&fp=chrome&alpn=h2%2Chttp%2F1.1&allowInsecure=1&sni=aka.ms#Connection-${remark}`;
 };
