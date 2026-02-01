@@ -30,26 +30,16 @@ exports.register = async (req, res) => {
         }
 
         if (existingUsers && existingUsers.length > 0) {
-            // Loop through results to find specific match
             for (const user of existingUsers) {
-                
                 // --- SPECIFIC BAN MESSAGE LOGIC ---
                 if (user.status === 'banned') {
-                    if (user.email === email) {
-                        return res.status(403).json({ success: false, message: "Your Email Address is Banned by Admin." });
-                    }
-                    if (user.whatsapp === whatsapp) {
-                        return res.status(403).json({ success: false, message: "Your Phone Number is Banned by Admin." });
-                    }
-                    if (user.username === username) {
-                        return res.status(403).json({ success: false, message: "This Username is Banned by Admin." });
-                    }
-                    // Generic fallback
+                    if (user.email === email) return res.status(403).json({ success: false, message: "Your Email Address is Banned by Admin." });
+                    if (user.whatsapp === whatsapp) return res.status(403).json({ success: false, message: "Your Phone Number is Banned by Admin." });
+                    if (user.username === username) return res.status(403).json({ success: false, message: "This Username is Banned by Admin." });
                     return res.status(403).json({ success: false, message: "This account has been banned by Admin." });
                 }
 
                 // --- NORMAL DUPLICATE CHECK ---
-                // If not banned, but verified (otp_code is null or matches), prevent duplicate
                 if (!user.otp_code) {
                     if (user.email === email) return res.status(409).json({ success: false, message: "Email is already registered." });
                     if (user.username === username) return res.status(409).json({ success: false, message: "Username is already taken." });
@@ -79,7 +69,7 @@ exports.register = async (req, res) => {
         // Find existing unverified user to update OR generate new ID
         let targetUserId = uuidv4();
         const unverifiedUser = existingUsers?.find(u => u.email === email && u.otp_code !== null);
-        if (pendingUser) targetUserId = unverifiedUser.id;
+        if (unverifiedUser) targetUserId = unverifiedUser.id; // නිවැරදි කරන ලදී: pendingUser -> unverifiedUser
 
         const { error } = await supabase
             .from("users")
@@ -87,7 +77,6 @@ exports.register = async (req, res) => {
         
         if (error) throw error;
 
-        // Send Email logic
         const mailOptions = {
             from: `NexGuard <${process.env.EMAIL_SENDER}>`,
             to: email,
@@ -113,6 +102,7 @@ exports.register = async (req, res) => {
     }
 };
 
+// --- VERIFY OTP CONTROLLER ---
 exports.verifyOtp = async (req, res) => {
     const { email, otp } = req.body;
     
@@ -129,10 +119,7 @@ exports.verifyOtp = async (req, res) => {
 
         if (user.otp_lockout_until && new Date() < new Date(user.otp_lockout_until)) {
             const waitMinutes = Math.ceil((new Date(user.otp_lockout_until) - new Date()) / 60000);
-            return res.status(429).json({ 
-                success: false, 
-                message: `Too many failed attempts. Please try again in ${waitMinutes} minutes.` 
-            });
+            return res.status(429).json({ success: false, message: `Too many failed attempts. Try again in ${waitMinutes} mins.` });
         }
 
         if (!user.otp_code || new Date() > new Date(user.otp_expiry)) {
@@ -142,44 +129,28 @@ exports.verifyOtp = async (req, res) => {
         if (user.otp_code !== otp) {
             const newAttempts = (user.otp_attempts || 0) + 1;
             let updateData = { otp_attempts: newAttempts };
-            let message = "Invalid OTP code.";
-
             if (newAttempts >= MAX_OTP_ATTEMPTS) {
                 updateData.otp_lockout_until = new Date(Date.now() + LOCKOUT_TIME_MS).toISOString();
                 message = "Too many failed attempts. Account locked for 15 minutes.";
             } else {
                 message = `Invalid OTP. You have ${MAX_OTP_ATTEMPTS - newAttempts} attempts remaining.`;
             }
-
             await supabase.from("users").update(updateData).eq("id", user.id);
-            return res.status(400).json({ success: false, message: message });
+            return res.status(400).json({ success: false, message });
         }
 
-        const { error: updateError } = await supabase
-            .from("users")
-            .update({ 
-                otp_code: null, 
-                otp_expiry: null,
-                otp_attempts: 0,
-                otp_lockout_until: null 
-            })
-            .eq("id", user.id);
-
-        if (updateError) throw updateError;
+        await supabase.from("users").update({ otp_code: null, otp_expiry: null, otp_attempts: 0, otp_lockout_until: null }).eq("id", user.id);
         
         const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, { expiresIn: "1d" });
-        const userPayload = {
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            whatsapp: user.whatsapp,
-            profilePicture: user.profile_picture,
-        };
-        res.status(201).json({ success: true, message: "Account verified successfully!", token, user: userPayload });
+        res.status(201).json({ 
+            success: true, 
+            token, 
+            user: { id: user.id, username: user.username, email: user.email, whatsapp: user.whatsapp, profilePicture: user.profile_picture } 
+        });
 
     } catch (error) {
-        console.error("Error in /api/auth/verify-otp:", error);
-        return res.status(500).json({ success: false, message: "Database error during verification." });
+        console.error("Verify OTP Error:", error);
+        return res.status(500).json({ success: false, message: "Verification failed." });
     }
 };
 
@@ -194,19 +165,18 @@ exports.login = async (req, res) => {
             .eq("email", email)
             .single();
 
+        // 401 Error Fix: User නොමැති නම් හෝ DB error එකක් නම්
         if (error || !user) {
-            return res.status(401).json({ success: false, message: "Invalid username or password." });
+            return res.status(401).json({ success: false, message: "Invalid email or password." });
         }
 
-        // Ban Check Logic
         if (user.status === 'banned') {
-            return res.status(403).json({ 
-                success: false, 
-                message: "Your account has been banned. Please contact support." 
-            });
+            return res.status(403).json({ success: false, message: "Your account has been banned. Please contact support." });
         }
 
-        if (bcrypt.compareSync(password, user.password)) {
+        // Password Comparison
+        const isMatch = bcrypt.compareSync(password, user.password);
+        if (isMatch) {
             const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, { expiresIn: "1d" });
             const userPayload = {
                 id: user.id,
@@ -215,9 +185,9 @@ exports.login = async (req, res) => {
                 whatsapp: user.whatsapp,
                 profilePicture: user.profile_picture ? user.profile_picture.replace(/\\/g, "/").replace("public/", "") : "assets/profilePhoto.jpg",
             };
-            res.json({ success: true, message: "Logged in successfully!", token, user: userPayload });
+            return res.json({ success: true, message: "Logged in successfully!", token, user: userPayload });
         } else {
-            res.status(401).json({ success: false, message: "Invalid username or password." });
+            return res.status(401).json({ success: false, message: "Invalid email or password." });
         }
     } catch (error) {
         console.error("Login Error:", error);
@@ -225,6 +195,7 @@ exports.login = async (req, res) => {
     }
 };
 
+// --- ADMIN LOGIN ---
 exports.adminLogin = async (req, res) => {
     const { username, password, rememberMe } = req.body;
     try {
@@ -235,23 +206,20 @@ exports.adminLogin = async (req, res) => {
             .eq("role", "admin")
             .single();
 
-        if (error || !adminUser) {
-            return res.status(401).json({ success: false, message: "Invalid credentials or not an admin." });
-        }
-        const isPasswordValid = bcrypt.compareSync(password, adminUser.password);
-        if (isPasswordValid) {
-            const expiresIn = rememberMe ? "7d" : "8h";
-            const token = jwt.sign({ id: adminUser.id, username: adminUser.username, role: "admin" }, process.env.JWT_SECRET, { expiresIn });
+        if (error || !adminUser) return res.status(401).json({ success: false, message: "Invalid credentials." });
+
+        if (bcrypt.compareSync(password, adminUser.password)) {
+            const token = jwt.sign({ id: adminUser.id, username: adminUser.username, role: "admin" }, process.env.JWT_SECRET, { expiresIn: rememberMe ? "7d" : "8h" });
             res.json({ success: true, token });
         } else {
             res.status(401).json({ success: false, message: "Invalid credentials." });
         }
     } catch (err) {
-        console.error("Admin login error:", err);
-        res.status(500).json({ success: false, message: "An internal server error occurred." });
+        res.status(500).json({ success: false, message: "Server error." });
     }
 };
 
+// --- RESELLER LOGIN ---
 exports.resellerLogin = async (req, res) => {
     const { username, password } = req.body;
     try {
@@ -262,114 +230,67 @@ exports.resellerLogin = async (req, res) => {
             .eq("role", "reseller")
             .single();
 
-        if (error || !reseller) {
-            return res.status(401).json({ success: false, message: "Invalid credentials or not a reseller." });
-        }
-        const isPasswordValid = bcrypt.compareSync(password, reseller.password);
-        if (isPasswordValid) {
+        if (error || !reseller) return res.status(401).json({ success: false, message: "Invalid credentials." });
+
+        if (bcrypt.compareSync(password, reseller.password)) {
             const token = jwt.sign({ id: reseller.id, username: reseller.username, role: "reseller" }, process.env.JWT_SECRET, { expiresIn: "8h" });
             res.json({ success: true, token });
         } else {
             res.status(401).json({ success: false, message: "Invalid credentials." });
         }
     } catch (err) {
-        console.error("Reseller login error:", err);
-        res.status(500).json({ success: false, message: "An internal server error occurred." });
+        res.status(500).json({ success: false, message: "Server error." });
     }
 };
 
+// --- FORGOT PASSWORD ---
 exports.forgotPassword = async (req, res) => {
     const { email } = req.body;
-    const genericResponse = { message: 'If an account with that email exists, a password reset link has been sent.' };
+    const genericResponse = { message: 'If an account exists, a reset link has been sent.' };
 
     try {
-        const { data: user, error: userError } = await supabase
-            .from("users")
-            .select("*")
-            .eq("email", email)
-            .single();
-
-        if (!user || userError) {
-            return res.json(genericResponse);
-        }
+        const { data: user, error } = await supabase.from("users").select("*").eq("email", email).single();
+        if (!user || error) return res.json(genericResponse);
 
         const resetToken = crypto.randomBytes(32).toString('hex');
         const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
         const resetExpiry = new Date(Date.now() + 10 * 60 * 1000); 
 
-        const { error: updateError } = await supabase
-            .from("users")
-            .update({
-                password_reset_token: hashedToken,
-                password_reset_expires: resetExpiry.toISOString(),
-            })
-            .eq("id", user.id);
-
-        if (updateError) {
-             console.error('Failed to update user record with reset token:', updateError);
-             return res.json(genericResponse);
-        }
+        await supabase.from("users").update({ password_reset_token: hashedToken, password_reset_expires: resetExpiry.toISOString() }).eq("id", user.id);
 
         const resetURL = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
         const mailOptions = {
              from: `NexGuard <${process.env.EMAIL_SENDER}>`,
              to: user.email,
-             subject: 'Your Password Reset Link (Valid for 10 mins)',
-             html: generateEmailTemplate('Password Reset Request', 'Use the link inside to reset your password.', generatePasswordResetEmailContent(user.username, resetURL)),
+             subject: 'Password Reset Link',
+             html: generateEmailTemplate('Reset Request', 'Link inside.', generatePasswordResetEmailContent(user.username, resetURL)),
         };
 
-        try {
-            await transporter.sendMail(mailOptions);
-            res.json(genericResponse);
-        } catch (emailError) {
-            console.error(`FAILED to send password reset email to ${user.email}:`, emailError);
-            res.json(genericResponse);
-        }
-
+        await transporter.sendMail(mailOptions);
+        res.json(genericResponse);
     } catch (error) {
-        console.error("Forgot Password Error:", error);
-        res.status(500).json({ message: 'Server error occurred during forgot password process.' });
+        res.status(500).json({ message: 'Server error.' });
     }
 };
 
+// --- RESET PASSWORD ---
 exports.resetPassword = async (req, res) => {
     const { token, newPassword } = req.body;
-    if (!token || !newPassword || newPassword.length < 6) {
-        return res.status(400).json({
-            success: false,
-            message: "Token is required and password must be at least 6 characters.",
-        });
-    }
+    if (!token || !newPassword || newPassword.length < 6) return res.status(400).json({ success: false, message: "Invalid data." });
 
     try {
         const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+        const { data: user, error } = await supabase.from("users").select("*").eq("password_reset_token", hashedToken).single();
 
-        const { data: user, error } = await supabase
-            .from("users")
-            .select("*")
-            .eq("password_reset_token", hashedToken)
-            .single();
-
-        if (error || !user) {
-            return res.status(400).json({ success: false, message: "This reset link is invalid." });
-        }
-
-        if (new Date() > new Date(user.password_reset_expires)) {
-            return res.status(400).json({ success: false, message: "This reset link has expired." });
+        if (error || !user || new Date() > new Date(user.password_reset_expires)) {
+            return res.status(400).json({ success: false, message: "Link invalid or expired." });
         }
 
         const hashedPassword = bcrypt.hashSync(newPassword, 10);
-        
-        const { error: updateError } = await supabase
-            .from("users")
-            .update({ password: hashedPassword, password_reset_token: null, password_reset_expires: null })
-            .eq("id", user.id);
+        await supabase.from("users").update({ password: hashedPassword, password_reset_token: null, password_reset_expires: null }).eq("id", user.id);
 
-        if (updateError) throw updateError;
-
-        res.json({ success: true, message: "Password has been reset successfully." });
+        res.json({ success: true, message: "Password reset successful." });
     } catch (err) {
-        console.error("Password reset error:", err);
-        res.status(500).json({ success: false, message: "Error updating password." });
+        res.status(500).json({ success: false, message: "Server error." });
     }
 };
