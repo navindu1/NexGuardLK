@@ -9,7 +9,7 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
         initialPanel = "reset-password";
     }
 
-    // --- START: NEW STYLES (Copied from Usage Page) ---
+    // --- START: STYLES ---
     const pageStyles = `<style>
         /* Overlay styles - Transparent to show background */
         .help-modal-overlay {
@@ -53,9 +53,7 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
         }
     </style>`;
-    // --- END: NEW STYLES ---
 
-    // --- START: UPDATED MODAL HTML (Copied from Usage Page) ---
     const modalHtml = `
     <div id="help-modal" class="help-modal-overlay">
         <div class="help-modal-content grease-glass p-6 space-y-4 w-full max-w-md">
@@ -83,11 +81,10 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             </div>
             
             <div class="bg-black/20 border border-white/10 rounded-xl p-2 shadow-inner">
-                <img src="/assets/help.jpg" alt="Example image of where to find the username" class="rounded-lg w-full h-auto opacity-95 hover:opacity-100 transition-opacity">
+                <img src="/assets/help.jpg" alt="Example image" class="rounded-lg w-full h-auto opacity-95 hover:opacity-100 transition-opacity">
             </div>
         </div>
     </div>`;
-    // --- END: UPDATED MODAL HTML ---
 
     renderFunc(pageStyles + `
     <div id="page-login" class="page">
@@ -124,8 +121,7 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
                 <input type="hidden" id="otp-email"><div class="form-group"><input type="text" id="otp-code" class="form-input" required placeholder=" " maxlength="6" /><label for="otp-code" class="form-label">OTP Code</label><span class="focus-border"><i></i></span></div>
                 <button type="submit" class="ai-button w-full rounded-lg">Verify & Create Account</button>
                 <p class="text-center text-sm">Didn't get the code? <span id="show-signup-again" class="auth-toggle-link">Go Back</span></p>
-
-                </form>
+            </form>
             <form class="auth-form space-y-6" id="forgot-password-form">
                 <div class="text-center"><h1 class="text-2xl font-bold text-white font-['Orbitron']">Reset Password</h1><p class="text-sm text-gray-400 mt-1">Enter your email to receive a reset link.</p></div>
                 <div class="form-group"><input type="email" id="forgot-email" class="form-input" required placeholder=" " /><label for="forgot-email" class="form-label">Your Account Email</label><span class="focus-border"><i></i></span></div>
@@ -191,29 +187,27 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
         else if (initialPanel === "signup") switchAuthView(signupForm);
         else switchAuthView(signinForm);
 
+        // --- SUBMISSION LOGIC ---
+
         signinForm?.addEventListener("submit", async (e) => {
             e.preventDefault();
             const btn = e.target.querySelector("button");
             btn.disabled = true;
             showToast({ title: "Signing In", message: "Please wait...", type: "info" });
-            const payload = { username: e.target.elements["signin-username"].value, password: e.target.elements["signin-password"].value };
-            const res = await apiFetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-            btn.disabled = false;
-            if (res.ok) {
-                const result = await res.json();
-                showToast({ title: "Success!", message: "You have logged in successfully.", type: "success" });
-                saveSession(result);
-                navigateTo("/profile");
-            } else {
-                let errorMessage = "An unknown error occurred. Please try again.";
-                try {
+            const payload = { email: e.target.elements["signin-username"].value, password: e.target.elements["signin-password"].value };
+            try {
+                const res = await apiFetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+                if (res.ok) {
                     const result = await res.json();
-                    if (result.message.toLowerCase().includes('user not found')) errorMessage = `No account found with the username '${payload.username}'.`;
-                    else if (result.message.toLowerCase().includes('invalid password')) errorMessage = "The password you entered is incorrect.";
-                    else errorMessage = result.message;
-                } catch {}
-                showToast({ title: "Login Failed", message: errorMessage, type: "error" });
-            }
+                    showToast({ title: "Success!", message: "You have logged in successfully.", type: "success" });
+                    saveSession(result);
+                    navigateTo("/profile");
+                } else {
+                    const result = await res.json();
+                    showToast({ title: "Login Failed", message: result.message, type: "error" });
+                }
+            } catch (err) { console.error(err); }
+            btn.disabled = false;
         });
 
         signupForm?.addEventListener("submit", async(e) => {
@@ -221,60 +215,46 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             const btn = e.target.querySelector("button");
             btn.disabled = true;
             showToast({ title: "Sending OTP", message: "Please check your email...", type: "info" });
-            const payload = { username: e.target.elements["signup-username"].value, email: e.target.elements["signup-email"].value, whatsapp: e.target.elements["signup-whatsapp"].value, password: e.target.elements["signup-password"].value };
-            const res = await apiFetch("/api/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-            const result = await res.json();
-            btn.disabled = false;
-            if (res.ok) {
-                showToast({ title: "OTP Sent!", message: result.message, type: "success" });
-                document.getElementById("otp-email").value = payload.email;
+            const payload = { 
+                username: e.target.elements["signup-username"].value, 
+                email: e.target.elements["signup-email"].value, 
+                whatsapp: e.target.elements["signup-whatsapp"].value, 
+                password: e.target.elements["signup-password"].value 
+            };
+            
+            try {
+                const res = await apiFetch("/api/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+                const result = await res.json();
+                btn.disabled = false;
                 
-                // Hide warning initially (if it was shown previously)
-                const warningBox = document.getElementById("otp-spam-warning");
-                if(warningBox) warningBox.classList.add("hidden");
-
-                switchAuthView(otpForm);
-        
-        setTimeout(() => {
-                    // 1. තවමත් User ඉන්නේ OTP Form එකේද කියලා බලන්න
-                    if (otpForm.classList.contains("active")) {
-
-                        // Toast එක පෙන්වන Function එක
-                        const showSpamToast = () => {
-                             showToast({
-                                title: "Still Waiting?",
-                                message: "Email delays detected. Please check your Spam/Junk folder.",
-                                type: "warning",
-                                duration: 20000 
+                if (res.ok) {
+                    showToast({ title: "OTP Sent!", message: result.message, type: "success" });
+                    document.getElementById("otp-email").value = payload.email;
+                    switchAuthView(otpForm);
+                    
+                    // --- Timer ---
+                    setTimeout(() => {
+                        if (otpForm.classList.contains("active")) {
+                            const showSpamToast = () => showToast({ 
+                                title: "Still Waiting?", 
+                                message: "Email delays detected. Please check your Spam folder.", 
+                                type: "warning", 
+                                duration: 15000 
                             });
-                        };
-
-                        // 2. User දැන් ඉන්නේ අපේ Tab/App එක දිහා බලාගෙනද කියලා චෙක් කරනවා
-                        if (document.hidden) {
-                            // "එයා දැන් Screen එකේ නැහැ". එහෙනම් එයා ආපහු එනකම් Event Listener එකක් දාමු.
-                            const onVisible = () => {
-                                if (document.visibilityState === 'visible') {
-                                    // user ආපහු ආවා!
-                                    if (otpForm.classList.contains("active")) { 
-                                         showSpamToast();
-                                    }
-                                    document.removeEventListener('visibilitychange', onVisible);
-                                }
-                            };
-                            document.addEventListener('visibilitychange', onVisible);
-                        } else {
-                            // "එයා Screen එක දිහා බලාගෙනමයි ඉන්නේ" -> එහෙනම් කෙලින්ම පෙන්වන්න
-                            showSpamToast();
+                            if (document.hidden) {
+                                const onVisible = () => { if (document.visibilityState === 'visible') { showSpamToast(); document.removeEventListener('visibilitychange', onVisible); } };
+                                document.addEventListener('visibilitychange', onVisible);
+                            } else showSpamToast();
                         }
-                    }
-                }, 15000); // තත්පර 15 කට පසු
-                // --- END: Timer ---
-
-            } else {
-                showToast({ title: "Error", message: result.message || "An unknown error occurred.", type: "error" });
+                    }, 15000);
+                } else {
+                    showToast({ title: "Error", message: result.message || "Registration failed.", type: "error" });
+                }
+            } catch (error) {
+                btn.disabled = false;
+                console.error("Signup error:", error);
             }
         });
-
 
         otpForm?.addEventListener("submit", async(e) => {
             e.preventDefault();
@@ -282,16 +262,18 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             btn.disabled = true;
             showToast({ title: "Verifying", message: "Checking your OTP code...", type: "info" });
             const payload = { email: document.getElementById("otp-email").value, otp: e.target.elements["otp-code"].value };
-            const res = await apiFetch("/api/auth/verify-otp", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-            const result = await res.json();
-            btn.disabled = false;
-            if (res.ok) {
-                showToast({ title: "Verified!", message: result.message, type: "success" });
-                saveSession(result);
-                switchAuthView(linkAccountContainer);
-            } else {
-                showToast({ title: "Verification Failed", message: result.message, type: "error" });
-            }
+            try {
+                const res = await apiFetch("/api/auth/verify-otp", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+                const result = await res.json();
+                btn.disabled = false;
+                if (res.ok) {
+                    showToast({ title: "Verified!", message: result.message, type: "success" });
+                    saveSession(result);
+                    switchAuthView(linkAccountContainer);
+                } else {
+                    showToast({ title: "Verification Failed", message: result.message, type: "error" });
+                }
+            } catch (err) { btn.disabled = false; }
         });
 
         forgotPasswordForm?.addEventListener("submit", async(e) => {
@@ -299,15 +281,13 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             const btn = e.target.querySelector("button");
             btn.disabled = true;
             showToast({ title: "Processing", message: "Sending password reset link...", type: "info" });
-            const payload = { email: e.target.elements["forgot-email"].value };
-            const res = await apiFetch("/api/auth/forgot-password", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-            const result = await res.json();
-            btn.disabled = false;
-            if (res.ok) {
-                showToast({ title: "Check Your Email", message: result.message, type: "success" });
-            } else {
-                showToast({ title: "Error", message: result.message, type: "error" });
-            }
+            try {
+                const res = await apiFetch("/api/auth/forgot-password", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: e.target.elements["forgot-email"].value }) });
+                const result = await res.json();
+                btn.disabled = false;
+                if (res.ok) showToast({ title: "Check Your Email", message: result.message, type: "success" });
+                else showToast({ title: "Error", message: result.message, type: "error" });
+            } catch (err) { btn.disabled = false; }
         });
 
         resetPasswordForm?.addEventListener("submit", async(e) => {
@@ -315,16 +295,21 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             const btn = e.target.querySelector("button");
             btn.disabled = true;
             showToast({ title: "Updating", message: "Your password is being updated...", type: "info" });
-            const payload = { token: e.target.elements["reset-token"].value, newPassword: e.target.elements["new-password"].value };
-            const res = await apiFetch("/api/auth/reset-password", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-            const result = await res.json();
-            if (res.ok) {
-                showToast({ title: "Success!", message: result.message, type: "success" });
-                setTimeout(() => switchAuthView(signinForm), 2000);
-            } else {
-                btn.disabled = false;
-                showToast({ title: "Error", message: result.message, type: "error" });
-            }
+            try {
+                const res = await apiFetch("/api/auth/reset-password", { 
+                    method: "POST", 
+                    headers: { "Content-Type": "application/json" }, 
+                    body: JSON.stringify({ token: e.target.elements["reset-token"].value, newPassword: e.target.elements["new-password"].value }) 
+                });
+                const result = await res.json();
+                if (res.ok) {
+                    showToast({ title: "Success!", message: result.message, type: "success" });
+                    setTimeout(() => switchAuthView(signinForm), 2000);
+                } else {
+                    btn.disabled = false;
+                    showToast({ title: "Error", message: result.message, type: "error" });
+                }
+            } catch (err) { btn.disabled = false; }
         });
 
         document.getElementById("link-account-form")?.addEventListener("submit", async(e) => {
@@ -332,48 +317,38 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             const btn = e.target.querySelector("button");
             btn.disabled = true;
             showToast({ title: "Linking Account", message: "Please wait...", type: "info" });
-            const payload = { v2rayUsername: document.getElementById("existing-v2ray-username").value };
-            const res = await apiFetch("/api/user/link-v2ray", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-            const result = await res.json();
-            btn.disabled = false;
-            if (res.ok) {
-                showToast({ title: "Success!", message: result.message, type: "success" });
-                setTimeout(() => navigateTo("/profile"), 1500);
-            } else {
-                showToast({ title: "Failed to Link", message: result.message, type: "error" });
-            }
+            try {
+                const res = await apiFetch("/api/user/link-v2ray", { 
+                    method: "POST", 
+                    headers: { "Content-Type": "application/json" }, 
+                    body: JSON.stringify({ v2rayUsername: document.getElementById("existing-v2ray-username").value }) 
+                });
+                const result = await res.json();
+                btn.disabled = false;
+                if (res.ok) {
+                    showToast({ title: "Success!", message: result.message, type: "success" });
+                    setTimeout(() => navigateTo("/profile"), 1500);
+                } else showToast({ title: "Failed to Link", message: result.message, type: "error" });
+            } catch (err) { btn.disabled = false; }
         });
 
-        // WhatsApp number helper - IMPROVED
+        // --- Helpers ---
         const whatsappInput = document.getElementById("signup-whatsapp");
         if (whatsappInput) {
             whatsappInput.addEventListener("input", () => {
-                let val = whatsappInput.value.replace(/\D/g, ''); // අංක නොවන දේවල් ඉවත් කරන්න
-                
-                // 94න් පටන් ගන්නේ නැත්නම් 94 දාන්න
-                if (!val.startsWith("94")) {
-                    val = "94" + val;
-                }
-                
-                // Copy-Paste නිසා 94 දෙපාරක් වැදුනොත් (9494...) එය හදන්න
-                if (val.startsWith("9494")) {
-                    val = val.substring(2);
-                }
-
+                let val = whatsappInput.value.replace(/\D/g, '');
+                if (!val.startsWith("94")) val = "94" + val;
+                if (val.startsWith("9494")) val = val.substring(2);
                 whatsappInput.value = val;
             });
-
             whatsappInput.addEventListener("keydown", (e) => {
-                // 94 මකන්න බැරි වෙන්න හදන්න
-                if (e.key === "Backspace" && whatsappInput.value.length <= 2) {
-                    e.preventDefault();
-                }
+                if (e.key === "Backspace" && whatsappInput.value.length <= 2) e.preventDefault();
             });
         }
 
-        // Toggles
         document.getElementById("signin-toggle")?.addEventListener("click", () => togglePassword("signin-password", "signin-toggle"));
         document.getElementById("signup-toggle")?.addEventListener("click", () => togglePassword("signup-password", "signup-toggle"));
         document.getElementById("reset-toggle")?.addEventListener("click", () => togglePassword("new-password", "reset-toggle"));
+        
     }, 100);
 }

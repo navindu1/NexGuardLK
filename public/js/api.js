@@ -65,17 +65,20 @@ export const apiFetch = async (url, options = {}) => {
     if (!options.headers) {
         options.headers = {};
     }
-    if (!(options.body instanceof FormData)) {
-        // Only set Content-Type if NOT FormData (browser sets it automatically for FormData)
-        // Note: You usually pass JSON string in body, so headers need checking
-    }
+    
     if (token) {
         options.headers['Authorization'] = `Bearer ${token}`;
     }
     
     try {
         const response = await fetch(url, options);
-        if ((response.status === 401 || response.status === 403) && url !== '/api/auth/login') {
+
+        // --- UPDATE: Register සහ OTP verify වලදී 403 status එක check කිරීමෙන් ඉවත් කරන ලදී ---
+        const isAuthRoute = url === '/api/auth/login' || 
+                            url === '/api/auth/register' || 
+                            url === '/api/auth/verify-otp';
+
+        if ((response.status === 401 || response.status === 403) && !isAuthRoute) {
             showToast({
                 title: "Session Expired",
                 message: "Login Expired. Please Login Again.",
