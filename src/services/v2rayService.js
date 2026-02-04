@@ -16,25 +16,35 @@ const DEL_CLIENT_BY_UUID_URL = (inboundId, uuid) => `${PANEL_URL}/panel/api/inbo
 const UPDATE_CLIENT_URL = (uuid) => `${PANEL_URL}/panel/api/inbounds/updateClient/${uuid}`;
 const RESET_TRAFFIC_URL = (inboundId, email) => `${PANEL_URL}/panel/api/inbounds/${inboundId}/resetClientTraffic/${email}`;
 
-// --- Caching Variables ---
-let clientCacheMap = null;
-let cacheLastUpdated = 0;
-const CACHE_TTL = 15 * 1000;
+// --- Caching Variables (Updated) ---
+let clientCacheMap = null; // දත්ත ගබඩා කර තබන Map එක
+let cacheLastUpdated = 0;  // අවසන් වරට update කළ වේලාව
 
+// FIX: Cache කාලය විනාඩි 5 (300,000ms) සිට තත්පර 15 (15,000ms) දක්වා අඩු කරන ලදි.
+// එමගින් Renewal හෝ වෙනස්කම් එසැනින් Profile Page එකේ යාවත්කාලීන වේ.
+const CACHE_TTL = 15 * 1000; 
+
+// --- Session Management Object ---
 const panelSession = {
     cookie: null,
     lastLogin: 0,
     isValid: function() {
-        return this.cookie && (Date.now() - this.lastLogin < 3600000);
+        return this.cookie && (Date.now() - this.lastLogin < 3600000); // 1 hour validity
     }
 };
 
+/**
+ * Cache එක බලහත්කාරයෙන් ඉවත් කිරීම (අලුත් User කෙනෙක් හැදූ විට හෝ මැකූ විට භාවිතා වේ)
+ */
 function invalidateCache() {
     clientCacheMap = null;
     cacheLastUpdated = 0;
     console.log("[Cache] Client cache invalidated.");
 }
 
+/**
+ * Logs into the panel and updates the session object.
+ */
 async function loginAndGetCookie() {
     console.log(`\n[Panel Login] Attempting to login to panel...`);
     try {
@@ -62,6 +72,9 @@ async function loginAndGetCookie() {
     }
 }
 
+/**
+ * Gets a valid session cookie, logging in again if necessary.
+ */
 async function getPanelCookie() {
     if (panelSession.isValid()) {
         return panelSession.cookie;
@@ -74,9 +87,14 @@ async function getPanelCookie() {
 }
 exports.getPanelCookie = getPanelCookie;
 
+/**
+ * Internal function to fetch all clients and populate the cache.
+ * Optimized: Now refreshes every 15 seconds to keep data current.
+ */
 async function refreshClientCache() {
     try {
         const cookie = await getPanelCookie();
+        // console.log("[Cache] Fetching fresh data from V2Ray panel..."); // Log removed to reduce noise on frequent updates
         const { data: inboundsData } = await axios.get(INBOUNDS_LIST_URL, {
             headers: { Cookie: cookie },
         });
@@ -91,6 +109,7 @@ async function refreshClientCache() {
             const clients = (inbound.settings && JSON.parse(inbound.settings).clients) || [];
             for (const client of clients) {
                 if (client && client.email) {
+                    // Map එකට දත්ත ඇතුලත් කිරීම: key = lowercase email
                     newMap.set(client.email.toLowerCase(), {
                         client: client,
                         inbound: inbound,
@@ -102,19 +121,24 @@ async function refreshClientCache() {
         
         clientCacheMap = newMap;
         cacheLastUpdated = Date.now();
+        // console.log(`[Cache] Updated with ${newMap.size} clients.`);
         return clientCacheMap;
 
     } catch (error) {
         console.error(`[Cache] Error refreshing cache:`, error.message);
-        return new Map();
+        return new Map(); // Error එකක් ආවොත් හිස් Map එකක් යවන්න
     }
 }
 
+/**
+ * Finds a V2Ray client by their username (email) using the CACHE first.
+ */
 exports.findV2rayClient = async (username) => {
     if (typeof username !== "string" || !username) {
         return null;
     }
 
+    // 1. Check if cache needs refresh (Now checks every 15s)
     if (!clientCacheMap || (Date.now() - cacheLastUpdated > CACHE_TTL)) {
         await refreshClientCache();
     }
@@ -126,6 +150,7 @@ exports.findV2rayClient = async (username) => {
         return null;
     }
 
+    // 2. Client found in cache. Now fetch LIVE traffic data separately.
     try {
         const cookie = await getPanelCookie();
         const TRAFFIC_URL = `${PANEL_URL}/panel/api/inbounds/getClientTraffics/${cachedData.client.email}`;
@@ -148,34 +173,41 @@ exports.findV2rayClient = async (username) => {
     } catch (trafficError) {
         console.warn(`Could not fetch client traffics for ${username}. Returning cached static data.`);
         return {
-            client: cachedData.client,
+            client: cachedData.client, 
             inbound: cachedData.inbound,
             inboundId: cachedData.inboundId,
         };
     }
 };
 
+/**
+ * Adds a new client to a specified inbound.
+ */
 exports.addClient = async (inboundId, clientSettings) => {
     const cookie = await getPanelCookie();
     const payload = {
         id: parseInt(inboundId),
         settings: JSON.stringify({ clients: [clientSettings] })
     };
+    console.log('[V2Ray Service] Adding client:', clientSettings.email);
     const { data } = await axios.post(ADD_CLIENT_URL, payload, { headers: { Cookie: cookie } });
     
     if (data.success) {
-        invalidateCache();
+        invalidateCache(); // Cache එක පරණ නිසා එය ඉවත් කරන්න
     }
     return data;
 };
 
+/**
+ * Deletes a client from a specified inbound using their UUID.
+ */
 exports.deleteClient = async (inboundId, clientUuid) => {
     const cookie = await getPanelCookie();
     const url = DEL_CLIENT_BY_UUID_URL(inboundId, clientUuid);
     const { data } = await axios.post(url, {}, { headers: { Cookie: cookie } });
     
     if (data.success) {
-        invalidateCache();
+        invalidateCache(); // Cache එක පරණ නිසා එය ඉවත් කරන්න
     }
     return data;
 };
@@ -190,7 +222,7 @@ exports.updateClient = async (inboundId, clientUuid, clientSettings) => {
     const { data } = await axios.post(url, payload, { headers: { Cookie: cookie } });
     
     if (data.success) {
-        invalidateCache();
+        invalidateCache(); // Cache එක පරණ නිසා එය ඉවත් කරන්න
     }
     return data;
 };
@@ -202,13 +234,19 @@ exports.resetClientTraffic = async (inboundId, clientEmail) => {
     return data;
 };
 
+// Optimized for performance using Cache
 exports.getAllClients = async () => {
     if (!clientCacheMap || (Date.now() - cacheLastUpdated > CACHE_TTL)) {
         await refreshClientCache();
     }
+    // Return a Set of emails for fast checking
     return new Set(clientCacheMap.keys());
 };
 
+/**
+ * NEW FUNCTION: Fetches all clients from Cache.
+ * Returns a Map for efficient lookups where: key = lowercase email, value = client object.
+ */
 exports.getAllClientDetails = async () => {
     if (!clientCacheMap || (Date.now() - cacheLastUpdated > CACHE_TTL)) {
         await refreshClientCache();
@@ -223,15 +261,16 @@ exports.getAllClientDetails = async () => {
     return simplifiedMap;
 };
 
-exports.generateV2rayConfigLink = (template, client) => {
-    if (!template || !client) return null;
-    return template
-        .replace('{uuid}', client.id)
-        .replace('{remark}', client.email);
-};
-
-exports.generateV2rayLink = (client, inbound, dynamicName = "Connection", dynamicSni = "aka.ms") => {
+exports.generateV2rayConfigLink = (linkTemplate, client) => {
+    if (!linkTemplate || !client || !client.id || !client.email) return null;
+    
     const uuid = client.id;
-    const remark = client.email;
-    return `vless://${uuid}@nexguardlk.store:443?type=tcp&encryption=none&security=tls&fp=chrome&alpn=h2%2Chttp%2F1.1&allowInsecure=1&sni=${dynamicSni}#${dynamicName}-${remark}`;
+    const remark = encodeURIComponent(client.email);
+    
+    if (!linkTemplate.includes("{uuid}") || !linkTemplate.includes("{remark}")) {
+        console.error(`VLESS template is invalid. It must contain {uuid} and {remark} placeholders.`);
+        return null;
+    }
+    
+    return linkTemplate.replace("{uuid}", uuid).replace("{remark}", remark);
 };

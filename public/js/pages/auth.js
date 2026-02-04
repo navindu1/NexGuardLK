@@ -211,72 +211,50 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
         });
 
         signupForm?.addEventListener("submit", async(e) => {
-    e.preventDefault();
-    const btn = e.target.querySelector("button");
-    btn.disabled = true;
-    showToast({ title: "Sending OTP", message: "Please check your email...", type: "info" });
-    
-    const payload = { 
-        username: e.target.elements["signup-username"].value, 
-        email: e.target.elements["signup-email"].value, 
-        whatsapp: e.target.elements["signup-whatsapp"].value, 
-        password: e.target.elements["signup-password"].value 
-    };
-    
-    try {
-        const res = await apiFetch("/api/auth/register", { 
-            method: "POST", 
-            headers: { "Content-Type": "application/json" }, 
-            body: JSON.stringify(payload) 
-        });
-
-        // Response එක JSON ලෙස ලබා ගැනීම මුලින්ම සිදු කළ යුතුය
-        const result = await res.json(); 
-        btn.disabled = false;
-        
-        if (res.ok) {
-            showToast({ title: "OTP Sent!", message: result.message, type: "success" });
-            document.getElementById("otp-email").value = payload.email;
-            switchAuthView(otpForm);
+            e.preventDefault();
+            const btn = e.target.querySelector("button");
+            btn.disabled = true;
+            showToast({ title: "Sending OTP", message: "Please check your email...", type: "info" });
+            const payload = { 
+                username: e.target.elements["signup-username"].value, 
+                email: e.target.elements["signup-email"].value, 
+                whatsapp: e.target.elements["signup-whatsapp"].value, 
+                password: e.target.elements["signup-password"].value 
+            };
             
-            // --- Timer (පැරණි කේතය එලෙසම පවත්වා ඇත) ---
-            setTimeout(() => {
-                if (otpForm.classList.contains("active")) {
-                    const showSpamToast = () => showToast({ 
-                        title: "Still Waiting?", 
-                        message: "Email delays detected. Please check your Spam folder.", 
-                        type: "warning", 
-                        duration: 15000 
-                    });
-                    if (document.hidden) {
-                        const onVisible = () => { 
-                            if (document.visibilityState === 'visible') { 
-                                showSpamToast(); 
-                                document.removeEventListener('visibilitychange', onVisible); 
-                            } 
-                        };
-                        document.addEventListener('visibilitychange', onVisible);
-                    } else showSpamToast();
+            try {
+                const res = await apiFetch("/api/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+                const result = await res.json();
+                btn.disabled = false;
+                
+                if (res.ok) {
+                    showToast({ title: "OTP Sent!", message: result.message, type: "success" });
+                    document.getElementById("otp-email").value = payload.email;
+                    switchAuthView(otpForm);
+                    
+                    // --- Timer ---
+                    setTimeout(() => {
+                        if (otpForm.classList.contains("active")) {
+                            const showSpamToast = () => showToast({ 
+                                title: "Still Waiting?", 
+                                message: "Email delays detected. Please check your Spam folder.", 
+                                type: "warning", 
+                                duration: 15000 
+                            });
+                            if (document.hidden) {
+                                const onVisible = () => { if (document.visibilityState === 'visible') { showSpamToast(); document.removeEventListener('visibilitychange', onVisible); } };
+                                document.addEventListener('visibilitychange', onVisible);
+                            } else showSpamToast();
+                        }
+                    }, 15000);
+                } else {
+                    showToast({ title: "Error", message: result.message || "Registration failed.", type: "error" });
                 }
-            }, 15000);
-        } else {
-            // මෙහිදී result.message නිවැරදිව පෙන්වනු ඇත
-            showToast({ 
-                title: "Error", 
-                message: result.message || "Registration failed. Please try again.", 
-                type: "error" 
-            });
-        }
-    } catch (error) {
-        btn.disabled = false;
-        console.error("Signup error:", error);
-        showToast({ 
-            title: "Network Error", 
-            message: "Unable to connect to the server. Please check your internet.", 
-            type: "error" 
+            } catch (error) {
+                btn.disabled = false;
+                console.error("Signup error:", error);
+            }
         });
-    }
-});
 
         otpForm?.addEventListener("submit", async(e) => {
             e.preventDefault();

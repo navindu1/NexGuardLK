@@ -13,6 +13,7 @@ let activeFetchPromises = {};
 let currentActivePlan = null; 
 let lastKnownPlansStr = ""; 
 let globalActivePlans = []; 
+let availableConnectionsCache = null; // New cache for linking
 
 // --- SMART DATA FETCHER (REAL-TIME UPDATES) ---
 const fetchClientData = async (username) => {
@@ -59,19 +60,15 @@ const unlinkPlan = async (v2rayUsername) => {
     showToast({ title: "Removing...", message: "Processing removal.", type: "info" });
     
     try {
-        // Try calling backend
         const res = await apiFetch("/api/user/unlink", { 
             method: "POST", 
             headers: { "Content-Type": "application/json" }, 
             body: JSON.stringify({ v2rayUsername }) 
         });
         
-        // If 404 (Endpoint not found), simulate success for UI only (Client-side hide)
         if (res.status === 404) {
              console.warn("Backend /unlink endpoint missing. Hiding locally.");
-             // Simulate success
              showToast({ title: "Success", message: "Plan removed from view.", type: "success" });
-             // Ideally we should update local cache/state here, but reload is safer
              setTimeout(() => window.location.reload(), 1000);
              return;
         }
@@ -86,7 +83,6 @@ const unlinkPlan = async (v2rayUsername) => {
         }
     } catch (e) {
         console.error("Unlink error:", e);
-        // Fallback for network error
         showToast({ title: "Connection Error", message: "Could not reach server.", type: "error" });
     }
 };
@@ -130,6 +126,7 @@ export function renderProfilePage(renderFunc, params) {
             </div>
         </div>`;
 
+    // --- NEW: UPDATED LINK ACCOUNT MODAL (With Dropdowns) ---
     const linkAccountModalHtml = `
         <div id="link-account-modal" class="help-modal-overlay">
             <div class="help-modal-content grease-glass p-6 space-y-4 w-full max-w-md">
@@ -137,13 +134,29 @@ export function renderProfilePage(renderFunc, params) {
                     <h3 class="text-xl font-bold text-white font-['Orbitron']">Link Old V2Ray Account</h3>
                     <button id="link-modal-close" class="text-white/80 hover:text-white text-3xl transition-all hover:rotate-90">&times;</button>
                 </div>
-                <p class="text-sm text-gray-300 mb-4">Enter your previous V2Ray username to link it to this dashboard.</p>
+                <p class="text-sm text-gray-300 mb-4">Select your connection details to link your existing account.</p>
                 <form id="link-account-modal-form" class="space-y-4">
+                    
+                    <div class="form-group">
+                        <select id="modal-link-connection" class="form-input bg-slate-800/80" required>
+                            <option value="" disabled selected>Loading connections...</option>
+                        </select>
+                        <label class="form-label text-blue-400 text-xs" style="top: 10px; transform: translateY(0);">Connection</label>
+                    </div>
+
+                    <div class="form-group">
+                        <select id="modal-link-package" class="form-input bg-slate-800/80" required disabled>
+                            <option value="" disabled selected>-- Select Connection First --</option>
+                        </select>
+                        <label class="form-label text-blue-400 text-xs" style="top: 10px; transform: translateY(0);">Package</label>
+                    </div>
+
                     <div class="form-group">
                         <input type="text" id="modal-v2ray-username" class="form-input" required placeholder=" ">
                         <label for="modal-v2ray-username" class="form-label">Old V2Ray Username</label>
                         <span class="focus-border"><i></i></span>
                     </div>
+
                     <button type="submit" class="ai-button secondary w-full rounded-lg">Link Now</button>
                 </form>
             </div>
@@ -154,6 +167,8 @@ export function renderProfilePage(renderFunc, params) {
         #page-profile .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; } 
         #page-profile .form-input:focus ~ .form-label, #page-profile .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: var(--brand-blue); } 
         #page-profile .form-input[readonly] { background-color: rgba(0,0,0,0.2); cursor: not-allowed; } 
+        #page-profile select.form-input { color: white; }
+        #page-profile select.form-input option { background-color: #1e293b; color: white; }
         .tab-btn { border-bottom: 3px solid transparent; transition: all .3s ease; color: #9ca3af; padding: 0.75rem 0.25rem; font-weight: 600; white-space: nowrap; } 
         .tab-btn.active { border-bottom-color: var(--brand-blue); color: #fff; } 
         .tab-panel { display: none; } 
@@ -202,6 +217,46 @@ export function renderProfilePage(renderFunc, params) {
         if (storedCache) usageDataCache = JSON.parse(storedCache);
     } catch(e) { console.warn("Cache parse error", e); }
 
+    // --- FUNCTION TO POPULATE MODAL DATA ---
+    const populateLinkModal = async () => {
+        const connSelect = document.getElementById('modal-link-connection');
+        if (!connSelect) return;
+
+        // If cached, use it
+        if (availableConnectionsCache) {
+            renderConnectionOptions(availableConnectionsCache);
+            return;
+        }
+
+        try {
+            const res = await apiFetch('/api/public/connections');
+            const result = await res.json();
+            if (result.success) {
+                availableConnectionsCache = result.data;
+                renderConnectionOptions(result.data);
+            } else {
+                connSelect.innerHTML = '<option disabled>Failed to load connections</option>';
+            }
+        } catch (error) {
+            console.error("Failed to load connections for modal:", error);
+            connSelect.innerHTML = '<option disabled>Error loading data</option>';
+        }
+    };
+
+    const renderConnectionOptions = (connections) => {
+        const connSelect = document.getElementById('modal-link-connection');
+        if (!connSelect) return;
+
+        connSelect.innerHTML = '<option value="" disabled selected>-- Select Connection --</option>';
+        connections.forEach(conn => {
+            const opt = document.createElement('option');
+            opt.value = conn.id;
+            opt.textContent = conn.connection_name || conn.name;
+            opt.dataset.packages = JSON.stringify(conn.package_options || []);
+            connSelect.appendChild(opt);
+        });
+    };
+
     const setupEventListeners = () => {
         // Help Modal
         const helpModal = document.getElementById('help-modal');
@@ -218,24 +273,57 @@ export function renderProfilePage(renderFunc, params) {
             });
         }
 
-        // Link Account Modal (New - Triggered by "Add More")
+        // Link Account Modal (UPDATED LOGIC)
         const linkModal = document.getElementById('link-account-modal');
         if (linkModal) {
             const closeLinkModal = () => { linkModal.classList.remove('visible'); document.body.classList.remove('modal-open'); };
             document.getElementById('link-modal-close')?.addEventListener('click', closeLinkModal);
             linkModal.addEventListener('click', (e) => { if (e.target === linkModal) closeLinkModal(); });
 
+            // Handle Connection Change -> Update Packages
+            const connSelect = document.getElementById('modal-link-connection');
+            const pkgSelect = document.getElementById('modal-link-package');
+            
+            connSelect?.addEventListener('change', function() {
+                const selectedOpt = this.options[this.selectedIndex];
+                const packages = selectedOpt.dataset.packages ? JSON.parse(selectedOpt.dataset.packages) : [];
+                
+                pkgSelect.innerHTML = '<option value="" disabled selected>-- Select Package --</option>';
+                pkgSelect.disabled = false;
+
+                if (packages.length > 0) {
+                    packages.forEach(pkg => {
+                        const opt = document.createElement('option');
+                        opt.value = pkg.id;
+                        opt.textContent = `${pkg.name} - ${pkg.price} LKR`;
+                        pkgSelect.appendChild(opt);
+                    });
+                } else {
+                    pkgSelect.innerHTML = '<option value="" disabled>No packages available</option>';
+                    pkgSelect.disabled = true;
+                }
+            });
+
+            // Form Submit (New Payload)
             document.getElementById("link-account-modal-form")?.addEventListener("submit", async(e) => {
                 e.preventDefault();
+                const connectionId = connSelect.value;
+                const packageId = pkgSelect.value;
                 const v2rayUsername = document.getElementById("modal-v2ray-username").value;
+
+                if (!connectionId || !packageId) return showToast({ title: "Missing Info", message: "Please select both connection and package.", type: "error" });
                 if (!v2rayUsername) return showToast({ title: "Error", message: "Please enter your V2Ray username.", type: "error" });
                 
                 const btn = e.target.querySelector("button");
                 btn.disabled = true;
-                showToast({ title: "Linking...", message: "Please wait...", type: "info", duration: 2000 });
+                showToast({ title: "Linking...", message: "Verifying account details...", type: "info", duration: 2000 });
                 
                 try {
-                    const res = await apiFetch("/api/user/link-v2ray", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ v2rayUsername }) });
+                    const res = await apiFetch("/api/user/link-v2ray", { 
+                        method: "POST", 
+                        headers: { "Content-Type": "application/json" }, 
+                        body: JSON.stringify({ v2rayUsername, connectionId, packageId }) // New Payload
+                    });
                     const result = await res.json();
                     if (res.ok) {
                         localStorage.setItem("pendingLinkSuccess", result.message || "Your V2Ray account has been linked!");
@@ -250,6 +338,13 @@ export function renderProfilePage(renderFunc, params) {
                 }
             });
         }
+        
+        // Listener for the "No Plans" state button (Updated below)
+        document.getElementById("trigger-link-modal-btn")?.addEventListener("click", (e) => {
+            e.preventDefault();
+            populateLinkModal(); // Ensure data is loaded
+            if(linkModal) { linkModal.classList.add('visible'); document.body.classList.add('modal-open'); }
+        });
 
         document.getElementById("profile-update-form")?.addEventListener("submit", async(e) => {
             e.preventDefault();
@@ -587,7 +682,7 @@ export function renderProfilePage(renderFunc, params) {
         ).join('');
 
         // --- CHANGED: "Add More +" (New Trigger) ---
-        planListItems += `<li class="border-t border-white/10 mt-1 pt-1"><a href="#" id="link-new-account-option" class="text-blue-300 hover:text-blue-200"><i class="fa-solid fa-plus-circle mr-2"></i>Add More</a></li>`;
+        planListItems += `<li class="border-t border-white/10 mt-1 pt-1"><a href="#" id="link-new-account-option" class="text-blue-300 hover:text-blue-200"><i class="fa-solid fa-plus-circle mr-2"></i>Add More +</a></li>`;
 
         const containerHtml = `
             <div class="plan-selector-container">
@@ -619,6 +714,8 @@ export function renderProfilePage(renderFunc, params) {
                 e.preventDefault();
                 if (link.id === 'link-new-account-option') {
                     planMenuInstance.closeAll();
+                    // Load Data before showing
+                    populateLinkModal();
                     const linkModal = document.getElementById('link-account-modal');
                     if(linkModal) { linkModal.classList.add('visible'); document.body.classList.add('modal-open'); }
                 } else {
@@ -828,8 +925,12 @@ export function renderProfilePage(renderFunc, params) {
             } else if (data.status === "pending") {
                 statusContainer.innerHTML = `<div style="border-radius: 50px;" class="card-glass p-8 text-center"><i class="fa-solid fa-clock text-4xl text-amber-400 mb-4 animate-pulse"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Order Pending Approval</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">Your order is currently being reviewed. Your profile will update here once approved.</p></div>`;
             } else {
+                // --- NO PLANS STATE ---
                 const settingsHtml = `<div class="card-glass p-6 custom-radius"><h3 class="text-xl font-bold text-white mb-4 font-['Orbitron']">Account Settings</h3><form id="profile-update-form" class="space-y-6"><div class="form-group"><input type="text" class="form-input" readonly value="${user.username}"><label class="form-label">Website Username</label></div><div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" placeholder=" "><label for="new-password" class="form-label">New Password</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i></div><button type="submit" class="ai-button w-full rounded-lg !mt-8">Save Changes</button></form></div>`;
-                const linkAccountHtml = `<div class="card-glass p-6 custom-radius"><h3 class="text-xl font-bold text-white mb-2 font-['Orbitron']">Link Existing V2Ray Account</h3><p class="text-sm text-gray-400 mb-6">If you have an old account, link it here to manage renewals.</p><form id="link-account-form-profile" class="space-y-6"><div class="form-group"><input type="text" id="existing-v2ray-username-profile" class="form-input" required placeholder=" "><label for="existing-v2ray-username-profile" class="form-label">Your Old V2Ray Username</label><span class="focus-border"><i></i></span></div><button type="submit" class="ai-button secondary w-full rounded-lg">Link Account</button><div class="text-center text-sm mt-4"><span class="open-help-modal-link text-blue-400 cursor-pointer hover:underline">How to find your username?</span></div></form></div>`;
+                
+                // --- REPLACED: INLINE FORM WITH BUTTON TO TRIGGER MODAL ---
+                const linkAccountHtml = `<div class="card-glass p-6 custom-radius"><h3 class="text-xl font-bold text-white mb-2 font-['Orbitron']">Link Existing V2Ray Account</h3><p class="text-sm text-gray-400 mb-6">If you have an old account, link it here to manage renewals.</p><div class="flex flex-col gap-4 justify-center items-center h-[200px]"><button id="trigger-link-modal-btn" class="ai-button secondary w-full rounded-lg py-4"><i class="fa-solid fa-link mr-2"></i>Link Account Wizard</button><div class="text-center text-sm"><span class="open-help-modal-link text-blue-400 cursor-pointer hover:underline">How to find your username?</span></div></div></div>`;
+                
                 statusContainer.innerHTML = `<div class="card-glass p-8 custom-radius text-center"><i class="fa-solid fa-rocket text-4xl text-blue-400 mb-4"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Get Started</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">You do not have any active plans yet. Purchase a new plan or link an existing account below.</p><a href="/plans" class="nav-link-internal ai-button inline-block rounded-lg mt-6">Purchase a Plan</a></div><div class="grid md:grid-cols-2 gap-8 mt-8">${settingsHtml}${linkAccountHtml}</div>`;
                 setupEventListeners();
             }

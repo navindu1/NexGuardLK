@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
-// Plan configuration
+// Plan configuration (Used for calculating GBs from bytes if needed)
 const planConfig = {
     "100GB": { totalGB: 100 },
     "200GB": { totalGB: 200 },
@@ -13,8 +13,12 @@ const planConfig = {
     "Unlimited": { totalGB: 0 },
 };
 
+// ------------------------------------------------------------------
+// 1. Get User Status (Dashboard එකේ පෙන්වන දත්ත)
+// ------------------------------------------------------------------
 exports.getUserStatus = async (req, res) => {
     try {
+        // User දත්ත ලබා ගැනීම
         const { data: user, error: userError } = await supabase
             .from("users")
             .select("*")
@@ -25,6 +29,7 @@ exports.getUserStatus = async (req, res) => {
             return res.status(404).json({ success: false, message: "User not found." });
         }
         
+        // Pending Orders තිබේදැයි පරීක්ෂා කිරීම
         const { data: pendingOrders, error: orderError } = await supabase
             .from("orders")
             .select("id")
@@ -33,6 +38,7 @@ exports.getUserStatus = async (req, res) => {
             
         if (orderError) throw orderError;
 
+        // විශේෂ අවස්ථා පරීක්ෂා කිරීම (Pending Orders හෝ Plans නැති අවස්ථා)
         if (pendingOrders && pendingOrders.length > 0 && (!user.active_plans || user.active_plans.length === 0)) {
             return res.json({ success: true, status: "pending" });
         }
@@ -41,22 +47,25 @@ exports.getUserStatus = async (req, res) => {
             return res.json({ success: true, status: "no_plan" });
         }
         
-        // --- START: VERIFICATION LOGIC ---
+        // --- START: VERIFICATION LOGIC (Active Plans පරීක්ෂා කිරීම) ---
         const allPanelClientsMap = await v2rayService.getAllClientDetails();
         const verifiedActivePlans = [];
 
         for (const plan of user.active_plans) {
             const v2rayUsernameLower = plan.v2rayUsername.toLowerCase();
             
+            // V2Ray Panel එකේ පරිශීලකයා සිටීදැයි තහවුරු කරගැනීම
             if (allPanelClientsMap.has(v2rayUsernameLower)) {
                 const clientDetails = allPanelClientsMap.get(v2rayUsernameLower);
+                
+                // Expiry Time එක යාවත්කාලීන කිරීම
                 const enrichedPlan = {
                     ...plan,
                     expiryTime: clientDetails.expiryTime || 0
                 };
                 verifiedActivePlans.push(enrichedPlan);
             } else {
-                // If not in panel, keep it but mark as expired/removed (expiryTime: 0)
+                // Panel එකේ නැත්නම් Plan එක Expired ලෙස සලකුණු කිරීම
                 verifiedActivePlans.push({
                     ...plan,
                     expiryTime: 0 
@@ -82,6 +91,9 @@ exports.getUserStatus = async (req, res) => {
     }
 };
 
+// ------------------------------------------------------------------
+// 2. Get User Orders (ඇණවුම් ඉතිහාසය)
+// ------------------------------------------------------------------
 exports.getUserOrders = async (req, res) => {
     try {
         const { data: userOrders, error } = await supabase
@@ -99,11 +111,15 @@ exports.getUserOrders = async (req, res) => {
     }
 };
 
+// ------------------------------------------------------------------
+// 3. Update Profile Picture
+// ------------------------------------------------------------------
 exports.updateProfilePicture = async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ success: false, message: "No file was uploaded." });
     }
     try {
+        // පැරණි පින්තූරය ඉවත් කිරීම
         const { data: user } = await supabase
             .from("users")
             .select("profile_picture")
@@ -119,6 +135,7 @@ exports.updateProfilePicture = async (req, res) => {
             }
         }
 
+        // නව පින්තූරය සුරැකීම
         const filePath = req.file.path.replace(/\\/g, "/").replace("public/", "");
         const { error: updateError } = await supabase
             .from("users")
@@ -138,49 +155,43 @@ exports.updateProfilePicture = async (req, res) => {
     }
 };
 
-// File Path: src/controllers/usageController.js
-
-// --- පවතින Imports වලට පසුව මෙම Helper Function එක එක් කරන්න ---
-async function getDynamicConnectionDetails(remark) {
-    try {
-        const { data: rules, error } = await supabase.from('network_rules').select('*');
-        if (error || !rules) return null;
-
-        const lowerRemark = remark.toLowerCase();
-        // Remark එකේ keyword එක තිබේදැයි බලයි
-        for (const rule of rules) {
-            if (lowerRemark.includes(rule.keyword.toLowerCase())) {
-                return rule;
-            }
-        }
-        return null;
-    } catch (err) {
-        console.error("Error fetching network rules:", err);
-        return null;
-    }
-}
-
-// --- යාවත්කාලීන කරන ලද linkV2rayAccount function එක ---
+// ------------------------------------------------------------------
+// 4. Link Old V2Ray Account (MANUAL SELECTION MODE)
+// ------------------------------------------------------------------
 exports.linkV2rayAccount = async (req, res) => {
-    const { v2rayUsername } = req.body;
+    // Frontend එකෙන් එවන දත්ත ලබා ගැනීම
+    const { v2rayUsername, connectionId, packageId } = req.body;
     
+    // STEP 1: මූලික පරීක්ෂාවන් (Validation)
     if (!v2rayUsername || typeof v2rayUsername !== 'string' || v2rayUsername.trim() === '') {
         return res.status(400).json({ success: false, message: "Valid V2Ray username is required." });
+    }
+    if (!connectionId) {
+        return res.status(400).json({ success: false, message: "Please select a connection." });
+    }
+    if (!packageId) {
+        return res.status(400).json({ success: false, message: "Please select a package." });
     }
 
     const trimmedUsername = v2rayUsername.trim();
     
     try {
+        // STEP 2: V2Ray Panel එකේ මෙම Username එක ඇත්තටම තිබේදැයි පරීක්ෂා කිරීම
+        console.log(`[Link Request] Checking username: ${trimmedUsername}`);
         const clientData = await v2rayService.findV2rayClient(trimmedUsername);
+        
         if (!clientData || !clientData.client || !clientData.inboundId) {
+            // Panel එකේ Username එක සොයාගත නොහැකි නම්
             return res.status(404).json({ success: false, message: "This V2Ray username was not found in our panel." });
         }
 
+        // STEP 3: මෙම ගිණුම දැනටමත් වෙනත් අයෙක් Link කර ඇත්දැයි පරීක්ෂා කිරීම
         const { data: existingLinks } = await supabase
             .from("users")
             .select("id, username, active_plans")
             .not('active_plans', 'is', null);
 
+        // වෙනත් අයෙකුගේ Active Plans තුළ මෙම Username එක තිබේදැයි බැලීම
         const alreadyLinked = existingLinks?.find(user => 
             user.active_plans?.some(plan => plan.v2rayUsername.toLowerCase() === trimmedUsername.toLowerCase())
         );
@@ -189,6 +200,48 @@ exports.linkV2rayAccount = async (req, res) => {
             return res.status(409).json({ success: false, message: "This V2Ray account is already linked to another website account." });
         }
 
+        // STEP 4: පරිශීලකයා තෝරාගත් Connection සහ Package විස්තර ලබා ගැනීම
+        const { data: connection, error: connError } = await supabase
+            .from('connections')
+            .select('*') // 'packages' join කිරීම අනවශ්‍යයි, package_options JSON එකක් ලෙස තිබේ නම්
+            .eq('id', connectionId)
+            .single();
+
+        if (connError || !connection) {
+            console.error("Connection fetch error:", connError);
+            return res.status(404).json({ success: false, message: "Selected connection configuration not found." });
+        }
+
+        // Connection එක තුළ ඇති package_options වලින් පරිශීලකයා තෝරාගත් Package එක සොයා ගැනීම
+        const availablePackages = connection.package_options || [];
+        const selectedPackage = availablePackages.find(p => p.id == packageId);
+        
+        if (!selectedPackage) {
+            return res.status(400).json({ success: false, message: "Invalid package selection for this connection." });
+        }
+
+        // STEP 5: V2Ray Configuration Link එක සෑදීම
+        // VLESS Template එක ලබා ගැනීම: Package එකට විශේෂ Template එකක් නැත්නම් Connection Default එක ගන්න
+        let vlessTemplate = connection.default_vless_template;
+        if (selectedPackage.template && selectedPackage.template.length > 5) {
+             vlessTemplate = selectedPackage.template;
+        }
+
+        if (!vlessTemplate) {
+            return res.status(500).json({ success: false, message: "Configuration template missing. Contact support." });
+        }
+
+        const v2rayLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientData.client);
+        if (!v2rayLink) throw new Error('Generated link is empty');
+
+        // Plan ID එක සැකසීම (GB ප්‍රමාණය අනුව)
+        let detectedPlanId = "Unlimited";
+        if (selectedPackage.name.includes("GB")) {
+            // "100GB Monthly" -> "100GB"
+            detectedPlanId = selectedPackage.name.split(" ")[0]; 
+        }
+
+        // STEP 6: පරිශීලකයාගේ Profile එක Update කිරීම (Active Plans වලට එකතු කිරීම)
         const { data: currentUser } = await supabase
             .from("users")
             .select("active_plans")
@@ -196,129 +249,49 @@ exports.linkV2rayAccount = async (req, res) => {
             .single();
 
         const currentPlans = Array.isArray(currentUser.active_plans) ? currentUser.active_plans : [];
-        const inboundId = parseInt(clientData.inboundId);
-
-        let detectedConnId = null;
-        let vlessTemplate = null;
-        let finalPackage = null;
-
-        const { data: singleConnections } = await supabase
-            .from('connections')
-            .select('name, default_vless_template, default_inbound_id, requires_package_choice')
-            .eq('default_inbound_id', inboundId)
-            .eq('requires_package_choice', false)
-            .limit(1);
-
-        if (singleConnections && singleConnections.length > 0) {
-            const conn = singleConnections[0];
-            detectedConnId = conn.name;
-            vlessTemplate = conn.default_vless_template;
-        } else {
-            const { data: packages, error: packageError } = await supabase
-                .from('packages')
-                .select('*, connections(id, name)')
-                .eq('inbound_id', inboundId)
-                .eq('is_active', true);
-
-            if (packageError) throw packageError;
-
-            if (packages && packages.length > 0) {
-                if (packages.length === 1) {
-                    finalPackage = packages[0];
-                } else {
-                    const clientUsername = clientData.client.email || trimmedUsername;
-                    for (const pkg of packages) {
-                        const remarkPart = pkg.template.split('#')[1];
-                        if (remarkPart) {
-                            const prefix = remarkPart.split('{remark}')[0];
-                            if (clientUsername.toLowerCase().startsWith(prefix.toLowerCase())) {
-                                finalPackage = pkg;
-                                break;
-                            }
-                        }
-                    }
-                    if (!finalPackage) finalPackage = packages[0];
-                }
-
-                if (finalPackage && finalPackage.connections) {
-                    detectedConnId = finalPackage.connections.name;
-                    vlessTemplate = finalPackage.template;
-                }
-            }
-        }
-
-        if (!detectedConnId || !vlessTemplate) {
-            return res.status(404).json({ success: false, message: `No matching configuration found for Inbound: ${inboundId}.` });
-        }
-
-        // --- START: DYNAMIC RULE LOGIC (New) ---
-        const clientEmail = clientData.client.email || trimmedUsername;
-        const netRule = await getDynamicConnectionDetails(clientEmail);
-
-        let finalSni = "aka.ms"; // Default SNI
-        let finalNetworkName = "Standard Connection";
-
-        if (netRule) {
-            finalSni = netRule.sni;
-            finalNetworkName = netRule.display_name;
-        }
-
-        // මුලින්ම පවතින template එකෙන් link එක සාදා ගනී
-        let v2rayLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientData.client);
         
-        if (v2rayLink && netRule) {
-            // URL කොටස සහ Fragment (#) කොටස වෙන් කර ගනී
-            const [urlPart, fragmentPart] = v2rayLink.split('#');
-            
-            // SNI එක ස්වයංක්‍රීයව replace කිරීම
-            let updatedUrl = urlPart;
-            if (updatedUrl.includes('sni=')) {
-                updatedUrl = updatedUrl.replace(/sni=[^&]+/, `sni=${finalSni}`);
-            } else {
-                updatedUrl += `&sni=${finalSni}`;
-            }
-
-            // නව Config Link එක සාදා ගැනීම (Display Name එක Fragment එකට එක් කරයි)
-            v2rayLink = `${updatedUrl}#${finalNetworkName}-${clientEmail}`;
-        }
-        // --- END: DYNAMIC RULE LOGIC ---
-
-        let detectedPlanId = "Unlimited";
-        const totalBytes = clientData.client.total || 0;
-        
-        if (totalBytes > 0) {
-            const totalGB = Math.round(totalBytes / (1024 * 1024 * 1024));
-            if (planConfig[`${totalGB}GB`]) {
-                detectedPlanId = `${totalGB}GB`;
-            }
-        }
-
         const newPlan = {
-            v2rayUsername: clientEmail,
-            v2rayLink,
-            networkDisplayName: finalNetworkName, // පසුව Usage පෙන්වීමට පහසු වීමට එක් කරන ලදී
+            v2rayUsername: clientData.client.email || trimmedUsername,
+            v2rayLink: v2rayLink,
             planId: detectedPlanId,
-            connId: detectedConnId,
-            pkg: finalPackage ? finalPackage.name : null,
+            connId: connection.connection_name || connection.name, // Connection Name
+            pkg: selectedPackage.name, // Package Name
             activatedAt: new Date().toISOString(),
-            orderId: "linked-" + uuidv4(),
+            orderId: "linked-manual-" + uuidv4(), // Unique ID for this link action
+            linkedMethod: "manual_selection"
         };
     
         const updatedPlans = [...currentPlans, newPlan];
 
-        await supabase.from("users").update({ active_plans: updatedPlans }).eq("id", req.user.id);
+        // Database එක Update කිරීම
+        const { error: updateError } = await supabase
+            .from("users")
+            .update({ active_plans: updatedPlans })
+            .eq("id", req.user.id);
+            
+        if (updateError) throw updateError;
         
+        // Success Response
         return res.json({ 
             success: true, 
-            message: "Your V2Ray account has been successfully linked!"
+            message: "Your V2Ray account has been successfully linked with the selected package!"
         });
         
     } catch (error) {
-        console.error(`[Link V2Ray] CRITICAL ERROR:`, { user: req.user?.username, v2rayUsername: trimmedUsername, error: error.message });
-        return res.status(500).json({ success: false, message: "An unexpected error occurred." });
+        // දෝෂ වාර්තා කිරීම (Error Logging)
+        console.error(`[Link V2Ray] CRITICAL ERROR:`, { 
+            user: req.user?.username, 
+            v2rayUsername: trimmedUsername, 
+            error: error.message, 
+            stack: error.stack 
+        });
+        return res.status(500).json({ success: false, message: "An unexpected error occurred. Please try again later or contact support." });
     }
 };
 
+// ------------------------------------------------------------------
+// 5. Update Password
+// ------------------------------------------------------------------
 exports.updatePassword = async (req, res) => {
     const { newPassword } = req.body;
     if (!newPassword || newPassword.length < 6) {
@@ -338,6 +311,9 @@ exports.updatePassword = async (req, res) => {
     }
 };
 
+// ------------------------------------------------------------------
+// 6. Get Tutorials
+// ------------------------------------------------------------------
 exports.getTutorials = async (req, res) => {
     try {
         const { data, error } = await supabase
@@ -352,6 +328,9 @@ exports.getTutorials = async (req, res) => {
     }
 };
 
+// ------------------------------------------------------------------
+// 7. Unlink Plan (ගිණුමක් ඉවත් කිරීම)
+// ------------------------------------------------------------------
 exports.unlinkPlan = async (req, res) => {
     try {
         const { v2rayUsername } = req.body;
@@ -378,6 +357,7 @@ exports.unlinkPlan = async (req, res) => {
 
         const currentPlans = user.active_plans || [];
         
+        // අදාළ Username එක හැර ඉතිරි Plans තෝරා ගැනීම
         const updatedPlans = currentPlans.filter(plan => 
             plan.v2rayUsername && plan.v2rayUsername.toLowerCase() !== v2rayUsername.toLowerCase()
         );

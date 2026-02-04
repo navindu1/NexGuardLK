@@ -13,13 +13,13 @@ const authController = require("../controllers/authController");
 const userController = require("../controllers/userController");
 const adminController = require("../controllers/adminController");
 const orderController = require("../controllers/orderController");
-const usageController = require("../controllers/usageController"); // Assuming you create this file
+const usageController = require("../controllers/usageController");
 
 // Route definitions
 const authRoutes = require("./authRoutes");
 const userRoutes = require("./userRoutes");
 const adminRoutes = require("./adminRoutes");
-const resellerRoutes = require("./resellerRoutes"); // <-- ADD THIS LINE
+const resellerRoutes = require("./resellerRoutes");
 
 // Route grouping
 router.use("/auth", authRoutes);
@@ -27,35 +27,27 @@ router.use("/user", userRoutes);
 router.use("/admin", adminRoutes);
 router.use("/reseller", resellerRoutes);
 
+// --- Public Routes ---
 
-// src/routes/index.js - නිවැරදි කරන ලද කේතය
-
-// src/routes/index.js - සම්පූර්ණයෙන්ම නිවැරදි කරන ලද කේතය
-
+// 1. Get Public Connections (Updated for Manual Linking)
 router.get('/public/connections', async (req, res) => {
     try {
-        // --- 1. Query එක වෙනස් කිරීම ---
-        // 'connections' වගුවේ සියලුම දත්ත (*) සමග, ඊට අදාළ 'packages' වගුවේ සියලුම දත්තද (*) ලබාගනී.
-        // Supabase මගින් foreign key සම්බන්ධතාවය නිසා මෙය ස්වයංක්‍රීයව සිදු කරයි.
+        // 'connections' වගුවේ සියලුම දත්ත (*) සමග, ඊට අදාළ 'packages' වගුවේ සියලුම දත්ත (*) ලබාගනී.
         const { data: connections, error } = await supabase
             .from('connections')
-            .select('*, packages(*)') // <-- මෙතනයි ප්‍රධාන වෙනස
+            .select('*, packages(*)') 
             .eq('is_active', true)
             .order('created_at', { ascending: true });
 
         if (error) throw error;
 
-        // --- 2. Frontend එකට ගැලපෙන සේ දත්ත සැකසීම ---
-        // දත්ත ගබඩාවෙන් ලැබෙන 'packages' යන නම, frontend එක බලාපොරොත්තු වන 'package_options' ලෙස වෙනස් කරයි.
-        // यामुळे, frontend කේතයේ (main.js) කිසිඳු වෙනසක් කිරීමට අවශ්‍ය නොවේ.
+        // Frontend එකට ගැලපෙන ලෙස 'packages' array එක 'package_options' ලෙස නම වෙනස් කිරීම
         const formattedData = connections.map(conn => {
-            // 'packages' නමින් ලැබෙන array එක 'package_options' නමින් නව property එකකට දමයි.
             const packageOptions = conn.packages || [];
             
-            // පැරණි 'packages' property එක ඉවත් කරයි.
+            // පැරණි 'packages' property එක ඉවත් කරයි (clean response)
             delete conn.packages;
 
-            // 'package_options' සමග සම්පූර්ණ connection object එක return කරයි.
             return {
                 ...conn,
                 package_options: packageOptions
@@ -70,12 +62,7 @@ router.get('/public/connections', async (req, res) => {
     }
 });
 
-// General API routes
-router.get('/check-usage/:username', usageController.checkUsage);
-router.post('/create-order', authenticateToken, upload.single('receipt'), orderController.createOrder);
-
-
-// Add this new route before module.exports
+// 2. Get Public Plans (For Plans Page)
 router.get('/public/plans', async (req, res) => {
     try {
         const { data, error } = await supabase
@@ -104,5 +91,9 @@ router.get('/public/plans', async (req, res) => {
         res.status(500).json({ success: false, message: 'Could not fetch plans.' });
     }
 });
+
+// 3. General API routes
+router.get('/check-usage/:username', usageController.checkUsage);
+router.post('/create-order', authenticateToken, upload.single('receipt'), orderController.createOrder);
 
 module.exports = router;
