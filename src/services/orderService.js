@@ -6,14 +6,30 @@ const { v4: uuidv4 } = require('uuid');
 const transporter = require('../config/mailer');
 const { generateEmailTemplate, generateApprovalEmailContent } = require('./emailService');
 
+// --- Helper: Dynamic Prefix Matcher ---
+// Database එකෙන් ලැබෙන Prefix Settings භාවිතා කර ගැලපෙන Prefix එක සොයයි.
+function getPrefixFromSettings(connId, prefixSettings) {
+    if (!connId || !prefixSettings) return "USR_"; // Default fallback
+    
+    const lowerConn = connId.toLowerCase();
+    
+    // prefixSettings යනු Admin Panel එකෙන් Save කළ JSON Object එකයි.
+    // උදා: { "dialog": "DRC_", "airtel": "ARC_", "hutch": "HTC_" }
+    
+    // Object එකේ ඇති key (උදා: dialog) එක connection ID එකේ තිබේදැයි බලයි
+    for (const [keyword, prefix] of Object.entries(prefixSettings)) {
+        if (lowerConn.includes(keyword.toLowerCase())) {
+            return prefix;
+        }
+    }
+    
+    return "USR_"; // ගැලපෙන එකක් නැත්නම්
+}
+
 /**
  * Approves an order. For renewals, it will queue the renewal if the current plan is still active.
  * Otherwise, it creates/updates the V2Ray user immediately.
  * Handles manual approval of 'unconfirmed' orders by skipping V2Ray creation and just finalizing.
- *
- * @param {string} orderId - The UUID of the order to approve.
- * @param {boolean} [isAutoConfirm=false] - If true, the order status will be set to 'unconfirmed' instead of 'approved'.
- * @returns {Promise<{success: boolean, message: string, finalUsername?: string}>}
  */
 exports.approveOrder = async (orderId, isAutoConfirm = false) => {
     let finalUsername = '';
@@ -21,7 +37,7 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
     let order = null;
 
     try {
-        // Fetch the order details
+        // --- 1. Order Details ලබා ගැනීම ---
         const { data: orderData, error: orderError } = await supabase
             .from("orders")
             .select("*")
@@ -33,20 +49,36 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
         }
         order = orderData;
 
-        // Check if the order is already in a final state (approved) or queued (cannot be manually approved)
+        // Check if the order is already in a final state
         if (order.status === 'approved' || order.status === 'queued_for_renewal') {
             return { success: false, message: `Order is already ${order.status}.` };
         }
 
-        // Extract necessary details from the order
-        const inboundId = order.inbound_id;
-        const vlessTemplate = order.vless_template;
+        // --- 2. Settings වලින් Prefix Map එක ලබා ගැනීම ---
+        const { data: settingsData } = await supabase
+            .from('settings')
+            .select('value')
+            .eq('key', 'connection_prefixes')
+            .single();
 
-        if (!inboundId || !vlessTemplate) {
-            return { success: false, message: `Inbound ID or VLESS Template is missing for this order. Cannot approve.` };
+        let prefixMap = {
+            "dialog": "DRC_",
+            "airtel": "ARC_",
+            "mobitel": "MRC_",
+            "slt": "SLC_"
+        }; // Default values
+
+        if (settingsData && settingsData.value) {
+            try {
+                prefixMap = (typeof settingsData.value === 'string') 
+                            ? JSON.parse(settingsData.value) 
+                            : settingsData.value;
+            } catch (e) {
+                console.warn("Error parsing connection_prefixes setting, using defaults.");
+            }
         }
 
-        // Fetch the website user associated with the order
+        // --- Fetch User and Plan Details ---
         const { data: websiteUser, error: userFetchError } = await supabase
             .from("users")
             .select("*")
@@ -54,11 +86,9 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
             .single();
 
         if (userFetchError || !websiteUser) {
-            console.error(`Website user fetch error for order ${orderId}:`, userFetchError);
-            return { success: false, message: `Website user "${order.website_username}" associated with this order was not found.` };
+            return { success: false, message: `Website user "${order.website_username}" not found.` };
         }
 
-        // Fetch plan details (like total_gb) needed for V2Ray client setup
         const { data: planDetails, error: planError } = await supabase
             .from("plans")
             .select("total_gb, plan_name")
@@ -66,136 +96,128 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
             .single();
 
         if (planError || !planDetails) {
-            return { success: false, message: `Plan details for "${order.plan_id}" not found in the database.` };
+            return { success: false, message: `Plan details for "${order.plan_id}" not found.` };
+        }
+
+        const inboundId = order.inbound_id;
+        const vlessTemplate = order.vless_template;
+
+        if (!inboundId || !vlessTemplate) {
+            return { success: false, message: `Inbound ID or VLESS Template is missing for this order.` };
         }
 
         let clientLink;
 
+        // =========================================================
+        // 3. USERNAME සැකසීම (DYNAMIC PREFIX SYSTEM)
+        // =========================================================
+        
+        let baseUsername = order.username.trim();
+        const prefix = getPrefixFromSettings(order.conn_id, prefixMap);
+        let oldV2rayUsername = order.old_v2ray_username;
+
+        // Final Username එක සැකසීම (Prefix + BaseName)
+        if (baseUsername.toUpperCase().startsWith(prefix)) {
+            finalUsername = baseUsername; 
+        } else {
+            finalUsername = `${prefix}${baseUsername}`;
+        }
+
+        console.log(`[Processing] Order: ${orderId} | Conn: ${order.conn_id} | Prefix: ${prefix} | User: ${finalUsername}`);
+
         if (order.status === 'pending') {
             // --- Logic for Processing 'pending' Orders ---
-            console.log(`[Order Processing] Status is 'pending' for order ${orderId}. Proceeding with V2Ray operations.`);
 
-            if (order.is_renewal) {
-                // --- Renewal Logic ---
-                const clientInPanel = await v2rayService.findV2rayClient(order.username);
-                if (!clientInPanel) {
-                    return { success: false, message: `Renewal failed: User '${order.username}' not found in the panel.` };
-                }
+            // Panel එකේ දැනටමත් මේ නම (Prefix සහිත) තියෙනවද බලන්න
+            const clientInPanel = await v2rayService.findV2rayClient(finalUsername);
 
-                const now = Date.now();
-                const currentExpiryTime = clientInPanel.client.expiryTime || 0;
-                
-                // Calculate total bytes for data limit
-                const totalGBValue = (planDetails.total_gb || 0) * 1024 * 1024 * 1024;
+            if (clientInPanel) {
+                // ----------------------------------------------------
+                // CASE A: User Panel එකේ ඉන්නවා (Renewal)
+                // ----------------------------------------------------
+                console.log(`[Renewal] User ${finalUsername} found in panel.`);
 
-                if (currentExpiryTime > now) {
-                    // --- CONDITION A: PLAN IS STILL ACTIVE (Queue Renewal) ---
-                    console.log(`[Queued Renewal] Plan for ${order.username} (Order: ${orderId}) is still active. Queuing renewal.`);
+                // Inbound එක සමානද බලන්න
+                if (parseInt(clientInPanel.inboundId) === parseInt(inboundId)) {
                     
-                    const planDetailsForQueue = {
-                        plan_id: order.plan_id,
-                        conn_id: order.conn_id,
-                        inbound_id: inboundId,
-                        vless_template: vlessTemplate,
-                        pkg: order.pkg,
-                        total_gb: planDetails.total_gb
-                    };
+                    const now = Date.now();
+                    const currentExpiryTime = clientInPanel.client.expiryTime || 0;
                     
-                    const { error: queueError } = await supabase.from('renewal_queue').insert({
-                        order_id: orderId,
-                        v2ray_username: order.username,
-                        activation_timestamp: new Date(currentExpiryTime).toISOString(),
-                        new_plan_details: planDetailsForQueue
-                    });
+                    // --- QUEUED RENEWAL CHECK ---
+                    if (order.is_renewal && currentExpiryTime > now) {
+                        console.log(`[Queued Renewal] Plan for ${finalUsername} is still active. Queuing.`);
+                        
+                        const { error: queueError } = await supabase.from('renewal_queue').insert({
+                            order_id: orderId,
+                            v2ray_username: finalUsername,
+                            activation_timestamp: new Date(currentExpiryTime).toISOString(),
+                            new_plan_details: { ...order, final_username: finalUsername }
+                        });
 
-                    if (queueError) {
-                        console.error('Failed to add to renewal queue:', queueError);
-                        throw new Error('Failed to queue renewal.');
+                        if (queueError) throw new Error('Failed to queue renewal.');
+
+                        await supabase.from("orders").update({ status: 'queued_for_renewal', final_username: finalUsername }).eq("id", orderId);
+                        return { success: true, message: `Plan is still active. Renewal for ${finalUsername} queued.` };
                     }
 
-                    await supabase.from("orders").update({ status: 'queued_for_renewal', final_username: order.username }).eq("id", orderId);
-                    return { success: true, message: `Plan is still active. Renewal for ${order.username} has been queued successfully.` };
-
-                } else {
-                    // --- CONDITION B: PLAN HAS EXPIRED (Renew Immediately) ---
-                    console.log(`[Immediate Renewal] Plan for ${order.username} (Order: ${orderId}) has expired. Renewing immediately.`);
-
+                    // --- IMMEDIATE RENEWAL ---
+                    console.log(`[Immediate Renewal] Renewing ${finalUsername} immediately.`);
+                    
                     const expiryTime = Date.now() + 30 * 24 * 60 * 60 * 1000;
+                    const totalGBValue = (planDetails.total_gb || 0) * 1024 * 1024 * 1024;
 
-                    const updatedClientSettings = {
-                        id: clientInPanel.client.id,
-                        email: clientInPanel.client.email,
-                        total: totalGBValue, // Correctly using 'total' for bytes
+                    await v2rayService.updateClient(clientInPanel.inboundId, clientInPanel.client.id, {
                         expiryTime: expiryTime,
-                        enable: true,
-                        limitIp: clientInPanel.client.limitIp || 0,
-                        flow: clientInPanel.client.flow || "",
-                        tgId: clientInPanel.client.tgId || "",
-                        subId: clientInPanel.client.subId || ""
-                    };
-
-                    const actualInboundId = clientInPanel.inboundId;
-                    await v2rayService.updateClient(actualInboundId, clientInPanel.client.id, updatedClientSettings);
-                    await v2rayService.resetClientTraffic(actualInboundId, clientInPanel.client.email);
-
-                    console.log(`[Renewal Success] User ${order.username} updated on Inbound ${actualInboundId}`);
+                        total: totalGBValue,
+                        enable: true
+                    });
+                    await v2rayService.resetClientTraffic(clientInPanel.inboundId, finalUsername);
 
                     clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientInPanel.client);
-                    finalUsername = clientInPanel.client.email;
-                }
-            } else {
-                // --- New User Logic OR Plan Change Logic ---
-                finalUsername = order.username;
 
-                // Handle Plan Change: Delete old user if username matches
-                if (order.old_v2ray_username && 
-                    order.old_v2ray_username.toLowerCase() === finalUsername.toLowerCase()) {
+                } else {
+                    // Inbound වෙනස් (ඉතා කලාතුරකින් විය හැක) -> Re-create
+                    console.log(`[Migration] Inbound mismatch for ${finalUsername}. Re-creating...`);
+                    await v2rayService.deleteClient(clientInPanel.inboundId, clientInPanel.client.id);
                     
-                    console.log(`[Plan Change] User matches old username (${finalUsername}). Attempting to remove old client first.`);
+                    const result = await createNewV2rayUser(inboundId, finalUsername, planDetails.total_gb, vlessTemplate);
+                    createdV2rayClient = result.data;
+                    clientLink = result.link;
+                }
+
+            } else {
+                // ----------------------------------------------------
+                // CASE B: User Panel එකේ නැහැ (New / Migration)
+                // ----------------------------------------------------
+                console.log(`[New/Migration] Creating ${finalUsername}...`);
+
+                // 1. පරණ Account එක මකන්න (Prefix වෙනස් වී ඇත්නම් හෝ Old User වෙනස් නම්)
+                if (oldV2rayUsername && oldV2rayUsername !== finalUsername) {
                     try {
-                        const oldClientData = await v2rayService.findV2rayClient(order.old_v2ray_username);
-                        if (oldClientData) {
-                            await v2rayService.deleteClient(oldClientData.inboundId, oldClientData.client.id);
-                            console.log(`[Plan Change] Successfully deleted old user '${order.old_v2ray_username}'.`);
+                        const oldClient = await v2rayService.findV2rayClient(oldV2rayUsername);
+                        if (oldClient) {
+                            console.log(`[Cleanup] Deleting old user: ${oldV2rayUsername}`);
+                            await v2rayService.deleteClient(oldClient.inboundId, oldClient.client.id);
                         }
-                    } catch (cleanupError) {
-                        console.error(`[Plan Change Warning] Failed to delete old user:`, cleanupError.message);
+                    } catch (e) {
+                        console.warn(`[Cleanup Warning] Could not delete old user ${oldV2rayUsername}:`, e.message);
                     }
                 }
 
-                const allPanelClients = await v2rayService.getAllClients();
-
-                // Handle Username Conflict
-                if (allPanelClients.has(finalUsername.toLowerCase())) {
-                    let counter = 1;
-                    let newUsername;
-                    do {
-                        newUsername = `${order.username}-${counter++}`;
-                    } while (allPanelClients.has(newUsername.toLowerCase()));
-                    finalUsername = newUsername;
-                    console.log(`[Username Conflict] Generated new unique username: ${finalUsername}`);
+                // 2. අලුත් User හදන්න (Duplicate Check සමග)
+                const allClients = await v2rayService.getAllClients();
+                if (allClients.has(finalUsername)) {
+                     let counter = 1;
+                     while (allClients.has(`${finalUsername}-${counter}`)) {
+                         counter++;
+                     }
+                     finalUsername = `${finalUsername}-${counter}`;
+                     console.log(`[Username Conflict] Generated unique username: ${finalUsername}`);
                 }
 
-                const expiryTime = Date.now() + 30 * 24 * 60 * 60 * 1000;
-                const totalGBValue = (planDetails.total_gb || 0) * 1024 * 1024 * 1024;
-
-                // --- FIX APPLIED HERE: Changed 'totalGB' to 'total' ---
-                const clientSettings = { 
-                    id: uuidv4(), 
-                    email: finalUsername, 
-                    total: totalGBValue, // CORRECTED: 'total' is the correct key for X-UI/3x-UI
-                    expiryTime, 
-                    enable: true, 
-                    limitIp: 1 
-                };
-
-                const addClientResult = await v2rayService.addClient(inboundId, clientSettings);
-                if (!addClientResult || !addClientResult.success) {
-                    throw new Error(`Failed to create V2Ray user in panel: ${addClientResult.msg || 'Unknown panel error.'}`);
-                }
-
-                createdV2rayClient = { settings: clientSettings, inboundId: inboundId };
-                clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientSettings);
+                const result = await createNewV2rayUser(inboundId, finalUsername, planDetails.total_gb, vlessTemplate);
+                createdV2rayClient = result.data;
+                clientLink = result.link;
             }
 
         } else if (order.status === 'unconfirmed') {
@@ -213,36 +235,26 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
              return { success: false, message: `Order has an unexpected status: ${order.status}` };
         }
 
-        // --- Common Logic for Finalizing (Database Updates) ---
+        // --- 4. Database Updates (Active Plans) ---
 
         if (finalUsername && clientLink) {
             let updatedActivePlans = websiteUser.active_plans || [];
-            let planIndex = -1;
+            
+            // Remove old entries related to this username OR the old username
+            updatedActivePlans = updatedActivePlans.filter(p => 
+                p.v2rayUsername !== finalUsername && 
+                p.v2rayUsername !== oldV2rayUsername
+            );
 
-            if (order.is_renewal) {
-                planIndex = updatedActivePlans.findIndex(p => p.v2rayUsername.toLowerCase() === finalUsername.toLowerCase());
-            } else if (order.old_v2ray_username) {
-                // If it was a plan change, look for the old username to replace
-                planIndex = updatedActivePlans.findIndex(p => p.v2rayUsername.toLowerCase() === order.old_v2ray_username.toLowerCase());
-            }
-
-            const newPlanDetails = {
+            updatedActivePlans.push({
                 v2rayUsername: finalUsername,
                 v2rayLink: clientLink,
                 planId: order.plan_id,
-                connId: order.conn_id,
+                connId: order.conn_id, // Connection ID එක Save කිරීම
                 pkg: order.pkg || null, 
                 activatedAt: new Date().toISOString(),
                 orderId: order.id,
-            };
-
-            if (planIndex !== -1) {
-                updatedActivePlans[planIndex] = newPlanDetails;
-            } else {
-                 if (!updatedActivePlans.some(p => p.orderId === order.id)) {
-                      updatedActivePlans.push(newPlanDetails);
-                 }
-            }
+            });
 
             const { error: userUpdateError } = await supabase
                 .from("users")
@@ -288,22 +300,7 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
             }
         }
 
-        // Cleanup Logic for Plan Change (When usernames differ)
-        if (order.old_v2ray_username && finalStatus === 'approved' && !order.is_renewal) { 
-             if (order.old_v2ray_username.toLowerCase() !== finalUsername.toLowerCase()) {
-                try {
-                    const oldClientData = await v2rayService.findV2rayClient(order.old_v2ray_username);
-                    if (oldClientData) {
-                        await v2rayService.deleteClient(oldClientData.inboundId, oldClientData.client.id);
-                        console.log(`[Plan Change Cleanup] Successfully deleted old user: ${order.old_v2ray_username}`);
-                    }
-                } catch (cleanupError) {
-                    console.error(`[Cleanup Warning] Failed to delete old user: ${cleanupError.message}`);
-                }
-             }
-        }
-
-        return { success: true, message: `Order for ${finalUsername || order.username} successfully set to ${finalStatus}.`, finalUsername };
+        return { success: true, message: `Order for ${finalUsername} successfully set to ${finalStatus}.`, finalUsername };
 
     } catch (error) {
         console.error(`[CRITICAL ERROR] Error processing order ${orderId}:`, error.message);
@@ -319,6 +316,27 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
         return { success: false, message: error.message || "An unexpected error occurred during order approval." };
     }
 };
+
+// --- Helper: Create New User ---
+async function createNewV2rayUser(inboundId, username, totalGb, vlessTemplate) {
+    const expiryTime = Date.now() + 30 * 24 * 60 * 60 * 1000;
+    const totalGBValue = (totalGb || 0) * 1024 * 1024 * 1024;
+    
+    const clientSettings = { 
+        id: uuidv4(), 
+        email: username, 
+        total: totalGBValue, 
+        expiryTime, 
+        enable: true, 
+        limitIp: 1 
+    };
+
+    const addRes = await v2rayService.addClient(inboundId, clientSettings);
+    if (!addRes.success) throw new Error("Failed to create user in panel.");
+
+    const link = v2rayService.generateV2rayConfigLink(vlessTemplate, clientSettings);
+    return { data: { settings: clientSettings, inboundId }, link };
+}
 
 /**
  * AUTO CONFIRM LOGIC

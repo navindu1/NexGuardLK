@@ -1,3 +1,5 @@
+// File Path: src/controllers/authController.js
+
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
@@ -8,18 +10,17 @@ const { generateEmailTemplate, generateOtpEmailContent, generatePasswordResetEma
 
 // උපරිම වැරදි උත්සාහයන් ගණන
 const MAX_OTP_ATTEMPTS = 5;
-// Lock කරන කාලය (විනාඩි 15)
 const LOCKOUT_TIME_MS = 15 * 60 * 1000; 
 
 // --- REGISTER CONTROLLER ---
 exports.register = async (req, res) => {
+    // (Register කේතය වෙනස් වී නැත - පරණ එකම තබන්න)
     const { username, email, whatsapp, password } = req.body;
     
     if (!username || !email || !whatsapp || !password)
         return res.status(400).json({ success: false, message: "All fields are required." });
 
     try {
-        // 1. Check if user exists (checking email OR whatsapp OR username)
         const { data: existingUsers, error: findError } = await supabase
             .from("users")
             .select("id, email, whatsapp, username, status, otp_code")
@@ -31,15 +32,12 @@ exports.register = async (req, res) => {
 
         if (existingUsers && existingUsers.length > 0) {
             for (const user of existingUsers) {
-                // --- SPECIFIC BAN MESSAGE LOGIC ---
                 if (user.status === 'banned') {
                     if (user.email === email) return res.status(403).json({ success: false, message: "Your Email Address is Banned by Admin." });
                     if (user.whatsapp === whatsapp) return res.status(403).json({ success: false, message: "Your Phone Number is Banned by Admin." });
                     if (user.username === username) return res.status(403).json({ success: false, message: "This Username is Banned by Admin." });
                     return res.status(403).json({ success: false, message: "This account has been banned by Admin." });
                 }
-
-                // --- NORMAL DUPLICATE CHECK ---
                 if (!user.otp_code) {
                     if (user.email === email) return res.status(409).json({ success: false, message: "Email is already registered." });
                     if (user.username === username) return res.status(409).json({ success: false, message: "Username is already taken." });
@@ -47,10 +45,9 @@ exports.register = async (req, res) => {
             }
         }
 
-        // --- PROCEED WITH REGISTRATION ---
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const hashedPassword = bcrypt.hashSync(password, 10);
-        const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+        const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); 
 
         const userData = {
             username, 
@@ -66,10 +63,9 @@ exports.register = async (req, res) => {
             active_plans: [],
         };
         
-        // Find existing unverified user to update OR generate new ID
         let targetUserId = uuidv4();
         const unverifiedUser = existingUsers?.find(u => u.email === email && u.otp_code !== null);
-        if (unverifiedUser) targetUserId = unverifiedUser.id; // නිවැරදි කරන ලදී: pendingUser -> unverifiedUser
+        if (unverifiedUser) targetUserId = unverifiedUser.id;
 
         const { error } = await supabase
             .from("users")
@@ -104,6 +100,7 @@ exports.register = async (req, res) => {
 
 // --- VERIFY OTP CONTROLLER ---
 exports.verifyOtp = async (req, res) => {
+    // (Verify OTP කේතය වෙනස් වී නැත - පරණ එකම තබන්න)
     const { email, otp } = req.body;
     
     try {
@@ -154,20 +151,21 @@ exports.verifyOtp = async (req, res) => {
     }
 };
 
-// --- LOGIN CONTROLLER ---
+// --- LOGIN CONTROLLER (UPDATED) ---
 exports.login = async (req, res) => {
-    const { email, password } = req.body;
+    // Frontend එකෙන් 'email' යන නමින් එව්වට, එහි Username හෝ Email තිබිය හැක.
+    const { email: loginInput, password } = req.body;
 
     try {
+        // Username හෝ Email යන දෙකෙන් ඕනෑම එකක් ගැලපේදැයි බලයි (.or භාවිතා කර)
         const { data: user, error } = await supabase
             .from("users")
             .select("*")
-            .eq("email", email)
+            .or(`email.eq.${loginInput},username.eq.${loginInput}`)
             .single();
 
-        // 401 Error Fix: User නොමැති නම් හෝ DB error එකක් නම්
         if (error || !user) {
-            return res.status(401).json({ success: false, message: "Invalid email or password." });
+            return res.status(401).json({ success: false, message: "Invalid username/email or password." });
         }
 
         if (user.status === 'banned') {
@@ -187,7 +185,7 @@ exports.login = async (req, res) => {
             };
             return res.json({ success: true, message: "Logged in successfully!", token, user: userPayload });
         } else {
-            return res.status(401).json({ success: false, message: "Invalid email or password." });
+            return res.status(401).json({ success: false, message: "Invalid username/email or password." });
         }
     } catch (error) {
         console.error("Login Error:", error);
@@ -197,6 +195,7 @@ exports.login = async (req, res) => {
 
 // --- ADMIN LOGIN ---
 exports.adminLogin = async (req, res) => {
+    // (Admin Login වෙනස් වී නැත)
     const { username, password, rememberMe } = req.body;
     try {
         const { data: adminUser, error } = await supabase
@@ -221,6 +220,7 @@ exports.adminLogin = async (req, res) => {
 
 // --- RESELLER LOGIN ---
 exports.resellerLogin = async (req, res) => {
+    // (Reseller Login වෙනස් වී නැත)
     const { username, password } = req.body;
     try {
         const { data: reseller, error } = await supabase
@@ -243,8 +243,9 @@ exports.resellerLogin = async (req, res) => {
     }
 };
 
-// --- FORGOT PASSWORD ---
+// --- FORGOT/RESET PASSWORD ---
 exports.forgotPassword = async (req, res) => {
+    // (වෙනස් වී නැත)
     const { email } = req.body;
     const genericResponse = { message: 'If an account exists, a reset link has been sent.' };
 
@@ -273,8 +274,8 @@ exports.forgotPassword = async (req, res) => {
     }
 };
 
-// --- RESET PASSWORD ---
 exports.resetPassword = async (req, res) => {
+    // (වෙනස් වී නැත)
     const { token, newPassword } = req.body;
     if (!token || !newPassword || newPassword.length < 6) return res.status(400).json({ success: false, message: "Invalid data." });
 
