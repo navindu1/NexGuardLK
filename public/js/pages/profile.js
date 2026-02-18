@@ -92,36 +92,41 @@ const unlinkPlan = async (v2rayUsername) => {
     }
 };
 
-// --- NEW: Load Software Links ---
+// --- NEW: Load Software Links (For Softwares Tab) ---
 const loadSoftwareLinks = async () => {
     const container = document.getElementById('software-downloads-container');
     if (!container) return;
 
-    container.innerHTML = '<div class="text-center text-gray-500 py-4"><i class="fa-solid fa-spinner fa-spin"></i> Loading downloads...</div>';
+    container.innerHTML = '<div class="text-center text-gray-500 py-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i><p class="mt-2 text-sm">Loading apps...</p></div>';
 
     try {
         const res = await apiFetch('/api/user/software-links');
         const data = await res.json();
 
         if (data.success && data.links && data.links.length > 0) {
-            container.innerHTML = data.links.map(link => `
-                <a href="${link.url}" target="_blank" class="flex items-center p-3 bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700 rounded-lg transition-colors group">
-                    <div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center mr-3 group-hover:bg-blue-600 transition-colors">
-                        <i class="${link.icon || 'fa-solid fa-download'} text-white"></i>
+            container.innerHTML = `<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                ${data.links.map(link => `
+                <a href="${link.url}" target="_blank" class="flex items-center p-4 bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700 hover:border-blue-500/50 rounded-xl transition-all group">
+                    <div class="w-12 h-12 rounded-full bg-slate-700/50 flex items-center justify-center mr-4 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                        <i class="${link.icon || 'fa-solid fa-download'} text-xl text-blue-400 group-hover:text-white"></i>
                     </div>
-                    <div>
-                        <div class="font-semibold text-white text-sm">${link.name}</div>
-                        <div class="text-xs text-blue-400">Download</div>
+                    <div class="flex-1 min-w-0">
+                        <div class="font-bold text-white text-base truncate">${link.name}</div>
+                        <div class="text-xs text-gray-400 group-hover:text-blue-300">Click to Download</div>
                     </div>
-                    <i class="fa-solid fa-arrow-up-right-from-square ml-auto text-gray-500 group-hover:text-white"></i>
+                    <i class="fa-solid fa-cloud-arrow-down ml-3 text-gray-600 group-hover:text-white text-lg"></i>
                 </a>
-            `).join('');
+            `).join('')}</div>`;
         } else {
-            container.innerHTML = '<div class="text-center text-gray-500 py-4 text-sm">No software links available at the moment.</div>';
+            container.innerHTML = `
+                <div class="text-center p-8 border border-dashed border-slate-700 rounded-xl">
+                    <i class="fa-solid fa-box-open text-4xl text-slate-600 mb-3"></i>
+                    <p class="text-gray-400 text-sm">No downloadable software available yet.</p>
+                </div>`;
         }
     } catch (error) {
         console.error("Failed to load software links:", error);
-        container.innerHTML = '<div class="text-center text-red-400 py-4 text-sm">Failed to load downloads.</div>';
+        container.innerHTML = '<div class="text-center text-red-400 py-4 text-sm">Failed to load downloads. Please try again later.</div>';
     }
 };
 
@@ -183,7 +188,6 @@ export function renderProfilePage(renderFunc, params) {
             </div>
         </div>`;
     
-    // --- UPDATED CSS: Compact Buttons & Rows ---
     const pageStyles = `<style>
         #page-profile .form-input { height: 56px; padding: 20px 12px 8px 12px; background-color: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.2); } 
         #page-profile .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; } 
@@ -732,11 +736,12 @@ export function renderProfilePage(renderFunc, params) {
                     document.getElementById("plan-info-container").innerHTML = `<span class="bg-blue-500/10 text-blue-300 px-2 py-1 rounded-full"><i class="fa-solid fa-rocket fa-fw mr-2"></i>${planName}</span><span class="bg-indigo-500/10 text-indigo-300 px-2 py-1 rounded-full"><i class="fa-solid fa-wifi fa-fw mr-2"></i>${connectionName}</span>`;
 
                     if(!document.getElementById('profile-tabs')) {
-                        // --- UPDATED HTML: Added Downloadable Softwares Section ---
+                        // --- UPDATED HTML: Added Softwares Tab ---
                         container.innerHTML = `
                         <div id="profile-tabs" class="flex items-center gap-4 sm:gap-6 border-b border-white/10 mb-6 overflow-x-auto">
                             <button data-tab="config" class="tab-btn active">V2Ray Config</button>
                             <button data-tab="usage" class="tab-btn">Usage Stats</button>
+                            <button data-tab="softwares" class="tab-btn">Softwares</button>
                             <button data-tab="orders" class="tab-btn">My Orders</button>
                             <button data-tab="settings" class="tab-btn">Settings</button>
                         </div>
@@ -748,28 +753,27 @@ export function renderProfilePage(renderFunc, params) {
                             </div>
                         </div>
                         <div id="tab-usage" class="tab-panel"></div>
+                        <div id="tab-softwares" class="tab-panel">
+                            <div class="card-glass p-6 sm:p-8 custom-radius">
+                                <h3 class="text-xl font-bold text-white mb-6 font-['Orbitron'] text-center">Downloadable Softwares</h3>
+                                <div id="software-downloads-container" class="space-y-3"></div>
+                            </div>
+                        </div>
                         <div id="tab-orders" class="tab-panel"></div>
                         <div id="tab-settings" class="tab-panel">
                             <div class="card-glass p-6 sm:p-8 custom-radius">
-                                <div class="max-w-md mx-auto space-y-8">
-                                    <div>
-                                        <h3 class="text-xl font-bold text-white mb-6 font-['Orbitron'] text-center">Account Settings</h3>
-                                        <form id="profile-update-form" class="space-y-6">
-                                            <div class="form-group"><input type="text" class="form-input" readonly value="${user.username}"><label class="form-label">Website Username</label></div>
-                                            <div class="form-group relative">
-                                                <input type="password" id="new-password" class="form-input pr-10" placeholder=" ">
-                                                <label for="new-password" class="form-label">New Password</label>
-                                                <span class="focus-border"><i></i></span>
-                                                <i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i>
-                                            </div>
-                                            <button type="submit" class="ai-button w-full rounded-lg !mt-8">Save Changes</button>
-                                        </form>
-                                    </div>
-                                    <div class="pt-6 border-t border-white/10">
-                                        <h3 class="text-lg font-bold text-white mb-4 font-['Orbitron'] text-center">Downloadable Software</h3>
-                                        <div id="software-downloads-container" class="space-y-3">
-                                            </div>
-                                    </div>
+                                <div class="max-w-md mx-auto">
+                                    <h3 class="text-xl font-bold text-white mb-6 font-['Orbitron'] text-center">Account Settings</h3>
+                                    <form id="profile-update-form" class="space-y-6">
+                                        <div class="form-group"><input type="text" class="form-input" readonly value="${user.username}"><label class="form-label">Website Username</label></div>
+                                        <div class="form-group relative">
+                                            <input type="password" id="new-password" class="form-input pr-10" placeholder=" ">
+                                            <label for="new-password" class="form-label">New Password</label>
+                                            <span class="focus-border"><i></i></span>
+                                            <i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i>
+                                        </div>
+                                        <button type="submit" class="ai-button w-full rounded-lg !mt-8">Save Changes</button>
+                                    </form>
                                 </div>
                             </div>
                         </div>`;
@@ -782,7 +786,7 @@ export function renderProfilePage(renderFunc, params) {
                                 if(tabId === 'config') updateRenewButton(currentActivePlan, data.activePlans);
                                 if(tabId === 'usage') { if (usageDataCache[currentActivePlan.v2rayUsername]) { renderUsageHTML(usageDataCache[currentActivePlan.v2rayUsername], currentActivePlan.v2rayUsername); loadUsageStats(currentActivePlan.v2rayUsername, true); } else { loadUsageStats(currentActivePlan.v2rayUsername, false); } }
                                 if(tabId === 'orders') { if (ordersCache) { renderOrdersHTML(ordersCache); loadMyOrders(true); } else { loadMyOrders(false); } }
-                                if(tabId === 'settings') { loadSoftwareLinks(); } // Fetch links when settings tab clicked
+                                if(tabId === 'softwares') { loadSoftwareLinks(); }
                             }
                         });
                         setupEventListeners();
@@ -887,7 +891,7 @@ export function renderProfilePage(renderFunc, params) {
             } else if (data.status === "pending") {
                 statusContainer.innerHTML = `<div style="border-radius: 50px;" class="card-glass p-8 text-center"><i class="fa-solid fa-clock text-4xl text-amber-400 mb-4 animate-pulse"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Order Pending Approval</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">Your order is currently being reviewed. Your profile will update here once approved.</p></div>`;
             } else {
-                // --- Default "No Plans" View also needs Settings Tab to change password/see downloads ---
+                // --- Default View ---
                 const settingsHtml = `<div class="card-glass p-6 custom-radius"><h3 class="text-xl font-bold text-white mb-4 font-['Orbitron']">Account Settings</h3><form id="profile-update-form" class="space-y-6"><div class="form-group"><input type="text" class="form-input" readonly value="${user.username}"><label class="form-label">Website Username</label></div><div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" placeholder=" "><label for="new-password" class="form-label">New Password</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i></div><button type="submit" class="ai-button w-full rounded-lg !mt-8">Save Changes</button></form></div>`;
                 const linkAccountHtml = `<div class="card-glass p-6 custom-radius"><h3 class="text-xl font-bold text-white mb-2 font-['Orbitron']">Link Existing V2Ray Account</h3><p class="text-sm text-gray-400 mb-6">If you have an old account, link it here to manage renewals.</p><form id="link-account-form-profile" class="space-y-6"><div class="form-group"><input type="text" id="existing-v2ray-username-profile" class="form-input" required placeholder=" "><label for="existing-v2ray-username-profile" class="form-label">Your Old V2Ray Username</label><span class="focus-border"><i></i></span></div><button type="submit" class="ai-button secondary w-full rounded-lg">Link Account</button><div class="text-center text-sm mt-4"><span class="open-help-modal-link text-blue-400 cursor-pointer hover:underline">How to find your username?</span></div></form></div>`;
                 statusContainer.innerHTML = `<div class="card-glass p-8 custom-radius text-center"><i class="fa-solid fa-rocket text-4xl text-blue-400 mb-4"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Get Started</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">You do not have any active plans yet. Purchase a new plan or link an existing account below.</p><a href="/plans" class="nav-link-internal ai-button inline-block rounded-lg mt-6">Purchase a Plan</a></div><div class="grid md:grid-cols-2 gap-8 mt-8">${settingsHtml}${linkAccountHtml}</div>`;
@@ -906,8 +910,7 @@ export function renderProfilePage(renderFunc, params) {
                 if (document.getElementById('tab-config')?.classList.contains('active')) {
                     updateRenewButton(currentActivePlan, data.activePlans);
                 }
-                // Also check if settings tab is active
-                if (document.getElementById('tab-settings')?.classList.contains('active')) {
+                if (document.getElementById('tab-softwares')?.classList.contains('active')) {
                     loadSoftwareLinks();
                 }
             }
