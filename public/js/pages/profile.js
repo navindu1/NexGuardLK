@@ -92,7 +92,7 @@ const unlinkPlan = async (v2rayUsername) => {
     }
 };
 
-// --- NEW: Load Software Links (For Softwares Tab) ---
+// --- LOAD SOFTWARE LINKS (New Design) ---
 const loadSoftwareLinks = async () => {
     const container = document.getElementById('software-downloads-container');
     if (!container) return;
@@ -104,29 +104,35 @@ const loadSoftwareLinks = async () => {
         const data = await res.json();
 
         if (data.success && data.links && data.links.length > 0) {
-            container.innerHTML = `<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            // --- NEW DESIGN (LIST VIEW) ---
+            container.innerHTML = `<div class="space-y-3">
                 ${data.links.map(link => `
-                <a href="${link.url}" target="_blank" class="flex items-center p-4 bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700 hover:border-blue-500/50 rounded-xl transition-all group">
-                    <div class="w-12 h-12 rounded-full bg-slate-700/50 flex items-center justify-center mr-4 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                        <i class="${link.icon || 'fa-solid fa-download'} text-xl text-blue-400 group-hover:text-white"></i>
+                <div class="flex items-center justify-between p-4 bg-slate-800/40 hover:bg-slate-800/60 border border-white/5 rounded-xl transition-all duration-200 group hover:-translate-y-1 hover:shadow-lg hover:shadow-blue-500/10">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center shadow-inner group-hover:from-blue-600 group-hover:to-blue-500 transition-colors duration-300">
+                            <i class="${link.icon || 'fa-solid fa-download'} text-xl text-blue-400 group-hover:text-white transition-colors"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-white text-base tracking-wide">${link.name}</h4>
+                            <p class="text-xs text-gray-400 group-hover:text-blue-300 transition-colors">Latest Version</p>
+                        </div>
                     </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="font-bold text-white text-base truncate">${link.name}</div>
-                        <div class="text-xs text-gray-400 group-hover:text-blue-300">Click to Download</div>
-                    </div>
-                    <i class="fa-solid fa-cloud-arrow-down ml-3 text-gray-600 group-hover:text-white text-lg"></i>
-                </a>
+                    <a href="${link.url}" target="_blank" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-lg shadow-md hover:shadow-blue-500/25 transition-all flex items-center gap-2">
+                        <span>Download</span>
+                        <i class="fa-solid fa-cloud-arrow-down"></i>
+                    </a>
+                </div>
             `).join('')}</div>`;
         } else {
             container.innerHTML = `
-                <div class="text-center p-8 border border-dashed border-slate-700 rounded-xl">
+                <div class="text-center p-8 border border-dashed border-slate-700 rounded-xl bg-slate-800/20">
                     <i class="fa-solid fa-box-open text-4xl text-slate-600 mb-3"></i>
                     <p class="text-gray-400 text-sm">No downloadable software available yet.</p>
                 </div>`;
         }
     } catch (error) {
         console.error("Failed to load software links:", error);
-        container.innerHTML = '<div class="text-center text-red-400 py-4 text-sm">Failed to load downloads. Please try again later.</div>';
+        container.innerHTML = '<div class="text-center text-red-400 py-4 text-sm">Failed to load downloads.</div>';
     }
 };
 
@@ -736,7 +742,7 @@ export function renderProfilePage(renderFunc, params) {
                     document.getElementById("plan-info-container").innerHTML = `<span class="bg-blue-500/10 text-blue-300 px-2 py-1 rounded-full"><i class="fa-solid fa-rocket fa-fw mr-2"></i>${planName}</span><span class="bg-indigo-500/10 text-indigo-300 px-2 py-1 rounded-full"><i class="fa-solid fa-wifi fa-fw mr-2"></i>${connectionName}</span>`;
 
                     if(!document.getElementById('profile-tabs')) {
-                        // --- UPDATED HTML: Added Softwares Tab ---
+                        // --- UPDATED HTML: Added Softwares Tab, Removed from Settings ---
                         container.innerHTML = `
                         <div id="profile-tabs" class="flex items-center gap-4 sm:gap-6 border-b border-white/10 mb-6 overflow-x-auto">
                             <button data-tab="config" class="tab-btn active">V2Ray Config</button>
