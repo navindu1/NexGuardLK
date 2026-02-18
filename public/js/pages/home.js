@@ -149,56 +149,63 @@ export function renderAboutPage(renderFunc) {
         </div>`);
 }
 
+// Function: renderPrivacyPage (Import apiFetch if needed)
+import { apiFetch } from '../api.js';
+
 export function renderPrivacyPage(renderFunc) {
     renderFunc(`
         <div id="page-privacy" class="page space-y-8">
             <div class="card-glass p-8 custom-radius space-y-5 max-w-4xl mx-auto reveal">
-                <h2 class="text-2xl font-bold">Privacy & Refund Policy</h2>
+                <h2 class="text-2xl font-bold font-['Orbitron']">Privacy & Refund Policy</h2>
                 <div>
                     <h3 class="text-lg font-bold text-white mb-2">Our Commitment to Privacy</h3>
-                    <p class="text-gray-300 text-sm">Your privacy is critically important to us. We do not store logs of your online activity. We store account information only for service provision. We aim for full transparency on how we handle your data.</p>
+                    <p class="text-gray-300 text-sm">Your privacy is critically important to us. We do not store logs of your online activity. We store account information only for service provision.</p>
                 </div>
                 <div>
                     <h3 class="text-lg font-bold text-white mb-2">Information We Collect</h3>
-                    <p class="text-gray-300 text-sm">We collect the bare minimum information to create and manage your account: your chosen username, WhatsApp number for support, and an encrypted password. We do not track the websites you visit.</p>
+                    <p class="text-gray-300 text-sm">We collect the bare minimum information: your username and encrypted password.</p>
                 </div>
                 <div class="pt-4 border-t border-white/10">
-                    <h3 class="text-xl font-bold">Refund Policy</h3>
-                    <p class="text-gray-300 mt-2 text-sm">We offer a conditional refund for our V2Ray packages. You are eligible for a full refund under the following conditions:</p>
+                    <h3 class="text-xl font-bold font-['Orbitron']">Refund Policy</h3>
                     <ul class="list-disc list-inside text-gray-300 space-y-2 pl-4 mt-2 text-sm">
-                        <li>The request must be made within <strong>2 days (48 hours)</strong> of the purchase.</li>
-                        <li>Your total data usage must be less than <strong>10 GB</strong>.</li>
+                        <li>Request within <strong>48 hours</strong>.</li>
+                        <li>Data usage must be less than <strong>10 GB</strong>.</li>
                     </ul>
-                    <p class="font-semibold text-amber-400 mt-2 text-sm">If these conditions are not met, you will not be eligible for a refund.</p>
                 </div>
             </div>
 
             <div class="card-glass p-8 custom-radius max-w-4xl mx-auto reveal">
-                <h2 class="text-2xl font-bold mb-6 text-center text-white">Downloadable Software</h2>
-                <p class="text-gray-400 text-center mb-8 text-sm">Download the recommended V2Ray client for your device to get started.</p>
+                <h2 class="text-2xl font-bold mb-6 text-center text-white font-['Orbitron']">Downloadable Software</h2>
+                <p class="text-gray-400 text-center mb-8 text-sm">Download the recommended V2Ray client for your device.</p>
                 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <a href="https://cyfuture.dl.sourceforge.net/project/netmodhttp/Setup/NetMod6.2.10_x86_beta.exe?viasf=1" target="_blank" class="card p-6 custom-radius bg-white/5 border border-white/10 hover:bg-white/10 transition flex flex-col items-center justify-center text-center group cursor-pointer">
-                        <i class="fa-brands fa-windows text-4xl text-blue-400 mb-3 group-hover:scale-110 transition-transform"></i>
-                        <h3 class="font-bold text-white text-lg">PC Client</h3>
-                        <p class="text-xs text-gray-400 mt-1">Netmod Syna</p>
-                        <span class="mt-3 text-xs bg-blue-500/20 text-blue-300 px-3 py-1 rounded-full">Download .exe</span>
-                    </a>
-
-                    <a href="https://apps.apple.com/us/app/v2box-v2ray-client/id6446814690" target="_blank" class="card p-6 custom-radius bg-white/5 border border-white/10 hover:bg-white/10 transition flex flex-col items-center justify-center text-center group cursor-pointer">
-                        <i class="fa-brands fa-app-store-ios text-4xl text-gray-200 mb-3 group-hover:scale-110 transition-transform"></i>
-                        <h3 class="font-bold text-white text-lg">iOS Client</h3>
-                        <p class="text-xs text-gray-400 mt-1">V2Box</p>
-                        <span class="mt-3 text-xs bg-gray-500/20 text-gray-300 px-3 py-1 rounded-full">App Store</span>
-                    </a>
-
-                    <a href="https://play.google.com/store/apps/details?id=com.netmod.syna&pcampaignid=web_share" target="_blank" class="card p-6 custom-radius bg-white/5 border border-white/10 hover:bg-white/10 transition flex flex-col items-center justify-center text-center group cursor-pointer">
-                        <i class="fa-brands fa-android text-4xl text-green-400 mb-3 group-hover:scale-110 transition-transform"></i>
-                        <h3 class="font-bold text-white text-lg">Android Client</h3>
-                        <p class="text-xs text-gray-400 mt-1">Netmod Syna</p>
-                        <span class="mt-3 text-xs bg-green-500/20 text-green-300 px-3 py-1 rounded-full">Play Store</span>
-                    </a>
+                <div id="privacy-software-list" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="col-span-3 text-center text-gray-500"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</div>
                 </div>
             </div>
         </div>`);
+
+    // Fetch and render dynamic links
+    const loadLinks = async () => {
+        try {
+            const res = await apiFetch('/api/user/software-links');
+            const data = await res.json();
+            const container = document.getElementById('privacy-software-list');
+            if (data.success && data.links && data.links.length > 0) {
+                container.innerHTML = data.links.map(link => `
+                    <a href="${link.url}" target="_blank" class="card p-6 custom-radius bg-white/5 border border-white/10 hover:bg-white/10 transition flex flex-col items-center justify-center text-center group cursor-pointer hover:-translate-y-1 shadow-lg hover:shadow-blue-500/20">
+                        <i class="${link.icon || 'fa-solid fa-download'} text-4xl text-blue-400 mb-3 group-hover:scale-110 transition-transform"></i>
+                        <h3 class="font-bold text-white text-lg">${link.name}</h3>
+                        <p class="text-xs text-gray-400 mt-1">Latest Version</p>
+                        <span class="mt-3 text-xs bg-blue-500/20 text-blue-300 px-4 py-1 rounded-full border border-blue-500/30">Download Now</span>
+                    </a>
+                `).join('');
+            } else {
+                container.innerHTML = '<div class="col-span-3 text-center text-gray-500">No software links available.</div>';
+            }
+        } catch (e) {
+            console.error("Failed to load links", e);
+            document.getElementById('privacy-software-list').innerHTML = '<div class="col-span-3 text-center text-red-400">Failed to load links.</div>';
+        }
+    };
+    loadLinks();
 }

@@ -962,16 +962,30 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // --- NEW: Helper to generate software row HTML ---
+    // File: public/js/admin.js (Update renderSettingsModal part)
+
+// ... (Other code remains same) ...
+
     function generateSoftwareRow(link = { name: '', url: '', icon: '' }) {
         return `
-            <div class="software-row flex gap-2 items-start bg-slate-800/30 p-2 rounded">
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 flex-1">
-                    <input type="text" placeholder="Name (e.g. Android)" class="sw-name input-dark text-xs" value="${link.name || ''}">
-                    <input type="text" placeholder="Download URL" class="sw-url input-dark text-xs" value="${link.url || ''}">
-                    <input type="text" placeholder="Icon (fa-brands fa-android)" class="sw-icon input-dark text-xs" value="${link.icon || ''}">
+            <div class="software-row flex flex-col sm:flex-row gap-3 items-start sm:items-center bg-slate-800/40 p-4 rounded-xl border border-white/5 hover:border-white/10 transition-all group">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1 w-full">
+                    <div class="relative">
+                        <i class="fa-solid fa-tag absolute left-3 top-3 text-gray-500 text-xs"></i>
+                        <input type="text" placeholder="Name (e.g. Android)" class="sw-name input-dark text-sm pl-8 w-full bg-slate-900/50 border-slate-700 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500" value="${link.name || ''}">
+                    </div>
+                    <div class="relative">
+                        <i class="fa-solid fa-link absolute left-3 top-3 text-gray-500 text-xs"></i>
+                        <input type="text" placeholder="Download URL" class="sw-url input-dark text-sm pl-8 w-full bg-slate-900/50 border-slate-700 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500" value="${link.url || ''}">
+                    </div>
+                    <div class="relative">
+                        <i class="fa-solid fa-icons absolute left-3 top-3 text-gray-500 text-xs"></i>
+                        <input type="text" placeholder="Icon (fa-brands fa-android)" class="sw-icon input-dark text-sm pl-8 w-full bg-slate-900/50 border-slate-700 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500" value="${link.icon || ''}">
+                    </div>
                 </div>
-                <button class="btn btn-danger !p-2 h-full flex items-center delete-sw-btn"><i class="fa-solid fa-trash"></i></button>
+                <button class="delete-sw-btn p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors" title="Remove Link">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
             </div>
         `;
     }
@@ -979,7 +993,7 @@ document.addEventListener("DOMContentLoaded", () => {
     async function renderSettingsModal() {
         const settingsContent = document.getElementById('settings-modal-content');
         const settingsModalEl = document.getElementById('settings-modal');
-        settingsContent.innerHTML = '<div class="text-center p-4"><i class="fa-solid fa-spinner fa-spin text-xl"></i></div>';
+        settingsContent.innerHTML = '<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>';
         settingsModalEl.classList.add('active');
         try {
             const [settingsResult, connectionsResult] = await Promise.all([apiFetch('/settings'), apiFetch('/connections')]);
@@ -987,41 +1001,63 @@ document.addEventListener("DOMContentLoaded", () => {
             const connections = connectionsResult.data || [];
             
             // Auto-Confirm Section
-            let settingsHtml = `<div><h4 class="font-bold text-lg text-purple-300 mb-2">Auto-Confirm Orders</h4><p class="text-xs text-slate-400 mb-4">Enable this to automatically create V2Ray user and move pending orders to 'Unconfirmed' tab after 10 minutes.</p><div class="space-y-3">`;
+            let settingsHtml = `
+            <div class="space-y-8">
+                <div class="bg-slate-800/30 p-6 rounded-2xl border border-white/5">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="p-2 bg-purple-500/20 rounded-lg text-purple-400"><i class="fa-solid fa-robot text-xl"></i></div>
+                        <div>
+                            <h4 class="font-bold text-lg text-white">Auto-Confirm Orders</h4>
+                            <p class="text-xs text-gray-400">Automatically create V2Ray users for specific connections.</p>
+                        </div>
+                    </div>
+                    <div class="space-y-3 grid grid-cols-1 sm:grid-cols-2 gap-4">`;
+            
             connections.forEach(conn => {
                 const settingKey = `auto_approve_${conn.name}`;
                 const isChecked = settings[settingKey] === 'true' || settings[settingKey] === true;
-                settingsHtml += `<div class="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg"><label for="${settingKey}" class="font-medium text-slate-200">${conn.name}</label><div class="relative inline-block w-10 align-middle select-none"><input type="checkbox" id="${settingKey}" name="${settingKey}" class="toggle-checkbox setting-toggle absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" ${isChecked ? 'checked' : ''}/><label for="${settingKey}" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label></div></div>`;
+                settingsHtml += `
+                    <label class="flex items-center justify-between p-3 bg-slate-900/50 rounded-xl border border-white/5 cursor-pointer hover:border-purple-500/30 transition-all">
+                        <span class="font-medium text-slate-300 text-sm">${conn.name}</span>
+                        <div class="relative inline-block w-10 align-middle select-none">
+                            <input type="checkbox" name="${settingKey}" class="toggle-checkbox setting-toggle absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer" ${isChecked ? 'checked' : ''}/>
+                            <label class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-700 cursor-pointer"></label>
+                        </div>
+                    </label>`;
             });
-            settingsHtml += '</div></div>';
+            settingsHtml += `</div></div>`;
 
-            // --- NEW: Downloadable Softwares Section ---
+            // Downloadable Softwares Section
             let softwareLinks = [];
-            try {
-                softwareLinks = settings.software_links ? JSON.parse(settings.software_links) : [];
-            } catch (e) {
-                console.error("Error parsing software links", e);
-            }
+            try { softwareLinks = settings.software_links ? JSON.parse(settings.software_links) : []; } catch (e) {}
 
-            let softwareHtml = `
-                <div class="mt-6 border-t border-slate-700 pt-4">
-                    <h4 class="font-bold text-lg text-purple-300 mb-2">Downloadable Softwares</h4>
-                    <p class="text-xs text-slate-400 mb-4">Manage the direct download links shown to users.</p>
-                    <div id="software-links-container" class="space-y-3">
-                        ${softwareLinks.map(link => generateSoftwareRow(link)).join('')}
+            settingsHtml += `
+                <div class="bg-slate-800/30 p-6 rounded-2xl border border-white/5">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-blue-500/20 rounded-lg text-blue-400"><i class="fa-solid fa-cloud-arrow-down text-xl"></i></div>
+                            <div>
+                                <h4 class="font-bold text-lg text-white">Software Downloads</h4>
+                                <p class="text-xs text-gray-400">Manage links shown on the Privacy page.</p>
+                            </div>
+                        </div>
+                        <button id="add-software-btn" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold uppercase tracking-wide rounded-lg shadow-lg hover:shadow-blue-500/20 transition-all">
+                            <i class="fa-solid fa-plus mr-1"></i> Add New
+                        </button>
                     </div>
-                    <button id="add-software-btn" class="btn btn-secondary mt-3 text-xs">
-                        <i class="fa-solid fa-plus"></i> Add Software
-                    </button>
+                    
+                    <div id="software-links-container" class="space-y-3 min-h-[100px]">
+                        ${softwareLinks.length > 0 ? softwareLinks.map(link => generateSoftwareRow(link)).join('') : '<p class="text-center text-gray-500 text-sm py-4 italic">No links added yet.</p>'}
+                    </div>
                 </div>
-            `;
+            </div>`;
             
-            settingsHtml += softwareHtml;
             settingsContent.innerHTML = settingsHtml;
 
-            // --- Add Listeners for Dynamic Software Elements ---
             document.getElementById('add-software-btn').addEventListener('click', () => {
-                document.getElementById('software-links-container').insertAdjacentHTML('beforeend', generateSoftwareRow());
+                const container = document.getElementById('software-links-container');
+                if (container.innerHTML.includes('No links added yet')) container.innerHTML = '';
+                container.insertAdjacentHTML('beforeend', generateSoftwareRow());
             });
 
             document.getElementById('software-links-container').addEventListener('click', (e) => {
@@ -1032,9 +1068,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         } catch (error) {
             showToast({ title: "Error", message: error.message, type: "error" });
-            settingsContent.innerHTML = '<p class="text-red-400">Failed to load settings.</p>';
+            settingsContent.innerHTML = '<p class="text-red-400 text-center">Failed to load settings.</p>';
         }
     }
+// ... (Rest of admin.js) ...
     settingsBtn.addEventListener('click', renderSettingsModal);
 
     document.getElementById('settings-modal-save-btn').addEventListener('click', async (e) => {
