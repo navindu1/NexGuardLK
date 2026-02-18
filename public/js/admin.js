@@ -1,5 +1,5 @@
 // File: public/js/admin.js
-import { showToast } from './utils.js'; // Import the new design toast
+import { showToast } from './utils.js'; 
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -65,8 +65,6 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.removeItem('nexguard_admin_token');
         window.location.href = '/admin/login';
     }
-
-    // REMOVED LOCAL showToast FUNCTION TO USE THE ONE FROM utils.js
 
     async function apiFetch(url, options = {}) {
         const defaultOptions = { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } };
@@ -257,7 +255,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const roleSpecificData = role === 'user' ? `<td data-label="Active Plans">${(user.active_plans || []).length}</td>` : `<td data-label="Credit">LKR ${parseFloat(user.credit_balance || 0).toFixed(2)}</td>`;
             const roleSpecificButtons = role === 'reseller' ? `<button class="btn btn-primary add-credit-btn" data-id="${user.id}" data-username="${user.username}"><i class="fa-solid fa-coins"></i></button>` : '';
             
-            // --- NEW: Ban Status Logic ---
             const isBanned = user.status === 'banned';
             const rowClass = isBanned ? 'bg-red-900/20 border-red-500/30' : 'border-b border-slate-800 hover:bg-slate-800/50';
             const statusBadge = isBanned 
@@ -286,11 +283,11 @@ document.addEventListener("DOMContentLoaded", () => {
             </tbody></table></div>`;
     }
 
-    // ... (renderConnections, renderPlans functions remain same) ...
     function renderConnections() {
         contentTitle.textContent = `Connections & Packages`;
         searchBarContainer.classList.add('hidden');
-        addNewBtn.classList.add('hidden');
+        addNewBtn.classList.remove('hidden');
+        addNewBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Add Connection';
         addNewBtn.dataset.type = 'connection';
 
         const connections = dataCache.connections || [];
@@ -625,18 +622,14 @@ document.addEventListener("DOMContentLoaded", () => {
         formModal.classList.add('active');
     }
 
-    // --- TUTORIAL LOGIC (UPDATED WITH ID EXTRACTION) ---
-
-    // 1. Helper to extract ID
+    // --- TUTORIAL LOGIC ---
     function extractYouTubeId(input) {
-        // Regex patterns for different YouTube URL formats
         const patterns = [
-            /embed\/([\w-]{11})/,          // Embed URL
-            /[?&]v=([\w-]{11})/,           // Standard URL
-            /youtu\.be\/([\w-]{11})/,      // Short URL
-            /^[\w-]{11}$/                  // Just the ID
+            /embed\/([\w-]{11})/,
+            /[?&]v=([\w-]{11})/, 
+            /youtu\.be\/([\w-]{11})/,
+            /^[\w-]{11}$/
         ];
-
         for (const pattern of patterns) {
             const match = input.match(pattern);
             if (match) return match[1] || match[0];
@@ -644,22 +637,14 @@ document.addEventListener("DOMContentLoaded", () => {
         return null;
     }
 
-    // 2. Load Tutorials (using User API route with Admin Token)
     async function loadAdminTutorials() {
         try {
-            // Note: If you have a specific admin endpoint, use it. Falling back to public/user endpoint for display.
             const token = localStorage.getItem('nexguard_admin_token');
             const response = await fetch('/api/user/tutorials', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            
-            if (!response.ok) {
-                // If endpoint doesn't exist, we just show empty to avoid error flood
-                throw new Error("Failed to fetch tutorials");
-            }
-
+            if (!response.ok) throw new Error("Failed to fetch tutorials");
             const { data } = await response.json();
-            
             const container = document.getElementById('admin-tutorials-list');
             if (data && data.length > 0) {
                 container.innerHTML = data.map(tut => `
@@ -682,105 +667,64 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // 3. Add Tutorial
     async function addTutorial() {
         const title = document.getElementById('tut-title').value;
         const videoInput = document.getElementById('tut-vid-id').value;
-
         if (!title || !videoInput) return showToast({ title: "Error", message: "Please fill all fields", type: "error" });
-
-        // Extract ID
         const video_id = extractYouTubeId(videoInput);
-        if (!video_id) {
-            return showToast({ title: "Invalid Video", message: "Could not detect a valid YouTube Video ID. Please check the URL.", type: "error" });
-        }
+        if (!video_id) return showToast({ title: "Invalid Video", message: "Could not detect a valid YouTube Video ID.", type: "error" });
 
         const btn = document.querySelector('button[onclick="addTutorial()"]');
         let originalText = 'Add';
-        if(btn) {
-             originalText = btn.innerHTML;
-             btn.disabled = true;
-             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-        }
+        if(btn) { originalText = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'; }
 
         try {
-            await apiFetch('/tutorials', {
-                method: 'POST',
-                body: JSON.stringify({ title, video_id })
-            });
-
+            await apiFetch('/tutorials', { method: 'POST', body: JSON.stringify({ title, video_id }) });
             showToast({ title: "Success", message: "Video added successfully!", type: "success" });
-            
             document.getElementById('tut-title').value = '';
             document.getElementById('tut-vid-id').value = '';
-            
             loadAdminTutorials();
-
         } catch (error) {
-            console.error(error);
             showToast({ title: "Error", message: error.message || "Failed to add video", type: "error" });
         } finally {
-            if(btn) {
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-            }
+            if(btn) { btn.disabled = false; btn.innerHTML = originalText; }
         }
     }
 
-    // 4. Delete Tutorial
     async function deleteTutorial(id) {
         if(!confirm('Are you sure you want to delete this video?')) return;
-
         try {
-            await apiFetch(`/tutorials/${id}`, {
-                method: 'DELETE'
-            });
-            
+            await apiFetch(`/tutorials/${id}`, { method: 'DELETE' });
             showToast({ title: "Deleted", message: "Video removed successfully", type: "success" });
             loadAdminTutorials();
         } catch (error) {
-            console.error(error);
             showToast({ title: "Error", message: "Failed to delete video", type: "error" });
         }
     }
 
-    // --- NEW: HOME VIDEO LOGIC (Requires Settings Table/Endpoint) ---
-
-    // 5. Update Home Page Video Link
     async function updateVideoLink() {
         const input = document.getElementById('youtubeLinkInput');
         if(!input) return;
         const rawUrl = input.value.trim();
-        
         if (!rawUrl) return showToast({ title: "Error", message: "Please enter a URL", type: "error" });
-
         const videoId = extractYouTubeId(rawUrl);
         if (!videoId) return showToast({ title: "Error", message: "Invalid YouTube URL", type: "error" });
-
-        // Convert to Embed URL with autoplay parameters
         const embedUrl = `https://www.youtube.com/embed/${videoId}?rel=0&autoplay=1`;
-        
         const button = document.querySelector('button[onclick="updateVideoLink()"]');
-        
         await handleAction('/settings', { tutorial_video_url: embedUrl }, 'Video Updated Successfully', 'POST', button);
-        
         input.value = '';
         input.placeholder = `Current: ${embedUrl}`;
     }
 
-    // 6. Load Current Video Link
     async function loadCurrentVideoSettings() {
         try {
             const res = await apiFetch('/settings'); 
             const settings = res.data || {};
             const input = document.getElementById('youtubeLinkInput');
-            
             if (input && settings.tutorial_video_url) {
                 input.placeholder = `Current: ${settings.tutorial_video_url}`;
             }
-        } catch (error) {
-            console.error("Error loading video settings:", error);
-        }
+        } catch (error) { console.error("Error loading video settings:", error); }
     }
 
     // --- CORE LOGIC ---
@@ -909,11 +853,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     await handleAction(`/users/credit`, { userId: id, amount: parseFloat(amount) }, 'Credit Added', 'POST', button);
                 }
             } 
-            // --- FIX IS HERE: Handled 'ban-user-btn' clicks ---
             else if (button.classList.contains('ban-user-btn')) {
                 await banUser(id); 
             }
-            // --- Generate Share Image Button ---
             else if (button.classList.contains('generate-share-img-btn')) {
                 const orderId = button.dataset.orderId;
                 const username = button.dataset.username;
@@ -997,28 +939,19 @@ document.addEventListener("DOMContentLoaded", () => {
         formModal.classList.remove('active');
     });
 
-    // Ban User Function
     async function banUser(userId) {
-        // තහවුරු කරගැනීම (Confirmation)
         if (!confirm("Are you sure you want to ban this user? They will not be able to create new accounts.")) {
             return;
         }
-
         try {
             const response = await fetch('/api/admin/ban-user', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}` // Added Token for security
-                },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ userId: userId })
             });
-
             const result = await response.json();
-
             if (result.success) {
                 showToast({ title: "Success", message: "User has been banned successfully!", type: "success" });
-                // අදාළ පේළිය update කිරීම හෝ පිටුව reload කිරීම
                 setTimeout(() => location.reload(), 1500);
             } else {
                 showToast({ title: "Error", message: result.message || "Failed to ban user.", type: "error" });
@@ -1027,6 +960,20 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error("Error banning user:", error);
             showToast({ title: "Error", message: "Something went wrong!", type: "error" });
         }
+    }
+
+    // --- NEW: Helper to generate software row HTML ---
+    function generateSoftwareRow(link = { name: '', url: '', icon: '' }) {
+        return `
+            <div class="software-row flex gap-2 items-start bg-slate-800/30 p-2 rounded">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 flex-1">
+                    <input type="text" placeholder="Name (e.g. Android)" class="sw-name input-dark text-xs" value="${link.name || ''}">
+                    <input type="text" placeholder="Download URL" class="sw-url input-dark text-xs" value="${link.url || ''}">
+                    <input type="text" placeholder="Icon (fa-brands fa-android)" class="sw-icon input-dark text-xs" value="${link.icon || ''}">
+                </div>
+                <button class="btn btn-danger !p-2 h-full flex items-center delete-sw-btn"><i class="fa-solid fa-trash"></i></button>
+            </div>
+        `;
     }
 
     async function renderSettingsModal() {
@@ -1038,6 +985,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const [settingsResult, connectionsResult] = await Promise.all([apiFetch('/settings'), apiFetch('/connections')]);
             const settings = settingsResult.data || {};
             const connections = connectionsResult.data || [];
+            
+            // Auto-Confirm Section
             let settingsHtml = `<div><h4 class="font-bold text-lg text-purple-300 mb-2">Auto-Confirm Orders</h4><p class="text-xs text-slate-400 mb-4">Enable this to automatically create V2Ray user and move pending orders to 'Unconfirmed' tab after 10 minutes.</p><div class="space-y-3">`;
             connections.forEach(conn => {
                 const settingKey = `auto_approve_${conn.name}`;
@@ -1045,7 +994,42 @@ document.addEventListener("DOMContentLoaded", () => {
                 settingsHtml += `<div class="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg"><label for="${settingKey}" class="font-medium text-slate-200">${conn.name}</label><div class="relative inline-block w-10 align-middle select-none"><input type="checkbox" id="${settingKey}" name="${settingKey}" class="toggle-checkbox setting-toggle absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" ${isChecked ? 'checked' : ''}/><label for="${settingKey}" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label></div></div>`;
             });
             settingsHtml += '</div></div>';
+
+            // --- NEW: Downloadable Softwares Section ---
+            let softwareLinks = [];
+            try {
+                softwareLinks = settings.software_links ? JSON.parse(settings.software_links) : [];
+            } catch (e) {
+                console.error("Error parsing software links", e);
+            }
+
+            let softwareHtml = `
+                <div class="mt-6 border-t border-slate-700 pt-4">
+                    <h4 class="font-bold text-lg text-purple-300 mb-2">Downloadable Softwares</h4>
+                    <p class="text-xs text-slate-400 mb-4">Manage the direct download links shown to users.</p>
+                    <div id="software-links-container" class="space-y-3">
+                        ${softwareLinks.map(link => generateSoftwareRow(link)).join('')}
+                    </div>
+                    <button id="add-software-btn" class="btn btn-secondary mt-3 text-xs">
+                        <i class="fa-solid fa-plus"></i> Add Software
+                    </button>
+                </div>
+            `;
+            
+            settingsHtml += softwareHtml;
             settingsContent.innerHTML = settingsHtml;
+
+            // --- Add Listeners for Dynamic Software Elements ---
+            document.getElementById('add-software-btn').addEventListener('click', () => {
+                document.getElementById('software-links-container').insertAdjacentHTML('beforeend', generateSoftwareRow());
+            });
+
+            document.getElementById('software-links-container').addEventListener('click', (e) => {
+                if (e.target.closest('.delete-sw-btn')) {
+                    e.target.closest('.software-row').remove();
+                }
+            });
+
         } catch (error) {
             showToast({ title: "Error", message: error.message, type: "error" });
             settingsContent.innerHTML = '<p class="text-red-400">Failed to load settings.</p>';
@@ -1055,9 +1039,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.getElementById('settings-modal-save-btn').addEventListener('click', async (e) => {
         const button = e.target;
+        
+        // Save Toggles
         const toggles = document.querySelectorAll('.setting-toggle');
         const settingsToSave = {};
         toggles.forEach(toggle => { settingsToSave[toggle.name] = toggle.checked; });
+
+        // Save Software Links
+        const softwareRows = document.querySelectorAll('.software-row');
+        const softwareLinks = Array.from(softwareRows).map(row => ({
+            name: row.querySelector('.sw-name').value.trim(),
+            url: row.querySelector('.sw-url').value.trim(),
+            icon: row.querySelector('.sw-icon').value.trim()
+        })).filter(item => item.name && item.url); // Simple validation
+
+        settingsToSave['software_links'] = JSON.stringify(softwareLinks);
+
         await handleAction('/settings', settingsToSave, 'Settings Saved!', 'POST', button);
         document.getElementById('settings-modal').classList.remove('active');
     });
@@ -1080,22 +1077,18 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Make tutorial functions global so HTML onclick can access them
     window.addTutorial = addTutorial;
     window.deleteTutorial = deleteTutorial;
     window.loadAdminTutorials = loadAdminTutorials;
     window.updateVideoLink = updateVideoLink;
     window.loadCurrentVideoSettings = loadCurrentVideoSettings;
 
-    // For manual button click inside modal
     window.openTutorialModal = function() {
         const modal = document.getElementById('tutorial-modal');
         if(modal) {
             modal.classList.add('active');
-            // Load Tutorials List
-            loadAdminTutorials(); 
-            // Load Current Video Setting
-            loadCurrentVideoSettings();
+            if(typeof loadCurrentVideoSettings === 'function') { loadCurrentVideoSettings(); }
+            if(typeof loadAdminTutorials === 'function') { loadAdminTutorials(); }
         }
     };
     window.closeTutorialModal = function() {
