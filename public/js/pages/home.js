@@ -149,9 +149,6 @@ export function renderAboutPage(renderFunc) {
         </div>`);
 }
 
-// Function: renderPrivacyPage (Import apiFetch if needed)
-import { apiFetch } from '../api.js';
-
 export function renderPrivacyPage(renderFunc) {
     renderFunc(`
         <div id="page-privacy" class="page space-y-8">
