@@ -150,71 +150,117 @@ export function renderAboutPage(renderFunc) {
 }
 
 export function renderPrivacyPage(renderFunc) {
+    // 1. පිටුවේ මූලික සැකැස්ම (Static Content + Dynamic Container)
     renderFunc(`
-        <div id="page-privacy" class="page space-y-8">
-            <div class="card-glass p-8 custom-radius space-y-5 max-w-4xl mx-auto reveal">
-                <h2 class="text-2xl font-bold font-['Orbitron']">Privacy & Refund Policy</h2>
-                <div>
-                    <h3 class="text-lg font-bold text-white mb-2">Our Commitment to Privacy</h3>
-                    <p class="text-gray-300 text-sm">Your privacy is critically important to us. We do not store logs of your online activity. We store account information only for service provision.</p>
+        <div id="page-privacy" class="page space-y-8 animate-fade-in">
+            <div class="card-glass p-8 custom-radius space-y-6 max-w-4xl mx-auto reveal border border-white/5">
+                <div class="flex items-center gap-3 mb-2">
+                    <i class="fa-solid fa-shield-halved text-3xl text-blue-400"></i>
+                    <h2 class="text-3xl font-bold font-['Orbitron'] text-white">Privacy & Refund Policy</h2>
                 </div>
-                <div>
-                    <h3 class="text-lg font-bold text-white mb-2">Information We Collect</h3>
-                    <p class="text-gray-300 text-sm">We collect the bare minimum information: your username and encrypted password.</p>
-                </div>
-                <div class="pt-4 border-t border-white/10">
-                    <h3 class="text-xl font-bold font-['Orbitron']">Refund Policy</h3>
-                    <ul class="list-disc list-inside text-gray-300 space-y-2 pl-4 mt-2 text-sm">
-                        <li>Request within <strong>48 hours</strong>.</li>
-                        <li>Data usage must be less than <strong>10 GB</strong>.</li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="card-glass p-8 custom-radius max-w-4xl mx-auto reveal">
-                <h2 class="text-2xl font-bold mb-6 text-center text-white font-['Orbitron']">Downloadable Software</h2>
-                <p class="text-gray-400 text-center mb-8 text-sm">Download the recommended V2Ray client for your device.</p>
                 
-                <div id="privacy-software-list" class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="col-span-3 text-center text-gray-500"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</div>
-                </div>
-            </div>
-        </div>`);
-
-    // Fetch and render dynamic links
-    const loadLinks = async () => {
-    try {
-        const res = await apiFetch('/api/user/software-links');
-        const data = await res.json();
-        const container = document.getElementById('privacy-software-list');
-        
-        if (data.success && data.links && data.links.length > 0) {
-            container.innerHTML = data.links.map(link => `
-                <a href="${link.url}" target="_blank" class="card p-6 custom-radius bg-slate-800/40 border border-white/5 hover:border-blue-500/30 hover:bg-slate-800/60 transition-all duration-300 flex flex-col items-center justify-center text-center group cursor-pointer relative overflow-hidden">
-                    
-                    <div class="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl"></div>
-
-                    <div class="relative z-10 w-16 h-16 mb-4 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 border border-white/5 group-hover:border-blue-500/30">
-                        <i class="${link.icon || 'fa-solid fa-download'} text-3xl text-blue-400 group-hover:text-blue-300 drop-shadow-md"></i>
+                <div class="space-y-4">
+                    <div class="bg-slate-800/30 p-5 rounded-2xl border border-white/5">
+                        <h3 class="text-xl font-bold text-blue-300 mb-2 flex items-center gap-2">
+                            <i class="fa-solid fa-user-shield text-sm"></i> Our Commitment to Privacy
+                        </h3>
+                        <p class="text-gray-300 text-sm leading-relaxed">
+                            Your privacy is critically important to us. We do not store logs of your online activity. 
+                            We store account information only for service provision. We aim for full transparency on how we handle your data.
+                        </p>
                     </div>
 
-                    <h3 class="relative z-10 font-bold text-white text-lg tracking-wide group-hover:text-blue-200 transition-colors">${link.name}</h3>
-                    <p class="relative z-10 text-xs text-gray-400 mt-1 mb-5 group-hover:text-gray-300">Latest Version</p>
+                    <div class="bg-slate-800/30 p-5 rounded-2xl border border-white/5">
+                        <h3 class="text-xl font-bold text-blue-300 mb-2 flex items-center gap-2">
+                            <i class="fa-solid fa-database text-sm"></i> Information We Collect
+                        </h3>
+                        <p class="text-gray-300 text-sm leading-relaxed">
+                            We collect the bare minimum information to create and manage your account: your chosen username, 
+                            WhatsApp number for support, and an encrypted password. We do not track the websites you visit.
+                        </p>
+                    </div>
+                </div>
 
-                    <button class="relative z-10 flex items-center gap-2 px-6 py-2.5 bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-600/30 hover:border-blue-500 rounded-lg transition-all duration-300 shadow-[0_0_10px_rgba(37,99,235,0.1)] hover:shadow-[0_0_20px_rgba(37,99,235,0.4)] font-medium text-sm w-full justify-center group-hover:translate-y-[-2px]">
-                        <span>Download</span>
-                        <i class="fa-solid fa-cloud-arrow-down animate-bounce"></i>
-                    </button>
+                <div class="pt-6 border-t border-white/10">
+                    <h3 class="text-2xl font-bold font-['Orbitron'] text-white mb-3">Refund Policy</h3>
+                    <div class="bg-amber-500/10 border border-amber-500/20 p-5 rounded-2xl">
+                        <p class="text-gray-200 text-sm mb-3">
+                            We offer a conditional refund for our V2Ray packages. You are eligible for a full refund under the following conditions:
+                        </p>
+                        <ul class="list-none space-y-2 text-sm text-gray-300">
+                            <li class="flex items-center gap-2">
+                                <i class="fa-solid fa-clock text-amber-400"></i>
+                                Request must be made within <strong class="text-white">2 days (48 hours)</strong>.
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <i class="fa-solid fa-chart-pie text-amber-400"></i>
+                                Data usage must be less than <strong class="text-white">10 GB</strong>.
+                            </li>
+                        </ul>
+                        <p class="font-semibold text-amber-400 mt-4 text-xs uppercase tracking-wider">
+                            <i class="fa-solid fa-circle-exclamation mr-1"></i> If these conditions are not met, you will not be eligible for a refund.
+                        </p>
+                    </div>
+                </div>
+            </div>
 
-                </a>
-            `).join('');
-        } else {
-            container.innerHTML = '<div class="col-span-3 text-center p-8 border border-dashed border-slate-700 rounded-xl text-gray-500">No software links available.</div>';
+            <div class="card-glass p-8 custom-radius max-w-4xl mx-auto reveal border border-white/5">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-white font-['Orbitron'] mb-2">Downloadable Software</h2>
+                    <p class="text-gray-400 text-sm">Get the recommended V2Ray client for your device.</p>
+                </div>
+                
+                <div id="privacy-software-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="col-span-full text-center py-8 text-gray-500">
+                        <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i><br>Loading Downloads...
+                    </div>
+                </div>
+            </div>
+        </div>
+    `);
+
+    // 2. දත්ත ගෙන්වා ගැනීම සහ පෙන්වීම (Data Fetching Logic)
+    const loadLinks = async () => {
+        try {
+            const res = await apiFetch('/api/user/software-links');
+            const data = await res.json();
+            const container = document.getElementById('privacy-software-list');
+            
+            if (data.success && data.links && data.links.length > 0) {
+                container.innerHTML = data.links.map(link => `
+                    <a href="${link.url}" target="_blank" class="group relative flex flex-col items-center p-6 bg-slate-800/40 hover:bg-slate-700/40 border border-white/5 hover:border-blue-500/30 rounded-3xl transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-blue-500/10 cursor-pointer overflow-hidden">
+                        
+                        <div class="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-purple-500/0 group-hover:from-blue-500/5 group-hover:to-purple-500/5 transition-all duration-500"></div>
+
+                        <div class="relative w-16 h-16 mb-4 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 border border-white/5 group-hover:border-blue-500/30">
+                            <i class="${link.icon || 'fa-solid fa-download'} text-3xl text-blue-400 group-hover:text-white transition-colors duration-300 drop-shadow-md"></i>
+                        </div>
+
+                        <h3 class="relative font-bold text-white text-lg mb-1 group-hover:text-blue-300 transition-colors">${link.name}</h3>
+                        <p class="relative text-xs text-gray-400 mb-5">Latest Version</p>
+
+                        <div class="relative w-full">
+                            <button class="w-full py-2.5 px-4 bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-500/30 hover:border-blue-500 rounded-full transition-all duration-300 flex items-center justify-center gap-2 font-medium text-sm shadow-lg group-hover:shadow-blue-500/25">
+                                <span>Download</span>
+                                <i class="fa-solid fa-cloud-arrow-down group-hover:animate-bounce"></i>
+                            </button>
+                        </div>
+                    </a>
+                `).join('');
+            } else {
+                container.innerHTML = `
+                    <div class="col-span-full text-center p-8 border-2 border-dashed border-slate-700 rounded-3xl bg-slate-800/30">
+                        <i class="fa-solid fa-box-open text-4xl text-slate-600 mb-3"></i>
+                        <p class="text-gray-400 text-sm">No downloadable software available at the moment.</p>
+                    </div>`;
+            }
+        } catch (e) {
+            console.error("Failed to load links", e);
+            const container = document.getElementById('privacy-software-list');
+            if(container) container.innerHTML = '<div class="col-span-full text-center text-red-400 bg-red-900/10 p-4 rounded-2xl border border-red-500/20">Failed to load download links. Please check your connection.</div>';
         }
-    } catch (e) {
-        console.error("Failed to load links", e);
-        document.getElementById('privacy-software-list').innerHTML = '<div class="col-span-3 text-center text-red-400 bg-red-900/10 p-4 rounded-lg">Failed to load links.</div>';
-    }
-};
+    };
+
+    // Load links automatically
     loadLinks();
 }
