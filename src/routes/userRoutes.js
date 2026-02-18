@@ -23,12 +23,16 @@ router.post(
 // Link an existing V2Ray account to the website account
 router.post("/link-v2ray", authenticateToken, userController.linkV2rayAccount);
 
+// Get Tutorials
 router.get('/tutorials', authenticateToken, userController.getTutorials);
 
 // Update the user's password
 router.post("/update-password", authenticateToken, userController.updatePassword);
 
-// --- FIX IS HERE: Changed 'authMiddleware' to 'authenticateToken' ---
+// Unlink a plan
 router.post('/unlink', authenticateToken, userController.unlinkPlan);
+
+// --- NEW ROUTE: Get Software Links (මෙන්න අලුත් කොටස) ---
+router.get('/software-links', authenticateToken, userController.getSoftwareLinks);
 
 module.exports = router;
