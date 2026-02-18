@@ -58,7 +58,6 @@ exports.getUserStatus = async (req, res) => {
                 };
                 verifiedActivePlans.push(enrichedPlan);
             } else {
-                // If not in panel, keep it but mark as expired/removed (expiryTime: 0)
                 verifiedActivePlans.push({
                     ...plan,
                     expiryTime: 0 
@@ -76,7 +75,6 @@ exports.getUserStatus = async (req, res) => {
             status: "approved",
             activePlans: verifiedActivePlans,
         });
-        // --- END: VERIFICATION LOGIC ---
 
     } catch (error) {
         console.error(`[Status Check Error] User: ${req.user.username}, Error: ${error.message}`);
@@ -147,14 +145,11 @@ exports.linkV2rayAccount = async (req, res) => {
         return res.status(400).json({ success: false, message: "Valid V2Ray username is required." });
     }
 
-    // ආරම්භක නම (User Type කළ එක, උදා: "Navindu")
     let finalUsername = v2rayUsername.trim();
     
     try {
-        // 1. මුලින්ම Exact Match එකක් තියෙනවද බලන්න
         let clientData = await v2rayService.findV2rayClient(finalUsername);
 
-        // 2. සොයාගත නොහැකි නම්, Prefix දමා පරීක්ෂා කරන්න (Auto-Search Logic)
         if (!clientData || !clientData.client) {
             const { data: settingsData } = await supabase
                 .from('settings')
@@ -172,26 +167,23 @@ exports.linkV2rayAccount = async (req, res) => {
                     console.warn("Error parsing connection_prefixes setting.", e);
                 }
 
-                // හැම Prefix එකක්ම දාලා බලන්න
                 for (const prefix of Object.values(prefixMap)) {
                      const prefixedName = `${prefix}${finalUsername}`;
                      const found = await v2rayService.findV2rayClient(prefixedName);
                      
                      if (found && found.client) {
                          clientData = found;
-                         finalUsername = prefixedName; // නිවැරදි නම හමු විය (උදා: ASC_Navindu)
-                         break; // එකක් හම්බුනාම Loop එක නවත්වන්න
+                         finalUsername = prefixedName; 
+                         break; 
                      }
                 }
             }
         }
 
-        // තවමත් clientData නැත්නම්, ඇත්තටම User කෙනෙක් නෑ
         if (!clientData || !clientData.client || !clientData.inboundId) {
             return res.status(404).json({ success: false, message: "This V2Ray username was not found in our panel." });
         }
 
-        // Duplicate Check (වෙන කෙනෙක් Link කරගෙනද?)
         const { data: existingLinks } = await supabase
             .from("users")
             .select("id, username, active_plans")
@@ -281,7 +273,7 @@ exports.linkV2rayAccount = async (req, res) => {
         }
 
         const newPlan = {
-            v2rayUsername: clientData.client.email || finalUsername, // නියම නම (ASC_Navindu) Save කරන්න
+            v2rayUsername: clientData.client.email || finalUsername,
             v2rayLink,
             planId: detectedPlanId,
             connId: detectedConnId,
@@ -386,5 +378,31 @@ exports.unlinkPlan = async (req, res) => {
     } catch (error) {
         console.error("Unlink Critical Error:", error);
         return res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+};
+
+// --- NEW FUNCTION: Get Software Links ---
+exports.getSoftwareLinks = async (req, res) => {
+    try {
+        const { data } = await supabase
+            .from('settings')
+            .select('value')
+            .eq('key', 'software_links')
+            .single();
+        
+        let links = [];
+        if (data && data.value) {
+            // JSON Parse කරගන්න
+            try {
+                links = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+            } catch (e) {
+                console.warn("Error parsing software_links:", e);
+                links = [];
+            }
+        }
+        res.json({ success: true, links });
+    } catch (error) {
+        console.error("Error fetching software links:", error);
+        res.status(500).json({ success: false, message: "Error fetching links" });
     }
 };
