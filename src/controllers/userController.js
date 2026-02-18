@@ -1,3 +1,5 @@
+// File Path: src/controllers/userController.js
+
 const supabase = require('../config/supabaseClient');
 const v2rayService = require('../services/v2rayService');
 const bcrypt = require('bcryptjs');
@@ -145,21 +147,58 @@ exports.linkV2rayAccount = async (req, res) => {
         return res.status(400).json({ success: false, message: "Valid V2Ray username is required." });
     }
 
-    const trimmedUsername = v2rayUsername.trim();
+    // ආරම්භක නම (User Type කළ එක, උදා: "Navindu")
+    let finalUsername = v2rayUsername.trim();
     
     try {
-        const clientData = await v2rayService.findV2rayClient(trimmedUsername);
+        // 1. මුලින්ම Exact Match එකක් තියෙනවද බලන්න
+        let clientData = await v2rayService.findV2rayClient(finalUsername);
+
+        // 2. සොයාගත නොහැකි නම්, Prefix දමා පරීක්ෂා කරන්න (Auto-Search Logic)
+        if (!clientData || !clientData.client) {
+            const { data: settingsData } = await supabase
+                .from('settings')
+                .select('value')
+                .eq('key', 'connection_prefixes')
+                .single();
+
+            if (settingsData && settingsData.value) {
+                let prefixMap = {};
+                try {
+                    prefixMap = (typeof settingsData.value === 'string') 
+                                ? JSON.parse(settingsData.value) 
+                                : settingsData.value;
+                } catch (e) {
+                    console.warn("Error parsing connection_prefixes setting.", e);
+                }
+
+                // හැම Prefix එකක්ම දාලා බලන්න
+                for (const prefix of Object.values(prefixMap)) {
+                     const prefixedName = `${prefix}${finalUsername}`;
+                     const found = await v2rayService.findV2rayClient(prefixedName);
+                     
+                     if (found && found.client) {
+                         clientData = found;
+                         finalUsername = prefixedName; // නිවැරදි නම හමු විය (උදා: ASC_Navindu)
+                         break; // එකක් හම්බුනාම Loop එක නවත්වන්න
+                     }
+                }
+            }
+        }
+
+        // තවමත් clientData නැත්නම්, ඇත්තටම User කෙනෙක් නෑ
         if (!clientData || !clientData.client || !clientData.inboundId) {
             return res.status(404).json({ success: false, message: "This V2Ray username was not found in our panel." });
         }
 
+        // Duplicate Check (වෙන කෙනෙක් Link කරගෙනද?)
         const { data: existingLinks } = await supabase
             .from("users")
             .select("id, username, active_plans")
             .not('active_plans', 'is', null);
 
         const alreadyLinked = existingLinks?.find(user => 
-            user.active_plans?.some(plan => plan.v2rayUsername.toLowerCase() === trimmedUsername.toLowerCase())
+            user.active_plans?.some(plan => plan.v2rayUsername.toLowerCase() === finalUsername.toLowerCase())
         );
 
         if (alreadyLinked) {
@@ -203,7 +242,7 @@ exports.linkV2rayAccount = async (req, res) => {
                 if (packages.length === 1) {
                     finalPackage = packages[0];
                 } else {
-                    const clientUsername = clientData.client.email || trimmedUsername;
+                    const clientUsername = clientData.client.email || finalUsername;
                     for (const pkg of packages) {
                         const remark = pkg.template.split('#')[1];
                         if (remark) {
@@ -242,7 +281,7 @@ exports.linkV2rayAccount = async (req, res) => {
         }
 
         const newPlan = {
-            v2rayUsername: clientData.client.email || trimmedUsername,
+            v2rayUsername: clientData.client.email || finalUsername, // නියම නම (ASC_Navindu) Save කරන්න
             v2rayLink,
             planId: detectedPlanId,
             connId: detectedConnId,
@@ -261,7 +300,7 @@ exports.linkV2rayAccount = async (req, res) => {
         });
         
     } catch (error) {
-        console.error(`[Link V2Ray] CRITICAL ERROR:`, { user: req.user?.username, v2rayUsername: trimmedUsername, error: error.message, stack: error.stack });
+        console.error(`[Link V2Ray] CRITICAL ERROR:`, { user: req.user?.username, v2rayUsername: finalUsername, error: error.message, stack: error.stack });
         return res.status(500).json({ success: false, message: "An unexpected error occurred. Please try again later or contact support." });
     }
 };

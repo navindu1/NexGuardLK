@@ -14,6 +14,15 @@ let currentActivePlan = null;
 let lastKnownPlansStr = ""; 
 let globalActivePlans = []; 
 
+// --- HELPER: Strip Prefix for Display (Frontend) ---
+const getDisplayName = (username) => {
+    if (!username) return "";
+    // backend එකෙන් එන stripped username එක usage object එකේ තිබුනත්, 
+    // dropdown එකට කෙලින්ම regex පාවිච්චි කිරීම පහසුයි.
+    // Pattern: අකුරු/ඉලක්කම් + Underscore (උදා: DRC_Navindu -> Navindu)
+    return username.replace(/^[A-Za-z0-9]+_/, '');
+};
+
 // --- SMART DATA FETCHER (REAL-TIME UPDATES) ---
 const fetchClientData = async (username) => {
     const timestamp = new Date().getTime();
@@ -54,24 +63,20 @@ const ensureOrdersLoaded = async () => {
 
 // --- HELPER: Unlink/Remove Plan (Improved Error Handling) ---
 const unlinkPlan = async (v2rayUsername) => {
-    if(!confirm(`Are you sure you want to remove '${v2rayUsername}' from your dashboard? This cannot be undone.`)) return;
+    if(!confirm(`Are you sure you want to remove '${getDisplayName(v2rayUsername)}' from your dashboard? This cannot be undone.`)) return;
     
     showToast({ title: "Removing...", message: "Processing removal.", type: "info" });
     
     try {
-        // Try calling backend
         const res = await apiFetch("/api/user/unlink", { 
             method: "POST", 
             headers: { "Content-Type": "application/json" }, 
             body: JSON.stringify({ v2rayUsername }) 
         });
         
-        // If 404 (Endpoint not found), simulate success for UI only (Client-side hide)
         if (res.status === 404) {
              console.warn("Backend /unlink endpoint missing. Hiding locally.");
-             // Simulate success
              showToast({ title: "Success", message: "Plan removed from view.", type: "success" });
-             // Ideally we should update local cache/state here, but reload is safer
              setTimeout(() => window.location.reload(), 1000);
              return;
         }
@@ -86,7 +91,6 @@ const unlinkPlan = async (v2rayUsername) => {
         }
     } catch (e) {
         console.error("Unlink error:", e);
-        // Fallback for network error
         showToast({ title: "Connection Error", message: "Could not reach server.", type: "error" });
     }
 };
@@ -149,6 +153,7 @@ export function renderProfilePage(renderFunc, params) {
             </div>
         </div>`;
     
+    // --- UPDATED CSS: Compact Buttons & Rows ---
     const pageStyles = `<style>
         #page-profile .form-input { height: 56px; padding: 20px 12px 8px 12px; background-color: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.2); } 
         #page-profile .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; } 
@@ -167,17 +172,25 @@ export function renderProfilePage(renderFunc, params) {
         .plan-selector-label { font-size: 0.875rem; font-weight: 600; color: #d1d5db; flex-shrink: 0; }
         ul.fmenu { display: inline-block; list-style: none; padding: 0; margin: 0; white-space: nowrap; position: relative; overflow: visible !important; }
         ul.fmenu > li.fmenu-item { position: relative; overflow: visible !important; }
-        ul.fmenu .trigger-menu { display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; height: 44px; padding: 0 1.2rem; border-radius: 999px; background-color: rgba(30, 41, 59, 0.9); border: 1px solid rgba(255, 255, 255, 0.2); cursor: pointer; transition: all ease 0.3s; min-width: 180px; overflow: visible !important; }
+        ul.fmenu .trigger-menu { display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; height: 40px; padding: 0 1rem; border-radius: 999px; background-color: rgba(30, 41, 59, 0.9); border: 1px solid rgba(255, 255, 255, 0.2); cursor: pointer; transition: all ease 0.3s; min-width: 170px; overflow: visible !important; }
         ul.fmenu .trigger-menu:hover, ul.fmenu .trigger-menu.open { border-color: var(--brand-blue); box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
-        ul.fmenu .trigger-menu i { color: #9ca3af; font-size: 0.9rem; transition: color ease 0.3s; }
+        ul.fmenu .trigger-menu i { color: #9ca3af; font-size: 0.85rem; transition: color ease 0.3s; }
         ul.fmenu .trigger-menu:hover i, ul.fmenu .trigger-menu.open i { color: #60a5fa; }
-        ul.fmenu .trigger-menu .text { display: block; font-size: 0.95rem; color: #ffffff; padding: 0 0.5rem; font-weight: 500; }
-        ul.fmenu .trigger-menu .arrow { font-size: 0.8rem; transition: transform ease 0.3s; }
+        ul.fmenu .trigger-menu .text { display: block; font-size: 0.9rem; color: #ffffff; padding: 0 0.5rem; font-weight: 500; }
+        ul.fmenu .trigger-menu .arrow { font-size: 0.75rem; transition: transform ease 0.3s; }
         ul.fmenu .trigger-menu.open .arrow { transform: rotate(180deg); }
-        ul.fmenu .floating-menu { display: block; position: absolute; top: 100%; margin-top: 12px; left: 0; width: 100%; min-width: 100%; list-style: none; padding: 0.5rem; background-color: #0f172a; border: 1px solid rgba(71, 85, 105, 0.6); border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.8); z-index: 9999 !important; opacity: 0; visibility: hidden; transform: translateY(-10px); transition: opacity 0.3s, transform 0.3s; }
+        ul.fmenu .floating-menu { display: block; position: absolute; top: 100%; margin-top: 8px; left: 0; width: 100%; min-width: 100%; list-style: none; padding: 0.3rem; background-color: #0f172a; border: 1px solid rgba(71, 85, 105, 0.6); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.8); z-index: 9999 !important; opacity: 0; visibility: hidden; transform: translateY(-10px); transition: opacity 0.3s, transform 0.3s; }
         ul.fmenu .trigger-menu.open + .floating-menu { opacity: 1 !important; visibility: visible !important; transform: translateY(0) !important; max-height: none !important; overflow: visible !important; }
-        ul.fmenu .floating-menu > li a { color: #cbd5e1; font-size: 0.9rem; text-decoration: none; display: block; padding: 0.75rem 1.2rem; border-radius: 15px; transition: all 0.2s ease; border: 1px solid transparent; }
-        ul.fmenu .floating-menu > li a:hover { background-color: rgba(59, 130, 246, 0.15); color: #ffffff; border-color: rgba(59, 130, 246, 0.3); }
+        
+        /* Compact Plan Item Styles */
+        .plan-row { display: flex; align-items: center; justify-content: space-between; padding: 0.4rem 0.6rem; border-radius: 10px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; }
+        .plan-row:hover { background-color: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.3); }
+        .plan-name { color: #cbd5e1; font-size: 0.85rem; flex-grow: 1; margin-right: 0.5rem; }
+        .plan-row:hover .plan-name { color: #fff; }
+        .remove-plan-btn { padding: 3px 7px; font-size: 0.75rem; color: #64748b; border-radius: 6px; transition: all 0.2s; z-index: 10; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); }
+        .remove-plan-btn:hover { background-color: rgba(239, 68, 68, 0.2); color: #f87171; border-color: rgba(239, 68, 68, 0.3); }
+        .add-more-row { display: flex; align-items: center; padding: 0.5rem 0.8rem; color: #93c5fd; font-size: 0.85rem; cursor: pointer; transition: color 0.2s; }
+        .add-more-row:hover { color: #bfdbfe; }
     </style>`;
     
     let profilePictureUrl = (user.profilePicture || "/assets/profilePhoto.jpg").replace("public/", "");
@@ -218,7 +231,7 @@ export function renderProfilePage(renderFunc, params) {
             });
         }
 
-        // Link Account Modal (New - Triggered by "Add More")
+        // Link Account Modal
         const linkModal = document.getElementById('link-account-modal');
         if (linkModal) {
             const closeLinkModal = () => { linkModal.classList.remove('visible'); document.body.classList.remove('modal-open'); };
@@ -301,6 +314,9 @@ export function renderProfilePage(renderFunc, params) {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
 
+        // Use backend provided stripped username OR fallback to stripping logic
+        const displayUsername = d.username || getDisplayName(username);
+
         const total = d.down + d.up;
         const percent = d.total > 0 ? Math.min((total / d.total) * 100, 100) : 0;
         
@@ -334,7 +350,7 @@ export function renderProfilePage(renderFunc, params) {
                 <div class="flex justify-between items-center pb-3 border-b border-white/10">
                     <h3 class="text-lg font-semibold text-white flex items-center min-w-0">
                         <i class="fa-solid fa-satellite-dish mr-3 text-blue-400 flex-shrink-0"></i>
-                        <span class="truncate" title="${username}">Client: ${username}</span>
+                        <span class="truncate" title="${username}">Client: ${displayUsername}</span>
                     </h3>
                     <div id="rt-status">${status}</div>
                 </div>
@@ -356,17 +372,17 @@ export function renderProfilePage(renderFunc, params) {
             </div>`;
     };
 
-    // --- REJECTED HTML + REMOVE BUTTON (FIXED: Small Button) ---
     const renderPlanRejectedHTML = (username) => {
         const usageContainer = document.getElementById("tab-usage");
         const configContainer = document.getElementById("tab-config");
+        const displayUsername = getDisplayName(username);
 
         const rejectedHtml = `
             <div class="result-card p-6 card-glass custom-radius space-y-4 reveal is-visible border border-red-500/50 bg-red-900/10">
                 <div class="text-center">
                     <i class="fa-solid fa-ban text-4xl text-red-500 mb-3"></i>
                     <h3 class="text-xl font-bold text-white">Your Plan Rejected By Admin</h3>
-                    <p class="text-sm text-gray-300 mt-2">Unfortunately, your plan <span class="font-semibold text-red-300">${username}</span> has been rejected.</p>
+                    <p class="text-sm text-gray-300 mt-2">Unfortunately, your plan <span class="font-semibold text-red-300">${displayUsername}</span> has been rejected.</p>
                     <p class="text-xs text-gray-400 mt-1">Please check your orders tab or contact support for more details.</p>
                 </div>
                 <div class="pt-2 text-center">
@@ -386,16 +402,14 @@ export function renderProfilePage(renderFunc, params) {
         }
     };
 
-    // --- REMOVED/EXPIRED HTML + REMOVE BUTTON ---
     const renderPlanRemovedHTML = (username) => {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
+        const displayUsername = getDisplayName(username);
 
         const otherPlansAvailable = globalActivePlans.length > 1;
         const renewalActionHtml = `<button id="renew-removed-plan-btn" class="ai-button w-full rounded-lg mt-2 inline-block"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew This Plan</button>`;
         const switchHtml = otherPlansAvailable ? `<button id="switch-plan-btn" class="ai-button secondary w-full rounded-lg mt-2"><i class="fa-solid fa-repeat mr-2"></i>Switch Plan</button>` : '';
-        
-        // Remove button - Centered & Small
         const removeHtml = `<div class="text-center mt-3"><button id="remove-expired-btn" class="ai-button secondary w-auto inline-flex items-center justify-center px-6 py-2 text-sm rounded-lg text-red-400 border-red-500/30 hover:bg-red-900/30"><i class="fa-solid fa-trash-can mr-2"></i>Remove</button></div>`;
 
         usageContainer.innerHTML = `
@@ -403,7 +417,7 @@ export function renderProfilePage(renderFunc, params) {
                 <div class="text-center">
                     <i class="fa-solid fa-triangle-exclamation text-4xl text-amber-400 mb-3"></i>
                     <h3 class="text-xl font-bold text-white">Plan Expired / Inactive</h3>
-                    <p class="text-sm text-gray-300 mt-1">We couldn't find active data for <span class="font-semibold text-amber-300">${username}</span>. It may have expired.</p>
+                    <p class="text-sm text-gray-300 mt-1">We couldn't find active data for <span class="font-semibold text-amber-300">${displayUsername}</span>. It may have expired.</p>
                 </div>
                 <div class="pt-2 flex flex-col gap-2">
                     ${renewalActionHtml}
@@ -424,7 +438,7 @@ export function renderProfilePage(renderFunc, params) {
             document.getElementById('switch-plan-btn')?.addEventListener('click', () => {
                 const currentIndex = globalActivePlans.findIndex(p => p.v2rayUsername === username);
                 const nextIndex = (currentIndex + 1) % globalActivePlans.length;
-                document.querySelector('#plan-menu .trigger-menu .text').textContent = globalActivePlans[nextIndex].v2rayUsername;
+                document.querySelector('#plan-menu .trigger-menu .text').textContent = getDisplayName(globalActivePlans[nextIndex].v2rayUsername);
                 localStorage.setItem(`nexguard_last_plan_${user.username}`, globalActivePlans[nextIndex].v2rayUsername);
                 if (window.renderPlanDetailsInternal) window.renderPlanDetailsInternal(nextIndex);
             });
@@ -435,7 +449,6 @@ export function renderProfilePage(renderFunc, params) {
         const usageContainer = document.getElementById("tab-usage");
         if (!usageContainer) return;
         
-        // --- FLICKER PREVENTION START ---
         let isKnownRejected = false;
         if(ordersCache) {
              isKnownRejected = ordersCache.some(o => 
@@ -448,7 +461,6 @@ export function renderProfilePage(renderFunc, params) {
             renderPlanRejectedHTML(username);
             return; 
         }
-        // --------------------------------
 
         if (!isSilent && !usageDataCache[username]) {
             usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
@@ -459,13 +471,9 @@ export function renderProfilePage(renderFunc, params) {
                 if (result.success && result.data) {
                     renderUsageHTML(result.data, username);
                 } else if (result.isRemoved) {
-                    // Clean Cache
                     delete usageDataCache[username];
                     try { localStorage.setItem('nexguard_usage_cache', JSON.stringify(usageDataCache)); } catch(e){}
-                    
-                    // Force Check Rejection
                     if (!ordersCache) await ensureOrdersLoaded();
-
                     let isRejected = false;
                     if(ordersCache) {
                          isRejected = ordersCache.some(o => 
@@ -473,7 +481,6 @@ export function renderProfilePage(renderFunc, params) {
                              o.status === 'rejected'
                          );
                     }
-
                     if (isRejected) {
                         renderPlanRejectedHTML(username);
                     } else {
@@ -518,7 +525,6 @@ export function renderProfilePage(renderFunc, params) {
         const container = document.getElementById("renew-button-container");
         if (!container) return;
         
-        // --- BUTTON FIX: Show Active Immediately ---
         if (!usageDataCache[plan.v2rayUsername]) {
              container.innerHTML = `<button id="renew-profile-btn" class="ai-button bg-amber-500 hover:bg-amber-600 border-none text-white inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew Plan</button>`;
              document.getElementById('renew-profile-btn')?.addEventListener('click', () => handleRenewalChoice(activePlans, plan));
@@ -582,12 +588,25 @@ export function renderProfilePage(renderFunc, params) {
 
     let planMenuInstance = null;
     const renderPlanSelector = (activePlans, activePlanIndex = 0) => {
+        // --- CHANGED: Use getDisplayName to show name without prefix in dropdown ---
         let planListItems = activePlans.map((plan, index) => 
-            `<li><a href="#" data-plan-index="${index}">${plan.v2rayUsername}</a></li>`
+            `<li>
+                <div class="plan-row" data-plan-index="${index}">
+                    <span class="plan-name">${getDisplayName(plan.v2rayUsername)}</span>
+                    <button class="remove-plan-btn" data-username="${plan.v2rayUsername}" title="Remove from Dashboard">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+            </li>`
         ).join('');
 
-        // --- CHANGED: "Add More +" (New Trigger) ---
-        planListItems += `<li class="border-t border-white/10 mt-1 pt-1"><a href="#" id="link-new-account-option" class="text-blue-300 hover:text-blue-200"><i class="fa-solid fa-plus-circle mr-2"></i>Add More +</a></li>`;
+        planListItems += `<li class="border-t border-white/10 mt-1 pt-1">
+            <div id="link-new-account-option" class="add-more-row">
+                <i class="fa-solid fa-plus-circle mr-2"></i>Add More +
+            </div>
+        </li>`;
+
+        const displayActiveName = activePlans[activePlanIndex] ? getDisplayName(activePlans[activePlanIndex].v2rayUsername) : 'Select Plan';
 
         const containerHtml = `
             <div class="plan-selector-container">
@@ -596,7 +615,7 @@ export function renderProfilePage(renderFunc, params) {
                     <li class="fmenu-item custom-radius">
                         <div class="trigger-menu custom-radius">
                             <i class="fa-solid fa-server"></i>
-                            <span class="text">${activePlans[activePlanIndex]?.v2rayUsername || 'Select Plan'}</span>
+                            <span class="text">${displayActiveName}</span>
                             <i class="fa-solid fa-chevron-down arrow"></i>
                         </div>
                         <ul class="floating-menu">${planListItems}</ul>
@@ -608,26 +627,40 @@ export function renderProfilePage(renderFunc, params) {
         if (!existingMenu) {
              statusContainer.innerHTML = containerHtml;
         } else {
-             existingMenu.outerHTML = `<div class="plan-selector-container"><label class="plan-selector-label custom-radius">Viewing Plan:</label><ul class="fmenu custom-radius" id="plan-menu"><li class="fmenu-item custom-radius"><div class="trigger-menu custom-radius"><i class="fa-solid fa-server"></i><span class="text">${activePlans[activePlanIndex]?.v2rayUsername || 'Select Plan'}</span><i class="fa-solid fa-chevron-down arrow"></i></div><ul class="floating-menu">${planListItems}</ul></li></ul></div>`;
+             existingMenu.outerHTML = `<div class="plan-selector-container"><label class="plan-selector-label custom-radius">Viewing Plan:</label><ul class="fmenu custom-radius" id="plan-menu"><li class="fmenu-item custom-radius"><div class="trigger-menu custom-radius"><i class="fa-solid fa-server"></i><span class="text">${displayActiveName}</span><i class="fa-solid fa-chevron-down arrow"></i></div><ul class="floating-menu">${planListItems}</ul></li></ul></div>`;
         }
 
         planMenuInstance = new SikFloatingMenu("#plan-menu");
         
         document.querySelector('#plan-menu .floating-menu')?.addEventListener('click', (e) => {
-            const link = e.target.closest('a');
-            if (link) {
-                e.preventDefault();
-                if (link.id === 'link-new-account-option') {
-                    planMenuInstance.closeAll();
-                    const linkModal = document.getElementById('link-account-modal');
-                    if(linkModal) { linkModal.classList.add('visible'); document.body.classList.add('modal-open'); }
-                } else {
-                    const index = parseInt(link.dataset.planIndex);
-                    document.querySelector('#plan-menu .trigger-menu .text').textContent = activePlans[index].v2rayUsername;
-                    localStorage.setItem(LAST_PLAN_KEY, activePlans[index].v2rayUsername); 
-                    if (window.renderPlanDetailsInternal) window.renderPlanDetailsInternal(index); 
-                    planMenuInstance.closeAll();
-                }
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Handle Remove Click
+            const removeBtn = e.target.closest('.remove-plan-btn');
+            if (removeBtn) {
+                const username = removeBtn.dataset.username;
+                unlinkPlan(username);
+                return;
+            }
+
+            // Handle Add More Click
+            const addMoreOption = e.target.closest('#link-new-account-option');
+            if (addMoreOption) {
+                planMenuInstance.closeAll();
+                const linkModal = document.getElementById('link-account-modal');
+                if(linkModal) { linkModal.classList.add('visible'); document.body.classList.add('modal-open'); }
+                return;
+            }
+
+            // Handle Plan Switch
+            const planRow = e.target.closest('.plan-row');
+            if (planRow) {
+                const index = parseInt(planRow.dataset.planIndex);
+                document.querySelector('#plan-menu .trigger-menu .text').textContent = getDisplayName(activePlans[index].v2rayUsername);
+                localStorage.setItem(LAST_PLAN_KEY, activePlans[index].v2rayUsername); 
+                if (window.renderPlanDetailsInternal) window.renderPlanDetailsInternal(index); 
+                planMenuInstance.closeAll();
             }
         });
     };
@@ -639,7 +672,6 @@ export function renderProfilePage(renderFunc, params) {
             lastKnownPlansStr = currentPlansStr;
 
             if (data.status === "approved" && data.activePlans?.length > 0) {
-                // Ensure orders loaded for instant rejection checks
                 ensureOrdersLoaded().then(() => {
                     data.activePlans.forEach(p => fetchClientData(p.v2rayUsername));
                 });
@@ -662,7 +694,6 @@ export function renderProfilePage(renderFunc, params) {
                     const container = document.getElementById("plan-details-container");
                     if(!plan) return;
                     
-                    // --- CHANGED: IMMEDIATE REJECTION CHECK (Prevent Flash) ---
                     let isImmediateRejected = false;
                     if(ordersCache) {
                         isImmediateRejected = ordersCache.some(o => o.final_username === plan.v2rayUsername && o.status === 'rejected');
@@ -670,10 +701,11 @@ export function renderProfilePage(renderFunc, params) {
 
                     const connectionName = appData.connections.find(c => c.name === plan.connId)?.name || plan.connId || 'N/A';
                     const planName = appData.plans[plan.planId]?.name || plan.planId;
+                    
+                    // --- CHANGED: Display name without prefix in header ---
                     document.getElementById("plan-info-container").innerHTML = `<span class="bg-blue-500/10 text-blue-300 px-2 py-1 rounded-full"><i class="fa-solid fa-rocket fa-fw mr-2"></i>${planName}</span><span class="bg-indigo-500/10 text-indigo-300 px-2 py-1 rounded-full"><i class="fa-solid fa-wifi fa-fw mr-2"></i>${connectionName}</span>`;
 
                     if(!document.getElementById('profile-tabs')) {
-                        // --- CHANGED: SHOW TABS IMMEDIATELY ---
                         container.innerHTML = `
                         <div id="profile-tabs" class="flex items-center gap-4 sm:gap-6 border-b border-white/10 mb-6 overflow-x-auto">
                             <button data-tab="config" class="tab-btn active">V2Ray Config</button>
@@ -681,7 +713,6 @@ export function renderProfilePage(renderFunc, params) {
                             <button data-tab="orders" class="tab-btn">My Orders</button>
                             <button data-tab="settings" class="tab-btn">Settings</button>
                         </div>
-                        
                         <div id="tab-config" class="tab-panel active">
                             <div class="card-glass p-8 text-center custom-radius flex flex-col items-center justify-center min-h-[300px]">
                                 <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-400 mb-4"></i>
@@ -689,10 +720,8 @@ export function renderProfilePage(renderFunc, params) {
                                 <p class="text-sm text-gray-400 mt-2">Verifying status with server</p>
                             </div>
                         </div>
-                        
                         <div id="tab-usage" class="tab-panel"></div>
                         <div id="tab-orders" class="tab-panel"></div>
-                        
                         <div id="tab-settings" class="tab-panel">
                             <div class="card-glass p-6 sm:p-8 custom-radius">
                                 <div class="max-w-md mx-auto">
@@ -723,18 +752,15 @@ export function renderProfilePage(renderFunc, params) {
                         });
                         setupEventListeners();
                     } else {
-                         // --- FORCE LOADING STATE ON SWITCH ---
                          const configTab = document.getElementById("tab-config");
                          if(configTab) {
                              configTab.innerHTML = `<div class="card-glass p-8 text-center custom-radius flex flex-col items-center justify-center min-h-[300px]"><i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-400 mb-4"></i><h3 class="text-xl font-bold text-white font-['Orbitron'] animate-pulse">Checking Plan Details...</h3><p class="text-sm text-gray-400 mt-2">Verifying status with server</p></div>`;
                          }
                     }
 
-                    // --- CHECK REJECTION (ASYNC) & UPDATE UI ---
                     if (!ordersCache) await ensureOrdersLoaded();
                     
-                    // RE-EVALUATE REJECTION AFTER AWAIT
-                    isImmediateRejected = false; // Reset to avoid redeclaration error
+                    isImmediateRejected = false; 
                     if(ordersCache) {
                         isImmediateRejected = ordersCache.some(o => o.final_username === plan.v2rayUsername && o.status === 'rejected');
                     }
@@ -742,13 +768,12 @@ export function renderProfilePage(renderFunc, params) {
                     const configTab = document.getElementById("tab-config");
                     
                     if (isImmediateRejected) {
-                        // Render Rejected View
                         const rejectedHtml = `
                             <div class="result-card p-6 card-glass custom-radius space-y-4 reveal is-visible border border-red-500/50 bg-red-900/10">
                                 <div class="text-center">
                                     <i class="fa-solid fa-ban text-4xl text-red-500 mb-3"></i>
                                     <h3 class="text-xl font-bold text-white">Your Plan Rejected By Admin</h3>
-                                    <p class="text-sm text-gray-300 mt-2">Unfortunately, your plan <span class="font-semibold text-red-300">${plan.v2rayUsername}</span> has been rejected.</p>
+                                    <p class="text-sm text-gray-300 mt-2">Unfortunately, your plan <span class="font-semibold text-red-300">${getDisplayName(plan.v2rayUsername)}</span> has been rejected.</p>
                                     <p class="text-xs text-gray-400 mt-1">Please check your orders tab or contact support for more details.</p>
                                 </div>
                                 <div class="pt-2 text-center">
@@ -760,7 +785,6 @@ export function renderProfilePage(renderFunc, params) {
                         configTab.innerHTML = rejectedHtml;
                         document.getElementById('remove-rejected-btn-cfg')?.addEventListener('click', () => unlinkPlan(plan.v2rayUsername));
                     } else {
-                        // Render Standard Config View
                         configTab.innerHTML = `
                             <div class="card-glass p-6 sm:p-8 custom-radius">
                                 <div class="grid md:grid-cols-2 gap-8 items-center">
@@ -852,7 +876,6 @@ export function renderProfilePage(renderFunc, params) {
 
     const loadProfileData = async () => {
         try {
-            // Pre-fetch orders to ensure fast rejection check
             ensureOrdersLoaded();
 
             let cachedPlansStr = null;
