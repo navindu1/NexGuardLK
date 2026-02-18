@@ -183,26 +183,38 @@ export function renderPrivacyPage(renderFunc) {
 
     // Fetch and render dynamic links
     const loadLinks = async () => {
-        try {
-            const res = await apiFetch('/api/user/software-links');
-            const data = await res.json();
-            const container = document.getElementById('privacy-software-list');
-            if (data.success && data.links && data.links.length > 0) {
-                container.innerHTML = data.links.map(link => `
-                    <a href="${link.url}" target="_blank" class="card p-6 custom-radius bg-white/5 border border-white/10 hover:bg-white/10 transition flex flex-col items-center justify-center text-center group cursor-pointer hover:-translate-y-1 shadow-lg hover:shadow-blue-500/20">
-                        <i class="${link.icon || 'fa-solid fa-download'} text-4xl text-blue-400 mb-3 group-hover:scale-110 transition-transform"></i>
-                        <h3 class="font-bold text-white text-lg">${link.name}</h3>
-                        <p class="text-xs text-gray-400 mt-1">Latest Version</p>
-                        <span class="mt-3 text-xs bg-blue-500/20 text-blue-300 px-4 py-1 rounded-full border border-blue-500/30">Download Now</span>
-                    </a>
-                `).join('');
-            } else {
-                container.innerHTML = '<div class="col-span-3 text-center text-gray-500">No software links available.</div>';
-            }
-        } catch (e) {
-            console.error("Failed to load links", e);
-            document.getElementById('privacy-software-list').innerHTML = '<div class="col-span-3 text-center text-red-400">Failed to load links.</div>';
+    try {
+        const res = await apiFetch('/api/user/software-links');
+        const data = await res.json();
+        const container = document.getElementById('privacy-software-list');
+        
+        if (data.success && data.links && data.links.length > 0) {
+            container.innerHTML = data.links.map(link => `
+                <a href="${link.url}" target="_blank" class="card p-6 custom-radius bg-slate-800/40 border border-white/5 hover:border-blue-500/30 hover:bg-slate-800/60 transition-all duration-300 flex flex-col items-center justify-center text-center group cursor-pointer relative overflow-hidden">
+                    
+                    <div class="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl"></div>
+
+                    <div class="relative z-10 w-16 h-16 mb-4 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 border border-white/5 group-hover:border-blue-500/30">
+                        <i class="${link.icon || 'fa-solid fa-download'} text-3xl text-blue-400 group-hover:text-blue-300 drop-shadow-md"></i>
+                    </div>
+
+                    <h3 class="relative z-10 font-bold text-white text-lg tracking-wide group-hover:text-blue-200 transition-colors">${link.name}</h3>
+                    <p class="relative z-10 text-xs text-gray-400 mt-1 mb-5 group-hover:text-gray-300">Latest Version</p>
+
+                    <button class="relative z-10 flex items-center gap-2 px-6 py-2.5 bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-600/30 hover:border-blue-500 rounded-lg transition-all duration-300 shadow-[0_0_10px_rgba(37,99,235,0.1)] hover:shadow-[0_0_20px_rgba(37,99,235,0.4)] font-medium text-sm w-full justify-center group-hover:translate-y-[-2px]">
+                        <span>Download</span>
+                        <i class="fa-solid fa-cloud-arrow-down animate-bounce"></i>
+                    </button>
+
+                </a>
+            `).join('');
+        } else {
+            container.innerHTML = '<div class="col-span-3 text-center p-8 border border-dashed border-slate-700 rounded-xl text-gray-500">No software links available.</div>';
         }
-    };
+    } catch (e) {
+        console.error("Failed to load links", e);
+        document.getElementById('privacy-software-list').innerHTML = '<div class="col-span-3 text-center text-red-400 bg-red-900/10 p-4 rounded-lg">Failed to load links.</div>';
+    }
+};
     loadLinks();
 }
