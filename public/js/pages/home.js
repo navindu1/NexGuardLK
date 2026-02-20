@@ -150,93 +150,98 @@ export function renderAboutPage(renderFunc) {
 }
 
 export function renderPrivacyPage(renderFunc) {
-    // 1. පිටුවේ නව සැකැස්ම (New Privacy Policy Design + Dynamic Container)
+    // 1. පිටුවේ නව සැකැස්ම (Exact Modern Design match)
     renderFunc(`
-        <style>
-            .policy-card {
-                background-color: rgba(17, 34, 64, 0.5);
-                border: 1px solid rgba(255, 255, 255, 0.05);
-                backdrop-filter: blur(10px);
-                border-radius: 16px;
-                padding: 24px;
-                margin-bottom: 24px;
-                transition: transform 0.3s ease, box-shadow 0.3s ease;
-            }
-            .policy-card:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
-                border-color: rgba(100, 255, 218, 0.2);
-            }
-            .policy-card h2 {
-                font-size: 1.25rem;
-                font-weight: 700;
-                color: #ffffff;
-                margin-bottom: 16px;
-                display: flex;
-                align-items: center;
-                gap: 12px;
-            }
-            .policy-card h2 i {
-                color: #64ffda;
-                font-size: 1.5rem;
-            }
-            .policy-list li {
-                margin-bottom: 12px;
-                color: #c5d3e8;
-                font-size: 0.95rem;
-                line-height: 1.6;
-            }
-            .policy-list li strong {
-                color: #ffffff;
-            }
-        </style>
+        <div id="page-privacy" class="page space-y-8 animate-fade-in relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-blue-900/10 to-transparent -z-10 pointer-events-none"></div>
 
-        <div id="page-privacy" class="page space-y-8 animate-fade-in">
-            <div class="text-center py-10 reveal">
-                <h1 class="text-4xl md:text-5xl font-bold text-white font-['Orbitron'] mb-4">Privacy & Policy</h1>
-                <p class="text-gray-400 max-w-2xl mx-auto text-sm md:text-base">Your privacy is important to us. This policy outlines how we collect, use, and protect your information.</p>
+            <div class="text-center py-10 md:py-14 px-4 reveal relative z-10">
+                <h1 class="text-4xl md:text-5xl font-black text-white font-['Orbitron'] mb-4 drop-shadow-lg">Privacy & Policy</h1>
+                <p class="text-gray-400 max-w-2xl mx-auto text-sm md:text-base font-medium">Your privacy is important to us. This policy outlines how we collect, use, and protect your information.</p>
             </div>
 
-            <div class="max-w-4xl mx-auto reveal">
-                <div class="policy-card">
-                    <h2><i class="fas fa-info-circle"></i> Information We Collect</h2>
-                    <p class="text-[#c5d3e8] mb-4 text-sm leading-relaxed">We collect various types of information to provide and improve our services to you. This may include:</p>
-                    <ul class="policy-list list-disc pl-6 marker:text-[#64ffda]">
-                        <li><strong>Personal Information:</strong> Such as your chosen username, WhatsApp number for support, and an encrypted password.</li>
-                        <li><strong>Usage Data:</strong> We do not track the websites you visit. We do not store logs of your online activity.</li>
+            <div class="max-w-4xl mx-auto px-4 reveal space-y-6 relative z-10">
+                <div class="card-glass custom-radius p-6 md:p-8 bg-slate-800/40 border border-white/5 hover:border-blue-500/30 transition-all duration-300 shadow-lg hover:shadow-blue-500/10 hover:-translate-y-1">
+                    <h2 class="text-xl md:text-2xl font-bold text-white mb-5 flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
+                            <i class="fa-solid fa-circle-info text-blue-400"></i>
+                        </div>
+                        Information We Collect
+                    </h2>
+                    <p class="text-gray-300 mb-5 text-sm leading-relaxed">We collect various types of information to provide and improve our services to you. This may include:</p>
+                    <ul class="space-y-4">
+                        <li class="flex items-start gap-3 text-sm text-gray-400">
+                            <i class="fa-solid fa-check text-blue-500 mt-1"></i>
+                            <span><strong class="text-gray-200">Personal Information:</strong> Such as your chosen username, WhatsApp number for support, and an encrypted password.</span>
+                        </li>
+                        <li class="flex items-start gap-3 text-sm text-gray-400">
+                            <i class="fa-solid fa-check text-blue-500 mt-1"></i>
+                            <span><strong class="text-gray-200">Usage Data:</strong> We do not track the websites you visit. We do not store logs of your online activity.</span>
+                        </li>
                     </ul>
                 </div>
 
-                <div class="policy-card">
-                    <h2><i class="fas fa-cog"></i> How We Use Information</h2>
-                    <ul class="policy-list list-disc pl-6 marker:text-[#64ffda]">
-                        <li>To provide, operate, and maintain our V2Ray services.</li>
-                        <li>To process your transactions and manage your orders securely.</li>
-                        <li>To communicate with you via WhatsApp or Telegram for fast customer support.</li>
-                        <li>To find and prevent fraud to protect our network and users.</li>
+                <div class="card-glass custom-radius p-6 md:p-8 bg-slate-800/40 border border-white/5 hover:border-blue-500/30 transition-all duration-300 shadow-lg hover:shadow-blue-500/10 hover:-translate-y-1">
+                    <h2 class="text-xl md:text-2xl font-bold text-white mb-5 flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
+                            <i class="fa-solid fa-gear text-blue-400"></i>
+                        </div>
+                        How We Use Information
+                    </h2>
+                    <ul class="space-y-4">
+                        <li class="flex items-start gap-3 text-sm text-gray-400">
+                            <i class="fa-solid fa-arrow-right text-blue-500 mt-1"></i>
+                            <span>To provide, operate, and maintain our V2Ray services.</span>
+                        </li>
+                        <li class="flex items-start gap-3 text-sm text-gray-400">
+                            <i class="fa-solid fa-arrow-right text-blue-500 mt-1"></i>
+                            <span>To process your transactions and manage your orders securely.</span>
+                        </li>
+                        <li class="flex items-start gap-3 text-sm text-gray-400">
+                            <i class="fa-solid fa-arrow-right text-blue-500 mt-1"></i>
+                            <span>To communicate with you via WhatsApp or Telegram for fast customer support.</span>
+                        </li>
+                        <li class="flex items-start gap-3 text-sm text-gray-400">
+                            <i class="fa-solid fa-arrow-right text-blue-500 mt-1"></i>
+                            <span>To find and prevent fraud to protect our network and users.</span>
+                        </li>
                     </ul>
                 </div>
 
-                <div class="policy-card border-l-4 border-l-amber-500">
-                    <h2><i class="fas fa-money-bill-wave text-amber-400"></i> Refund Policy</h2>
-                    <p class="text-[#c5d3e8] mb-4 text-sm leading-relaxed">We offer a conditional refund for our V2Ray packages. You are eligible for a full refund under the following conditions:</p>
-                    <ul class="list-none space-y-3 mt-2 text-sm text-gray-300">
-                        <li class="flex items-center gap-3 bg-black/20 p-3 rounded-lg">
-                            <i class="fa-solid fa-clock text-amber-400 text-lg"></i>
-                            <span>Request must be made within <strong class="text-white">2 days (48 hours)</strong>.</span>
-                        </li>
-                        <li class="flex items-center gap-3 bg-black/20 p-3 rounded-lg">
-                            <i class="fa-solid fa-chart-pie text-amber-400 text-lg"></i>
-                            <span>Data usage must be less than <strong class="text-white">10 GB</strong>.</span>
-                        </li>
-                    </ul>
-                    <p class="font-semibold text-amber-400 mt-5 text-xs uppercase tracking-wider flex items-center gap-2">
-                        <i class="fa-solid fa-circle-exclamation"></i> If these conditions are not met, you will not be eligible for a refund.
-                    </p>
+                <div class="card-glass custom-radius p-6 md:p-8 bg-amber-900/10 border border-white/5 border-l-4 border-l-amber-500 hover:border-amber-500/30 transition-all duration-300 shadow-lg hover:shadow-amber-500/10 hover:-translate-y-1 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 blur-2xl rounded-full pointer-events-none"></div>
+
+                    <h2 class="text-xl md:text-2xl font-bold text-white mb-5 flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center border border-amber-500/30">
+                            <i class="fa-solid fa-money-bill-wave text-amber-400"></i>
+                        </div>
+                        Refund Policy
+                    </h2>
+                    <p class="text-gray-300 mb-6 text-sm leading-relaxed">We offer a conditional refund for our V2Ray packages. You are eligible for a full refund under the following conditions:</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div class="bg-black/40 border border-white/5 rounded-xl p-4 flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-clock text-amber-400 text-lg"></i>
+                            </div>
+                            <span class="text-sm text-gray-300">Request must be made within <strong class="text-white block mt-1 text-base">2 days (48 hours)</strong>.</span>
+                        </div>
+                        <div class="bg-black/40 border border-white/5 rounded-xl p-4 flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-chart-pie text-amber-400 text-lg"></i>
+                            </div>
+                            <span class="text-sm text-gray-300">Data usage must be less than <strong class="text-white block mt-1 text-base">10 GB</strong>.</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 flex items-start gap-3">
+                        <i class="fa-solid fa-triangle-exclamation text-amber-500 mt-0.5"></i>
+                        <p class="font-semibold text-amber-400 text-xs md:text-sm uppercase tracking-wider">If these conditions are not met, you will not be eligible for a refund.</p>
+                    </div>
                 </div>
             </div>
 
-            <div class="card-glass p-8 custom-radius max-w-4xl mx-auto reveal border border-white/5 mt-8">
+            <div class="card-glass p-8 custom-radius max-w-4xl mx-auto reveal border border-white/5 mt-10 relative z-10">
                 <div class="text-center mb-8">
                     <h2 class="text-3xl font-bold text-white font-['Orbitron'] mb-2">Downloadable Software</h2>
                     <p class="text-gray-400 text-sm">Get the recommended V2Ray client for your device.</p>
@@ -251,7 +256,7 @@ export function renderPrivacyPage(renderFunc) {
         </div>
     `);
 
-    // 2. දත්ත ගෙන්වා ගැනීම සහ පෙන්වීම (Data Fetching Logic - මෙය කිසිදු වෙනසක් කර නොමැත)
+    // 2. දත්ත ගෙන්වා ගැනීම සහ පෙන්වීම (Data Fetching Logic - Software Downloads)
     const loadLinks = async () => {
         try {
             const res = await apiFetch('/api/user/software-links');
