@@ -219,8 +219,14 @@ const deleteConnection = async (req, res) => {
 
 const createPackage = async (req, res) => {
     try {
-        // Frontend එකෙන් එන දත්ත වල හිස් ("") ඒවා null වලට හරවන්න
         const insertData = { ...req.body };
+        
+        // අලුත් එකක් හදද්දි ID එකක් අවශ්‍ය නැති නිසා ඒක අයින් කරනවා (Database එකෙන් auto generate වෙන්න දෙනවා)
+        if ('id' in insertData) {
+            delete insertData.id;
+        }
+
+        // අනිත් හිස් දත්ත null බවට පත් කරනවා
         for (const key in insertData) {
             if (insertData[key] === '') {
                 insertData[key] = null;
@@ -242,8 +248,14 @@ const createPackage = async (req, res) => {
 
 const updatePackage = async (req, res) => {
     try {
-        // Frontend එකෙන් එන දත්ත වල හිස් ("") ඒවා null වලට හරවන්න
         const updateData = { ...req.body };
+        
+        // Update කරද්දි primary key ID එක වෙනස් කරන්න අවශ්‍ය නැති නිසා ඒක අයින් කරනවා
+        if ('id' in updateData) {
+            delete updateData.id; 
+        }
+
+        // අනිත් හිස් දත්ත null බවට පත් කරනවා
         for (const key in updateData) {
             if (updateData[key] === '') {
                 updateData[key] = null;
@@ -262,7 +274,6 @@ const updatePackage = async (req, res) => {
         res.status(500).json({ success: false, message: 'Failed to update package.', error: error.message }); 
     }
 };
-
 const deletePackage = async (req, res) => {
     try {
         const { error } = await supabase.from('packages').delete().eq('id', req.params.id);
