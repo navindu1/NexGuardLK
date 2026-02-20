@@ -150,154 +150,91 @@ export function renderAboutPage(renderFunc) {
 }
 
 export function renderPrivacyPage(renderFunc) {
-    // 1. පිටුවේ නව සැකැස්ම (Exact Modern Design match)
+    // 1. ඔබ ලබාදුන් Design එක කිසිම වෙනසක් නොකර මෙහි ඇත
     renderFunc(`
-        <div id="page-privacy" class="page space-y-8 animate-fade-in relative overflow-hidden">
-            <div class="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-blue-900/10 to-transparent -z-10 pointer-events-none"></div>
-
-            <div class="text-center py-10 md:py-14 px-4 reveal relative z-10">
-                <h1 class="text-4xl md:text-5xl font-black text-white font-['Orbitron'] mb-4 drop-shadow-lg">Privacy & Policy</h1>
-                <p class="text-gray-400 max-w-2xl mx-auto text-sm md:text-base font-medium">Your privacy is important to us. This policy outlines how we collect, use, and protect your information.</p>
-            </div>
-
-            <div class="max-w-4xl mx-auto px-4 reveal space-y-6 relative z-10">
-                <div class="card-glass custom-radius p-6 md:p-8 bg-slate-800/40 border border-white/5 hover:border-blue-500/30 transition-all duration-300 shadow-lg hover:shadow-blue-500/10 hover:-translate-y-1">
-                    <h2 class="text-xl md:text-2xl font-bold text-white mb-5 flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
-                            <i class="fa-solid fa-circle-info text-blue-400"></i>
-                        </div>
-                        Information We Collect
-                    </h2>
-                    <p class="text-gray-300 mb-5 text-sm leading-relaxed">We collect various types of information to provide and improve our services to you. This may include:</p>
-                    <ul class="space-y-4">
-                        <li class="flex items-start gap-3 text-sm text-gray-400">
-                            <i class="fa-solid fa-check text-blue-500 mt-1"></i>
-                            <span><strong class="text-gray-200">Personal Information:</strong> Such as your chosen username, WhatsApp number for support, and an encrypted password.</span>
-                        </li>
-                        <li class="flex items-start gap-3 text-sm text-gray-400">
-                            <i class="fa-solid fa-check text-blue-500 mt-1"></i>
-                            <span><strong class="text-gray-200">Usage Data:</strong> We do not track the websites you visit. We do not store logs of your online activity.</span>
-                        </li>
-                    </ul>
+        <div id="page-privacy" class="page space-y-8">
+            <div class="card-glass p-8 custom-radius space-y-5 max-w-4xl mx-auto reveal">
+                <h2 class="text-2xl font-bold">Privacy & Refund Policy</h2>
+                <div>
+                    <h3 class="text-lg font-bold text-white mb-2">Our Commitment to Privacy</h3>
+                    <p class="text-gray-300 text-sm">Your privacy is critically important to us. We do not store logs of your online activity. We store account information only for service provision. We aim for full transparency on how we handle your data.</p>
                 </div>
-
-                <div class="card-glass custom-radius p-6 md:p-8 bg-slate-800/40 border border-white/5 hover:border-blue-500/30 transition-all duration-300 shadow-lg hover:shadow-blue-500/10 hover:-translate-y-1">
-                    <h2 class="text-xl md:text-2xl font-bold text-white mb-5 flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
-                            <i class="fa-solid fa-gear text-blue-400"></i>
-                        </div>
-                        How We Use Information
-                    </h2>
-                    <ul class="space-y-4">
-                        <li class="flex items-start gap-3 text-sm text-gray-400">
-                            <i class="fa-solid fa-arrow-right text-blue-500 mt-1"></i>
-                            <span>To provide, operate, and maintain our V2Ray services.</span>
-                        </li>
-                        <li class="flex items-start gap-3 text-sm text-gray-400">
-                            <i class="fa-solid fa-arrow-right text-blue-500 mt-1"></i>
-                            <span>To process your transactions and manage your orders securely.</span>
-                        </li>
-                        <li class="flex items-start gap-3 text-sm text-gray-400">
-                            <i class="fa-solid fa-arrow-right text-blue-500 mt-1"></i>
-                            <span>To communicate with you via WhatsApp or Telegram for fast customer support.</span>
-                        </li>
-                        <li class="flex items-start gap-3 text-sm text-gray-400">
-                            <i class="fa-solid fa-arrow-right text-blue-500 mt-1"></i>
-                            <span>To find and prevent fraud to protect our network and users.</span>
-                        </li>
-                    </ul>
+                <div>
+                    <h3 class="text-lg font-bold text-white mb-2">Information We Collect</h3>
+                    <p class="text-gray-300 text-sm">We collect the bare minimum information to create and manage your account: your chosen username, WhatsApp number for support, and an encrypted password. We do not track the websites you visit.</p>
                 </div>
-
-                <div class="card-glass custom-radius p-6 md:p-8 bg-amber-900/10 border border-white/5 border-l-4 border-l-amber-500 hover:border-amber-500/30 transition-all duration-300 shadow-lg hover:shadow-amber-500/10 hover:-translate-y-1 relative overflow-hidden">
-                    <div class="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 blur-2xl rounded-full pointer-events-none"></div>
-
-                    <h2 class="text-xl md:text-2xl font-bold text-white mb-5 flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center border border-amber-500/30">
-                            <i class="fa-solid fa-money-bill-wave text-amber-400"></i>
-                        </div>
-                        Refund Policy
-                    </h2>
-                    <p class="text-gray-300 mb-6 text-sm leading-relaxed">We offer a conditional refund for our V2Ray packages. You are eligible for a full refund under the following conditions:</p>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        <div class="bg-black/40 border border-white/5 rounded-xl p-4 flex items-center gap-4">
-                            <div class="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-                                <i class="fa-solid fa-clock text-amber-400 text-lg"></i>
-                            </div>
-                            <span class="text-sm text-gray-300">Request must be made within <strong class="text-white block mt-1 text-base">2 days (48 hours)</strong>.</span>
-                        </div>
-                        <div class="bg-black/40 border border-white/5 rounded-xl p-4 flex items-center gap-4">
-                            <div class="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-                                <i class="fa-solid fa-chart-pie text-amber-400 text-lg"></i>
-                            </div>
-                            <span class="text-sm text-gray-300">Data usage must be less than <strong class="text-white block mt-1 text-base">10 GB</strong>.</span>
-                        </div>
-                    </div>
-
-                    <div class="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 flex items-start gap-3">
-                        <i class="fa-solid fa-triangle-exclamation text-amber-500 mt-0.5"></i>
-                        <p class="font-semibold text-amber-400 text-xs md:text-sm uppercase tracking-wider">If these conditions are not met, you will not be eligible for a refund.</p>
-                    </div>
+                <div class="pt-4 border-t border-white/10">
+                    <h3 class="text-xl font-bold">Refund Policy</h3>
+                    <p class="text-gray-300 mt-2 text-sm">We offer a conditional refund for our V2Ray packages. You are eligible for a full refund under the following conditions:</p>
+                    <ul class="list-disc list-inside text-gray-300 space-y-2 pl-4 mt-2 text-sm">
+                        <li>The request must be made within <strong>2 days (48 hours)</strong> of the purchase.</li>
+                        <li>Your total data usage must be less than <strong>10 GB</strong>.</li>
+                    </ul>
+                    <p class="font-semibold text-amber-400 mt-2 text-sm">If these conditions are not met, you will not be eligible for a refund.</p>
                 </div>
             </div>
 
-            <div class="card-glass p-8 custom-radius max-w-4xl mx-auto reveal border border-white/5 mt-10 relative z-10">
-                <div class="text-center mb-8">
-                    <h2 class="text-3xl font-bold text-white font-['Orbitron'] mb-2">Downloadable Software</h2>
-                    <p class="text-gray-400 text-sm">Get the recommended V2Ray client for your device.</p>
-                </div>
+            <div class="card-glass p-8 custom-radius max-w-4xl mx-auto reveal">
+                <h2 class="text-2xl font-bold mb-6 text-center text-white">Downloadable Software</h2>
+                <p class="text-gray-400 text-center mb-8 text-sm">Download the recommended V2Ray client for your device to get started.</p>
                 
-                <div id="privacy-software-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div class="col-span-full text-center py-8 text-gray-500">
-                        <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i><br>Loading Downloads...
-                    </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <a id="dl-link-pc" href="https://cyfuture.dl.sourceforge.net/project/netmodhttp/Setup/NetMod6.2.10_x86_beta.exe?viasf=1" target="_blank" class="card p-6 custom-radius bg-white/5 border border-white/10 hover:bg-white/10 transition flex flex-col items-center justify-center text-center group cursor-pointer">
+                        <i class="fa-brands fa-windows text-4xl text-blue-400 mb-3 group-hover:scale-110 transition-transform"></i>
+                        <h3 class="font-bold text-white text-lg">PC Client</h3>
+                        <p class="text-xs text-gray-400 mt-1">Netmod Syna</p>
+                        <span class="mt-3 text-xs bg-blue-500/20 text-blue-300 px-3 py-1 rounded-full">Download .exe</span>
+                    </a>
+
+                    <a id="dl-link-ios" href="https://apps.apple.com/us/app/v2box-v2ray-client/id6446814690" target="_blank" class="card p-6 custom-radius bg-white/5 border border-white/10 hover:bg-white/10 transition flex flex-col items-center justify-center text-center group cursor-pointer">
+                        <i class="fa-brands fa-app-store-ios text-4xl text-gray-200 mb-3 group-hover:scale-110 transition-transform"></i>
+                        <h3 class="font-bold text-white text-lg">iOS Client</h3>
+                        <p class="text-xs text-gray-400 mt-1">V2Box</p>
+                        <span class="mt-3 text-xs bg-gray-500/20 text-gray-300 px-3 py-1 rounded-full">App Store</span>
+                    </a>
+
+                    <a id="dl-link-android" href="https://play.google.com/store/apps/details?id=com.netmod.syna&pcampaignid=web_share" target="_blank" class="card p-6 custom-radius bg-white/5 border border-white/10 hover:bg-white/10 transition flex flex-col items-center justify-center text-center group cursor-pointer">
+                        <i class="fa-brands fa-android text-4xl text-green-400 mb-3 group-hover:scale-110 transition-transform"></i>
+                        <h3 class="font-bold text-white text-lg">Android Client</h3>
+                        <p class="text-xs text-gray-400 mt-1">Netmod Syna</p>
+                        <span class="mt-3 text-xs bg-green-500/20 text-green-300 px-3 py-1 rounded-full">Play Store</span>
+                    </a>
                 </div>
             </div>
         </div>
     `);
 
-    // 2. දත්ත ගෙන්වා ගැනීම සහ පෙන්වීම (Data Fetching Logic - Software Downloads)
-    const loadLinks = async () => {
+    // 2. Admin Panel එකෙන් එන Links වලින් අදාල Button වල URL (href) එක මාරු කිරීම
+    const loadDynamicLinks = async () => {
         try {
             const res = await apiFetch('/api/user/software-links');
             const data = await res.json();
-            const container = document.getElementById('privacy-software-list');
             
             if (data.success && data.links && data.links.length > 0) {
-                container.innerHTML = data.links.map(link => `
-                    <a href="${link.url}" target="_blank" class="group relative flex flex-col items-center p-6 bg-slate-800/40 hover:bg-slate-700/40 border border-white/5 hover:border-blue-500/30 rounded-3xl transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-blue-500/10 cursor-pointer overflow-hidden">
-                        
-                        <div class="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-purple-500/0 group-hover:from-blue-500/5 group-hover:to-purple-500/5 transition-all duration-500"></div>
-
-                        <div class="relative w-16 h-16 mb-4 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 border border-white/5 group-hover:border-blue-500/30">
-                            <i class="${link.icon || 'fa-solid fa-download'} text-3xl text-blue-400 group-hover:text-white transition-colors duration-300 drop-shadow-md"></i>
-                        </div>
-
-                        <h3 class="relative font-bold text-white text-lg mb-1 group-hover:text-blue-300 transition-colors">${link.name}</h3>
-                        <p class="relative text-xs text-gray-400 mb-5">Latest Version</p>
-
-                        <div class="relative w-full">
-                            <button class="w-full py-2.5 px-4 bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-500/30 hover:border-blue-500 rounded-full transition-all duration-300 flex items-center justify-center gap-2 font-medium text-sm shadow-lg group-hover:shadow-blue-500/25">
-                                <span>Download</span>
-                                <i class="fa-solid fa-cloud-arrow-down group-hover:animate-bounce"></i>
-                            </button>
-                        </div>
-                    </a>
-                `).join('');
-            } else {
-                container.innerHTML = `
-                    <div class="col-span-full text-center p-8 border-2 border-dashed border-slate-700 rounded-3xl bg-slate-800/30">
-                        <i class="fa-solid fa-box-open text-4xl text-slate-600 mb-3"></i>
-                        <p class="text-gray-400 text-sm">No downloadable software available at the moment.</p>
-                    </div>`;
+                // Admin දාන link එකේ නමට ගැලපෙන විදිහට අදාල Button එකේ link එක update වේ
+                data.links.forEach(link => {
+                    const linkName = (link.name || '').toLowerCase();
+                    
+                    if (linkName.includes('pc') || linkName.includes('windows')) {
+                        const pcBtn = document.getElementById('dl-link-pc');
+                        if (pcBtn && link.url) pcBtn.href = link.url;
+                    } 
+                    else if (linkName.includes('ios') || linkName.includes('apple') || linkName.includes('iphone')) {
+                        const iosBtn = document.getElementById('dl-link-ios');
+                        if (iosBtn && link.url) iosBtn.href = link.url;
+                    } 
+                    else if (linkName.includes('android') || linkName.includes('play')) {
+                        const androidBtn = document.getElementById('dl-link-android');
+                        if (androidBtn && link.url) androidBtn.href = link.url;
+                    }
+                });
             }
-        } catch (e) {
-            console.error("Failed to load links", e);
-            const container = document.getElementById('privacy-software-list');
-            if(container) container.innerHTML = '<div class="col-span-full text-center text-red-400 bg-red-900/10 p-4 rounded-2xl border border-red-500/20">Failed to load download links. Please check your connection.</div>';
+        } catch (error) {
+            console.error("Failed to load dynamic links:", error);
+            // Error එකක් ආවොත් ඔබ මුලින් ලබාදුන් links ඒ විදිහටම වැඩ කරනු ඇත.
         }
     };
 
-    // Load links automatically
-    loadLinks();
+    // පිටුව Load වෙද්දිම Admin Panel links fetch කිරීම
+    loadDynamicLinks();
 }
