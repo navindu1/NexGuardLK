@@ -219,18 +219,48 @@ const deleteConnection = async (req, res) => {
 
 const createPackage = async (req, res) => {
     try {
-        const { data, error } = await supabase.from('packages').insert([req.body]).select().single();
-        if (error) throw error;
+        // Frontend එකෙන් එන දත්ත වල හිස් ("") ඒවා null වලට හරවන්න
+        const insertData = { ...req.body };
+        for (const key in insertData) {
+            if (insertData[key] === '') {
+                insertData[key] = null;
+            }
+        }
+
+        const { data, error } = await supabase.from('packages').insert([insertData]).select().single();
+        
+        if (error) {
+            console.error("Supabase Insert Package Error:", error);
+            throw error;
+        }
         res.status(201).json({ success: true, message: 'Package created.', data });
-    } catch (error) { res.status(500).json({ success: false, message: 'Failed to create package.' }); }
+    } catch (error) { 
+        console.error("Create Package Full Error:", error);
+        res.status(500).json({ success: false, message: 'Failed to create package.', error: error.message }); 
+    }
 };
 
 const updatePackage = async (req, res) => {
     try {
-        const { data, error } = await supabase.from('packages').update(req.body).eq('id', req.params.id).select().single();
-        if (error) throw error;
+        // Frontend එකෙන් එන දත්ත වල හිස් ("") ඒවා null වලට හරවන්න
+        const updateData = { ...req.body };
+        for (const key in updateData) {
+            if (updateData[key] === '') {
+                updateData[key] = null;
+            }
+        }
+
+        const { data, error } = await supabase.from('packages').update(updateData).eq('id', req.params.id).select().single();
+        
+        if (error) {
+            console.error("Supabase Update Package Error:", error);
+            throw error;
+        }
         res.json({ success: true, message: 'Package updated.', data });
-    } catch (error) { res.status(500).json({ success: false, message: 'Failed to update package.' }); }
+    } catch (error) { 
+        console.error("Update Package Full Error:", error);
+        res.status(500).json({ success: false, message: 'Failed to update package.', error: error.message }); 
+    }
 };
 
 const deletePackage = async (req, res) => {
@@ -351,7 +381,6 @@ const downloadOrdersReport = async (req, res) => {
         res.header('Content-Type', 'text/csv'); res.attachment('nexguard-orders-report.csv'); res.send(csv);
     } catch (error) { res.status(500).send('Failed to generate report.'); }
 };
-
 
 const banUser = async (req, res) => {
     try {
