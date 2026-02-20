@@ -157,10 +157,23 @@ const getConnectionsAndPackages = async (req, res) => {
 
 const createConnection = async (req, res) => {
     try {
+        // Frontend එකෙන් එන data එක මොකක්ද කියලා බලන්න
+        console.log("Creating Connection with data:", req.body); 
+
         const { data, error } = await supabase.from('connections').insert([req.body]).select().single();
-        if (error) throw error;
+        
+        if (error) {
+            // Database error එක පැහැදිලිව console එකට දාන්න
+            console.error("Supabase Insert Error:", error); 
+            throw error;
+        }
+
         res.status(201).json({ success: true, message: 'Connection created.', data });
-    } catch (error) { res.status(500).json({ success: false, message: 'Failed to create connection.' }); }
+    } catch (error) { 
+        console.error("Create Connection Full Error:", error);
+        // Error message එකත් frontend එකට යවන්න (වැරැද්ද හොයාගන්න ලේසි වෙන්න)
+        res.status(500).json({ success: false, message: 'Failed to create connection.', error: error.message }); 
+    }
 };
 
 const updateConnection = async (req, res) => {
@@ -321,6 +334,7 @@ const downloadOrdersReport = async (req, res) => {
         res.header('Content-Type', 'text/csv'); res.attachment('nexguard-orders-report.csv'); res.send(csv);
     } catch (error) { res.status(500).send('Failed to generate report.'); }
 };
+
 
 const banUser = async (req, res) => {
     try {
