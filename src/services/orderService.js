@@ -14,9 +14,6 @@ function getPrefixFromSettings(connId, prefixSettings) {
     const lowerConn = connId.toLowerCase();
     
     // prefixSettings යනු Admin Panel එකෙන් Save කළ JSON Object එකයි.
-    // උදා: { "dialog": "DRC_", "airtel": "ARC_", "hutch": "HTC_" }
-    
-    // Object එකේ ඇති key (උදා: dialog) එක connection ID එකේ තිබේදැයි බලයි
     for (const [keyword, prefix] of Object.entries(prefixSettings)) {
         if (lowerConn.includes(keyword.toLowerCase())) {
             return prefix;
@@ -164,15 +161,18 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                     console.log(`[Immediate Renewal] Renewing ${finalUsername} immediately.`);
                     
                     const expiryTime = Date.now() + 30 * 24 * 60 * 60 * 1000;
-
-                    // FIX: Safe Data Limit Calculation (Unlimited Error Fix)
-                    const parsedGb = parseFloat(planDetails.total_gb);
+                    
+                    // --- DATA LIMIT FIX: Fallback to Plan Name if DB value is 0 or null ---
+                    let parsedGb = parseFloat(planDetails.total_gb);
+                    if (isNaN(parsedGb) || parsedGb <= 0) {
+                        const match = order.plan_id.match(/(\d+)\s*GB/i);
+                        if (match) parsedGb = parseFloat(match[1]); // e.g. "100GB" -> 100
+                    }
                     const totalGBValue = isNaN(parsedGb) || parsedGb <= 0 ? 0 : Math.round(parsedGb * 1024 * 1024 * 1024);
-                    console.log(`[Data Limit Fix - Renewal] Database GB: ${planDetails.total_gb} | Converted Bytes: ${totalGBValue}`);
 
-                    // සම්පූර්ණ Client දත්ත සහිතව Update කරන්න (Panel Update Fix)
+                    // සම්පූර්ණ Client දත්ත සහිතව Update කරන්න
                     const updatedClientConfig = {
-                        ...clientInPanel.client, // මෙයින් පරණ id (UUID), email, limitIp වැනි දේවල් ලබා ගනී
+                        ...clientInPanel.client,
                         expiryTime: expiryTime,
                         total: totalGBValue,
                         enable: true
@@ -188,7 +188,8 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                     console.log(`[Migration] Inbound mismatch for ${finalUsername}. Re-creating...`);
                     await v2rayService.deleteClient(clientInPanel.inboundId, clientInPanel.client.id);
                     
-                    const result = await createNewV2rayUser(inboundId, finalUsername, planDetails.total_gb, vlessTemplate);
+                    // Here we pass order.plan_id in case total_gb is missing
+                    const result = await createNewV2rayUser(inboundId, finalUsername, planDetails.total_gb, vlessTemplate, order.plan_id);
                     createdV2rayClient = result.data;
                     clientLink = result.link;
                 }
@@ -212,18 +213,23 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                     }
                 }
 
-                // 2. අලුත් User හදන්න (Duplicate Check සමග)
-                const allClients = await v2rayService.getAllClients();
-                if (allClients.has(finalUsername)) {
-                     let counter = 1;
-                     while (allClients.has(`${finalUsername}-${counter}`)) {
-                         counter++;
-                     }
-                     finalUsername = `${finalUsername}-${counter}`;
-                     console.log(`[Username Conflict] Generated unique username: ${finalUsername}`);
+                // 2. අලුත් User හදන්න (USERNAME CONFLICT FIX: Case-Insensitive Check)
+                const allClients = await v2rayService.getAllClients(); // Returns lowercase emails
+                let originalFinalUsername = finalUsername;
+                let counter = 1;
+                
+                // .toLowerCase() භාවිතා කර ගැළපීම පරීක්ෂා කිරීම
+                while (allClients.has(finalUsername.toLowerCase())) {
+                    finalUsername = `${originalFinalUsername}-${counter}`;
+                    counter++;
+                }
+                
+                if (originalFinalUsername !== finalUsername) {
+                    console.log(`[Username Conflict Fixed] Generated unique username: ${finalUsername} (Original was: ${originalFinalUsername})`);
                 }
 
-                const result = await createNewV2rayUser(inboundId, finalUsername, planDetails.total_gb, vlessTemplate);
+                // Pass order.plan_id for Limit fallback
+                const result = await createNewV2rayUser(inboundId, finalUsername, planDetails.total_gb, vlessTemplate, order.plan_id);
                 createdV2rayClient = result.data;
                 clientLink = result.link;
             }
@@ -326,13 +332,18 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
 };
 
 // --- Helper: Create New User ---
-async function createNewV2rayUser(inboundId, username, totalGb, vlessTemplate) {
+// Added "planName" parameter to support GB fallback extraction
+async function createNewV2rayUser(inboundId, username, totalGb, vlessTemplate, planName = "") {
     const expiryTime = Date.now() + 30 * 24 * 60 * 60 * 1000;
+    
+    // --- DATA LIMIT FIX: Fallback to Plan Name if DB value is 0 or null ---
+    let parsedGb = parseFloat(totalGb);
+    if (isNaN(parsedGb) || parsedGb <= 0) {
+        const match = planName.match(/(\d+)\s*GB/i);
+        if (match) parsedGb = parseFloat(match[1]); // Extract GB from string like "Meet Max 100GB"
+    }
 
-    // FIX: Safe Data Limit Calculation (Unlimited Error Fix)
-    const parsedGb = parseFloat(totalGb);
     const totalGBValue = isNaN(parsedGb) || parsedGb <= 0 ? 0 : Math.round(parsedGb * 1024 * 1024 * 1024);
-    console.log(`[Data Limit Fix - New User] Input GB: ${totalGb} | Converted Bytes: ${totalGBValue}`);
     
     const clientSettings = { 
         id: uuidv4(), 
