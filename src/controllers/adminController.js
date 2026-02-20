@@ -157,13 +157,31 @@ const getConnectionsAndPackages = async (req, res) => {
 
 const createConnection = async (req, res) => {
     try {
-        // Frontend එකෙන් එන data එක මොකක්ද කියලා බලන්න
-        console.log("Creating Connection with data:", req.body); 
+        const { name, icon, requires_package_choice, default_package, default_inbound_id, default_vless_template } = req.body;
+        
+        // Database එකට යවන දත්ත ටික නිවැරදිව සකස් කිරීම
+        const insertData = { 
+            name, 
+            icon, 
+            requires_package_choice: Boolean(requires_package_choice)
+        };
 
-        const { data, error } = await supabase.from('connections').insert([req.body]).select().single();
+        if (insertData.requires_package_choice) {
+            // Package එකක් තෝරන්න දෙනවා නම්, default ඒවා null කරන්න
+            insertData.default_package = null; 
+            insertData.default_inbound_id = null; 
+            insertData.default_vless_template = null;
+        } else {
+            // හිස් string ("") ඇවිත් තියෙනවා නම් ඒවා null බවට පත් කරන්න
+            insertData.default_package = default_package === '' ? null : default_package; 
+            insertData.default_inbound_id = default_inbound_id === '' ? null : default_inbound_id; 
+            insertData.default_vless_template = default_vless_template === '' ? null : default_vless_template;
+        }
+
+        // දැන් නිවැරදි කළ දත්ත (insertData) database එකට යවන්න
+        const { data, error } = await supabase.from('connections').insert([insertData]).select().single();
         
         if (error) {
-            // Database error එක පැහැදිලිව console එකට දාන්න
             console.error("Supabase Insert Error:", error); 
             throw error;
         }
@@ -171,7 +189,6 @@ const createConnection = async (req, res) => {
         res.status(201).json({ success: true, message: 'Connection created.', data });
     } catch (error) { 
         console.error("Create Connection Full Error:", error);
-        // Error message එකත් frontend එකට යවන්න (වැරැද්ද හොයාගන්න ලේසි වෙන්න)
         res.status(500).json({ success: false, message: 'Failed to create connection.', error: error.message }); 
     }
 };
