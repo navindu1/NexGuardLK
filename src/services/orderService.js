@@ -164,9 +164,13 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                     console.log(`[Immediate Renewal] Renewing ${finalUsername} immediately.`);
                     
                     const expiryTime = Date.now() + 30 * 24 * 60 * 60 * 1000;
-                    const totalGBValue = (planDetails.total_gb || 0) * 1024 * 1024 * 1024;
 
-                    // සම්පූර්ණ Client දත්ත සහිතව Update කරන්න
+                    // FIX: Safe Data Limit Calculation (Unlimited Error Fix)
+                    const parsedGb = parseFloat(planDetails.total_gb);
+                    const totalGBValue = isNaN(parsedGb) || parsedGb <= 0 ? 0 : Math.round(parsedGb * 1024 * 1024 * 1024);
+                    console.log(`[Data Limit Fix - Renewal] Database GB: ${planDetails.total_gb} | Converted Bytes: ${totalGBValue}`);
+
+                    // සම්පූර්ණ Client දත්ත සහිතව Update කරන්න (Panel Update Fix)
                     const updatedClientConfig = {
                         ...clientInPanel.client, // මෙයින් පරණ id (UUID), email, limitIp වැනි දේවල් ලබා ගනී
                         expiryTime: expiryTime,
@@ -324,7 +328,11 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
 // --- Helper: Create New User ---
 async function createNewV2rayUser(inboundId, username, totalGb, vlessTemplate) {
     const expiryTime = Date.now() + 30 * 24 * 60 * 60 * 1000;
-    const totalGBValue = (totalGb || 0) * 1024 * 1024 * 1024;
+
+    // FIX: Safe Data Limit Calculation (Unlimited Error Fix)
+    const parsedGb = parseFloat(totalGb);
+    const totalGBValue = isNaN(parsedGb) || parsedGb <= 0 ? 0 : Math.round(parsedGb * 1024 * 1024 * 1024);
+    console.log(`[Data Limit Fix - New User] Input GB: ${totalGb} | Converted Bytes: ${totalGBValue}`);
     
     const clientSettings = { 
         id: uuidv4(), 
