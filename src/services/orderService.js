@@ -166,11 +166,15 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                     const expiryTime = Date.now() + 30 * 24 * 60 * 60 * 1000;
                     const totalGBValue = (planDetails.total_gb || 0) * 1024 * 1024 * 1024;
 
-                    await v2rayService.updateClient(clientInPanel.inboundId, clientInPanel.client.id, {
+                    // සම්පූර්ණ Client දත්ත සහිතව Update කරන්න
+                    const updatedClientConfig = {
+                        ...clientInPanel.client, // මෙයින් පරණ id (UUID), email, limitIp වැනි දේවල් ලබා ගනී
                         expiryTime: expiryTime,
                         total: totalGBValue,
                         enable: true
-                    });
+                    };
+
+                    await v2rayService.updateClient(clientInPanel.inboundId, clientInPanel.client.id, updatedClientConfig);
                     await v2rayService.resetClientTraffic(clientInPanel.inboundId, finalUsername);
 
                     clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientInPanel.client);
