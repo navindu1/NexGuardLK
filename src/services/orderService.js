@@ -125,14 +125,17 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
         if (order.status === 'pending') {
             // --- Logic for Processing 'pending' Orders ---
 
-            // Panel එකේ දැනටමත් මේ නම (Prefix සහිත) තියෙනවද බලන්න
+            // Panel එකේ දැනටමත් මේ නම තියෙනවද බලන්න
             const clientInPanel = await v2rayService.findV2rayClient(finalUsername);
+            
+            // මේක අලුත් එකක්ද නැත්නම් පරණ එකක් Renew/Migrate කරන එකක්ද කියලා තහවුරු කරගන්න
+            const isRenewalRequest = order.is_renewal === true || order.is_renewal === 'true' || (order.old_v2ray_username && order.old_v2ray_username.toLowerCase() === finalUsername.toLowerCase());
 
-            if (clientInPanel) {
+            if (clientInPanel && isRenewalRequest) {
                 // ----------------------------------------------------
-                // CASE A: User Panel එකේ ඉන්නවා (Renewal)
+                // CASE A: User Panel එකේ ඉන්නවා සහ මේක සැබෑ Renewal එකක්
                 // ----------------------------------------------------
-                console.log(`[Renewal] User ${finalUsername} found in panel.`);
+                console.log(`[Renewal] User ${finalUsername} found in panel. Processing renewal...`);
 
                 // Inbound එක සමානද බලන්න
                 if (parseInt(clientInPanel.inboundId) === parseInt(inboundId)) {
@@ -170,11 +173,11 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                     }
                     const totalGBValue = isNaN(parsedGb) || parsedGb <= 0 ? 0 : Math.round(parsedGb * 1024 * 1024 * 1024);
 
-                    // සම්පූර්ණ Client දත්ත සහිතව Update කරන්න
+                    // සම්පූර්ණ Client දත්ත සහිතව Update කරන්න (totalGB භාවිතා කරමින්)
                     const updatedClientConfig = {
                         ...clientInPanel.client,
                         expiryTime: expiryTime,
-                        total: totalGBValue,
+                        totalGB: totalGBValue, // <--- Limit Fix එක
                         enable: true
                     };
 
@@ -184,11 +187,10 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                     clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientInPanel.client);
 
                 } else {
-                    // Inbound වෙනස් (ඉතා කලාතුරකින් විය හැක) -> Re-create
+                    // Inbound වෙනස් (Migration) -> Re-create
                     console.log(`[Migration] Inbound mismatch for ${finalUsername}. Re-creating...`);
                     await v2rayService.deleteClient(clientInPanel.inboundId, clientInPanel.client.id);
                     
-                    // Here we pass order.plan_id in case total_gb is missing
                     const result = await createNewV2rayUser(inboundId, finalUsername, planDetails.total_gb, vlessTemplate, order.plan_id);
                     createdV2rayClient = result.data;
                     clientLink = result.link;
@@ -196,30 +198,30 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
 
             } else {
                 // ----------------------------------------------------
-                // CASE B: User Panel එකේ නැහැ (New / Migration)
+                // CASE B: අලුත් Order එකක් (නම දැනටමත් තිබුණොත් පරණ එක මකන්නේ නැතිව -1, -2 හැදේ)
                 // ----------------------------------------------------
-                console.log(`[New/Migration] Creating ${finalUsername}...`);
+                console.log(`[New Connection] Processing ${finalUsername}...`);
 
-                // 1. පරණ Account එක මකන්න (Prefix වෙනස් වී ඇත්නම් හෝ Old User වෙනස් නම්)
-                if (oldV2rayUsername && oldV2rayUsername !== finalUsername) {
+                // 1. පරණ Account එක මකන්න (User Migration එකක් කරද්දි පමණි)
+                if (order.old_v2ray_username && order.old_v2ray_username !== finalUsername) {
                     try {
-                        const oldClient = await v2rayService.findV2rayClient(oldV2rayUsername);
+                        const oldClient = await v2rayService.findV2rayClient(order.old_v2ray_username);
                         if (oldClient) {
-                            console.log(`[Cleanup] Deleting old user: ${oldV2rayUsername}`);
+                            console.log(`[Cleanup] Deleting old user: ${order.old_v2ray_username}`);
                             await v2rayService.deleteClient(oldClient.inboundId, oldClient.client.id);
                         }
                     } catch (e) {
-                        console.warn(`[Cleanup Warning] Could not delete old user ${oldV2rayUsername}:`, e.message);
+                        console.warn(`[Cleanup Warning] Could not delete old user ${order.old_v2ray_username}:`, e.message);
                     }
                 }
 
-                // 2. අලුත් User හදන්න (USERNAME CONFLICT FIX: Case-Insensitive Check)
-                const allClients = await v2rayService.getAllClients(); // Returns lowercase emails
+                // 2. අලුත් User හදන්න (USERNAME CONFLICT FIX)
+                const allClients = await v2rayService.getAllClients(); 
                 let originalFinalUsername = finalUsername;
                 let counter = 1;
                 
-                // .toLowerCase() භාවිතා කර ගැළපීම පරීක්ෂා කිරීම
-                while (allClients.has(finalUsername.toLowerCase())) {
+                // Panel එකේ මේ නම දැනටමත් තියෙනවා නම්, -1, -2 විදිහට අලුත් නමක් හදනවා (overwrite වෙන්නේ නැත)
+                while (allClients.has(finalUsername.toLowerCase()) || (clientInPanel && finalUsername.toLowerCase() === originalFinalUsername.toLowerCase())) {
                     finalUsername = `${originalFinalUsername}-${counter}`;
                     counter++;
                 }
@@ -228,7 +230,6 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                     console.log(`[Username Conflict Fixed] Generated unique username: ${finalUsername} (Original was: ${originalFinalUsername})`);
                 }
 
-                // Pass order.plan_id for Limit fallback
                 const result = await createNewV2rayUser(inboundId, finalUsername, planDetails.total_gb, vlessTemplate, order.plan_id);
                 createdV2rayClient = result.data;
                 clientLink = result.link;
@@ -345,10 +346,11 @@ async function createNewV2rayUser(inboundId, username, totalGb, vlessTemplate, p
 
     const totalGBValue = isNaN(parsedGb) || parsedGb <= 0 ? 0 : Math.round(parsedGb * 1024 * 1024 * 1024);
     
+    // totalGB භාවිතා කරමින් Panel එකට දත්ත යැවීම
     const clientSettings = { 
         id: uuidv4(), 
         email: username, 
-        total: totalGBValue, 
+        totalGB: totalGBValue, // <--- Limit Fix එක මෙතනත් ඇත
         expiryTime, 
         enable: true, 
         limitIp: 1 
