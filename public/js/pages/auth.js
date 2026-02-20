@@ -267,9 +267,9 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
                 const result = await res.json();
                 btn.disabled = false;
                 if (res.ok) {
-                    showToast({ title: "Verified!", message: result.message, type: "success" });
-                    saveSession(result);
-                    switchAuthView(linkAccountContainer);
+                    showToast({ title: "Verified!", message: result.message || "Account Verified Successfully!", type: "success" });
+    saveSession(result);
+    switchAuthView(linkAccountContainer);
                 } else {
                     showToast({ title: "Verification Failed", message: result.message, type: "error" });
                 }

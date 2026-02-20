@@ -141,6 +141,7 @@ exports.verifyOtp = async (req, res) => {
         const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, { expiresIn: "1d" });
         res.status(201).json({ 
             success: true, 
+            message: "Account Verified Successfully!", // මේ පේළිය අලුතින් එකතු කරන්න
             token, 
             user: { id: user.id, username: user.username, email: user.email, whatsapp: user.whatsapp, profilePicture: user.profile_picture } 
         });
