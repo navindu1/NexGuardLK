@@ -9,7 +9,6 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
         initialPanel = "reset-password";
     }
 
-    // --- Google API Script Load කිරීම ---
     if (!document.getElementById("google-gsi-script")) {
         const script = document.createElement("script");
         script.id = "google-gsi-script";
@@ -19,7 +18,6 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
         document.head.appendChild(script);
     }
 
-    // --- START: STYLES ---
     const pageStyles = `<style>
         .help-modal-overlay {
             opacity: 0;
@@ -54,7 +52,6 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
         #page-login .form-input:focus ~ .form-label, #page-login .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: var(--brand-blue); }
         #link-account-form .form-group { margin-top: 0; }
         
-        /* --- DIVIDER STYLES (OR Lines) --- */
         .divider {
             display: flex;
             align-items: center;
@@ -72,13 +69,12 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
         .divider:not(:empty)::before { margin-right: 1rem; }
         .divider:not(:empty)::after { margin-left: 1rem; }
 
-        /* --- OFFICIAL GOOGLE BUTTON WRAPPER --- */
         .google-btn-wrapper {
             display: flex;
             justify-content: center;
             align-items: center;
             width: 100%;
-            height: 44px; /* Matches standard button height */
+            height: 44px; 
             margin-top: 10px;
         }
     </style>`;
@@ -120,7 +116,6 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
                 <button type="submit" class="ai-button w-full rounded-lg mt-2">Sign In</button>
                 
                 <div class="divider">OR</div>
-                
                 <div class="google-btn-wrapper" id="google-login-btn-div"></div>
 
                 <p class="text-center text-sm mt-4">Don't have an account? <span id="show-signup" class="auth-toggle-link">Sign Up</span></p>
@@ -137,7 +132,6 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
                 <button type="submit" class="ai-button w-full rounded-lg mt-2">Create & Continue</button>
 
                 <div class="divider">OR</div>
-                
                 <div class="google-btn-wrapper" id="google-signup-btn-div"></div>
 
                 <p class="text-center text-sm mt-4">Already have an account? <span id="show-signin-from-signup" class="auth-toggle-link">Sign In</span></p>
@@ -183,7 +177,6 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
     ${modalHtml}`);
 
     setTimeout(() => {
-        // --- Form Switch Logic ---
         const signinForm = document.getElementById("signin-form");
         const signupForm = document.getElementById("signup-form");
         const otpForm = document.getElementById("otp-form");
@@ -197,7 +190,6 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             viewToShow?.classList.add("active");
         };
 
-        // --- Google Sign-In Logic ---
         window.handleGoogleCredentialResponse = async (response) => {
             showToast({ title: "Google Login", message: "Authenticating securely...", type: "info" });
             try {
@@ -228,17 +220,16 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
 
         const renderGoogleButtons = () => {
             if (window.google && window.google.accounts) {
-                // වරක් පමණක් Initialize කිරීමට (Error එක නැති කිරීමට)
                 if (!window.googleInitDone) {
                     google.accounts.id.initialize({
                         client_id: "324820496903-er23b2ipeh2hs0fs61dms3flo9aot8jm.apps.googleusercontent.com", 
                         callback: handleGoogleCredentialResponse,
+                        ux_mode: "popup", // <-- NEW: Force popup mode to avoid iframe strictness
                         auto_select: false
                     });
                     window.googleInitDone = true;
                 }
 
-                // Official Google Blue Theme Button, Sized to fit the form exactly
                 const btnOptions = { theme: "filled_blue", size: "large", shape: "rectangular", text: "continue_with", width: 316 };
                 
                 const loginBtnContainer = document.getElementById("google-login-btn-div");
@@ -250,7 +241,6 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
                 if (signupBtnContainer && signupBtnContainer.innerHTML === "") {
                     google.accounts.id.renderButton(signupBtnContainer, btnOptions);
                 }
-                
             } else {
                 setTimeout(renderGoogleButtons, 500); 
             }
@@ -283,13 +273,11 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
 
                 if (res.ok) {
                     showToast({ title: "Saved!", message: "WhatsApp updated successfully.", type: "success" });
-                    
                     if (sessionStr) {
                         let userObj = JSON.parse(sessionStr);
                         userObj.whatsapp = whatsappInputVal;
                         localStorage.setItem('nexguard_user', JSON.stringify(userObj));
                     }
-                    
                     switchAuthView(linkAccountContainer); 
                 } else {
                     const result = await res.json();
@@ -301,7 +289,6 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             }
         });
 
-        // --- View Transitions ---
         document.getElementById("show-signup")?.addEventListener("click", () => switchAuthView(signupForm));
         document.getElementById("show-signin-from-signup")?.addEventListener("click", () => switchAuthView(signinForm));
         document.getElementById("show-forgot-password")?.addEventListener("click", () => switchAuthView(forgotPasswordForm));
