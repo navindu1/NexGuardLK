@@ -299,14 +299,18 @@ exports.resetPassword = async (req, res) => {
 
 // --- NEW: GOOGLE LOGIN CONTROLLER ---
 exports.googleLogin = async (req, res) => {
-    const { credential } = req.body; // Frontend එකෙන් එවන Google Token එක
+    const { credential } = req.body; 
 
     if (!credential) {
         return res.status(400).json({ success: false, message: "Google token is missing." });
     }
 
     try {
-        // 1. Google Token එක නිවැරදිදැයි පරීක්ෂා කිරීම
+        // Environment Variable එක අනිවාර්යයෙන්ම තියෙන්න ඕන
+        if (!process.env.GOOGLE_CLIENT_ID) {
+            throw new Error("GOOGLE_CLIENT_ID is not defined in server environment.");
+        }
+
         const ticket = await googleClient.verifyIdToken({
             idToken: credential,
             audience: process.env.GOOGLE_CLIENT_ID,
@@ -317,7 +321,6 @@ exports.googleLogin = async (req, res) => {
         const username = payload['name'] || email.split('@')[0];
         const profilePicture = payload['picture'];
 
-        // 2. Database එකේ මේ Email එක දැනටමත් තියෙනවද බලනවා
         const { data: user, error: findError } = await supabase
             .from("users")
             .select("*")
@@ -326,20 +329,24 @@ exports.googleLogin = async (req, res) => {
 
         let finalUser = user;
 
-        // 3. User කෙනෙක් නැත්නම්, අලුතින් Account එකක් හදනවා (Auto Register)
+        // User කෙනෙක් නැත්නම්, අලුතින් Account එකක් හදනවා (Auto Register)
         if (!user) {
-            // Google එකෙන් එන නිසා Random Password එකක් දෙනවා (මෙයා ලොග් වෙන්නේ Google වලින් නිසා)
             const randomPassword = crypto.randomBytes(16).toString('hex');
             const hashedPassword = bcrypt.hashSync(randomPassword, 10);
 
+            // සම්පූර්ණ කරන ලද දත්ත (Database constraints වලට ගැලපෙන සේ)
             const newUserData = {
-                username: username.replace(/\s+/g, '_') + Math.floor(Math.random() * 100), // Unique කරන්න
+                username: username.replace(/\s+/g, '_') + Math.floor(Math.random() * 1000), 
                 email: email,
                 whatsapp: "94000000000", // Google වලින් අංකය එන්නේ නැති නිසා Default අගයක් දෙනවා
                 password: hashedPassword,
                 status: "active",
                 profile_picture: profilePicture,
-                otp_code: null, // OTP අවශ්‍ය නැහැ Google වලින් Verify කරපු නිසා
+                otp_code: null,
+                otp_expiry: null,
+                otp_attempts: 0,
+                otp_lockout_until: null,
+                active_plans: [] // 500 Error එක එන්න ප්‍රධානම හේතුව මෙය නොමැති වීමයි
             };
 
             const { data: newUser, error: createError } = await supabase
@@ -349,15 +356,14 @@ exports.googleLogin = async (req, res) => {
                 .single();
 
             if (createError) {
-                console.error("Google Auth Create User Error:", createError);
-                return res.status(500).json({ success: false, message: "Failed to create user account." });
+                console.error("Google Auth DB Create Error:", createError);
+                return res.status(500).json({ success: false, message: "Database creation failed: " + createError.message });
             }
             finalUser = newUser;
         } else if (user.status === 'banned') {
             return res.status(403).json({ success: false, message: "Your account has been banned." });
         }
 
-        // 4. සාර්ථකව Login වුණාම JWT Token එකක් හදලා යවනවා (පරණ විදිහටම)
         const token = jwt.sign({ id: finalUser.id, username: finalUser.username }, process.env.JWT_SECRET, { expiresIn: "1d" });
         
         const userPayload = {
@@ -365,14 +371,14 @@ exports.googleLogin = async (req, res) => {
             username: finalUser.username,
             email: finalUser.email,
             whatsapp: finalUser.whatsapp,
-            profilePicture: finalUser.profile_picture ? finalUser.profile_picture : "assets/profilePhoto.jpg",
+            profilePicture: finalUser.profile_picture || "assets/profilePhoto.jpg",
         };
 
         return res.json({ success: true, message: "Logged in successfully with Google!", token, user: userPayload });
 
     } catch (error) {
-        console.error("Google Login Error:", error);
-        return res.status(500).json({ success: false, message: "Google Sign-In failed due to server error." });
+        console.error("Google Login Catch Error:", error);
+        return res.status(500).json({ success: false, message: "Server Error: " + (error.message || "Unknown error") });
     }
 };
 
@@ -388,7 +394,7 @@ exports.updateWhatsapp = async (req, res) => {
         const { error } = await supabase
             .from("users")
             .update({ whatsapp: whatsapp })
-            .eq("email", email); // Email එකෙන් හොයලා අප්ඩේට් කරනවා
+            .eq("email", email); 
 
         if (error) {
             console.error("Update WhatsApp Error:", error);
