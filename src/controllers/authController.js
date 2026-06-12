@@ -11,7 +11,6 @@ const { generateEmailTemplate, generateOtpEmailContent, generatePasswordResetEma
 const { OAuth2Client } = require('google-auth-library');
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-// උපරිම වැරදි උත්සාහයන් ගණන
 const MAX_OTP_ATTEMPTS = 5;
 const LOCKOUT_TIME_MS = 15 * 60 * 1000; 
 
@@ -332,8 +331,8 @@ exports.googleLogin = async (req, res) => {
             const hashedPassword = bcrypt.hashSync(randomPassword, 10);
 
             const newUserData = {
-                id: uuidv4(), // <----- මෙන්න FIX එක: අලුත් ID එකක් හදනවා
-                username: username.replace(/\s+/g, '_') + Math.floor(Math.random() * 1000), 
+                id: uuidv4(), 
+                username: username.replace(/\\s+/g, '_') + Math.floor(Math.random() * 1000), 
                 email: email,
                 whatsapp: "94000000000", 
                 password: hashedPassword,
@@ -379,26 +378,55 @@ exports.googleLogin = async (req, res) => {
     }
 };
 
-// --- NEW: UPDATE WHATSAPP FOR GOOGLE USERS ---
+// --- NEW: UPDATE WHATSAPP AND USERNAME FOR GOOGLE USERS ---
 exports.updateWhatsapp = async (req, res) => {
-    const { email, whatsapp } = req.body;
+    const { email, whatsapp, username } = req.body;
 
     if (!email || !whatsapp || whatsapp === "94" || whatsapp.length !== 11) {
         return res.status(400).json({ success: false, message: "A valid 11-digit WhatsApp number is required." });
     }
+    if (!username || username.trim() === "") {
+        return res.status(400).json({ success: false, message: "A valid username is required." });
+    }
 
     try {
-        const { error } = await supabase
+        // අලුතින් දුන්න Username එක වෙන කෙනෙක් පාවිච්චි කරනවද කියලා බලනවා
+        const { data: existingUser } = await supabase
             .from("users")
-            .update({ whatsapp: whatsapp })
-            .eq("email", email); 
+            .select("id")
+            .ilike("username", username)
+            .neq("email", email)
+            .single();
 
-        if (error) {
-            console.error("Update WhatsApp Error:", error);
-            return res.status(500).json({ success: false, message: "Database error while updating WhatsApp." });
+        if (existingUser) {
+            return res.status(400).json({ success: false, message: "This username is already taken. Please try checking a new one." });
         }
 
-        res.json({ success: true, message: "WhatsApp number updated successfully!" });
+        // අවුලක් නැත්නම් Database එකේ Update කරනවා
+        const { data: updatedUser, error } = await supabase
+            .from("users")
+            .update({ whatsapp: whatsapp, username: username })
+            .eq("email", email)
+            .select()
+            .single(); 
+
+        if (error) {
+            console.error("Update Profile Error:", error);
+            return res.status(500).json({ success: false, message: "Database error while updating profile." });
+        }
+
+        // අලුත් Username එකත් එක්ක Token එක අලුත් කරලා Frontend එකට යවනවා
+        const token = jwt.sign({ id: updatedUser.id, username: updatedUser.username }, process.env.JWT_SECRET, { expiresIn: "1d" });
+        
+        const userPayload = {
+            id: updatedUser.id,
+            username: updatedUser.username,
+            email: updatedUser.email,
+            whatsapp: updatedUser.whatsapp,
+            profilePicture: updatedUser.profile_picture || "assets/profilePhoto.jpg",
+        };
+
+        res.json({ success: true, message: "Profile updated successfully!", token, user: userPayload });
     } catch (err) {
         console.error("Server Error:", err);
         res.status(500).json({ success: false, message: "Server error." });

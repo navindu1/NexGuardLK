@@ -9,7 +9,6 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
         initialPanel = "reset-password";
     }
 
-    // --- Google API Script Load කිරීම ---
     if (!document.getElementById("google-gsi-script")) {
         const script = document.createElement("script");
         script.id = "google-gsi-script";
@@ -19,7 +18,8 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
         document.head.appendChild(script);
     }
 
-    const pageStyles = `<style>
+    const pageStyles = `
+    <style>
         .help-modal-overlay {
             opacity: 0;
             visibility: hidden;
@@ -78,9 +78,11 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             height: 44px; 
             margin-top: 10px;
         }
-    </style>`;
+    </style>
+    `;
 
-    const modalHtml = `<div id="help-modal" class="help-modal-overlay">
+    const modalHtml = `
+    <div id="help-modal" class="help-modal-overlay">
         <div class="help-modal-content grease-glass p-6 space-y-4 w-full max-w-md">
             <div class="flex justify-between items-start">
                 <div>
@@ -101,7 +103,8 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
                 <img src="/assets/help.jpg" class="rounded-lg w-full h-auto opacity-95">
             </div>
         </div>
-    </div>`;
+    </div>
+    `;
 
     renderFunc(pageStyles + `
     <div id="page-login" class="page">
@@ -198,9 +201,17 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
 
             <form class="auth-form space-y-6" id="whatsapp-update-form">
                 <div class="text-center">
-                    <h1 class="text-2xl font-bold text-white font-['Orbitron']">Almost Done!</h1>
-                    <p class="text-sm text-gray-400 mt-1">Please provide your WhatsApp number for account security.</p>
+                    <h1 class="text-2xl font-bold text-white font-['Orbitron']">Complete Profile</h1>
+                    <p class="text-sm text-gray-400 mt-1">Set your Username & WhatsApp number.</p>
                 </div>
+                
+                <div class="form-group relative">
+                    <input type="text" id="google-username-input" class="form-input pr-20" required placeholder=" " />
+                    <label for="google-username-input" class="form-label">Choose Username</label>
+                    <span class="focus-border"><i></i></span>
+                    <button type="button" id="check-username-btn" class="absolute right-2 top-1/2 -translate-y-1/2 text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-md font-semibold transition-all">Check</button>
+                </div>
+                <p id="username-status-msg" class="text-xs -mt-4 hidden pl-2"></p>
                 
                 <div class="form-group">
                     <input type="tel" id="google-whatsapp-input" class="form-input" required placeholder=" " value="94" minlength="11" maxlength="11" />
@@ -301,6 +312,11 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
                     showToast({ title: "Success!", message: "Google account verified.", type: "success" });
                     
                     if (result.user.whatsapp === "94000000000" || !result.user.whatsapp) {
+                        // Pre-fill username field (remove random numbers from the generated name)
+                        const unameInput = document.getElementById("google-username-input");
+                        if (unameInput && result.user.username) {
+                            unameInput.value = result.user.username.replace(/\\d{3,4}$/, ''); 
+                        }
                         switchAuthView(whatsappUpdateForm);
                     } else {
                         switchAuthView(linkAccountContainer);
@@ -342,18 +358,63 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
         
         renderGoogleButtons();
 
-        // --- WhatsApp Update Form Submit ---
+        // --- NEW: Check Username Logic ---
+        const checkBtn = document.getElementById("check-username-btn");
+        const unameInput = document.getElementById("google-username-input");
+        const statusMsg = document.getElementById("username-status-msg");
+
+        if (checkBtn && unameInput) {
+            checkBtn.addEventListener("click", async () => {
+                const val = unameInput.value.trim();
+                if (!val) {
+                    showToast({ title: "Required", message: "Please enter a username to check.", type: "warning" });
+                    return;
+                }
+                checkBtn.disabled = true;
+                checkBtn.innerText = "Wait...";
+                
+                try {
+                    // This uses the token from Google Login to check
+                    const res = await apiFetch(`/api/user/check-v2ray-username?username=${encodeURIComponent(val)}`);
+                    const data = await res.json();
+                    
+                    statusMsg.classList.remove("hidden");
+                    if (data.available) {
+                        statusMsg.className = "text-xs -mt-4 text-green-400 pl-2 font-medium";
+                        statusMsg.innerText = "✅ Username is available!";
+                    } else {
+                        statusMsg.className = "text-xs -mt-4 text-amber-400 pl-2 font-medium";
+                        statusMsg.innerText = `⚠️ Taken! Suggestion: ${data.suggestion}`;
+                        unameInput.value = data.suggestion; 
+                    }
+                } catch (e) {
+                    statusMsg.classList.remove("hidden");
+                    statusMsg.className = "text-xs -mt-4 text-red-400 pl-2 font-medium";
+                    statusMsg.innerText = "❌ Error checking username.";
+                }
+                
+                checkBtn.disabled = false;
+                checkBtn.innerText = "Check";
+            });
+        }
+
+        // --- Complete Profile (WhatsApp & Username) Form Submit ---
         if (whatsappUpdateForm) {
             whatsappUpdateForm.addEventListener("submit", async (e) => {
                 e.preventDefault();
                 const whatsappInputVal = e.target.elements["google-whatsapp-input"].value;
+                const usernameInputVal = document.getElementById("google-username-input").value.trim();
                 
                 if (whatsappInputVal === "94" || whatsappInputVal.length !== 11) {
                     showToast({ title: "Invalid Number", message: "Please enter a valid 11-digit WhatsApp number.", type: "error" });
                     return;
                 }
+                if (!usernameInputVal) {
+                    showToast({ title: "Required", message: "Please choose a username.", type: "error" });
+                    return;
+                }
 
-                const btn = e.target.querySelector("button");
+                const btn = e.target.querySelector("button[type='submit']");
                 btn.disabled = true;
                 showToast({ title: "Saving...", message: "Updating profile...", type: "info" });
 
@@ -364,19 +425,21 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
                     const res = await apiFetch("/api/auth/update-whatsapp", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ email: email, whatsapp: whatsappInputVal })
+                        body: JSON.stringify({ email: email, whatsapp: whatsappInputVal, username: usernameInputVal })
                     });
 
+                    const result = await res.json();
+
                     if (res.ok) {
-                        showToast({ title: "Saved!", message: "WhatsApp updated successfully.", type: "success" });
-                        if (sessionStr) {
-                            let userObj = JSON.parse(sessionStr);
-                            userObj.whatsapp = whatsappInputVal;
-                            localStorage.setItem('nexguard_user', JSON.stringify(userObj));
+                        showToast({ title: "Saved!", message: "Profile updated successfully.", type: "success" });
+                        
+                        // Update session with new username & token!
+                        if (result.token && result.user) {
+                            saveSession(result); 
                         }
+                        
                         switchAuthView(linkAccountContainer); 
                     } else {
-                        const result = await res.json();
                         showToast({ title: "Error", message: result.message, type: "error" });
                         btn.disabled = false;
                     }
@@ -433,7 +496,7 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             const input = document.getElementById(id);
             if (input) {
                 input.addEventListener("input", () => {
-                    let val = input.value.replace(/\D/g, '');
+                    let val = input.value.replace(/\\D/g, '');
                     if (!val.startsWith("94")) val = "94" + val;
                     if (val.startsWith("9494")) val = val.substring(2);
                     input.value = val;
