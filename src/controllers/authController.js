@@ -8,21 +8,17 @@ const supabase = require("../config/supabaseClient");
 const transporter = require("../config/mailer");
 const { generateEmailTemplate, generateOtpEmailContent, generatePasswordResetEmailContent } = require("../services/emailService");
 
-const { OAuth2Client } = require('google-auth-library');
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
+// උපරිම වැරදි උත්සාහයන් ගණන
 const MAX_OTP_ATTEMPTS = 5;
 const LOCKOUT_TIME_MS = 15 * 60 * 1000; 
 
+// --- REGISTER CONTROLLER ---
 exports.register = async (req, res) => {
+    // (Register කේතය වෙනස් වී නැත - පරණ එකම තබන්න)
     const { username, email, whatsapp, password } = req.body;
     
     if (!username || !email || !whatsapp || !password)
         return res.status(400).json({ success: false, message: "All fields are required." });
-
-    if (whatsapp === "94" || whatsapp.length !== 11) {
-        return res.status(400).json({ success: false, message: "A valid 11-digit WhatsApp number (e.g., 947XXXXXXXX) is strictly required." });
-    }
 
     try {
         const { data: existingUsers, error: findError } = await supabase
@@ -102,7 +98,9 @@ exports.register = async (req, res) => {
     }
 };
 
+// --- VERIFY OTP CONTROLLER ---
 exports.verifyOtp = async (req, res) => {
+    // (Verify OTP කේතය වෙනස් වී නැත - පරණ එකම තබන්න)
     const { email, otp } = req.body;
     
     try {
@@ -143,7 +141,7 @@ exports.verifyOtp = async (req, res) => {
         const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, { expiresIn: "1d" });
         res.status(201).json({ 
             success: true, 
-            message: "Account Verified Successfully!",
+            message: "Account Verified Successfully!", // මේ පේළිය අලුතින් එකතු කරන්න
             token, 
             user: { id: user.id, username: user.username, email: user.email, whatsapp: user.whatsapp, profilePicture: user.profile_picture } 
         });
@@ -154,10 +152,13 @@ exports.verifyOtp = async (req, res) => {
     }
 };
 
+// --- LOGIN CONTROLLER (UPDATED) ---
 exports.login = async (req, res) => {
+    // Frontend එකෙන් 'email' යන නමින් එව්වට, එහි Username හෝ Email තිබිය හැක.
     const { email: loginInput, password } = req.body;
 
     try {
+        // Username හෝ Email යන දෙකෙන් ඕනෑම එකක් ගැලපේදැයි බලයි (.or භාවිතා කර)
         const { data: user, error } = await supabase
             .from("users")
             .select("*")
@@ -172,6 +173,7 @@ exports.login = async (req, res) => {
             return res.status(403).json({ success: false, message: "Your account has been banned. Please contact support." });
         }
 
+        // Password Comparison
         const isMatch = bcrypt.compareSync(password, user.password);
         if (isMatch) {
             const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, { expiresIn: "1d" });
@@ -192,7 +194,9 @@ exports.login = async (req, res) => {
     }
 };
 
+// --- ADMIN LOGIN ---
 exports.adminLogin = async (req, res) => {
+    // (Admin Login වෙනස් වී නැත)
     const { username, password, rememberMe } = req.body;
     try {
         const { data: adminUser, error } = await supabase
@@ -215,7 +219,9 @@ exports.adminLogin = async (req, res) => {
     }
 };
 
+// --- RESELLER LOGIN ---
 exports.resellerLogin = async (req, res) => {
+    // (Reseller Login වෙනස් වී නැත)
     const { username, password } = req.body;
     try {
         const { data: reseller, error } = await supabase
@@ -238,7 +244,9 @@ exports.resellerLogin = async (req, res) => {
     }
 };
 
+// --- FORGOT/RESET PASSWORD ---
 exports.forgotPassword = async (req, res) => {
+    // (වෙනස් වී නැත)
     const { email } = req.body;
     const genericResponse = { message: 'If an account exists, a reset link has been sent.' };
 
@@ -268,6 +276,7 @@ exports.forgotPassword = async (req, res) => {
 };
 
 exports.resetPassword = async (req, res) => {
+    // (වෙනස් වී නැත)
     const { token, newPassword } = req.body;
     if (!token || !newPassword || newPassword.length < 6) return res.status(400).json({ success: false, message: "Invalid data." });
 
@@ -285,164 +294,5 @@ exports.resetPassword = async (req, res) => {
         res.json({ success: true, message: "Password reset successful." });
     } catch (err) {
         res.status(500).json({ success: false, message: "Server error." });
-    }
-};
-
-// --- GOOGLE LOGIN CONTROLLER ---
-exports.googleLogin = async (req, res) => {
-    const { credential } = req.body; 
-
-    if (!credential) {
-        return res.status(400).json({ success: false, message: "Google token is missing." });
-    }
-
-    try {
-        if (!process.env.GOOGLE_CLIENT_ID) {
-            throw new Error("GOOGLE_CLIENT_ID is not defined in server environment.");
-        }
-
-        const ticket = await googleClient.verifyIdToken({
-            idToken: credential,
-            audience: process.env.GOOGLE_CLIENT_ID,
-        });
-        
-        const payload = ticket.getPayload();
-        const email = payload['email'];
-        const username = payload['name'] || email.split('@')[0];
-        const profilePicture = payload['picture'];
-
-        const { data: user, error: findError } = await supabase
-            .from("users")
-            .select("*")
-            .eq("email", email)
-            .single();
-
-        let finalUser = user;
-
-        if (!user) {
-            const randomPassword = crypto.randomBytes(16).toString('hex');
-            const hashedPassword = bcrypt.hashSync(randomPassword, 10);
-
-            const newUserData = {
-                id: uuidv4(), 
-                username: username.replace(/\s+/g, '_') + Math.floor(Math.random() * 1000), 
-                email: email,
-                whatsapp: "94000000000", 
-                password: hashedPassword,
-                status: "active",
-                profile_picture: profilePicture,
-                otp_code: null,
-                otp_expiry: null,
-                otp_attempts: 0,
-                otp_lockout_until: null,
-                active_plans: [] 
-            };
-
-            const { data: newUser, error: createError } = await supabase
-                .from("users")
-                .insert([newUserData])
-                .select()
-                .single();
-
-            if (createError) {
-                console.error("Google Auth DB Create Error:", createError);
-                return res.status(500).json({ success: false, message: "Database creation failed: " + createError.message });
-            }
-            finalUser = newUser;
-        } else if (user.status === 'banned') {
-            return res.status(403).json({ success: false, message: "Your account has been banned." });
-        }
-
-        const token = jwt.sign({ id: finalUser.id, username: finalUser.username }, process.env.JWT_SECRET, { expiresIn: "1d" });
-        
-        const userPayload = {
-            id: finalUser.id,
-            username: finalUser.username,
-            email: finalUser.email,
-            whatsapp: finalUser.whatsapp,
-            profilePicture: finalUser.profile_picture || "assets/profilePhoto.jpg",
-        };
-
-        return res.json({ success: true, message: "Logged in successfully with Google!", token, user: userPayload });
-
-    } catch (error) {
-        console.error("Google Login Catch Error:", error);
-        return res.status(500).json({ success: false, message: "Server Error: " + (error.message || "Unknown error") });
-    }
-};
-
-// --- UPDATE WHATSAPP AND USERNAME FOR GOOGLE USERS ---
-exports.updateWhatsapp = async (req, res) => {
-    const { email, whatsapp, username } = req.body;
-
-    if (!email || !whatsapp || whatsapp === "94" || whatsapp.length !== 11) {
-        return res.status(400).json({ success: false, message: "A valid 11-digit WhatsApp number is required." });
-    }
-    if (!username || username.trim() === "") {
-        return res.status(400).json({ success: false, message: "A valid username is required." });
-    }
-
-    try {
-        const { data: existingUser } = await supabase
-            .from("users")
-            .select("id")
-            .ilike("username", username)
-            .neq("email", email)
-            .single();
-
-        if (existingUser) {
-            return res.status(400).json({ success: false, message: "This username is already taken. Please try checking a new one." });
-        }
-
-        const { data: updatedUser, error } = await supabase
-            .from("users")
-            .update({ whatsapp: whatsapp, username: username })
-            .eq("email", email)
-            .select()
-            .single(); 
-
-        if (error) {
-            console.error("Update Profile Error:", error);
-            return res.status(500).json({ success: false, message: "Database error while updating profile." });
-        }
-
-        const token = jwt.sign({ id: updatedUser.id, username: updatedUser.username }, process.env.JWT_SECRET, { expiresIn: "1d" });
-        
-        const userPayload = {
-            id: updatedUser.id,
-            username: updatedUser.username,
-            email: updatedUser.email,
-            whatsapp: updatedUser.whatsapp,
-            profilePicture: updatedUser.profile_picture || "assets/profilePhoto.jpg",
-        };
-
-        res.json({ success: true, message: "Profile updated successfully!", token, user: userPayload });
-    } catch (err) {
-        console.error("Server Error:", err);
-        res.status(500).json({ success: false, message: "Server error." });
-    }
-};
-
-// --- අලුත් WEBSITE USERNAME CHECK CONTROLLER ---
-exports.checkWebsiteUsername = async (req, res) => {
-    const { username } = req.query;
-    if (!username) return res.status(400).json({ error: "Username is required" });
-    
-    try {
-        const { data: existingUser } = await supabase
-            .from("users")
-            .select("id")
-            .ilike("username", username)
-            .single();
-        
-        if (existingUser) {
-            const randomNum = Math.floor(Math.random() * 9000) + 1000;
-            const suggestion = `${username}${randomNum}`;
-            return res.json({ available: false, suggestion: suggestion });
-        }
-        return res.json({ available: true });
-    } catch (error) {
-        console.error("Error checking website username:", error.message);
-        return res.status(500).json({ error: "Database Error." });
     }
 };
