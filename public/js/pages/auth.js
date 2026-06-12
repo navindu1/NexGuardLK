@@ -168,10 +168,13 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
                 </div>
                 
                 <div class="form-group relative">
-                    <input type="text" id="google-username-input" class="form-input pr-20" required placeholder=" " />
+                    <input type="text" id="google-username-input" class="form-input pr-[5.5rem]" required placeholder=" " />
                     <label for="google-username-input" class="form-label">Choose Username</label>
                     <span class="focus-border"><i></i></span>
-                    <button type="button" id="check-username-btn" class="absolute right-2 top-1/2 -translate-y-1/2 text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-md font-semibold transition-all">Check</button>
+                    <div class="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
+                        <button type="button" id="generate-username-btn" class="text-xs bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-md transition-all" title="Generate Random"><i class="fa-solid fa-shuffle"></i></button>
+                        <button type="button" id="check-username-btn" class="text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-md font-semibold transition-all">Check</button>
+                    </div>
                 </div>
                 <p id="username-status-msg" class="text-xs -mt-4 hidden pl-2"></p>
                 
@@ -257,7 +260,6 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             if (viewToShow) viewToShow.classList.add("active");
         };
 
-        // --- Google Sign-In Logic ---
         window.handleGoogleCredentialResponse = async (response) => {
             showToast({ title: "Google Login", message: "Authenticating securely...", type: "info" });
             try {
@@ -319,11 +321,22 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
         
         renderGoogleButtons();
 
-        // --- NEW: Check Username Logic ---
+        // --- NEW: Generate & Check Username Logic ---
         const checkBtn = document.getElementById("check-username-btn");
+        const generateBtn = document.getElementById("generate-username-btn");
         const unameInput = document.getElementById("google-username-input");
         const statusMsg = document.getElementById("username-status-msg");
 
+        // Generate Username
+        if (generateBtn && unameInput) {
+            generateBtn.addEventListener("click", () => {
+                const randomNum = Math.floor(Math.random() * 90000) + 10000;
+                unameInput.value = "user" + randomNum;
+                if(checkBtn) checkBtn.click(); // ඔටෝ චෙක් වෙනවා
+            });
+        }
+
+        // Check Username
         if (checkBtn && unameInput) {
             checkBtn.addEventListener("click", async () => {
                 const val = unameInput.value.trim();
@@ -358,7 +371,6 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             });
         }
 
-        // --- Complete Profile (WhatsApp & Username) Form Submit ---
         if (whatsappUpdateForm) {
             whatsappUpdateForm.addEventListener("submit", async (e) => {
                 e.preventDefault();
@@ -406,7 +418,6 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             });
         }
 
-        // --- Navigation Toggles ---
         document.getElementById("show-signup")?.addEventListener("click", () => switchAuthView(signupForm));
         document.getElementById("show-signin-from-signup")?.addEventListener("click", () => switchAuthView(signinForm));
         document.getElementById("show-forgot-password")?.addEventListener("click", () => switchAuthView(forgotPasswordForm));
@@ -421,7 +432,6 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             switchAuthView(signinForm);
         }
 
-        // --- Help Modal Logic ---
         const openHelpModalLink = document.querySelector('.open-help-modal-link');
         const helpModal = document.getElementById('help-modal');
         const helpModalCloseBtn = document.getElementById('help-modal-close');
@@ -448,7 +458,6 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             });
         }
 
-        // --- WhatsApp Number Formatting Logic ---
         ["signup-whatsapp", "google-whatsapp-input"].forEach(id => {
             const input = document.getElementById(id);
             if (input) {
@@ -466,7 +475,6 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             }
         });
 
-        // --- Regular Sign In Form ---
         if (signinForm) {
             signinForm.addEventListener("submit", async (e) => {
                 e.preventDefault();
@@ -502,7 +510,6 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             });
         }
 
-        // --- Regular Sign Up Form ---
         if (signupForm) {
             signupForm.addEventListener("submit", async(e) => {
                 e.preventDefault();
@@ -547,7 +554,6 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             });
         }
 
-        // --- OTP Form ---
         if (otpForm) {
             otpForm.addEventListener("submit", async(e) => {
                 e.preventDefault();
@@ -583,7 +589,6 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             });
         }
 
-        // --- Link Account Form ---
         const linkAccountForm = document.getElementById("link-account-form");
         if (linkAccountForm) {
             linkAccountForm.addEventListener("submit", async(e) => {
@@ -614,7 +619,6 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             });
         }
 
-        // --- Passwords Toggle Helpers ---
         ["signin", "signup", "reset"].forEach(prefix => {
             const toggleBtn = document.getElementById(`${prefix}-toggle`);
             const pwdInput = document.getElementById(prefix === "reset" ? "new-password" : `${prefix}-password`);
