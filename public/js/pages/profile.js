@@ -109,6 +109,47 @@ export function renderProfilePage(renderFunc, params) {
     const LAST_PLAN_KEY = `nexguard_last_plan_${user.username}`;
 
     // --- HTML Templates ---
+    const modalHtml = `
+        <div id="help-modal" class="help-modal-overlay">
+            <div class="help-modal-content grease-glass p-6 space-y-4 w-full max-w-md">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h2 class="text-xl font-bold text-white font-['Orbitron'] drop-shadow-md">Help & Support Matrix</h2>
+                        <button id="lang-toggle-btn" class="text-xs text-blue-300 hover:text-white hover:underline mt-1 transition-colors">English / සිංහල</button>
+                    </div>
+                    <button id="help-modal-close" class="text-white/80 hover:text-white text-3xl transition-all hover:rotate-90">&times;</button>
+                </div>
+                <div class="lang-content lang-en">
+                    <div><h3 class="text-lg font-semibold text-blue-300 mb-2 drop-shadow-sm">How to find your Username?</h3><p class="text-gray-100 text-sm mb-4 font-medium leading-relaxed">Your username is the name assigned to your V2ray configuration. It's often visible in your V2ray client app, usually next to the server connection name.</p></div>
+                </div>
+                <div class="lang-content lang-si hidden">
+                    <div><h3 class="text-lg font-semibold text-blue-300 mb-2 drop-shadow-sm">ඔබගේ Username එක සොයාගන්නේ කෙසේද?</h3><p class="text-gray-100 text-sm mb-4 font-medium leading-relaxed">ඔබගේ username යනු V2ray config ගොනුවට ලබා දී ඇති නමයි. එය බොහෝවිට V2ray client ඇප් එකේ, server සම්බන්ධතාවය අසල දිස්වේ.</p></div>
+                </div>
+                <div class="bg-black/20 border border-white/10 rounded-xl p-2 shadow-inner">
+                    <img src="/assets/help.jpg" alt="Example" class="rounded-lg w-full h-auto opacity-95 hover:opacity-100 transition-opacity">
+                </div>
+            </div>
+        </div>`;
+
+    const linkAccountModalHtml = `
+        <div id="link-account-modal" class="help-modal-overlay">
+            <div class="help-modal-content grease-glass p-6 space-y-4 w-full max-w-md">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-xl font-bold text-white font-['Orbitron']">Link Old V2Ray Account</h3>
+                    <button id="link-modal-close" class="text-white/80 hover:text-white text-3xl transition-all hover:rotate-90">&times;</button>
+                </div>
+                <p class="text-sm text-gray-300 mb-4">Enter your previous V2Ray username to link it to this dashboard.</p>
+                <form id="link-account-modal-form" class="space-y-4">
+                    <div class="form-group">
+                        <input type="text" id="modal-v2ray-username" class="form-input" required placeholder=" ">
+                        <label for="modal-v2ray-username" class="form-label">Old V2Ray Username</label>
+                        <span class="focus-border"><i></i></span>
+                    </div>
+                    <button type="submit" class="ai-button secondary w-full rounded-lg">Link Now</button>
+                </form>
+            </div>
+        </div>`;
+    
     const pageStyles = `<style>
         #page-profile .form-input { height: 56px; padding: 20px 12px 8px 12px; background-color: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.2); } 
         #page-profile .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; } 
@@ -158,63 +199,6 @@ export function renderProfilePage(renderFunc, params) {
         .remove-plan-btn:hover { background-color: rgba(239, 68, 68, 0.2); color: #f87171; border-color: rgba(239, 68, 68, 0.3); }
         .add-more-row { display: flex; align-items: center; justify-content: center; padding: 0.8rem; color: #93c5fd; font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: background-color 0.2s; margin: 0.3rem; border-radius: 8px; }
         .add-more-row:hover { background-color: rgba(59, 130, 246, 0.1); color: #bfdbfe; }
-    </style>`;
-
-    const linkAccountModalHtml = `
-        <div id="link-account-modal" class="help-modal-overlay">
-            <div class="help-modal-content grease-glass p-6 space-y-4 w-full max-w-md">
-                <div class="flex justify-between items-center mb-2">
-                    <h3 class="text-xl font-bold text-white font-['Orbitron']">Link Old V2Ray Account</h3>
-                    <button id="link-modal-close" class="text-white/80 hover:text-white text-3xl transition-all hover:rotate-90">&times;</button>
-                </div>
-                <p class="text-sm text-gray-300 mb-4">Enter your previous V2Ray username to link it to this dashboard.</p>
-                <form id="link-account-modal-form" class="space-y-4">
-                    <div class="form-group">
-                        <input type="text" id="modal-v2ray-username" class="form-input" required placeholder=" ">
-                        <label for="modal-v2ray-username" class="form-label">Old V2Ray Username</label>
-                        <span class="focus-border"><i></i></span>
-                    </div>
-                    <button type="submit" class="ai-button secondary w-full rounded-lg">Link Now</button>
-                </form>
-            </div>
-        </div>`;
-    
-    const pageStyles = `<style>
-        #page-profile .form-input { height: 56px; padding: 20px 12px 8px 12px; background-color: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.2); } 
-        #page-profile .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; } 
-        #page-profile .form-input:focus ~ .form-label, #page-profile .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: var(--brand-blue); } 
-        #page-profile .form-input[readonly] { background-color: rgba(0,0,0,0.2); cursor: not-allowed; } 
-        .tab-btn { border-bottom: 3px solid transparent; transition: all .3s ease; color: #9ca3af; padding: 0.75rem 0.25rem; font-weight: 600; white-space: nowrap; } 
-        .tab-btn.active { border-bottom-color: var(--brand-blue); color: #fff; } 
-        .tab-panel { display: none; } 
-        .tab-panel.active { display: block; animation: pageFadeIn 0.5s; }
-        .help-modal-overlay { opacity: 0; visibility: hidden; transition: opacity 0.3s ease-out, visibility 0.3s ease-out; background: rgba(0, 0, 0, 0.2); z-index: 9999; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 1rem; }
-        .help-modal-overlay.visible { opacity: 1; visibility: visible; }
-        .help-modal-content { opacity: 0; transform: scale(0.90); transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .help-modal-overlay.visible .help-modal-content { opacity: 1; transform: scale(1); }
-        .grease-glass { background: rgba(30, 40, 60, 0.4); backdrop-filter: blur(20px) saturate(200%); -webkit-backdrop-filter: blur(20px) saturate(200%); border-radius: 35px; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5); }
-        .plan-selector-container { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 2rem; position: relative; z-index: 100; overflow: visible !important; }
-        .plan-selector-label { font-size: 0.875rem; font-weight: 600; color: #d1d5db; flex-shrink: 0; }
-        ul.fmenu { display: inline-block; list-style: none; padding: 0; margin: 0; white-space: nowrap; position: relative; overflow: visible !important; }
-        ul.fmenu > li.fmenu-item { position: relative; overflow: visible !important; }
-        ul.fmenu .trigger-menu { display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; height: 40px; padding: 0 1rem; border-radius: 999px; background-color: rgba(30, 41, 59, 0.9); border: 1px solid rgba(255, 255, 255, 0.2); cursor: pointer; transition: all ease 0.3s; min-width: 170px; overflow: visible !important; }
-        ul.fmenu .trigger-menu:hover, ul.fmenu .trigger-menu.open { border-color: var(--brand-blue); box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
-        ul.fmenu .trigger-menu i { color: #9ca3af; font-size: 0.85rem; transition: color ease 0.3s; }
-        ul.fmenu .trigger-menu:hover i, ul.fmenu .trigger-menu.open i { color: #60a5fa; }
-        ul.fmenu .trigger-menu .text { display: block; font-size: 0.9rem; color: #ffffff; padding: 0 0.5rem; font-weight: 500; }
-        ul.fmenu .trigger-menu .arrow { font-size: 0.75rem; transition: transform ease 0.3s; }
-        ul.fmenu .trigger-menu.open .arrow { transform: rotate(180deg); }
-        ul.fmenu .floating-menu { display: block; position: absolute; top: 100%; margin-top: 8px; left: 0; width: 100%; min-width: 100%; list-style: none; padding: 0.3rem; background-color: #0f172a; border: 1px solid rgba(71, 85, 105, 0.6); border-radius: 25px; box-shadow: 0 20px 40px rgba(0,0,0,0.8); z-index: 9999 !important; opacity: 0; visibility: hidden; transform: translateY(-10px); transition: opacity 0.3s, transform 0.3s; }
-        ul.fmenu .trigger-menu.open + .floating-menu { opacity: 1 !important; visibility: visible !important; transform: translateY(0) !important; max-height: none !important; overflow: visible !important; }
-        
-        .plan-row { display: flex; align-items: center; justify-content: space-between; padding: 0.4rem 0.6rem; border-radius: 50px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; }
-        .plan-row:hover { background-color: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.3); }
-        .plan-name { color: #cbd5e1; font-size: 0.85rem; flex-grow: 1; margin-right: 0.5rem; }
-        .plan-row:hover .plan-name { color: #fff; }
-        .remove-plan-btn { padding: 3px 7px; font-size: 0.75rem; color: #64748b; border-radius: 50px; transition: all 0.2s; z-index: 10; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); }
-        .remove-plan-btn:hover { background-color: rgba(239, 68, 68, 0.2); color: #f87171; border-color: rgba(239, 68, 68, 0.3); }
-        .add-more-row { display: flex; align-items: center; padding: 0.5rem 0.8rem; color: #93c5fd; font-size: 0.85rem; cursor: pointer; transition: color 0.2s; }
-        .add-more-row:hover { color: #bfdbfe; }
     </style>`;
     
     let profilePictureUrl = (user.profilePicture || "/assets/profilePhoto.jpg").replace("public/", "");
