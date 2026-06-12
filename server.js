@@ -12,9 +12,11 @@ const PORT = process.env.PORT || 3000;
 // --- පහත පේළිය අලුතින් එකතු කරන්න ---
 app.set('trust proxy', 1); 
 
-// --- Security Middleware ---
+// --- Security Middleware (UPDATE කර ඇත) ---
 app.use(helmet({
-    contentSecurityPolicy: false, // Frontend එකේ script අවුල් නොවෙන්න මෙය false කරන්න
+    contentSecurityPolicy: false, 
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }, 
+    crossOriginEmbedderPolicy: false 
 }));
 
 // Rate Limiter: විනාඩි 15ක් තුළ එක IP එකකින් එන උපරිම ඉල්ලීම් 100 කට සීමා කිරීම
@@ -92,4 +94,3 @@ app.listen(PORT, () => {
 });
 
 module.exports = app;
-
