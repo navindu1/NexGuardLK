@@ -20,30 +20,11 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
 
     const pageStyles = `
     <style>
-        .help-modal-overlay {
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
-            background: rgba(0, 0, 0, 0.2); 
-            z-index: 9999;
-            position: fixed;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-        }
+        .help-modal-overlay { opacity: 0; visibility: hidden; transition: opacity 0.3s ease-out, visibility 0.3s ease-out; background: rgba(0, 0, 0, 0.2); z-index: 9999; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 1rem; }
         .help-modal-overlay.visible { opacity: 1; visibility: visible; }
-        .help-modal-content {
-            opacity: 0; transform: scale(0.90);
-            transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
+        .help-modal-content { opacity: 0; transform: scale(0.90); transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .help-modal-overlay.visible .help-modal-content { opacity: 1; transform: scale(1); }
-        .grease-glass {
-            background: rgba(30, 40, 60, 0.4); backdrop-filter: blur(20px) saturate(200%);
-            -webkit-backdrop-filter: blur(20px) saturate(200%); border-radius: 35px;
-            border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
-        }
+        .grease-glass { background: rgba(30, 40, 60, 0.4); backdrop-filter: blur(20px) saturate(200%); -webkit-backdrop-filter: blur(20px) saturate(200%); border-radius: 35px; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5); }
         .auth-form { display: none; }
         .auth-form.active { display: block; }
         .auth-toggle-link { color: var(--brand-blue); cursor: pointer; font-weight: 500; }
@@ -53,31 +34,12 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
         #page-login .form-input:focus ~ .form-label, #page-login .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: var(--brand-blue); }
         #link-account-form .form-group { margin-top: 0; }
         
-        .divider {
-            display: flex;
-            align-items: center;
-            text-align: center;
-            margin: 1.25rem 0;
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-        .divider::before, .divider::after {
-            content: '';
-            flex: 1;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-        }
+        .divider { display: flex; align-items: center; text-align: center; margin: 1.25rem 0; color: rgba(255, 255, 255, 0.5); font-size: 0.8rem; font-weight: 600; }
+        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid rgba(255, 255, 255, 0.15); }
         .divider:not(:empty)::before { margin-right: 1rem; }
         .divider:not(:empty)::after { margin-left: 1rem; }
 
-        .google-btn-wrapper {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            height: 44px; 
-            margin-top: 10px;
-        }
+        .google-btn-wrapper { display: flex; justify-content: center; align-items: center; width: 100%; height: 44px; margin-top: 10px; }
     </style>
     `;
 
@@ -312,10 +274,9 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
                     showToast({ title: "Success!", message: "Google account verified.", type: "success" });
                     
                     if (result.user.whatsapp === "94000000000" || !result.user.whatsapp) {
-                        // Pre-fill username field (remove random numbers from the generated name)
                         const unameInput = document.getElementById("google-username-input");
                         if (unameInput && result.user.username) {
-                            unameInput.value = result.user.username.replace(/\\d{3,4}$/, ''); 
+                            unameInput.value = result.user.username.replace(/\d{3,4}$/, ''); 
                         }
                         switchAuthView(whatsappUpdateForm);
                     } else {
@@ -374,8 +335,7 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
                 checkBtn.innerText = "Wait...";
                 
                 try {
-                    // This uses the token from Google Login to check
-                    const res = await apiFetch(`/api/user/check-v2ray-username?username=${encodeURIComponent(val)}`);
+                    const res = await apiFetch(`/api/auth/check-username?username=${encodeURIComponent(val)}`);
                     const data = await res.json();
                     
                     statusMsg.classList.remove("hidden");
@@ -432,12 +392,9 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
 
                     if (res.ok) {
                         showToast({ title: "Saved!", message: "Profile updated successfully.", type: "success" });
-                        
-                        // Update session with new username & token!
                         if (result.token && result.user) {
                             saveSession(result); 
                         }
-                        
                         switchAuthView(linkAccountContainer); 
                     } else {
                         showToast({ title: "Error", message: result.message, type: "error" });
@@ -496,7 +453,7 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             const input = document.getElementById(id);
             if (input) {
                 input.addEventListener("input", () => {
-                    let val = input.value.replace(/\\D/g, '');
+                    let val = input.value.replace(/\D/g, '');
                     if (!val.startsWith("94")) val = "94" + val;
                     if (val.startsWith("9494")) val = val.substring(2);
                     input.value = val;

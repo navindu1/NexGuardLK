@@ -14,7 +14,6 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const MAX_OTP_ATTEMPTS = 5;
 const LOCKOUT_TIME_MS = 15 * 60 * 1000; 
 
-// --- REGISTER CONTROLLER ---
 exports.register = async (req, res) => {
     const { username, email, whatsapp, password } = req.body;
     
@@ -103,7 +102,6 @@ exports.register = async (req, res) => {
     }
 };
 
-// --- VERIFY OTP CONTROLLER ---
 exports.verifyOtp = async (req, res) => {
     const { email, otp } = req.body;
     
@@ -156,7 +154,6 @@ exports.verifyOtp = async (req, res) => {
     }
 };
 
-// --- LOGIN CONTROLLER ---
 exports.login = async (req, res) => {
     const { email: loginInput, password } = req.body;
 
@@ -175,7 +172,6 @@ exports.login = async (req, res) => {
             return res.status(403).json({ success: false, message: "Your account has been banned. Please contact support." });
         }
 
-        // Password Comparison
         const isMatch = bcrypt.compareSync(password, user.password);
         if (isMatch) {
             const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, { expiresIn: "1d" });
@@ -196,7 +192,6 @@ exports.login = async (req, res) => {
     }
 };
 
-// --- ADMIN LOGIN ---
 exports.adminLogin = async (req, res) => {
     const { username, password, rememberMe } = req.body;
     try {
@@ -220,7 +215,6 @@ exports.adminLogin = async (req, res) => {
     }
 };
 
-// --- RESELLER LOGIN ---
 exports.resellerLogin = async (req, res) => {
     const { username, password } = req.body;
     try {
@@ -244,7 +238,6 @@ exports.resellerLogin = async (req, res) => {
     }
 };
 
-// --- FORGOT/RESET PASSWORD ---
 exports.forgotPassword = async (req, res) => {
     const { email } = req.body;
     const genericResponse = { message: 'If an account exists, a reset link has been sent.' };
@@ -295,7 +288,7 @@ exports.resetPassword = async (req, res) => {
     }
 };
 
-// --- NEW: GOOGLE LOGIN CONTROLLER ---
+// --- GOOGLE LOGIN CONTROLLER ---
 exports.googleLogin = async (req, res) => {
     const { credential } = req.body; 
 
@@ -332,7 +325,7 @@ exports.googleLogin = async (req, res) => {
 
             const newUserData = {
                 id: uuidv4(), 
-                username: username.replace(/\\s+/g, '_') + Math.floor(Math.random() * 1000), 
+                username: username.replace(/\s+/g, '_') + Math.floor(Math.random() * 1000), 
                 email: email,
                 whatsapp: "94000000000", 
                 password: hashedPassword,
@@ -378,7 +371,7 @@ exports.googleLogin = async (req, res) => {
     }
 };
 
-// --- NEW: UPDATE WHATSAPP AND USERNAME FOR GOOGLE USERS ---
+// --- UPDATE WHATSAPP AND USERNAME FOR GOOGLE USERS ---
 exports.updateWhatsapp = async (req, res) => {
     const { email, whatsapp, username } = req.body;
 
@@ -390,7 +383,6 @@ exports.updateWhatsapp = async (req, res) => {
     }
 
     try {
-        // අලුතින් දුන්න Username එක වෙන කෙනෙක් පාවිච්චි කරනවද කියලා බලනවා
         const { data: existingUser } = await supabase
             .from("users")
             .select("id")
@@ -402,7 +394,6 @@ exports.updateWhatsapp = async (req, res) => {
             return res.status(400).json({ success: false, message: "This username is already taken. Please try checking a new one." });
         }
 
-        // අවුලක් නැත්නම් Database එකේ Update කරනවා
         const { data: updatedUser, error } = await supabase
             .from("users")
             .update({ whatsapp: whatsapp, username: username })
@@ -415,7 +406,6 @@ exports.updateWhatsapp = async (req, res) => {
             return res.status(500).json({ success: false, message: "Database error while updating profile." });
         }
 
-        // අලුත් Username එකත් එක්ක Token එක අලුත් කරලා Frontend එකට යවනවා
         const token = jwt.sign({ id: updatedUser.id, username: updatedUser.username }, process.env.JWT_SECRET, { expiresIn: "1d" });
         
         const userPayload = {
@@ -430,5 +420,29 @@ exports.updateWhatsapp = async (req, res) => {
     } catch (err) {
         console.error("Server Error:", err);
         res.status(500).json({ success: false, message: "Server error." });
+    }
+};
+
+// --- අලුත් WEBSITE USERNAME CHECK CONTROLLER ---
+exports.checkWebsiteUsername = async (req, res) => {
+    const { username } = req.query;
+    if (!username) return res.status(400).json({ error: "Username is required" });
+    
+    try {
+        const { data: existingUser } = await supabase
+            .from("users")
+            .select("id")
+            .ilike("username", username)
+            .single();
+        
+        if (existingUser) {
+            const randomNum = Math.floor(Math.random() * 9000) + 1000;
+            const suggestion = `${username}${randomNum}`;
+            return res.json({ available: false, suggestion: suggestion });
+        }
+        return res.json({ available: true });
+    } catch (error) {
+        console.error("Error checking website username:", error.message);
+        return res.status(500).json({ error: "Database Error." });
     }
 };
