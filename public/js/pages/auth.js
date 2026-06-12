@@ -54,7 +54,7 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
         #page-login .form-input:focus ~ .form-label, #page-login .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: var(--brand-blue); }
         #link-account-form .form-group { margin-top: 0; }
         
-        /* --- NEW: DIVIDER STYLES (OR Lines) --- */
+        /* --- DIVIDER STYLES (OR Lines) --- */
         .divider {
             display: flex;
             align-items: center;
@@ -72,48 +72,14 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
         .divider:not(:empty)::before { margin-right: 1rem; }
         .divider:not(:empty)::after { margin-left: 1rem; }
 
-        /* --- NEW: CUSTOM GOOGLE BUTTON & HOVER EFFECTS --- */
-        .submit-btn {
-            height: 50px; /* Standardize height for all main buttons */
-        }
+        /* --- OFFICIAL GOOGLE BUTTON WRAPPER --- */
         .google-btn-wrapper {
-            position: relative;
-            width: 100%;
-            height: 50px;
-            border-radius: 0.5rem;
-            overflow: hidden;
-            cursor: pointer;
-        }
-        /* Trick to apply the glow hover effect when hovering over the wrapper */
-        .google-btn-wrapper:hover .custom-google-btn {
-            box-shadow: 0 0 25px var(--glow-color);
-            background-position: right center;
-        }
-        .custom-google-btn {
-            position: absolute;
-            inset: 0;
-            z-index: 1;
-            pointer-events: none; /* Allows clicks to pass through to the iframe */
             display: flex;
-            align-items: center;
             justify-content: center;
-            gap: 0.5rem;
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            padding: 0;
-        }
-        .g_id_signin {
-            position: absolute;
-            inset: 0;
-            z-index: 10;
-            opacity: 0.01; /* Transparent but still clickable */
-            width: 100%;
-            height: 100%;
-            display: flex;
             align-items: center;
-            justify-content: center;
-            transform: scale(1.5); /* Prevents unclickable edges */
+            width: 100%;
+            height: 44px; /* Matches standard button height */
+            margin-top: 10px;
         }
     </style>`;
 
@@ -151,16 +117,11 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
                 <div class="form-group relative"><input type="password" id="signin-password" class="form-input pr-10" required placeholder=" " /><label for="signin-password" class="form-label">Password</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="signin-toggle"></i></div>
                 <div class="text-right text-sm -mt-3"><span id="show-forgot-password" class="auth-toggle-link hover:underline">Forgot Password?</span></div>
                 
-                <button type="submit" class="ai-button w-full rounded-lg submit-btn mt-2">Sign In</button>
+                <button type="submit" class="ai-button w-full rounded-lg mt-2">Sign In</button>
                 
                 <div class="divider">OR</div>
                 
-                <div class="google-btn-wrapper">
-                    <button type="button" class="ai-button custom-google-btn rounded-lg">
-                        <i class="fa-brands fa-google text-lg"></i> Continue with Google
-                    </button>
-                    <div id="google-login-btn-div" class="g_id_signin"></div>
-                </div>
+                <div class="google-btn-wrapper" id="google-login-btn-div"></div>
 
                 <p class="text-center text-sm mt-4">Don't have an account? <span id="show-signup" class="auth-toggle-link">Sign Up</span></p>
             </form>
@@ -173,16 +134,11 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
                 <div class="form-group"><input type="tel" id="signup-whatsapp" class="form-input" required placeholder=" " value="94" minlength="11" maxlength="11" /><label for="signup-whatsapp" class="form-label">WhatsApp Number</label><span class="focus-border"><i></i></span></div>
                 <div class="form-group relative"><input type="password" id="signup-password" class="form-input pr-10" required placeholder=" " /><label for="signup-password" class="form-label">Password</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="signup-toggle"></i></div>
                 
-                <button type="submit" class="ai-button w-full rounded-lg submit-btn mt-2">Create & Continue</button>
+                <button type="submit" class="ai-button w-full rounded-lg mt-2">Create & Continue</button>
 
                 <div class="divider">OR</div>
                 
-                <div class="google-btn-wrapper">
-                    <button type="button" class="ai-button custom-google-btn rounded-lg">
-                        <i class="fa-brands fa-google text-lg"></i> Continue with Google
-                    </button>
-                    <div id="google-signup-btn-div" class="g_id_signin"></div>
-                </div>
+                <div class="google-btn-wrapper" id="google-signup-btn-div"></div>
 
                 <p class="text-center text-sm mt-4">Already have an account? <span id="show-signin-from-signup" class="auth-toggle-link">Sign In</span></p>
             </form>
@@ -190,21 +146,21 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             <form class="auth-form space-y-6" id="otp-form">
                 <div class="text-center"><h1 class="text-2xl font-bold text-white font-['Orbitron']">Verify Email</h1><p class="text-sm text-gray-400 mt-1">Step 2: Enter the 6-digit code we sent you.</p></div>
                 <input type="hidden" id="otp-email"><div class="form-group"><input type="text" id="otp-code" class="form-input" required placeholder=" " maxlength="6" /><label for="otp-code" class="form-label">OTP Code</label><span class="focus-border"><i></i></span></div>
-                <button type="submit" class="ai-button w-full rounded-lg submit-btn">Verify & Create Account</button>
+                <button type="submit" class="ai-button w-full rounded-lg">Verify & Create Account</button>
                 <p class="text-center text-sm">Didn't get the code? <span id="show-signup-again" class="auth-toggle-link">Go Back</span></p>
             </form>
 
             <form class="auth-form space-y-6" id="whatsapp-update-form">
                 <div class="text-center"><h1 class="text-2xl font-bold text-white font-['Orbitron']">Almost Done!</h1><p class="text-sm text-gray-400 mt-1">Please provide your WhatsApp number for account security.</p></div>
                 <div class="form-group"><input type="tel" id="google-whatsapp-input" class="form-input" required placeholder=" " value="94" minlength="11" maxlength="11" /><label for="google-whatsapp-input" class="form-label">WhatsApp Number</label><span class="focus-border"><i></i></span></div>
-                <button type="submit" class="ai-button w-full rounded-lg submit-btn">Save & Continue</button>
+                <button type="submit" class="ai-button w-full rounded-lg">Save & Continue</button>
             </form>
 
             <div class="auth-form" id="link-account-form-container">
                 <div class="text-center"><h1 class="text-2xl font-bold text-white font-['Orbitron']">Link Account</h1><p class="text-sm text-gray-400 mt-1">Do you have an existing V2Ray account?</p></div>
                 <form id="link-account-form" class="mt-8 space-y-6">
                     <div class="form-group"><input type="text" id="existing-v2ray-username" class="form-input" required placeholder=" "><label for="existing-v2ray-username" class="form-label">Your Old V2Ray Username</label><span class="focus-border"><i></i></span></div>
-                    <button type="submit" class="ai-button w-full rounded-lg submit-btn">Link Account & Continue</button>
+                    <button type="submit" class="ai-button w-full rounded-lg">Link Account & Continue</button>
                     <div class="text-center text-sm mt-4"><span class="open-help-modal-link text-blue-400 cursor-pointer hover:underline">How to find your username?</span></div>
                     <a href="/profile" id="skip-link-btn" class="nav-link-internal block text-center text-sm text-gray-400 hover:text-white !mt-2">Skip for Now</a>
                 </form>
@@ -213,14 +169,14 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             <form class="auth-form space-y-6" id="forgot-password-form">
                 <div class="text-center"><h1 class="text-2xl font-bold text-white font-['Orbitron']">Reset Password</h1></div>
                 <div class="form-group"><input type="email" id="forgot-email" class="form-input" required placeholder=" " /><label for="forgot-email" class="form-label">Account Email</label><span class="focus-border"><i></i></span></div>
-                <button type="submit" class="ai-button w-full rounded-lg submit-btn">Send Link</button>
+                <button type="submit" class="ai-button w-full rounded-lg">Send Link</button>
                 <p class="text-center text-sm"><span id="show-signin-from-forgot" class="auth-toggle-link">Back to Sign In</span></p>
             </form>
 
             <form class="auth-form space-y-6" id="reset-password-form">
                 <div class="text-center"><h1 class="text-2xl font-bold text-white font-['Orbitron']">New Password</h1></div>
                 <input type="hidden" id="reset-token" value="${resetToken || ""}"><div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" required placeholder=" " /><label for="new-password" class="form-label">New Password</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="reset-toggle"></i></div>
-                <button type="submit" class="ai-button w-full rounded-lg submit-btn">Update</button>
+                <button type="submit" class="ai-button w-full rounded-lg">Update</button>
             </form>
         </div>
     </div>
@@ -272,16 +228,31 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
 
         const renderGoogleButtons = () => {
             if (window.google && window.google.accounts) {
-                google.accounts.id.initialize({
-                    client_id: "324820496903-er23b2ipeh2hs0fs61dms3flo9aot8jm.apps.googleusercontent.com", 
-                    callback: handleGoogleCredentialResponse
-                });
-                // Width 400 දාලා තියෙන්නේ අපේ Button එක සම්පූර්ණයෙන්ම වහගන්නයි (Click area එක මිස් නොවෙන්න)
-                const btnOptions = { theme: "filled_black", size: "large", width: 400, shape: "rectangular" };
-                google.accounts.id.renderButton(document.getElementById("google-login-btn-div"), btnOptions);
-                google.accounts.id.renderButton(document.getElementById("google-signup-btn-div"), btnOptions);
+                // වරක් පමණක් Initialize කිරීමට (Error එක නැති කිරීමට)
+                if (!window.googleInitDone) {
+                    google.accounts.id.initialize({
+                        client_id: "324820496903-er23b2ipeh2hs0fs61dms3flo9aot8jm.apps.googleusercontent.com", 
+                        callback: handleGoogleCredentialResponse,
+                        auto_select: false
+                    });
+                    window.googleInitDone = true;
+                }
+
+                // Official Google Blue Theme Button, Sized to fit the form exactly
+                const btnOptions = { theme: "filled_blue", size: "large", shape: "rectangular", text: "continue_with", width: 316 };
+                
+                const loginBtnContainer = document.getElementById("google-login-btn-div");
+                if (loginBtnContainer && loginBtnContainer.innerHTML === "") {
+                    google.accounts.id.renderButton(loginBtnContainer, btnOptions);
+                }
+
+                const signupBtnContainer = document.getElementById("google-signup-btn-div");
+                if (signupBtnContainer && signupBtnContainer.innerHTML === "") {
+                    google.accounts.id.renderButton(signupBtnContainer, btnOptions);
+                }
+                
             } else {
-                setTimeout(renderGoogleButtons, 500); // Wait for script to load
+                setTimeout(renderGoogleButtons, 500); 
             }
         };
         renderGoogleButtons();
@@ -465,7 +436,6 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             } catch (err) { btn.disabled = false; }
         });
 
-        // Passwords Toggle Helpers
         ["signin", "signup", "reset"].forEach(prefix => {
             const toggleBtn = document.getElementById(`${prefix}-toggle`);
             const pwdInput = document.getElementById(prefix === "reset" ? "new-password" : `${prefix}-password`);
