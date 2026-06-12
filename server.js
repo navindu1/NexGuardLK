@@ -36,6 +36,10 @@ app.use(express.urlencoded({ extended: true }));
 const { processAutoConfirmableOrders } = require('./src/services/orderService');
 const { cleanupOldReceipts, processRenewalQueue } = require('./src/services/cronService');
 const { sendExpiryReminders } = require('./src/services/notificationService');
+const corsOptions = {
+    origin: ['https://app.nexguardlk.store', 'https://nexguardlk.store', 'http://localhost:3000'], 
+    optionsSuccessStatus: 200
+};
 
 // අලුත් කේතය:
 app.post('/api/cron', (req, res) => {
@@ -90,6 +94,9 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
+
+
+app.use(cors(corsOptions));
 
 module.exports = app;
 

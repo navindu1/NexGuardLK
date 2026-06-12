@@ -46,22 +46,50 @@ export function renderConnectionsPage(renderFunc, params) {
             linkUrl = `/checkout?planId=${planId}&connId=${encodeURIComponent(conn.name)}&pkg=${encodeURIComponent(conn.default_package || '')}&inboundId=${conn.default_inbound_id}&vlessTemplate=${encodeURIComponent(conn.default_vless_template)}${changeQuery}`;
             packageInfoHtml = `<p class="text-xs text-blue-300 mt-2 font-semibold">${conn.default_package || 'Standard Connection'}</p>`;
         }
-        return `<a href="${linkUrl}" class="nav-link-internal card reveal selectable card-glass p-6 custom-radius text-center flex flex-col items-center justify-center w-full sm:w-72">
-                    <i class="${conn.icon || 'fa-solid fa-wifi'} text-3xl gradient-text mb-3"></i>
-                    <h3 class="text-lg font-bold text-white mb-2">${conn.name}</h3>
+        // w-full h-full භාවිතා කර Grid එකට අනුව කාර්ඩ් එකේ සයිස් එක හැඩගැසීමට සලස්වා ඇත
+        return `<a href="${linkUrl}" class="nav-link-internal card reveal selectable card-glass p-4 sm:p-6 custom-radius text-center flex flex-col items-center justify-center w-full h-full connection-item" data-name="${conn.name.toLowerCase()}">
+                    <i class="${conn.icon || 'fa-solid fa-wifi'} text-3xl sm:text-4xl gradient-text mb-3"></i>
+                    <h3 class="text-sm sm:text-lg font-bold text-white mb-2 leading-tight">${conn.name}</h3>
                     ${packageInfoHtml}
                 </a>`;
-    }).join("") : '<div class="text-amber-400 text-center col-span-full"><p>No connection types are currently available.</p></div>';
+    }).join("") : '<div class="text-amber-400 text-center col-span-full py-10"><p>No connection types are currently available.</p></div>';
 
     renderFunc(`
+        <style>
+            .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+            .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 10px; }
+            .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.4); border-radius: 10px; }
+            .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(59, 130, 246, 0.8); }
+        </style>
         <div id="page-connections" class="page">
-            <header class="text-center mb-10 reveal">
+            <header class="text-center mb-6 reveal">
                 <h2 class="text-2xl font-bold text-white">Select Your Connection</h2>
                 <p class="text-gray-400 mt-2">Step 2: Choose your ISP.</p>
             </header>
-            <div class="flex flex-wrap items-center justify-center gap-6">${connectionsHtml}</div>
+            
+            <div class="max-w-md mx-auto mb-6 reveal relative px-2">
+                <i class="fa-solid fa-search absolute left-6 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <input type="text" id="connection-search" class="w-full bg-slate-800/80 border border-slate-700 rounded-full py-3 pl-12 pr-4 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors shadow-lg" placeholder="Search connections... (e.g. Dialog, SLT)">
+            </div>
+
+            <div class="max-h-[60vh] overflow-y-auto custom-scrollbar p-2">
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-5" id="connections-grid">
+                    ${connectionsHtml}
+                </div>
+            </div>
+            
             <div class="text-center mt-8 reveal"><a href="/plans${changeQuery}" class="nav-link-internal text-blue-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back to Plans</a></div>
         </div>`);
+
+    // Search Logic
+    setTimeout(() => {
+        document.getElementById('connection-search')?.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            document.querySelectorAll('.connection-item').forEach(el => {
+                el.style.display = el.dataset.name.includes(term) ? 'flex' : 'none';
+            });
+        });
+    }, 100);
 }
 
 export function renderPackageChoicePage(renderFunc, params) {
@@ -79,23 +107,50 @@ export function renderPackageChoicePage(renderFunc, params) {
     let choiceHtml = conn.package_options.map((option) => {
         const encodedOptionName = encodeURIComponent(option.name);
         const encodedTemplate = encodeURIComponent(option.template);
-        return `<a href="/checkout?planId=${planId}&connId=${encodeURIComponent(connId)}&pkg=${encodedOptionName}&inboundId=${option.inbound_id}&vlessTemplate=${encodedTemplate}${changeQuery}" class="nav-link-internal card reveal selectable card-glass p-6 custom-radius text-center flex flex-col items-center justify-center w-full sm:w-72">
-            <i class="fa-solid fa-box-open text-3xl gradient-text mb-3"></i>
-            <h3 class="text-lg font-bold text-white">${option.name}</h3>
+        return `<a href="/checkout?planId=${planId}&connId=${encodeURIComponent(connId)}&pkg=${encodedOptionName}&inboundId=${option.inbound_id}&vlessTemplate=${encodedTemplate}${changeQuery}" class="nav-link-internal card reveal selectable card-glass p-4 sm:p-6 custom-radius text-center flex flex-col items-center justify-center w-full h-full package-item" data-name="${option.name.toLowerCase()}">
+            <i class="fa-solid fa-box-open text-3xl sm:text-4xl gradient-text mb-3"></i>
+            <h3 class="text-sm sm:text-lg font-bold text-white leading-tight">${option.name}</h3>
         </a>`;
     }).join("");
 
     renderFunc(`
+        <style>
+            .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+            .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 10px; }
+            .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.4); border-radius: 10px; }
+            .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(59, 130, 246, 0.8); }
+        </style>
         <div id="page-package-choice" class="page">
-            <header class="text-center mb-10 reveal">
+            <header class="text-center mb-6 reveal">
                 <h2 class="text-2xl font-bold text-white">Select Your Add-On Package</h2>
-                <p class="text-gray-400 mt-2">Step 2.5: Choose the required package for your ${conn.name} connection.</p>
+                <p class="text-gray-400 mt-2 text-sm sm:text-base">Step 2.5: Choose the required package for your <span class="text-blue-300 font-semibold">${conn.name}</span> connection.</p>
             </header>
-            <div class="flex flex-wrap items-center justify-center gap-6">${choiceHtml}</div>
+            
+            <div class="max-w-md mx-auto mb-6 reveal relative px-2">
+                <i class="fa-solid fa-search absolute left-6 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <input type="text" id="package-search" class="w-full bg-slate-800/80 border border-slate-700 rounded-full py-3 pl-12 pr-4 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors shadow-lg" placeholder="Search packages... (e.g. YouTube, Zoom)">
+            </div>
+
+            <div class="max-h-[60vh] overflow-y-auto custom-scrollbar p-2">
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-5" id="packages-grid">
+                    ${choiceHtml}
+                </div>
+            </div>
+
             <div class="text-center mt-8 reveal">
                 <a href="/connections?planId=${planId}${changeQuery}" class="nav-link-internal text-blue-400 hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>Back to Connections</a>
             </div>
         </div>`);
+
+    // Search Logic
+    setTimeout(() => {
+        document.getElementById('package-search')?.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            document.querySelectorAll('.package-item').forEach(el => {
+                el.style.display = el.dataset.name.includes(term) ? 'flex' : 'none';
+            });
+        });
+    }, 100);
 }
 
 export function renderCheckoutPage(renderFunc, params) {
@@ -238,7 +293,6 @@ export function renderCheckoutPage(renderFunc, params) {
                 const res = await apiFetch(`/api/user/check-v2ray-username?username=${encodeURIComponent(username)}`);
                 const data = await res.json();
                 
-                // අලුත් කොටස: Server එකෙන් Error එකක් ආවොත් ඒක අල්ලගැනීම
                 if (res.ok) {
                     if (data.available === true) {
                         statusText.innerHTML = `<span class="text-green-400"><i class="fa-solid fa-check mr-1"></i> Username is available!</span>`;
@@ -253,7 +307,7 @@ export function renderCheckoutPage(renderFunc, params) {
                 } else {
                     console.error("Backend Error:", data);
                     statusText.innerHTML = `<span class="text-amber-400"><i class="fa-solid fa-triangle-exclamation mr-1"></i> ${data.error || "Server Error"}</span>`;
-                    submitBtn.disabled = false; // Error එකක් ආවත් Checkout එකට යන්න දෙනවා
+                    submitBtn.disabled = false; 
                 }
             } catch (e) {
                 console.error("Fetch Error:", e);
