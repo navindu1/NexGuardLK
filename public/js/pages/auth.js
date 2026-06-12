@@ -1,5 +1,5 @@
 // File: public/js/pages/auth.js
-import { apiFetch, saveSession, getSession } from '../api.js';
+import { apiFetch, saveSession } from '../api.js';
 import { showToast, togglePassword } from '../utils.js';
 import { navigateTo } from '../router.js';
 
