@@ -109,27 +109,56 @@ export function renderProfilePage(renderFunc, params) {
     const LAST_PLAN_KEY = `nexguard_last_plan_${user.username}`;
 
     // --- HTML Templates ---
-    const modalHtml = `
-        <div id="help-modal" class="help-modal-overlay">
-            <div class="help-modal-content grease-glass p-6 space-y-4 w-full max-w-md">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <h2 class="text-xl font-bold text-white font-['Orbitron'] drop-shadow-md">Help & Support Matrix</h2>
-                        <button id="lang-toggle-btn" class="text-xs text-blue-300 hover:text-white hover:underline mt-1 transition-colors">English / සිංහල</button>
-                    </div>
-                    <button id="help-modal-close" class="text-white/80 hover:text-white text-3xl transition-all hover:rotate-90">&times;</button>
-                </div>
-                <div class="lang-content lang-en">
-                    <div><h3 class="text-lg font-semibold text-blue-300 mb-2 drop-shadow-sm">How to find your Username?</h3><p class="text-gray-100 text-sm mb-4 font-medium leading-relaxed">Your username is the name assigned to your V2ray configuration. It's often visible in your V2ray client app, usually next to the server connection name.</p></div>
-                </div>
-                <div class="lang-content lang-si hidden">
-                    <div><h3 class="text-lg font-semibold text-blue-300 mb-2 drop-shadow-sm">ඔබගේ Username එක සොයාගන්නේ කෙසේද?</h3><p class="text-gray-100 text-sm mb-4 font-medium leading-relaxed">ඔබගේ username යනු V2ray config ගොනුවට ලබා දී ඇති නමයි. එය බොහෝවිට V2ray client ඇප් එකේ, server සම්බන්ධතාවය අසල දිස්වේ.</p></div>
-                </div>
-                <div class="bg-black/20 border border-white/10 rounded-xl p-2 shadow-inner">
-                    <img src="/assets/help.jpg" alt="Example" class="rounded-lg w-full h-auto opacity-95 hover:opacity-100 transition-opacity">
-                </div>
-            </div>
-        </div>`;
+    const pageStyles = `<style>
+        #page-profile .form-input { height: 56px; padding: 20px 12px 8px 12px; background-color: rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.2); } 
+        #page-profile .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; } 
+        #page-profile .form-input:focus ~ .form-label, #page-profile .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: var(--brand-blue); } 
+        #page-profile .form-input[readonly] { background-color: rgba(0,0,0,0.2); cursor: not-allowed; } 
+        .tab-btn { border-bottom: 3px solid transparent; transition: all .3s ease; color: #9ca3af; padding: 0.75rem 0.25rem; font-weight: 600; white-space: nowrap; } 
+        .tab-btn.active { border-bottom-color: var(--brand-blue); color: #fff; } 
+        .tab-panel { display: none; } 
+        .tab-panel.active { display: block; animation: pageFadeIn 0.5s; }
+        .help-modal-overlay { opacity: 0; visibility: hidden; transition: opacity 0.3s ease-out, visibility 0.3s ease-out; background: rgba(0, 0, 0, 0.2); z-index: 9999; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+        .help-modal-overlay.visible { opacity: 1; visibility: visible; }
+        .help-modal-content { opacity: 0; transform: scale(0.90); transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .help-modal-overlay.visible .help-modal-content { opacity: 1; transform: scale(1); }
+        .grease-glass { background: rgba(30, 40, 60, 0.4); backdrop-filter: blur(20px) saturate(200%); -webkit-backdrop-filter: blur(20px) saturate(200%); border-radius: 35px; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5); }
+        .plan-selector-container { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 2rem; position: relative; z-index: 100; overflow: visible !important; width: 100%; max-width: 400px; }
+        .plan-selector-label { font-size: 0.875rem; font-weight: 600; color: #d1d5db; flex-shrink: 0; }
+        ul.fmenu { display: inline-block; list-style: none; padding: 0; margin: 0; white-space: nowrap; position: relative; overflow: visible !important; flex-grow: 1; }
+        ul.fmenu > li.fmenu-item { position: relative; overflow: visible !important; }
+        ul.fmenu .trigger-menu { display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; height: 44px; padding: 0 1.2rem; border-radius: 999px; background-color: rgba(30, 41, 59, 0.9); border: 1px solid rgba(255, 255, 255, 0.2); cursor: pointer; transition: all ease 0.3s; width: 100%; overflow: visible !important; }
+        ul.fmenu .trigger-menu:hover, ul.fmenu .trigger-menu.open { border-color: var(--brand-blue); box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
+        ul.fmenu .trigger-menu i { color: #9ca3af; font-size: 0.85rem; transition: color ease 0.3s; }
+        ul.fmenu .trigger-menu:hover i, ul.fmenu .trigger-menu.open i { color: #60a5fa; }
+        ul.fmenu .trigger-menu .text { display: block; font-size: 0.95rem; color: #ffffff; padding: 0 0.5rem; font-weight: 500; flex-grow: 1; text-align: left; }
+        ul.fmenu .trigger-menu .arrow { font-size: 0.75rem; transition: transform ease 0.3s; }
+        ul.fmenu .trigger-menu.open .arrow { transform: rotate(180deg); }
+        
+        /* Dropdown Scrolling & Sizing Rules */
+        ul.fmenu .floating-menu { display: block; position: absolute; top: 100%; margin-top: 8px; left: 0; width: 100%; min-width: 250px; list-style: none; padding: 0; background-color: #0f172a; border: 1px solid rgba(71, 85, 105, 0.6); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.8); z-index: 9999 !important; opacity: 0; visibility: hidden; transform: translateY(-10px); transition: opacity 0.3s, transform 0.3s; max-height: 350px; overflow-y: auto !important; overflow-x: hidden; }
+        ul.fmenu .trigger-menu.open + .floating-menu { opacity: 1 !important; visibility: visible !important; transform: translateY(0) !important; }
+        
+        /* Scrollbar styles for the menu */
+        ul.fmenu .floating-menu::-webkit-scrollbar { width: 6px; }
+        ul.fmenu .floating-menu::-webkit-scrollbar-track { background: transparent; }
+        ul.fmenu .floating-menu::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.5); border-radius: 10px; }
+        ul.fmenu .floating-menu::-webkit-scrollbar-thumb:hover { background: rgba(59, 130, 246, 0.8); }
+
+        /* Search Box Styles */
+        .plan-search-box { padding: 10px; position: sticky; top: 0; background-color: #0f172a; z-index: 20; border-bottom: 1px solid rgba(255,255,255,0.1); border-radius: 16px 16px 0 0; }
+        .plan-search-input { width: 100%; padding: 8px 12px; border-radius: 8px; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.2); color: #fff; font-size: 0.85rem; outline: none; transition: border-color 0.3s; }
+        .plan-search-input:focus { border-color: var(--brand-blue); }
+
+        .plan-row { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.8rem; margin: 0.3rem; border-radius: 8px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; }
+        .plan-row:hover { background-color: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.3); }
+        .plan-name { color: #cbd5e1; font-size: 0.9rem; flex-grow: 1; margin-right: 0.5rem; }
+        .plan-row:hover .plan-name { color: #fff; }
+        .remove-plan-btn { padding: 4px 8px; font-size: 0.75rem; color: #64748b; border-radius: 6px; transition: all 0.2s; z-index: 10; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); }
+        .remove-plan-btn:hover { background-color: rgba(239, 68, 68, 0.2); color: #f87171; border-color: rgba(239, 68, 68, 0.3); }
+        .add-more-row { display: flex; align-items: center; justify-content: center; padding: 0.8rem; color: #93c5fd; font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: background-color 0.2s; margin: 0.3rem; border-radius: 8px; }
+        .add-more-row:hover { background-color: rgba(59, 130, 246, 0.1); color: #bfdbfe; }
+    </style>`;
 
     const linkAccountModalHtml = `
         <div id="link-account-modal" class="help-modal-overlay">
@@ -582,8 +611,17 @@ export function renderProfilePage(renderFunc, params) {
 
     let planMenuInstance = null;
     const renderPlanSelector = (activePlans, activePlanIndex = 0) => {
+        
+        // 1. Search Box HTML එක
+        const searchHtml = `
+            <li class="plan-search-box" onclick="event.stopPropagation()">
+                <input type="text" id="plan-search" class="plan-search-input" placeholder="🔍 Search connections...">
+            </li>
+        `;
+
+        // 2. Connections ලිස්ට් එක
         let planListItems = activePlans.map((plan, index) => 
-            `<li>
+            `<li class="plan-list-item">
                 <div class="plan-row" data-plan-index="${index}">
                     <span class="plan-name">${getDisplayName(plan.v2rayUsername)}</span>
                     <button class="remove-plan-btn" data-username="${plan.v2rayUsername}" title="Remove from Dashboard">
@@ -593,25 +631,32 @@ export function renderProfilePage(renderFunc, params) {
             </li>`
         ).join('');
 
-        planListItems += `<li class="border-t border-white/10 mt-1 pt-1">
-            <div id="link-new-account-option" class="add-more-row">
-                <i class="fa-solid fa-plus-circle mr-2"></i>Add More +
-            </div>
-        </li>`;
+        // 3. Add More Button එක
+        const addMoreHtml = `
+            <li class="border-t border-white/10 mt-1">
+                <div id="link-new-account-option" class="add-more-row">
+                    <i class="fa-solid fa-plus-circle mr-2"></i>Link Another Account
+                </div>
+            </li>
+        `;
 
         const displayActiveName = activePlans[activePlanIndex] ? getDisplayName(activePlans[activePlanIndex].v2rayUsername) : 'Select Plan';
 
         const containerHtml = `
-            <div class="plan-selector-container">
-                <label class="plan-selector-label custom-radius">Viewing Plan:</label>
+            <div class="plan-selector-container mx-auto sm:mx-0">
+                <label class="plan-selector-label custom-radius">Viewing:</label>
                 <ul class="fmenu custom-radius" id="plan-menu">
                     <li class="fmenu-item custom-radius">
                         <div class="trigger-menu custom-radius">
                             <i class="fa-solid fa-server"></i>
-                            <span class="text">${displayActiveName}</span>
+                            <span class="text truncate">${displayActiveName}</span>
                             <i class="fa-solid fa-chevron-down arrow"></i>
                         </div>
-                        <ul class="floating-menu">${planListItems}</ul>
+                        <ul class="floating-menu">
+                            ${searchHtml}
+                            ${planListItems}
+                            ${addMoreHtml}
+                        </ul>
                     </li>
                 </ul>
             </div><div id="plan-details-container"></div>`;
@@ -620,16 +665,38 @@ export function renderProfilePage(renderFunc, params) {
         if (!existingMenu) {
              statusContainer.innerHTML = containerHtml;
         } else {
-             existingMenu.outerHTML = `<div class="plan-selector-container"><label class="plan-selector-label custom-radius">Viewing Plan:</label><ul class="fmenu custom-radius" id="plan-menu"><li class="fmenu-item custom-radius"><div class="trigger-menu custom-radius"><i class="fa-solid fa-server"></i><span class="text">${displayActiveName}</span><i class="fa-solid fa-chevron-down arrow"></i></div><ul class="floating-menu">${planListItems}</ul></li></ul></div>`;
+             existingMenu.outerHTML = `<div class="plan-selector-container mx-auto sm:mx-0"><label class="plan-selector-label custom-radius">Viewing:</label><ul class="fmenu custom-radius" id="plan-menu"><li class="fmenu-item custom-radius"><div class="trigger-menu custom-radius"><i class="fa-solid fa-server"></i><span class="text truncate">${displayActiveName}</span><i class="fa-solid fa-chevron-down arrow"></i></div><ul class="floating-menu">${searchHtml}${planListItems}${addMoreHtml}</ul></li></ul></div>`;
         }
 
         planMenuInstance = new SikFloatingMenu("#plan-menu");
         
+        // Search Filter Logic
+        setTimeout(() => {
+            const searchInput = document.getElementById('plan-search');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    const term = e.target.value.toLowerCase();
+                    document.querySelectorAll('.plan-list-item').forEach(li => {
+                        const nameEl = li.querySelector('.plan-name');
+                        if (nameEl) {
+                            const name = nameEl.textContent.toLowerCase();
+                            li.style.display = name.includes(term) ? 'block' : 'none';
+                        }
+                    });
+                });
+                
+                // Search box එක click කරද්දි menu එක close වීම නැවැත්වීමට
+                searchInput.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                });
+            }
+        }, 100);
+
+        // Click Event Logic
         document.querySelector('#plan-menu .floating-menu')?.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
 
-            // Handle Remove Click
             const removeBtn = e.target.closest('.remove-plan-btn');
             if (removeBtn) {
                 const username = removeBtn.dataset.username;
@@ -637,7 +704,6 @@ export function renderProfilePage(renderFunc, params) {
                 return;
             }
 
-            // Handle Add More Click
             const addMoreOption = e.target.closest('#link-new-account-option');
             if (addMoreOption) {
                 planMenuInstance.closeAll();
@@ -646,12 +712,17 @@ export function renderProfilePage(renderFunc, params) {
                 return;
             }
 
-            // Handle Plan Switch
             const planRow = e.target.closest('.plan-row');
             if (planRow) {
                 const index = parseInt(planRow.dataset.planIndex);
                 document.querySelector('#plan-menu .trigger-menu .text').textContent = getDisplayName(activePlans[index].v2rayUsername);
                 localStorage.setItem(LAST_PLAN_KEY, activePlans[index].v2rayUsername); 
+                
+                // Search එක clear කර list එක ආයෙත් මුල් තත්වයට ගැනීම
+                const searchInput = document.getElementById('plan-search');
+                if (searchInput) { searchInput.value = ''; }
+                document.querySelectorAll('.plan-list-item').forEach(li => li.style.display = 'block');
+
                 if (window.renderPlanDetailsInternal) window.renderPlanDetailsInternal(index); 
                 planMenuInstance.closeAll();
             }
