@@ -54,28 +54,39 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
         #page-login .form-input:focus ~ .form-label, #page-login .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: var(--brand-blue); }
         #link-account-form .form-group { margin-top: 0; }
         
-        /* New custom google button styling */
-        .google-custom-btn {
-            background-color: var(--brand-blue);
-            color: white;
-            border-radius: 0.5rem;
+        /* --- NEW: CUSTOM GOOGLE BUTTON STYLES --- */
+        .google-btn-wrapper {
+            position: relative;
             width: 100%;
-            height: 48px;
+            height: 50px;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            margin-top: 0.5rem;
+            cursor: pointer;
+        }
+        .google-btn-wrapper .custom-google-btn {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none; /* Allows clicks to pass to the invisible Google iframe */
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            font-weight: 600;
-            cursor: pointer;
-            border: none;
-            transition: all 0.3s ease;
+            gap: 0.5rem;
+            width: 100%;
+            height: 100%;
         }
-        .google-custom-btn:hover {
-            opacity: 0.8;
-            transform: translateY(-1px);
-        }
-        .google-custom-btn i {
-            font-size: 1.2rem;
+        .google-btn-wrapper .g_id_signin {
+            position: absolute;
+            inset: 0;
+            z-index: 10;
+            opacity: 0.01; /* Transparent but still clickable */
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform: scale(1.5); /* Prevents unclickable edges */
         }
     </style>`;
 
@@ -108,35 +119,45 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             
             <form class="auth-form space-y-6" id="signin-form">
                 <div class="text-center"><h1 class="text-2xl font-bold text-white font-['Orbitron']">Welcome Back</h1><p class="text-sm text-gray-400 mt-1">Sign in to access your dashboard.</p></div>
-                
+
                 <div class="form-group"><input type="text" id="signin-username" class="form-input" required placeholder=" " /><label for="signin-username" class="form-label">Username</label><span class="focus-border"><i></i></span></div>
                 <div class="form-group relative"><input type="password" id="signin-password" class="form-input pr-10" required placeholder=" " /><label for="signin-password" class="form-label">Password</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="signin-toggle"></i></div>
                 <div class="text-right text-sm -mt-4"><span id="show-forgot-password" class="auth-toggle-link hover:underline">Forgot Password?</span></div>
+                
                 <button type="submit" class="ai-button w-full rounded-lg">Sign In</button>
                 
-                <button type="button" class="google-custom-btn" id="google-custom-btn-signin">
-                    <i class="fa-brands fa-google"></i>
-                    Sign In with Google
-                </button>
+                <div class="flex items-center before:flex-1 before:border-t before:border-white/20 after:flex-1 after:border-t after:border-white/20 mt-4 mb-2"><p class="mx-4 mb-0 text-center text-xs font-semibold text-white/50">OR</p></div>
                 
-                <p class="text-center text-sm">Don't have an account? <span id="show-signup" class="auth-toggle-link">Sign Up</span></p>
+                <div class="google-btn-wrapper">
+                    <button type="button" class="ai-button custom-google-btn rounded-lg">
+                        <i class="fa-brands fa-google text-lg"></i> Continue with Google
+                    </button>
+                    <div id="google-login-btn-div" class="g_id_signin"></div>
+                </div>
+
+                <p class="text-center text-sm mt-4">Don't have an account? <span id="show-signup" class="auth-toggle-link">Sign Up</span></p>
             </form>
 
             <form class="auth-form space-y-6" id="signup-form">
                 <div class="text-center"><h1 class="text-2xl font-bold text-white font-['Orbitron']">Create Account</h1></div>
-                
+
                 <div class="form-group"><input type="text" id="signup-username" class="form-input" required placeholder=" " /><label for="signup-username" class="form-label">Username</label><span class="focus-border"><i></i></span></div>
                 <div class="form-group"><input type="email" id="signup-email" class="form-input" required placeholder=" " /><label for="signup-email" class="form-label">Email</label><span class="focus-border"><i></i></span></div>
                 <div class="form-group"><input type="tel" id="signup-whatsapp" class="form-input" required placeholder=" " value="94" minlength="11" maxlength="11" /><label for="signup-whatsapp" class="form-label">WhatsApp Number</label><span class="focus-border"><i></i></span></div>
                 <div class="form-group relative"><input type="password" id="signup-password" class="form-input pr-10" required placeholder=" " /><label for="signup-password" class="form-label">Password</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="signup-toggle"></i></div>
+                
                 <button type="submit" class="ai-button w-full rounded-lg">Create & Continue</button>
+
+                <div class="flex items-center before:flex-1 before:border-t before:border-white/20 after:flex-1 after:border-t after:border-white/20 mt-4 mb-2"><p class="mx-4 mb-0 text-center text-xs font-semibold text-white/50">OR</p></div>
                 
-                <button type="button" class="google-custom-btn" id="google-custom-btn-signup">
-                    <i class="fa-brands fa-google"></i>
-                    Sign Up with Google
-                </button>
-                
-                <p class="text-center text-sm">Already have an account? <span id="show-signin-from-signup" class="auth-toggle-link">Sign In</span></p>
+                <div class="google-btn-wrapper">
+                    <button type="button" class="ai-button custom-google-btn rounded-lg">
+                        <i class="fa-brands fa-google text-lg"></i> Continue with Google
+                    </button>
+                    <div id="google-signup-btn-div" class="g_id_signin"></div>
+                </div>
+
+                <p class="text-center text-sm mt-4">Already have an account? <span id="show-signin-from-signup" class="auth-toggle-link">Sign In</span></p>
             </form>
 
             <form class="auth-form space-y-6" id="otp-form">
@@ -192,7 +213,7 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             viewToShow?.classList.add("active");
         };
 
-        // --- Google Sign-In Logic (Updated for Custom Buttons) ---
+        // --- Google Sign-In Logic ---
         window.handleGoogleCredentialResponse = async (response) => {
             showToast({ title: "Google Login", message: "Authenticating securely...", type: "info" });
             try {
@@ -204,12 +225,14 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
 
                 const result = await res.json();
                 if (res.ok) {
-                    saveSession(result);
+                    saveSession(result); // Token එකයි User වයි සේව් කරනවා
                     showToast({ title: "Success!", message: "Google account verified.", type: "success" });
                     
+                    // WhatsApp නම්බර් එක "94000000000" (Default) ද කියලා බලනවා
                     if (result.user.whatsapp === "94000000000" || !result.user.whatsapp) {
                         switchAuthView(whatsappUpdateForm);
                     } else {
+                        // WhatsApp දීලා තියෙනවා නම් කෙලින්ම Link Form එකට යනවා
                         switchAuthView(linkAccountContainer);
                     }
                 } else {
@@ -221,34 +244,22 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             }
         };
 
-        const initializeGoogleSignIn = () => {
+        const renderGoogleButtons = () => {
             if (window.google && window.google.accounts) {
                 google.accounts.id.initialize({
-                    client_id: "ඔබගේ_google_client_id_එක_මෙතන_දාන්න.apps.googleusercontent.com", 
+                    client_id: "324820496903-er23b2ipeh2hs0fs61dms3flo9aot8jm.apps.googleusercontent.com", 
                     callback: handleGoogleCredentialResponse
                 });
-                
-                // Add click listeners to custom buttons
-                const customBtnSignin = document.getElementById("google-custom-btn-signin");
-                const customBtnSignup = document.getElementById("google-custom-btn-signup");
-                
-                if (customBtnSignin) {
-                    customBtnSignin.addEventListener("click", () => {
-                        google.accounts.id.prompt(); // Trigger the One Tap prompt as a robust flow
-                    });
-                }
-                
-                if (customBtnSignup) {
-                    customBtnSignup.addEventListener("click", () => {
-                        google.accounts.id.prompt(); // Trigger the One Tap prompt
-                    });
-                }
-                
+                // Width 400 දාලා තියෙන්නේ අපේ Button එක සම්පූර්ණයෙන්ම වහගන්නයි
+                const btnOptions = { theme: "filled_black", size: "large", width: 400, shape: "rectangular" };
+                google.accounts.id.renderButton(document.getElementById("google-login-btn-div"), btnOptions);
+                google.accounts.id.renderButton(document.getElementById("google-signup-btn-div"), btnOptions);
             } else {
-                setTimeout(initializeGoogleSignIn, 500); 
+                setTimeout(renderGoogleButtons, 500); // Wait for script to load
             }
         };
-        initializeGoogleSignIn();
+        renderGoogleButtons();
+
 
         // --- WhatsApp Update Form Submit ---
         whatsappUpdateForm?.addEventListener("submit", async (e) => {
@@ -283,7 +294,7 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
                         localStorage.setItem('nexguard_user', JSON.stringify(userObj));
                     }
                     
-                    switchAuthView(linkAccountContainer);
+                    switchAuthView(linkAccountContainer); 
                 } else {
                     const result = await res.json();
                     showToast({ title: "Error", message: result.message, type: "error" });
@@ -294,7 +305,7 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             }
         });
 
-        // --- Rest of UI interactions ---
+        // --- Rest of your UI interactions ---
         document.getElementById("show-signup")?.addEventListener("click", () => switchAuthView(signupForm));
         document.getElementById("show-signin-from-signup")?.addEventListener("click", () => switchAuthView(signinForm));
         document.getElementById("show-forgot-password")?.addEventListener("click", () => switchAuthView(forgotPasswordForm));
@@ -321,7 +332,7 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             });
         }
 
-        // WhatsApp formatting logic...
+        // WhatsApp formatting logic for inputs...
         ["signup-whatsapp", "google-whatsapp-input"].forEach(id => {
             const input = document.getElementById(id);
             if (input) {
@@ -337,10 +348,11 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             }
         });
 
-        // Signin Form Submit
+        // Other Forms Event Listeners (Signin, Signup, OTP, Link, Forgot, Reset)
+        
         signinForm?.addEventListener("submit", async (e) => {
             e.preventDefault();
-            const btn = e.target.querySelector("button[type='submit']");
+            const btn = e.target.querySelector("button");
             btn.disabled = true;
             showToast({ title: "Signing In", message: "Please wait...", type: "info" });
             const payload = { email: e.target.elements["signin-username"].value, password: e.target.elements["signin-password"].value };
@@ -359,7 +371,6 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             btn.disabled = false;
         });
 
-        // Signup Form Submit
         signupForm?.addEventListener("submit", async(e) => {
             e.preventDefault();
             const whatsappInputVal = e.target.elements["signup-whatsapp"].value;
@@ -367,7 +378,7 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
                 showToast({ title: "Invalid Number", message: "Please enter a valid 11-digit WhatsApp number.", type: "error" });
                 return;
             }
-            const btn = e.target.querySelector("button[type='submit']");
+            const btn = e.target.querySelector("button");
             btn.disabled = true;
             showToast({ title: "Sending OTP", message: "Please check your email...", type: "info" });
             const payload = { 
@@ -390,7 +401,6 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             } catch (error) { btn.disabled = false; }
         });
 
-        // OTP Form Submit
         otpForm?.addEventListener("submit", async(e) => {
             e.preventDefault();
             const btn = e.target.querySelector("button");
@@ -411,7 +421,6 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             } catch (err) { btn.disabled = false; }
         });
 
-        // Link Account Form Submit
         document.getElementById("link-account-form")?.addEventListener("submit", async(e) => {
             e.preventDefault();
             const btn = e.target.querySelector("button");
@@ -432,45 +441,6 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
             } catch (err) { btn.disabled = false; }
         });
 
-        // Forgot Password Form Submit
-        forgotPasswordForm?.addEventListener("submit", async(e) => {
-            e.preventDefault();
-            const btn = e.target.querySelector("button");
-            btn.disabled = true;
-            showToast({ title: "Processing", message: "Sending password reset link...", type: "info" });
-            try {
-                const res = await apiFetch("/api/auth/forgot-password", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: e.target.elements["forgot-email"].value }) });
-                const result = await res.json();
-                btn.disabled = false;
-                if (res.ok) showToast({ title: "Check Your Email", message: result.message, type: "success" });
-                else showToast({ title: "Error", message: result.message, type: "error" });
-            } catch (err) { btn.disabled = false; }
-        });
-
-        // Reset Password Form Submit
-        resetPasswordForm?.addEventListener("submit", async(e) => {
-            e.preventDefault();
-            const btn = e.target.querySelector("button");
-            btn.disabled = true;
-            showToast({ title: "Updating", message: "Your password is being updated...", type: "info" });
-            try {
-                const res = await apiFetch("/api/auth/reset-password", { 
-                    method: "POST", 
-                    headers: { "Content-Type": "application/json" }, 
-                    body: JSON.stringify({ token: e.target.elements["reset-token"].value, newPassword: e.target.elements["new-password"].value }) 
-                });
-                const result = await res.json();
-                if (res.ok) {
-                    showToast({ title: "Success!", message: result.message, type: "success" });
-                    setTimeout(() => switchAuthView(signinForm), 2000);
-                } else {
-                    btn.disabled = false;
-                    showToast({ title: "Error", message: result.message, type: "error" });
-                }
-            } catch (err) { btn.disabled = false; }
-        });
-
-        // Passwords Toggle Helpers
         ["signin", "signup", "reset"].forEach(prefix => {
             const toggleBtn = document.getElementById(`${prefix}-toggle`);
             const pwdInput = document.getElementById(prefix === "reset" ? "new-password" : `${prefix}-password`);
