@@ -8,6 +8,9 @@ const supabase = require("../config/supabaseClient");
 const transporter = require("../config/mailer");
 const { generateEmailTemplate, generateOtpEmailContent, generatePasswordResetEmailContent } = require("../services/emailService");
 
+const { OAuth2Client } = require('google-auth-library');
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
 // උපරිම වැරදි උත්සාහයන් ගණන
 const MAX_OTP_ATTEMPTS = 5;
 const LOCKOUT_TIME_MS = 15 * 60 * 1000; 
@@ -290,6 +293,111 @@ exports.resetPassword = async (req, res) => {
 
         res.json({ success: true, message: "Password reset successful." });
     } catch (err) {
+        res.status(500).json({ success: false, message: "Server error." });
+    }
+};
+
+// --- NEW: GOOGLE LOGIN CONTROLLER ---
+exports.googleLogin = async (req, res) => {
+    const { credential } = req.body; // Frontend එකෙන් එවන Google Token එක
+
+    if (!credential) {
+        return res.status(400).json({ success: false, message: "Google token is missing." });
+    }
+
+    try {
+        // 1. Google Token එක නිවැරදිදැයි පරීක්ෂා කිරීම
+        const ticket = await googleClient.verifyIdToken({
+            idToken: credential,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        
+        const payload = ticket.getPayload();
+        const email = payload['email'];
+        const username = payload['name'] || email.split('@')[0];
+        const profilePicture = payload['picture'];
+
+        // 2. Database එකේ මේ Email එක දැනටමත් තියෙනවද බලනවා
+        const { data: user, error: findError } = await supabase
+            .from("users")
+            .select("*")
+            .eq("email", email)
+            .single();
+
+        let finalUser = user;
+
+        // 3. User කෙනෙක් නැත්නම්, අලුතින් Account එකක් හදනවා (Auto Register)
+        if (!user) {
+            // Google එකෙන් එන නිසා Random Password එකක් දෙනවා (මෙයා ලොග් වෙන්නේ Google වලින් නිසා)
+            const randomPassword = crypto.randomBytes(16).toString('hex');
+            const hashedPassword = bcrypt.hashSync(randomPassword, 10);
+
+            const newUserData = {
+                username: username.replace(/\s+/g, '_') + Math.floor(Math.random() * 100), // Unique කරන්න
+                email: email,
+                whatsapp: "94000000000", // Google වලින් අංකය එන්නේ නැති නිසා Default අගයක් දෙනවා
+                password: hashedPassword,
+                status: "active",
+                profile_picture: profilePicture,
+                otp_code: null, // OTP අවශ්‍ය නැහැ Google වලින් Verify කරපු නිසා
+            };
+
+            const { data: newUser, error: createError } = await supabase
+                .from("users")
+                .insert([newUserData])
+                .select()
+                .single();
+
+            if (createError) {
+                console.error("Google Auth Create User Error:", createError);
+                return res.status(500).json({ success: false, message: "Failed to create user account." });
+            }
+            finalUser = newUser;
+        } else if (user.status === 'banned') {
+            return res.status(403).json({ success: false, message: "Your account has been banned." });
+        }
+
+        // 4. සාර්ථකව Login වුණාම JWT Token එකක් හදලා යවනවා (පරණ විදිහටම)
+        const token = jwt.sign({ id: finalUser.id, username: finalUser.username }, process.env.JWT_SECRET, { expiresIn: "1d" });
+        
+        const userPayload = {
+            id: finalUser.id,
+            username: finalUser.username,
+            email: finalUser.email,
+            whatsapp: finalUser.whatsapp,
+            profilePicture: finalUser.profile_picture ? finalUser.profile_picture : "assets/profilePhoto.jpg",
+        };
+
+        return res.json({ success: true, message: "Logged in successfully with Google!", token, user: userPayload });
+
+    } catch (error) {
+        console.error("Google Login Error:", error);
+        return res.status(500).json({ success: false, message: "Google Sign-In failed due to server error." });
+    }
+};
+
+// --- NEW: UPDATE WHATSAPP FOR GOOGLE USERS ---
+exports.updateWhatsapp = async (req, res) => {
+    const { email, whatsapp } = req.body;
+
+    if (!email || !whatsapp || whatsapp === "94" || whatsapp.length !== 11) {
+        return res.status(400).json({ success: false, message: "A valid 11-digit WhatsApp number is required." });
+    }
+
+    try {
+        const { error } = await supabase
+            .from("users")
+            .update({ whatsapp: whatsapp })
+            .eq("email", email); // Email එකෙන් හොයලා අප්ඩේට් කරනවා
+
+        if (error) {
+            console.error("Update WhatsApp Error:", error);
+            return res.status(500).json({ success: false, message: "Database error while updating WhatsApp." });
+        }
+
+        res.json({ success: true, message: "WhatsApp number updated successfully!" });
+    } catch (err) {
+        console.error("Server Error:", err);
         res.status(500).json({ success: false, message: "Server error." });
     }
 };
