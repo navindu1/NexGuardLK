@@ -22,7 +22,6 @@ exports.register = async (req, res) => {
     if (!username || !email || !whatsapp || !password)
         return res.status(400).json({ success: false, message: "All fields are required." });
 
-    // NEW VALIDATION: WhatsApp අංකය නිවැරදිදැයි පරීක්ෂා කිරීම
     if (whatsapp === "94" || whatsapp.length !== 11) {
         return res.status(400).json({ success: false, message: "A valid 11-digit WhatsApp number (e.g., 947XXXXXXXX) is strictly required." });
     }
@@ -158,7 +157,7 @@ exports.verifyOtp = async (req, res) => {
     }
 };
 
-// --- LOGIN CONTROLLER (UPDATED) ---
+// --- LOGIN CONTROLLER ---
 exports.login = async (req, res) => {
     const { email: loginInput, password } = req.body;
 
@@ -306,7 +305,6 @@ exports.googleLogin = async (req, res) => {
     }
 
     try {
-        // Environment Variable එක අනිවාර්යයෙන්ම තියෙන්න ඕන
         if (!process.env.GOOGLE_CLIENT_ID) {
             throw new Error("GOOGLE_CLIENT_ID is not defined in server environment.");
         }
@@ -329,16 +327,15 @@ exports.googleLogin = async (req, res) => {
 
         let finalUser = user;
 
-        // User කෙනෙක් නැත්නම්, අලුතින් Account එකක් හදනවා (Auto Register)
         if (!user) {
             const randomPassword = crypto.randomBytes(16).toString('hex');
             const hashedPassword = bcrypt.hashSync(randomPassword, 10);
 
-            // සම්පූර්ණ කරන ලද දත්ත (Database constraints වලට ගැලපෙන සේ)
             const newUserData = {
+                id: uuidv4(), // <----- මෙන්න FIX එක: අලුත් ID එකක් හදනවා
                 username: username.replace(/\s+/g, '_') + Math.floor(Math.random() * 1000), 
                 email: email,
-                whatsapp: "94000000000", // Google වලින් අංකය එන්නේ නැති නිසා Default අගයක් දෙනවා
+                whatsapp: "94000000000", 
                 password: hashedPassword,
                 status: "active",
                 profile_picture: profilePicture,
@@ -346,7 +343,7 @@ exports.googleLogin = async (req, res) => {
                 otp_expiry: null,
                 otp_attempts: 0,
                 otp_lockout_until: null,
-                active_plans: [] // 500 Error එක එන්න ප්‍රධානම හේතුව මෙය නොමැති වීමයි
+                active_plans: [] 
             };
 
             const { data: newUser, error: createError } = await supabase
