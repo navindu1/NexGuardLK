@@ -1,0 +1,469 @@
+/* public/css/modern.css */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@500;700;900&display=swap');
+
+:root {
+  --glow-color: rgba(168, 85, 247, 0.7);
+  --brand-purple: #a855f7;
+  --brand-gradient: linear-gradient(90deg, #818cf8, #a78bfa, #f472b6);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #020010;
+  color: #e0e0e0;
+  overflow-x: hidden;
+}
+
+body.sidebar-open,
+body.modal-open {
+  overflow: hidden;
+}
+
+#vanta-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+#content-wrapper {
+  position: relative;
+  z-index: 1;
+}
+
+/* MODIFIED: Changed border-radius from 9999px to 1rem for a more professional look */
+.glass-panel {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  border-radius: 1rem; /* A modern, subtle curve */
+}
+
+.gradient-text {
+  background: var(--brand-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+
+
+
+
+.page {
+  animation: pageFadeIn 0.5s ease-out forwards;
+}
+
+@keyframes pageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.custom-radius {
+    border-radius: 35px !important;
+}
+
+
+.ai-button {
+  position: relative;
+  background: var(--brand-gradient);
+  background-size: 200% 100%;
+  transition: all 0.5s ease;
+  overflow: hidden;
+  font-family: "Orbitron", sans-serif;
+  border-radius: 9999px;
+  /* NEW UNIFIED SIZE STYLES */
+  padding: 0.5rem 1.5rem; /* 8px vertical, 24px horizontal (py-2, px-6) */
+  font-size: 0.875rem;   /* 14px (text-sm) */
+  font-weight: 600;      /* semibold */
+  text-align: center;
+  line-height: 1.5;      /* Ensure consistent line height */
+}
+
+.ai-button:hover:not(:disabled) {
+  box-shadow: 0 0 25px var(--glow-color);
+  background-position: right center;
+}
+
+.ai-button.secondary {
+  background: transparent;
+  border: 1px solid var(--brand-purple);
+}
+
+.ai-button.secondary:hover {
+  background: rgba(168, 85, 247, 0.2);
+}
+
+.nav-link {
+  position: relative;
+  color: #a0aec0;
+  transition: all 0.3s;
+  padding: 4px 8px;
+  border-radius: 9999px; /* Fully rounded */
+}
+
+.nav-link.active {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.nav-link:hover {
+  color: #ffffff;
+  background-color: rgba(59, 130, 246, 0.1); /* Subtle blue background from theme */
+  text-shadow: 0 0 8px rgba(59, 130, 246, 0.5); /* Blue text glow */
+}
+
+
+/* MODIFIED: Changed border-radius from 9999px to 1rem */
+.card {
+  position: relative;
+  transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+    box-shadow 0.4s ease;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transform-style: preserve-3d;
+  border-radius: 1rem; /* A modern, subtle curve */
+}
+
+.card::before,
+.card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  transition: opacity 0.4s ease-in-out;
+  opacity: 0;
+}
+
+.card::before {
+  border: 2px solid transparent;
+  background: var(--brand-gradient) border-box;
+  -webkit-mask: linear-gradient(#fff 0 0) padding-box,
+    linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+.card::after {
+  background: radial-gradient(
+    400px circle at var(--mouse-x, 0px) var(--mouse-y, 0px),
+    rgba(168, 85, 247, 0.4),
+    transparent 80%
+  );
+}
+
+.card:hover {
+  transform: perspective(1000px) rotateX(5deg) rotateY(-5deg) scale(1.05);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.card:hover::before,
+.card:hover::after {
+  opacity: 1;
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(40px) scale(0.98);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.form-group {
+  position: relative;
+  margin-top: 2.5rem;
+  width: 100%;
+}
+
+.form-input {
+  font-size: 14px;
+  color: #e0e0e0;
+  width: 100%;
+  height: 48px;
+  letter-spacing: 1px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 14px 12px 0 12px;
+  transition: 0.4s;
+  outline: none;
+  border-radius: 9999px; /* Fully rounded */
+}
+
+.form-label {
+  position: absolute;
+  top: 14px;
+  left: 13px;
+  font-size: 14px;
+  color: #9ca3af;
+  transition: all 0.25s linear;
+  pointer-events: none;
+}
+
+.form-input:focus ~ .form-label,
+.form-input:not(:placeholder-shown) ~ .form-label {
+  top: 6px;
+  font-size: 11px;
+  color: var(--brand-purple);
+}
+
+.form-input ~ .focus-border:before,
+.form-input ~ .focus-border:after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background-color: var(--brand-purple);
+  transition: 0.4s;
+  border-radius: 9999px; /* Fully rounded */
+}
+
+.form-input ~ .focus-border:after {
+  top: auto;
+  bottom: 0;
+}
+
+.form-input ~ .focus-border i:before,
+.form-input ~ .focus-border i:after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 2px;
+  height: 0;
+  background-color: #3B82F6;
+  transition: 0.6s;
+}
+
+.form-input ~ .focus-border i:after {
+  left: auto;
+  right: 0;
+}
+
+.navbar {
+  border-radius: 9999px
+}
+
+.form-input:focus ~ .focus-border:before,
+.form-input:focus ~ .focus-border:after {
+  left: 0;
+  width: 100%;
+  transition: 0.4s;
+}
+
+.form-input:focus ~ .focus-border i:before,
+.form-input:focus ~ .focus-border i:after {
+  top: 0;
+  height: 100%;
+  transition: 0.6s;
+}
+
+/* Added for admin/reseller connection cards */
+.connection-card {
+    background: rgba(10, 8, 28, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1rem; /* Consistent subtle rounding */
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+}
+
+/* --- START: CLEANED UP AND UPDATED NAVBAR SCROLL ANIMATION --- */
+#main-header {
+    /* 1. Initial state (when at top of page) */
+    background-color: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: blur(0px) !important;
+
+    /* 2. Animation for smooth transition */
+    transition: all 0.4s ease-in-out;
+}
+
+#main-header.scrolled {
+    /* 3. Appearance when scrolled */
+    backdrop-filter: blur(16px) !important;
+
+    /* 4. Updated, softer shadow */
+    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25), 0 0 40px rgba(59, 130, 246, 0.2) !important;
+}
+/* --- END: CLEANED UP AND UPDATED NAVBAR SCROLL ANIMATION --- */
+
+/* ======================================== */
+/* MODERN GLASS TOAST (CURVED STRIP FIX)    */
+/* ======================================== */
+
+/* Toast එකේ ප්‍රධාන හැඩය වෙනස් කිරීම */
+.toast {
+  display: flex;
+  align-items: flex-start;
+  padding: 0.75rem;
+  
+  /* වම් පැත්ත කොටු (0), දකුණු පැත්ත රවුම් (50px) */
+  border-radius: 0 50px 50px 0 !important; 
+  
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  color: #e0e0e0;
+  position: relative;
+  overflow: hidden;
+  transform: translateX(120%);
+  opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease-out;
+  
+  /* වම් පැත්තේ පාට තීරුවට ඉඩ තැබීම */
+  padding-left: 12px; 
+}
+
+/* වම් පැත්තේ ඇති පාට තීරුව (Colored Strip) කෙලින් කිරීම */
+.toast::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 4px;
+  
+  /* පාට තීරුව කොටු කිරීම */
+  border-radius: 0 !important; 
+}
+
+.toast.show {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+/* --- 2. පාට තීරුව Curve වෙලා එන්න හැදීම (Inset Shadow Trick) --- */
+/* box-shadow: inset [width] 0 0 0 [color] */
+/* මේකෙන් වෙන්නේ පාට තීරුව බොඩර් එක ඇතුලෙන්ම හැදෙන නිසා ඒක රවුම් හැඩේටම එනවා */
+
+/* Success (Green) */
+.toast--success {
+  /* වම් පැත්තෙන් 6px කොළ පාට තීරුවක් + පිටුපසට සියුම් කොළ එළියක් */
+  box-shadow: inset 7px 0 0 0 #22c55e, 0 0 20px rgba(34, 197, 94, 0.15) !important;
+  border-left: 1px solid rgba(34, 197, 94, 0.3); /* වම් පැත්තේ Border එක ටිකක් පාට කළා */
+}
+.toast--success .toast-icon { color: #4ade80; text-shadow: 0 0 12px rgba(34, 197, 94, 0.8); }
+
+/* Error (Red) */
+.toast--error {
+  box-shadow: inset 7px 0 0 0 #ef4444, 0 0 20px rgba(239, 68, 68, 0.15) !important;
+  border-left: 1px solid rgba(239, 68, 68, 0.3);
+}
+.toast--error .toast-icon { color: #f87171; text-shadow: 0 0 12px rgba(239, 68, 68, 0.8); }
+
+/* Warning (Orange) */
+.toast--warning {
+  box-shadow: inset 7px 0 0 0 #f97316, 0 0 20px rgba(249, 115, 22, 0.15) !important;
+  border-left: 1px solid rgba(249, 115, 22, 0.3);
+}
+.toast--warning .toast-icon { color: #fb923c; text-shadow: 0 0 12px rgba(249, 115, 22, 0.8); }
+
+/* Info (Blue) */
+.toast--info {
+  box-shadow: inset 7px 0 0 0 #3b82f6, 0 0 20px rgba(59, 130, 246, 0.15) !important;
+  border-left: 1px solid rgba(59, 130, 246, 0.3);
+}
+.toast--info .toast-icon { color: #60a5fa; text-shadow: 0 0 12px rgba(59, 130, 246, 0.8); }
+
+/* --- Content Styling --- */
+
+.toast-icon {
+  font-size: 1.4rem;
+  margin-right: 15px;
+  display: flex;
+  align-items: center;
+}
+
+.toast-content {
+  flex-grow: 1;
+}
+
+.toast-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin: 0 0 2px 0;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+}
+
+.toast-message {
+  font-size: 0.8rem;
+  margin: 0;
+  color: #cbd5e1;
+  line-height: 1.4;
+  opacity: 0.9;
+}
+
+.toast-close-btn {
+  margin-left: 12px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 4px;
+  border-radius: 50%;
+}
+
+.toast-close-btn:hover {
+  color: #ffffff;
+  background: rgba(255,255,255,0.1);
+}
+
+/* =========================================
+   Premium Global Scrollbar (Fixed for modern.css)
+   ========================================= */
+
+html {
+    scroll-behavior: smooth !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: #3b82f6 transparent !important;
+}
+
+/* Scrollbar එකේ පළල - 8px වැනි සිහින් අගයක් */
+::-webkit-scrollbar {
+    width: 8px !important;
+    height: 8px !important;
+}
+
+/* Scrollbar Track (පසුබිම) - මෙය Transparent කළ විට වඩාත් ලස්සනයි */
+::-webkit-scrollbar-track {
+    background: transparent !important; 
+}
+
+/* Scrollbar Thumb (අදින කොටස) - ලා නිල් සහ තද නිල් Gradient එක */
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #3b82f6, #1e3a8a) !important;
+    border-radius: 10px !important;
+}
+
+/* Mouse එක Scrollbar එක උඩට ගෙන ගිය විට (Hover Effect) */
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #60a5fa, #2563eb) !important;
+}

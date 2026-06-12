@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - NexGuard</title>
+    <link rel="stylesheet" href="/css/output.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.fog.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #020010; color: #e0e0e0; }
+        #vanta-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+        .glass-panel { 
+            background: rgba(15, 23, 42, 0.4); 
+            backdrop-filter: blur(16px); 
+            border: 1px solid rgba(71, 85, 105, 0.5); 
+        }
+        .ai-button { 
+            position: relative;
+            background: linear-gradient(90deg, #3b82f6, #60a5fa); 
+            background-size: 200% 100%;
+            font-family: 'Orbitron', sans-serif;
+            border-radius: 9999px;
+            transition: all 0.5s ease;
+            overflow: hidden;
+        }
+        .ai-button:hover:not(:disabled) {
+            box-shadow: 0 0 25px rgba(59, 130, 246, 0.5);
+            background-position: right center;
+        }
+        .auth-form-view { display: none; }
+        .auth-form-view.active { display: block; animation: pageFadeIn 0.5s; }
+        @keyframes pageFadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+
+        .custom-radius {
+    border-radius: 35px !important;
+}
+
+
+        /* Floating Label Styles */
+        .form-group { position: relative; margin-top: 2.5rem; width: 100%; }
+        .form-input { font-size: 14px; color: #e0e0e0; width: 100%; height: 56px; border: 1px solid rgba(255, 255, 255, 0.2); background-color: rgba(0, 0, 0, 0.3); padding: 20px 12px 8px 12px; transition: 0.4s; outline: none; border-radius: 8px; }
+        .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; }
+        .form-input:focus ~ .form-label, .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: #60a5fa; }
+        
+        .form-input ~ .focus-border:before,
+        .form-input ~ .focus-border:after { content: ""; position: absolute; top: 0; left: 50%; width: 0; height: 2px; background-color: #60a5fa; transition: 0.4s; border-radius: 8px; }
+        .form-input ~ .focus-border:after { top: auto; bottom: 0; }
+        .form-input ~ .focus-border i:before,
+        .form-input ~ .focus-border i:after { content: ""; position: absolute; top: 50%; left: 0; width: 2px; height: 0; background-color: #60a5fa; transition: 0.6s; }
+        .form-input ~ .focus-border i:after { left: auto; right: 0; }
+        .form-input:focus ~ .focus-border:before,
+        .form-input:focus ~ .focus-border:after { left: 0; width: 100%; transition: 0.4s; }
+        .form-input:focus ~ .focus-border i:before,
+        .form-input:focus ~ .focus-border i:after { top: 0; height: 100%; transition: 0.6s; }
+
+        .custom-checkbox {
+            appearance: none; -webkit-appearance: none; height: 16px; width: 16px; min-width: 16px;
+            background-color: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px; cursor: pointer; display: inline-block; position: relative; transition: all 0.2s ease;
+        }
+        .custom-checkbox:checked { background-color: #3b82f6; border-color: #60a5fa; }
+        .custom-checkbox:checked::after {
+            content: ''; position: absolute; left: 5px; top: 2px; width: 4px; height: 8px;
+            border: solid white; border-width: 0 2px 2px 0; transform: rotate(45deg);
+        }
+
+        /* --- START: TOAST NOTIFICATION STYLES --- */
+        #toast-container { position: fixed; top: 1.25rem; right: 1.25rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.75rem; width: 100%; max-width: 350px; }
+        .toast {
+  display: flex;
+  align-items: flex-start;
+  padding: 0.75rem;
+  border-radius: 8px;
+  
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  color: #e0e0e0;
+  position: relative;
+  overflow: hidden;
+  transform: translateX(120%);
+  opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+    opacity 0.4s ease-out;
+}
+        .toast.show { transform: translateX(0); opacity: 1; }
+        .toast::before { content: ""; position: absolute; top: 0; left: 0; bottom: 0; width: 4px; border-radius: 8px 0 0 8px; }
+        .toast--success::before { background-color: #22c55e; } .toast--error::before { background-color: #ef4444; } .toast--warning::before { background-color: #f97316; } .toast--info::before { background-color: #3b82f6; }
+        .toast-icon { flex-shrink: 0; margin-right: 0.75rem; font-size: 1.125rem; width: 22px; text-align: center; margin-top: 1px; }
+        .toast--success .toast-icon { color: #22c55e; } .toast--error .toast-icon { color: #ef4444; } .toast--warning .toast-icon { color: #f97316; } .toast--info .toast-icon { color: #3b82f6; }
+        .toast-content { flex-grow: 1; }
+        .toast-title { font-weight: 700; font-size: 0.9rem; margin: 0 0 0.2rem 0; color: #ffffff; }
+        .toast-message { font-size: 0.8rem; line-height: 1.4; margin: 0; color: #d1d5db; }
+        .toast-close-btn { flex-shrink: 0; margin-left: 0.75rem; background: transparent; border: none; color: #9ca3af; font-size: 1.25rem; line-height: 1; cursor: pointer; transition: color 0.2s ease; }
+        .toast-close-btn:hover { color: #ffffff; }
+        /* --- END: TOAST NOTIFICATION STYLES --- */
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen">
+    <div id="vanta-bg"></div>
+    <div id="toast-container"></div>
+    <div class="mx-auto my-12 card-glass custom-radius p-8 sm:p-10>
+        
+        <div id="login-view" class="auth-form-view active">
+            <div class="text-center mb-6">
+                <h1 class="text-2xl font-bold text-white font-['Orbitron']">Welcome Back, Admin</h1>
+                <p class="text-sm text-gray-400 mt-1">Sign in to access the dashboard.</p>
+            </div>
+            <form id="admin-login-form" class="space-y-6">
+                <div class="form-group">
+                    <input type="text" id="username" class="form-input" required placeholder=" " />
+                    <label for="username" class="form-label">Admin Username</label>
+                    <span class="focus-border"><i></i></span>
+                </div>
+                <div class="form-group relative">
+                    <input type="password" id="password" class="form-input pr-10" required placeholder=" " />
+                    <label for="password" class="form-label">Password</label>
+                    <span class="focus-border"><i></i></span>
+                    <i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="password-toggle"></i>
+                </div>
+                
+                <div class="flex items-center justify-between !mt-4">
+                    <div class="flex items-center">
+                        <input id="remember-me" name="remember-me" type="checkbox" class="custom-checkbox">
+                        <label for="remember-me" class="ml-2 block text-sm text-gray-300">Remember me</label>
+                    </div>
+                    <a href="#" id="forgot-password-link" class="text-sm text-blue-400 hover:underline">Forgot Password?</a>
+                </div>
+
+                <div id="error-message" class="hidden"></div>
+                <button type="submit" class="w-full py-2.5 font-semibold text-white ai-button !mt-6">Login</button>
+            </form>
+        </div>
+
+        <div id="forgot-password-view" class="auth-form-view">
+            <div class="text-center mb-6">
+                <h1 class="text-2xl font-bold text-white font-['Orbitron']">Reset Password</h1>
+                <p class="text-sm text-gray-400 mt-1">Enter your email to get a reset link.</p>
+            </div>
+            <form id="forgot-password-form" class="space-y-6">
+                 <div class="form-group">
+                    <input type="email" id="forgot-email" class="form-input" required placeholder=" " />
+                    <label for="forgot-email" class="form-label">Your Admin Email</label>
+                    <span class="focus-border"><i></i></span>
+                </div>
+                <div id="forgot-error-message" class="hidden"></div>
+                <button type="submit" class="w-full py-2.5 font-semibold text-white ai-button !mt-6">Send Reset Link</button>
+                 <a href="#" id="back-to-login-link" class="block text-center text-sm text-blue-400 hover:underline mt-4">Back to Login</a>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        VANTA.FOG({ el: "#vanta-bg", mouseControls: true, touchControls: true, gyroControls: false, minHeight: 200.00, minWidth: 200.00, highlightColor: 0x0, midtoneColor: 0x569e8, lowlightColor: 0x0, baseColor: 0x0, blurFactor: 0.90, speed: 1.30, zoom: 0.60 });
+
+        const loginView = document.getElementById('login-view');
+        const forgotPasswordView = document.getElementById('forgot-password-view');
+
+        // --- START: Toast Notification Function ---
+        function showToast({ title, message, type = "info", duration = 5000 }) {
+            const container = document.getElementById("toast-container");
+            const icons = { success: "fa-solid fa-check-circle", error: "fa-solid fa-times-circle", warning: "fa-solid fa-exclamation-triangle", info: "fa-solid fa-info-circle" };
+            const toast = document.createElement("div");
+            toast.className = `toast toast--${type}`;
+            toast.innerHTML = `<div class="toast-icon"><i class="${icons[type] || icons.info}"></i></div><div class="toast-content"><p class="toast-title">${title}</p><p class="toast-message">${message}</p></div><button class="toast-close-btn" type="button">&times;</button>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.add("show"), 100);
+            const removeToast = () => {
+                clearTimeout(dismissTimeout);
+                toast.classList.remove("show");
+                setTimeout(() => toast.parentNode?.removeChild(toast), 500);
+            };
+            const dismissTimeout = setTimeout(removeToast, duration);
+            toast.querySelector(".toast-close-btn").addEventListener("click", removeToast);
+        }
+        // --- END: Toast Notification Function ---
+        
+        // --- View Switching ---
+        document.getElementById('forgot-password-link').addEventListener('click', (e) => {
+            e.preventDefault();
+            loginView.classList.remove('active');
+            forgotPasswordView.classList.add('active');
+        });
+        document.getElementById('back-to-login-link').addEventListener('click', (e) => {
+            e.preventDefault();
+            forgotPasswordView.classList.remove('active');
+            loginView.classList.add('active');
+        });
+
+        // --- Password Toggle ---
+        const passwordInput = document.getElementById('password');
+        const passwordToggle = document.getElementById('password-toggle');
+        passwordToggle.addEventListener('click', () => {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            passwordToggle.classList.toggle('fa-eye');
+            passwordToggle.classList.toggle('fa-eye-slash');
+        });
+
+        // --- Login Form Submit ---
+        document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const rememberMe = document.getElementById('remember-me').checked;
+            const submitButton = e.target.querySelector('button');
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Logging in...';
+
+            try {
+                const res = await fetch('/api/auth/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, rememberMe })
+                });
+                const result = await res.json();
+                if (res.ok) {
+                    showToast({ title: 'Success!', message: 'Redirecting to dashboard...', type: 'success' });
+                    localStorage.setItem('nexguard_admin_token', result.token);
+                    setTimeout(() => window.location.href = '/admin', 1500);
+                } else {
+                    showToast({ title: 'Login Failed', message: result.message || 'An unknown error occurred.', type: 'error' });
+                }
+            } catch (err) {
+                showToast({ title: 'Error', message: 'A network error occurred. Please try again.', type: 'error' });
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Login';
+            }
+        });
+
+        // --- Forgot Password Form Submit ---
+        document.getElementById('forgot-password-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('forgot-email').value;
+            const submitButton = e.target.querySelector('button');
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Sending...';
+
+            try {
+                const res = await fetch('/api/auth/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                const result = await res.json();
+                if (res.ok) {
+                    showToast({ title: 'Check Your Email', message: result.message, type: 'success' });
+                } else {
+                    showToast({ title: 'Error', message: result.message || 'An unknown error occurred.', type: 'error' });
+                }
+            } catch (err) {
+                 showToast({ title: 'Error', message: 'A network error occurred. Please try again.', type: 'error' });
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Send Reset Link';
+            }
+        });
+    </script>
+</body>
+</html>
