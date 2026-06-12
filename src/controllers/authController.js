@@ -14,11 +14,15 @@ const LOCKOUT_TIME_MS = 15 * 60 * 1000;
 
 // --- REGISTER CONTROLLER ---
 exports.register = async (req, res) => {
-    // (Register කේතය වෙනස් වී නැත - පරණ එකම තබන්න)
     const { username, email, whatsapp, password } = req.body;
     
     if (!username || !email || !whatsapp || !password)
         return res.status(400).json({ success: false, message: "All fields are required." });
+
+    // NEW VALIDATION: WhatsApp අංකය නිවැරදිදැයි පරීක්ෂා කිරීම
+    if (whatsapp === "94" || whatsapp.length !== 11) {
+        return res.status(400).json({ success: false, message: "A valid 11-digit WhatsApp number (e.g., 947XXXXXXXX) is strictly required." });
+    }
 
     try {
         const { data: existingUsers, error: findError } = await supabase
@@ -100,7 +104,6 @@ exports.register = async (req, res) => {
 
 // --- VERIFY OTP CONTROLLER ---
 exports.verifyOtp = async (req, res) => {
-    // (Verify OTP කේතය වෙනස් වී නැත - පරණ එකම තබන්න)
     const { email, otp } = req.body;
     
     try {
@@ -141,7 +144,7 @@ exports.verifyOtp = async (req, res) => {
         const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, { expiresIn: "1d" });
         res.status(201).json({ 
             success: true, 
-            message: "Account Verified Successfully!", // මේ පේළිය අලුතින් එකතු කරන්න
+            message: "Account Verified Successfully!",
             token, 
             user: { id: user.id, username: user.username, email: user.email, whatsapp: user.whatsapp, profilePicture: user.profile_picture } 
         });
@@ -154,11 +157,9 @@ exports.verifyOtp = async (req, res) => {
 
 // --- LOGIN CONTROLLER (UPDATED) ---
 exports.login = async (req, res) => {
-    // Frontend එකෙන් 'email' යන නමින් එව්වට, එහි Username හෝ Email තිබිය හැක.
     const { email: loginInput, password } = req.body;
 
     try {
-        // Username හෝ Email යන දෙකෙන් ඕනෑම එකක් ගැලපේදැයි බලයි (.or භාවිතා කර)
         const { data: user, error } = await supabase
             .from("users")
             .select("*")
@@ -196,7 +197,6 @@ exports.login = async (req, res) => {
 
 // --- ADMIN LOGIN ---
 exports.adminLogin = async (req, res) => {
-    // (Admin Login වෙනස් වී නැත)
     const { username, password, rememberMe } = req.body;
     try {
         const { data: adminUser, error } = await supabase
@@ -221,7 +221,6 @@ exports.adminLogin = async (req, res) => {
 
 // --- RESELLER LOGIN ---
 exports.resellerLogin = async (req, res) => {
-    // (Reseller Login වෙනස් වී නැත)
     const { username, password } = req.body;
     try {
         const { data: reseller, error } = await supabase
@@ -246,7 +245,6 @@ exports.resellerLogin = async (req, res) => {
 
 // --- FORGOT/RESET PASSWORD ---
 exports.forgotPassword = async (req, res) => {
-    // (වෙනස් වී නැත)
     const { email } = req.body;
     const genericResponse = { message: 'If an account exists, a reset link has been sent.' };
 
@@ -276,7 +274,6 @@ exports.forgotPassword = async (req, res) => {
 };
 
 exports.resetPassword = async (req, res) => {
-    // (වෙනස් වී නැත)
     const { token, newPassword } = req.body;
     if (!token || !newPassword || newPassword.length < 6) return res.status(400).json({ success: false, message: "Invalid data." });
 

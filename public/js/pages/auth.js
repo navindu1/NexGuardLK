@@ -111,7 +111,7 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
                 <div class="text-center"><h1 class="text-2xl font-bold text-white font-['Orbitron']">Create Account</h1><p class="text-sm text-gray-400 mt-1">Step 1: Your Details</p></div>
                 <div class="form-group"><input type="text" id="signup-username" class="form-input" required placeholder=" " /><label for="signup-username" class="form-label">Username</label><span class="focus-border"><i></i></span></div>
                 <div class="form-group"><input type="email" id="signup-email" class="form-input" required placeholder=" " /><label for="signup-email" class="form-label">Email</label><span class="focus-border"><i></i></span></div>
-                <div class="form-group"><input type="tel" id="signup-whatsapp" class="form-input" required placeholder=" " value="94" /><label for="signup-whatsapp" class="form-label">WhatsApp Number</label><span class="focus-border"><i></i></span></div>
+                <div class="form-group"><input type="tel" id="signup-whatsapp" class="form-input" required placeholder=" " value="94" minlength="11" maxlength="11" /><label for="signup-whatsapp" class="form-label">WhatsApp Number</label><span class="focus-border"><i></i></span></div>
                 <div class="form-group relative"><input type="password" id="signup-password" class="form-input pr-10" required placeholder=" " /><label for="signup-password" class="form-label">Password</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="signup-toggle"></i></div>
                 <button type="submit" class="ai-button w-full rounded-lg">Create & Continue</button>
                 <p class="text-center text-sm">Already have an account? <span id="show-signin-from-signup" class="auth-toggle-link">Sign In</span></p>
@@ -212,13 +212,21 @@ export function renderAuthPage(renderFunc, params, initialPanel = "signin") {
 
         signupForm?.addEventListener("submit", async(e) => {
             e.preventDefault();
+
+            // NEW VALIDATION: Frontend එකේදීම අංකය පරීක්ෂා කිරීම
+            const whatsappInputVal = e.target.elements["signup-whatsapp"].value;
+            if (whatsappInputVal === "94" || whatsappInputVal.length !== 11) {
+                showToast({ title: "Invalid Number", message: "Please enter a valid 11-digit WhatsApp number (e.g. 947XXXXXXXX).", type: "error" });
+                return;
+            }
+
             const btn = e.target.querySelector("button");
             btn.disabled = true;
             showToast({ title: "Sending OTP", message: "Please check your email...", type: "info" });
             const payload = { 
                 username: e.target.elements["signup-username"].value, 
                 email: e.target.elements["signup-email"].value, 
-                whatsapp: e.target.elements["signup-whatsapp"].value, 
+                whatsapp: whatsappInputVal, 
                 password: e.target.elements["signup-password"].value 
             };
             
