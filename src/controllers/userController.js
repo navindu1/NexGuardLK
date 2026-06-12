@@ -146,6 +146,7 @@ exports.linkV2rayAccount = async (req, res) => {
     }
 
     let finalUsername = v2rayUsername.trim();
+    let detectedConnId = null; // අලුතින් එකතු කළ විචල්‍යය (Connection නම හඳුනාගැනීමට)
     
     try {
         let clientData = await v2rayService.findV2rayClient(finalUsername);
@@ -167,13 +168,15 @@ exports.linkV2rayAccount = async (req, res) => {
                     console.warn("Error parsing connection_prefixes setting.", e);
                 }
 
-                for (const prefix of Object.values(prefixMap)) {
+                // FIX: Object.entries හරහා හරියටම Connection නම සහ Prefix එක අඳුරගැනීම
+                for (const [connName, prefix] of Object.entries(prefixMap)) {
                      const prefixedName = `${prefix}${finalUsername}`;
                      const found = await v2rayService.findV2rayClient(prefixedName);
                      
                      if (found && found.client) {
                          clientData = found;
                          finalUsername = prefixedName; 
+                         detectedConnId = connName; // නිවැරදි Connection නම අල්ලගත්තා!
                          break; 
                      }
                 }
@@ -206,22 +209,23 @@ exports.linkV2rayAccount = async (req, res) => {
         const currentPlans = Array.isArray(currentUser.active_plans) ? currentUser.active_plans : [];
         const inboundId = parseInt(clientData.inboundId);
 
-        let detectedConnId = null;
         let vlessTemplate = null;
         let finalPackage = null;
 
-        const { data: singleConnections } = await supabase
-            .from('connections')
-            .select('name, default_vless_template, default_inbound_id, requires_package_choice')
-            .eq('default_inbound_id', inboundId)
-            .eq('requires_package_choice', false)
-            .limit(1);
+        // Prefix එකෙන් Connection එක අහුවුණා නම් ඒකේ Template එක කෙළින්ම ගන්නවා
+        if (detectedConnId) {
+             const { data: exactConn } = await supabase
+                .from('connections')
+                .select('name, default_vless_template')
+                .eq('name', detectedConnId)
+                .single();
+             if (exactConn) {
+                 vlessTemplate = exactConn.default_vless_template;
+             }
+        }
 
-        if (singleConnections && singleConnections.length > 0) {
-            const conn = singleConnections[0];
-            detectedConnId = conn.name;
-            vlessTemplate = conn.default_vless_template;
-        } else {
+        // Prefix එකෙන් අහුවුණේ නැත්නම් පමණක් Packages වලින් හොයනවා
+        if (!detectedConnId || !vlessTemplate) {
             const { data: packages, error: packageError } = await supabase
                 .from('packages')
                 .select('*, connections(id, name)')
@@ -251,6 +255,20 @@ exports.linkV2rayAccount = async (req, res) => {
                 if (finalPackage && finalPackage.connections) {
                     detectedConnId = finalPackage.connections.name;
                     vlessTemplate = finalPackage.template;
+                }
+            }
+
+            // Packages වලිනුත් අහුවුණේ නැත්නම් Connections වලින් ගන්නවා (දැන් .limit නැතිව)
+            if (!detectedConnId) {
+                const { data: conns } = await supabase
+                    .from('connections')
+                    .select('name, default_vless_template')
+                    .eq('default_inbound_id', inboundId)
+                    .eq('requires_package_choice', false);
+
+                if (conns && conns.length > 0) {
+                    detectedConnId = conns[0].name;
+                    vlessTemplate = conns[0].default_vless_template;
                 }
             }
         }
@@ -381,7 +399,6 @@ exports.unlinkPlan = async (req, res) => {
     }
 };
 
-// --- NEW FUNCTION: Get Software Links ---
 exports.getSoftwareLinks = async (req, res) => {
     try {
         const { data } = await supabase
@@ -392,7 +409,6 @@ exports.getSoftwareLinks = async (req, res) => {
         
         let links = [];
         if (data && data.value) {
-            // JSON Parse කරගන්න
             try {
                 links = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
             } catch (e) {
@@ -412,20 +428,16 @@ exports.checkV2rayUsername = async (req, res) => {
     if (!username) return res.status(400).json({ error: "Username is required" });
     
     try {
-        // Panel එකේ මේ නම තියෙනවද බලනවා
         const existingClient = await v2rayService.findV2rayClient(username);
         
         if (existingClient) {
-            // දැනටමත් තියෙනවා නම් අහඹු අංකයක් එකතු කරලා Suggest කරනවා
             const randomNum = Math.floor(Math.random() * 9000) + 1000;
             const suggestion = `${username}${randomNum}`;
             return res.json({ available: false, suggestion: suggestion });
         }
         
-        // කිසිම අවුලක් නැත්නම් Available කියලා යවනවා
         return res.json({ available: true });
     } catch (error) {
-        // ඇත්තටම එන Error එක මොකක්ද කියලා ඔයාගේ Backend Terminal (CMD/VS Code) එකේ පෙන්වයි
         console.error("Error checking username:", error.message);
         return res.status(500).json({ error: "Panel API Error. Please check backend connection." });
     }
