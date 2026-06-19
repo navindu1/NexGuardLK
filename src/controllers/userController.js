@@ -15,6 +15,9 @@ const planConfig = {
     "Unlimited": { totalGB: 0 },
 };
 
+// File Path: src/controllers/userController.js
+// මේක ඇතුලේ තියෙන exports.getUserStatus එක මේ කෝඩ් එකෙන් Replace කරන්න.
+
 exports.getUserStatus = async (req, res) => {
     try {
         const { data: user, error: userError } = await supabase
@@ -43,29 +46,35 @@ exports.getUserStatus = async (req, res) => {
             return res.json({ success: true, status: "no_plan" });
         }
         
-        // --- START: VERIFICATION LOGIC ---
+        // --- START: VERIFICATION & AUTO-REMOVE LOGIC ---
         const allPanelClientsMap = await v2rayService.getAllClientDetails();
         const verifiedActivePlans = [];
+        let needsDbUpdate = false; // Database එක අප්ඩේට් කරන්න ඕනෙද කියලා බලන Variable එක
 
         for (const plan of user.active_plans) {
             const v2rayUsernameLower = plan.v2rayUsername.toLowerCase();
             
             if (allPanelClientsMap.has(v2rayUsernameLower)) {
+                // පැනල් එකේ තියෙනවා නම් Live Data අරගෙන Update කරනවා
                 const clientDetails = allPanelClientsMap.get(v2rayUsernameLower);
-                const enrichedPlan = {
-                    ...plan,
-                    expiryTime: clientDetails.expiryTime || 0
-                };
-                verifiedActivePlans.push(enrichedPlan);
-            } else {
+                
                 verifiedActivePlans.push({
                     ...plan,
-                    expiryTime: 0 
+                    expiryTime: clientDetails.expiryTime || 0
                 });
-                console.log(`[Status Check] Plan '${plan.v2rayUsername}' not found in panel, keeping as inactive.`);
+            } else {
+                // පැනල් එකෙන් මකලා නම් මෙතනට එන්නේ.
+                // අපි verifiedActivePlans එකට මේක ඇඩ් කරන්නේ නෑ, ඒ නිසා ඔටෝම අයින් වෙනවා.
+                needsDbUpdate = true; 
+                console.log(`[Status Check] Plan '${plan.v2rayUsername}' not found in panel. Auto-removing from web profile.`);
             }
         }
         
+        // පැනල් එකෙන් අයින් කරපු ඒවා ඩේටාබේස් එකෙනුත් සම්පූර්ණයෙන්ම මකා දැමීම 
+        if (needsDbUpdate) {
+            await supabase.from("users").update({ active_plans: verifiedActivePlans }).eq("id", req.user.id);
+        }
+
         if (verifiedActivePlans.length === 0) {
             return res.json({ success: true, status: "no_plan" });
         }
@@ -209,49 +218,50 @@ exports.linkV2rayAccount = async (req, res) => {
         let detectedConnId = null;
         let vlessTemplate = null;
         let finalPackage = null;
+        const clientUsernameToLower = (clientData.client.email || finalUsername).toLowerCase();
 
-        const { data: singleConnections } = await supabase
+        // --- ULTRA SMART MATCHING LOGIC (Inbound ID Conflict Fix) ---
+        const { data: allConnections, error: connError } = await supabase
             .from('connections')
-            .select('name, default_vless_template, default_inbound_id, requires_package_choice')
-            .eq('default_inbound_id', inboundId)
-            .eq('requires_package_choice', false)
-            .limit(1);
+            .select('name, prefix_code, default_vless_template, default_inbound_id, requires_package_choice, packages(name, template, inbound_id)');
 
-        if (singleConnections && singleConnections.length > 0) {
-            const conn = singleConnections[0];
-            detectedConnId = conn.name;
-            vlessTemplate = conn.default_vless_template;
+        if (connError) throw connError;
+
+        // 1. මුලින්ම අනිවාර්යයෙන්ම Prefix Code එකෙන් Connection එක හොයනවා
+        let matchedConn = allConnections?.find(conn => 
+            conn.prefix_code && clientUsernameToLower.startsWith(conn.prefix_code.toLowerCase())
+        );
+
+        if (matchedConn) {
+            detectedConnId = matchedConn.name;
+            if (matchedConn.requires_package_choice && matchedConn.packages) {
+                finalPackage = matchedConn.packages.find(p => p.inbound_id === inboundId) || matchedConn.packages[0];
+                vlessTemplate = finalPackage?.template;
+            } else {
+                vlessTemplate = matchedConn.default_vless_template;
+            }
         } else {
-            const { data: packages, error: packageError } = await supabase
-                .from('packages')
-                .select('*, connections(id, name)')
-                .eq('inbound_id', inboundId)
-                .eq('is_active', true);
+            // 2. Prefix Code එකක් නැත්නම් විතරක් Inbound ID එකෙන් බලනවා (Fallback)
+            const possibleConns = allConnections?.filter(c => 
+                (c.requires_package_choice === false && c.default_inbound_id === inboundId) ||
+                (c.requires_package_choice === true && c.packages?.some(p => p.inbound_id === inboundId))
+            );
 
-            if (packageError) throw packageError;
-
-            if (packages && packages.length > 0) {
-                if (packages.length === 1) {
-                    finalPackage = packages[0];
+            if (possibleConns && possibleConns.length === 1) {
+                matchedConn = possibleConns[0];
+                detectedConnId = matchedConn.name;
+                if (matchedConn.requires_package_choice) {
+                    finalPackage = matchedConn.packages.find(p => p.inbound_id === inboundId);
+                    vlessTemplate = finalPackage?.template;
                 } else {
-                    const clientUsername = clientData.client.email || finalUsername;
-                    for (const pkg of packages) {
-                        const remark = pkg.template.split('#')[1];
-                        if (remark) {
-                            const prefix = remark.split('{remark}')[0];
-                            if (clientUsername.toLowerCase().startsWith(prefix.toLowerCase())) {
-                                finalPackage = pkg;
-                                break;
-                            }
-                        }
-                    }
-                    if (!finalPackage) finalPackage = packages[0];
+                    vlessTemplate = matchedConn.default_vless_template;
                 }
-
-                if (finalPackage && finalPackage.connections) {
-                    detectedConnId = finalPackage.connections.name;
-                    vlessTemplate = finalPackage.template;
-                }
+            } else if (possibleConns && possibleConns.length > 1) {
+                // ගැටලුව: එකම Inbound ID එකට Connections කිහිපයක් තියෙනවා, ඒත් Prefix Code එකක් නෑ!
+                return res.status(400).json({ 
+                    success: false, 
+                    message: `Connection conflict! Multiple connections share Inbound ID ${inboundId}. Admin must set a 'Connection Code' (Prefix) to accurately link this account.` 
+                });
             }
         }
 

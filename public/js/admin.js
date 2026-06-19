@@ -680,6 +680,12 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
 
             <div class="form-group" style="margin-bottom: 1.2rem;">
+                <input type="text" name="prefix_code" class="form-input" placeholder=" " value="${conn.prefix_code || ''}">
+                <label class="form-label">Connection Code (e.g., DSC, DRC)</label>
+                <span class="focus-border"><i></i></span>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.2rem;">
                 <input type="text" name="icon" class="form-input" placeholder=" " value="${conn.icon || ''}" required>
                 <label class="form-label">FontAwesome Icon (e.g., fa-solid fa-wifi)</label>
                 <span class="focus-border"><i></i></span>
@@ -847,6 +853,11 @@ document.addEventListener("DOMContentLoaded", () => {
     async function addTutorial() {
         const title = document.getElementById('tut-title').value;
         const videoInput = document.getElementById('tut-vid-id').value;
+        
+        // අලුතෙන් දාපු ෆීල්ඩ් දෙකේ data ගන්නවා
+        const description = document.getElementById('tut-desc').value;
+        const icon = document.getElementById('tut-icon').value;
+
         if (!title || !videoInput) return showToast({ title: "Error", message: "Please fill all fields", type: "error" });
         const video_id = extractYouTubeId(videoInput);
         if (!video_id) return showToast({ title: "Invalid Video", message: "Could not detect a valid YouTube Video ID.", type: "error" });
@@ -856,10 +867,25 @@ document.addEventListener("DOMContentLoaded", () => {
         if(btn) { originalText = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'; }
 
         try {
-            await apiFetch('/tutorials', { method: 'POST', body: JSON.stringify({ title, video_id }) });
+            // API එකට යවන තැනට description එකයි, icon එකයි එකතු කළා
+            await apiFetch('/tutorials', { 
+                method: 'POST', 
+                body: JSON.stringify({ 
+                    title: title, 
+                    video_id: video_id, 
+                    description: description, 
+                    icon: icon 
+                }) 
+            });
+            
             showToast({ title: "Success", message: "Video added successfully!", type: "success" });
+            
+            // සේව් උනාට පස්සේ Box ටික ආයේ හිස් කරනවා
             document.getElementById('tut-title').value = '';
             document.getElementById('tut-vid-id').value = '';
+            document.getElementById('tut-desc').value = '';
+            document.getElementById('tut-icon').selectedIndex = 0; 
+            
             loadAdminTutorials();
         } catch (error) {
             showToast({ title: "Error", message: error.message || "Failed to add video", type: "error" });
@@ -1247,12 +1273,15 @@ document.addEventListener("DOMContentLoaded", () => {
             settingsContent.innerHTML = '<p style="color: #ef4444; text-align: center; padding: 20px;">Failed to load settings. Please try again.</p>';
         }
     }
-    // --- EVENT LISTENERS ---
-    document.getElementById('stats-section').addEventListener('click', e => {
-        const card = e.target.closest('.glass-panel[id^="card-"]');
-        if (!card) return;
-        const view = card.id.replace('card-', '');
-        setActiveCard(card);
+
+    // URL එකේ Link එක (Hash එක) වෙනස් වෙද්දි අදාළ Data ලෝඩ් වීම
+    window.addEventListener('hashchange', () => {
+        let view = window.location.hash.replace('#', '');
+        const validViews = ['pending', 'unconfirmed', 'approved', 'rejected', 'users', 'resellers', 'connections', 'plans', 'reports'];
+        
+        if (!validViews.includes(view)) view = 'pending';
+        
+        setActiveCard(document.getElementById(`card-${view}`));
         loadDataAndRender(view);
     });
 
@@ -1485,6 +1514,16 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     // --- INITIAL LOAD ---
+    let initialHash = window.location.hash.replace('#', '');
+    const validViews = ['pending', 'unconfirmed', 'approved', 'rejected', 'users', 'resellers', 'connections', 'plans', 'reports'];
+    
+    // වැරදි ලින්ක් එකක් තිබ්බොත් හෝ ලින්ක් එකක් නැත්නම් Default එක 'pending' වලට යවනවා
+    if (!validViews.includes(initialHash)) {
+        initialHash = 'pending';
+        window.history.replaceState(null, null, '#pending'); 
+    }
+    
+    currentView = initialHash;
     setActiveCard(document.getElementById(`card-${currentView}`));
     loadDataAndRender(currentView);
     setupAutoReload();

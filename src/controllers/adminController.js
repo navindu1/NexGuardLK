@@ -157,28 +157,26 @@ const getConnectionsAndPackages = async (req, res) => {
 
 const createConnection = async (req, res) => {
     try {
-        const { name, icon, requires_package_choice, default_package, default_inbound_id, default_vless_template } = req.body;
+        // මෙතනට prefix_code එකත් එකතු කරා
+        const { name, icon, requires_package_choice, default_package, default_inbound_id, default_vless_template, prefix_code } = req.body;
         
-        // Database එකට යවන දත්ත ටික නිවැරදිව සකස් කිරීම
         const insertData = { 
             name, 
             icon, 
+            prefix_code: prefix_code === '' ? null : prefix_code, // Database එකට Save වීම
             requires_package_choice: Boolean(requires_package_choice)
         };
 
         if (insertData.requires_package_choice) {
-            // Package එකක් තෝරන්න දෙනවා නම්, default ඒවා null කරන්න
             insertData.default_package = null; 
             insertData.default_inbound_id = null; 
             insertData.default_vless_template = null;
         } else {
-            // හිස් string ("") ඇවිත් තියෙනවා නම් ඒවා null බවට පත් කරන්න
             insertData.default_package = default_package === '' ? null : default_package; 
             insertData.default_inbound_id = default_inbound_id === '' ? null : default_inbound_id; 
             insertData.default_vless_template = default_vless_template === '' ? null : default_vless_template;
         }
 
-        // දැන් නිවැරදි කළ දත්ත (insertData) database එකට යවන්න
         const { data, error } = await supabase.from('connections').insert([insertData]).select().single();
         
         if (error) {
@@ -196,13 +194,22 @@ const createConnection = async (req, res) => {
 const updateConnection = async (req, res) => {
     try {
         const { id } = req.params;
-        const { requires_package_choice, default_package, default_inbound_id, default_vless_template, name, icon } = req.body;
-        const updateData = { name, icon, requires_package_choice };
+        // මෙතනටත් prefix_code එක එකතු කරා
+        const { requires_package_choice, default_package, default_inbound_id, default_vless_template, name, icon, prefix_code } = req.body;
+        
+        const updateData = { 
+            name, 
+            icon, 
+            prefix_code: prefix_code === '' ? null : prefix_code, // Database එකට Update වීම
+            requires_package_choice 
+        };
+        
         if (requires_package_choice) {
             updateData.default_package = null; updateData.default_inbound_id = null; updateData.default_vless_template = null;
         } else {
             updateData.default_package = default_package; updateData.default_inbound_id = default_inbound_id; updateData.default_vless_template = default_vless_template;
         }
+        
         const { data, error } = await supabase.from('connections').update(updateData).eq('id', id).select().single();
         if (error) throw error;
         res.json({ success: true, message: 'Connection updated.', data });
@@ -336,10 +343,26 @@ const updateSettings = async (req, res) => {
 
 const addTutorial = async (req, res) => {
     try {
-        const { data, error } = await supabase.from('tutorials').insert([req.body]).select();
-        if (error) throw error;
+        // ෆ්‍රන්ට්-එන්ඩ් එකෙන් එන අලුත් දත්ත ටික වෙන් කරලා ගන්නවා
+        const { title, video_id, description, icon } = req.body;
+
+        // Supabase Database එකට Insert කරනවා
+        const { data, error } = await supabase.from('tutorials').insert([{ 
+            title, 
+            video_id, 
+            description, 
+            icon 
+        }]).select();
+
+        if (error) {
+            console.error("Supabase Tutorial Insert Error:", error); // Terminal එකේ හරියටම error එක පෙන්වයි
+            throw error;
+        }
         res.json({ success: true, data });
-    } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+    } catch (error) { 
+        console.error("Error adding tutorial:", error);
+        res.status(500).json({ success: false, error: error.message }); 
+    }
 };
 
 const deleteTutorial = async (req, res) => {

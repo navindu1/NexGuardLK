@@ -174,34 +174,66 @@ export function renderPrivacyPage(renderFunc) {
                 </div>
             </div>
 
-            <div class="card-glass p-8 custom-radius max-w-4xl mx-auto reveal">
-                <h2 class="text-2xl font-bold mb-6 text-center text-white">Downloadable Software</h2>
-                <p class="text-gray-400 text-center mb-8 text-sm">Download the recommended V2Ray client for your device to get started.</p>
-                
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <a id="dl-link-pc" href="https://cyfuture.dl.sourceforge.net/project/netmodhttp/Setup/NetMod6.2.10_x86_beta.exe?viasf=1" target="_blank" class="card p-6 custom-radius bg-white/5 border border-white/10 hover:bg-white/10 transition flex flex-col items-center justify-center text-center group cursor-pointer">
-                        <i class="fa-brands fa-windows text-4xl text-blue-400 mb-3 group-hover:scale-110 transition-transform"></i>
-                        <h3 class="font-bold text-white text-lg">PC Client</h3>
-                        <p class="text-xs text-gray-400 mt-1">Netmod Syna</p>
-                        <span class="mt-3 text-xs bg-blue-500/20 text-blue-300 px-3 py-1 rounded-full">Download .exe</span>
-                    </a>
-
-                    <a id="dl-link-ios" href="https://apps.apple.com/us/app/v2box-v2ray-client/id6446814690" target="_blank" class="card p-6 custom-radius bg-white/5 border border-white/10 hover:bg-white/10 transition flex flex-col items-center justify-center text-center group cursor-pointer">
-                        <i class="fa-brands fa-app-store-ios text-4xl text-gray-200 mb-3 group-hover:scale-110 transition-transform"></i>
-                        <h3 class="font-bold text-white text-lg">iOS Client</h3>
-                        <p class="text-xs text-gray-400 mt-1">V2Box</p>
-                        <span class="mt-3 text-xs bg-gray-500/20 text-gray-300 px-3 py-1 rounded-full">App Store</span>
-                    </a>
-
-                    <a id="dl-link-android" href="https://play.google.com/store/apps/details?id=com.netmod.syna&pcampaignid=web_share" target="_blank" class="card p-6 custom-radius bg-white/5 border border-white/10 hover:bg-white/10 transition flex flex-col items-center justify-center text-center group cursor-pointer">
-                        <i class="fa-brands fa-android text-4xl text-green-400 mb-3 group-hover:scale-110 transition-transform"></i>
-                        <h3 class="font-bold text-white text-lg">Android Client</h3>
-                        <p class="text-xs text-gray-400 mt-1">Netmod Syna</p>
-                        <span class="mt-3 text-xs bg-green-500/20 text-green-300 px-3 py-1 rounded-full">Play Store</span>
-                    </a>
-                </div>
-            </div>
+            <div class="card-glass p-8 custom-radius max-w-4xl mx-auto relative overflow-hidden reveal">
+    
+   <div class="text-center mb-8 relative z-10"> 
+    <h2 class="text-2xl font-bold text-white mb-6 font-['Orbitron']">Downloadable Software</h2>
+    <p class="text-sm text-gray-400">Download the recommended V2Ray client for your device to get started.</p>
+</div>
+    
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
+    
+    <a id="dl-link-pc" href="https://cyfuture.dl.sourceforge.net/project/netmodhttp/Setup/NetMod6.2.10_x86_beta.exe?viasf=1" target="_blank" 
+       class="card p-6 custom-radius bg-white/5 border border-white/10 hover:bg-white/10 transition flex flex-col items-center justify-center text-center group cursor-pointer h-full relative overflow-hidden">
+        
+        <i class="fa-brands fa-windows text-4xl text-blue-400 mb-3 group-hover:scale-110 transition-transform"></i>
+        <h3 class="font-bold text-white text-lg">PC Client</h3>
+        <p class="text-xs text-gray-400 mt-1">Netmod Syna</p>
+        
+        <div class="w-full border-t border-white/10 my-6"></div>
+        
+        <div class="w-full text-center text-xs text-gray-300 space-y-4 mb-8 mt-6 flex-grow">
+            <p class="flex items-center justify-center gap-2"><i class="fa-solid fa-check text-white"></i> <span>Optimized for Windows 10/11</span></p>
+            <p class="flex items-center justify-center gap-2"><i class="fa-solid fa-check text-white"></i> <span>Auto System Proxy support</span></p>
         </div>
+        
+        <span class="mt-auto ai-button rounded-full flex items-center justify-center mx-auto transition-all" style="width: 80%; min-height: 42px; font-size: 14px; font-weight: bold; border: none; padding: 0 15px;">Download</span>
+    </a>
+
+    <a id="dl-link-ios" href="https://apps.apple.com/us/app/v2box-v2ray-client/id6446814690" target="_blank" 
+       class="card p-6 custom-radius bg-white/5 border border-white/10 hover:bg-white/10 transition flex flex-col items-center justify-center text-center group cursor-pointer h-full relative overflow-hidden">
+        
+        <i class="fa-brands fa-app-store-ios text-4xl text-gray-200 mb-3 group-hover:scale-110 transition-transform"></i>
+        <h3 class="font-bold text-white text-lg">iOS Client</h3>
+        <p class="text-xs text-gray-400 mt-1">V2Box</p>
+        
+        <div class="w-full border-t border-white/10 my-6"></div>
+        
+        <div class="w-full text-center text-xs text-gray-300 space-y-4 mb-8 mt-6 flex-grow">
+            <p class="flex items-center justify-center gap-2"><i class="fa-solid fa-check text-white"></i> <span>Native Apple ecosystem feel</span></p>
+            <p class="flex items-center justify-center gap-2"><i class="fa-solid fa-check text-white"></i> <span>Highly battery optimized</span></p>
+        </div>
+        
+        <span class="mt-auto ai-button rounded-full flex items-center justify-center mx-auto transition-all" style="width: 80%; min-height: 42px; font-size: 14px; font-weight: bold; border: none; padding: 0 15px;">Download</span>
+    </a>
+
+    <a id="dl-link-android" href="https://play.google.com/store/apps/details?id=com.netmod.syna&pcampaignid=web_share" target="_blank" 
+       class="card p-6 custom-radius bg-white/5 border border-white/10 hover:bg-white/10 transition flex flex-col items-center justify-center text-center group cursor-pointer h-full relative overflow-hidden">
+        
+        <i class="fa-brands fa-android text-4xl text-green-400 mb-3 group-hover:scale-110 transition-transform"></i>
+        <h3 class="font-bold text-white text-lg">Android Client</h3>
+        <p class="text-xs text-gray-400 mt-1">Netmod Syna</p>
+        
+        <div class="w-full border-t border-white/10 my-6"></div>
+        
+        <div class="w-full text-center text-xs text-gray-300 space-y-4 mb-8 mt-6 flex-grow">
+            <p class="flex items-center justify-center gap-2"><i class="fa-solid fa-check text-white"></i> <span>Optimized for low-latency</span></p>
+            <p class="flex items-center justify-center gap-2"><i class="fa-solid fa-check text-white"></i> <span>Always-on background mode</span></p>
+        </div>
+        
+        <span class="mt-auto ai-button rounded-full flex items-center justify-center mx-auto transition-all" style="width: 80%; min-height: 42px; font-size: 14px; font-weight: bold; border: none; padding: 0 15px;">Download</span>
+    </a>
+</div>
     `);
 
     // 2. Admin Panel එකෙන් එන Links වලින් අදාල Button වල URL (href) එක මාරු කිරීම

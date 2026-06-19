@@ -58,39 +58,197 @@ const ensureOrdersLoaded = async () => {
     return [];
 };
 
-// --- HELPER: Unlink/Remove Plan ---
-const unlinkPlan = async (v2rayUsername) => {
-    if(!confirm(`Are you sure you want to remove '${getDisplayName(v2rayUsername)}' from your dashboard? This cannot be undone.`)) return;
-    
-    showToast({ title: "Removing...", message: "Processing removal.", type: "info" });
-    
+// --- DYNAMIC LINKS FETCHER ---
+const updateDynamicLinks = async () => {
     try {
-        const res = await apiFetch("/api/user/unlink", { 
-            method: "POST", 
-            headers: { "Content-Type": "application/json" }, 
-            body: JSON.stringify({ v2rayUsername }) 
-        });
-        
-        if (res.status === 404) {
-             console.warn("Backend /unlink endpoint missing. Hiding locally.");
-             showToast({ title: "Success", message: "Plan removed from view.", type: "success" });
-             setTimeout(() => window.location.reload(), 1000);
-             return;
-        }
-
-        const result = await res.json();
-        
+        const res = await apiFetch('/api/software-links'); 
         if (res.ok) {
-            showToast({ title: "Success", message: "Plan removed successfully.", type: "success" });
-            window.location.reload();
-        } else {
-            showToast({ title: "Error", message: result.message || "Failed to remove plan.", type: "error" });
+            const data = await res.json();
+            const links = data.data || data; 
+            
+            const pcBtn = document.getElementById('dl-link-pc');
+            const iosBtn = document.getElementById('dl-link-ios');
+            const androidBtn = document.getElementById('dl-link-android');
+            
+            if(pcBtn && (links.windows || links.pc)) pcBtn.href = links.windows || links.pc;
+            if(iosBtn && (links.ios || links.apple)) iosBtn.href = links.ios || links.apple;
+            if(androidBtn && (links.android || links.playstore)) androidBtn.href = links.android || links.playstore;
         }
     } catch (e) {
-        console.error("Unlink error:", e);
-        showToast({ title: "Connection Error", message: "Could not reach server.", type: "error" });
+        console.warn("Dynamic links could not be loaded. Using defaults.");
     }
 };
+
+// --- REUSABLE PANELS HTML ---
+const accountSettingsFormHtml = (username) => `
+    <div class="card-glass p-6 sm:p-8 custom-radius">
+        <div class="max-w-md mx-auto">
+            <h3 class="text-xl font-bold text-white mb-6 font-['Orbitron'] text-center">Account Settings</h3>
+            <form id="profile-update-form" class="space-y-6">
+                <div class="form-group"><input type="text" class="form-input" readonly value="${username}"><label class="form-label">Website Username</label></div>
+                <div class="form-group relative">
+                    <input type="password" id="new-password" class="form-input pr-10" placeholder=" ">
+                    <label for="new-password" class="form-label">New Password</label>
+                    <span class="focus-border"><i></i></span>
+                    <i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i>
+                </div>
+                <button type="submit" class="ai-button w-full rounded-lg !mt-8">Save Changes</button>
+            </form>
+        </div>
+    </div>`;
+
+// --- UPDATED APPS PANEL (Fixed Button Text Clipping) ---
+const appsPanelContent = `
+    <div class="pt-1">
+        <div class="card-glass p-8 sm:p-14 custom-radius max-w-7xl mx-auto relative overflow-hidden">
+            
+            <div class="text-center mb-16 relative z-10"> 
+                <h2 class="text-3xl font-bold text-white mb-3 font-['Orbitron']">Downloadable Software</h2>
+                <p class="text-sm text-gray-400">Download the recommended V2Ray client for your device to get started.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 justify-center gap-6 lg:gap-8 relative z-10 mt-8">
+                
+                <a id="dl-link-pc" href="#" target="_blank" 
+                   class="card p-8 custom-radius bg-white/5 border border-white/10 hover:bg-white/10 transition flex flex-col items-center text-center group cursor-pointer h-full relative overflow-hidden">
+                    
+                    <i class="fa-brands fa-windows text-[45px] text-blue-400 mb-4 group-hover:scale-110 transition-transform"></i>
+                    <h3 class="font-bold text-white text-xl">PC Client</h3>
+                    <p class="text-sm text-gray-400 mt-1">Netmod Syna</p>
+                    
+                    <div class="w-full border-t border-white/10 my-6"></div>
+                    
+                    <div class="w-full text-left text-xs text-gray-300 space-y-4 mb-4 mt-4 flex-grow">
+                        <p class="flex items-start gap-3"><i class="fa-solid fa-check text-white mt-0.5"></i> <span>Optimized for Windows 10/11</span></p>
+                        <p class="flex items-start gap-3"><i class="fa-solid fa-check text-white mt-0.5"></i> <span>Auto System Proxy support</span></p>
+                        <p class="flex items-start gap-3"><i class="fa-solid fa-check text-white mt-0.5"></i> <span>High speed VLESS routing</span></p>
+                    </div>
+                    
+                    <span class="mt-auto ai-button rounded-full flex items-center justify-center mx-auto transition-all" style="width: 80%; min-height: 42px; font-size: 14px; font-weight: bold; border: none; padding: 0 15px;">Download</span>
+                </a>
+
+                <a id="dl-link-ios" href="#" target="_blank" 
+                   class="card p-8 custom-radius bg-white/5 border border-white/10 hover:bg-white/10 transition flex flex-col items-center text-center group cursor-pointer h-full relative overflow-hidden">
+                    
+                    <i class="fa-brands fa-apple text-[45px] text-gray-200 mb-4 group-hover:scale-110 transition-transform"></i>
+                    <h3 class="font-bold text-white text-xl">iOS Client</h3>
+                    <p class="text-sm text-gray-400 mt-1">V2Box</p>
+                    
+                    <div class="w-full border-t border-white/10 my-6"></div>
+                    
+                    <div class="w-full text-left text-xs text-gray-300 space-y-4 mb-4 mt-4 flex-grow">
+                        <p class="flex items-start gap-3"><i class="fa-solid fa-check text-white mt-0.5"></i> <span>Native Apple ecosystem feel</span></p>
+                        <p class="flex items-start gap-3"><i class="fa-solid fa-check text-white mt-0.5"></i> <span>Highly battery optimized</span></p>
+                        <p class="flex items-start gap-3"><i class="fa-solid fa-check text-white mt-0.5"></i> <span>One-click QR configuration</span></p>
+                    </div>
+                    
+                    <span class="mt-auto ai-button rounded-full flex items-center justify-center mx-auto transition-all" style="width: 80%; min-height: 42px; font-size: 14px; font-weight: bold; border: none; padding: 0 15px;">Download</span>
+                </a>
+
+                <a id="dl-link-android" href="#" target="_blank" 
+                   class="card p-8 custom-radius bg-white/5 border border-white/10 hover:bg-white/10 transition flex flex-col items-center text-center group cursor-pointer h-full relative overflow-hidden">
+                    
+                    <i class="fa-brands fa-android text-[45px] text-green-400 mb-4 group-hover:scale-110 transition-transform"></i>
+                    <h3 class="font-bold text-white text-xl">Android Client</h3>
+                    <p class="text-sm text-gray-400 mt-1">Netmod Syna</p>
+                    
+                    <div class="w-full border-t border-white/10 my-6"></div>
+                    
+                    <div class="w-full text-left text-xs text-gray-300 space-y-4 mb-4 mt-4 flex-grow">
+                        <p class="flex items-start gap-3"><i class="fa-solid fa-check text-white mt-0.5"></i> <span>Optimized for low-latency</span></p>
+                        <p class="flex items-start gap-3"><i class="fa-solid fa-check text-white mt-0.5"></i> <span>Always-on background mode</span></p>
+                        <p class="flex items-start gap-3"><i class="fa-solid fa-check text-white mt-0.5"></i> <span>QR code scanning config</span></p>
+                    </div>
+                    
+                    <span class="mt-auto ai-button rounded-full flex items-center justify-center mx-auto transition-all" style="width: 80%; min-height: 42px; font-size: 14px; font-weight: bold; border: none; padding: 0 15px;">Download</span>
+                </a>
+            </div>
+        </div>
+    </div>`;
+
+// --- UPDATED TUTORIALS PANEL ---
+const tutorialsPanelContent = `
+    <div id="dynamic-tutorials-container" class="pt-1">
+        </div>`;
+
+// --- DYNAMIC TUTORIALS LOADER ---
+const loadDynamicTutorials = async () => {
+    const container = document.getElementById('tab-tutorials');
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="pt-1">
+            <div class="card-glass p-8 sm:p-14 custom-radius max-w-7xl mx-auto relative overflow-hidden text-center">
+                <i class="fa-solid fa-spinner fa-spin text-4xl text-blue-400 mb-4"></i>
+                <p class="text-gray-400">Loading tutorials...</p>
+            </div>
+        </div>`;
+
+    try {
+        const res = await apiFetch('/api/user/tutorials'); 
+        const responseData = await res.json();
+        const tutorials = responseData.data || responseData.tutorials || responseData || [];
+
+        if (tutorials.length === 0) {
+            container.innerHTML = `
+                <div class="pt-1">
+                    <div class="card-glass p-10 sm:p-16 custom-radius max-w-7xl mx-auto relative overflow-hidden flex flex-col items-center justify-center min-h-[350px]">
+                        <i class="fa-solid fa-hourglass-half text-5xl text-blue-400 mb-6 animate-pulse"></i>
+                        <h2 class="text-3xl font-bold text-white mb-3 font-['Orbitron']">Coming Soon!</h2>
+                        <p class="text-gray-400 max-w-md text-center text-sm">We are currently preparing the video tutorials.</p>
+                    </div>
+                </div>`;
+            return;
+        }
+
+        const tutCards = tutorials.map(tut => `
+            <div class="card p-5 custom-radius bg-white/5 border border-white/10 hover:bg-white/10 transition flex flex-col group h-full">
+                
+                <a href="https://www.youtube.com/watch?v=${tut.video_id}" target="_blank" 
+                   class="w-full aspect-[16/6] rounded-xl overflow-hidden bg-black/80 mb-5 relative shadow-lg block group/video">
+                    
+                    <img src="https://img.youtube.com/vi/${tut.video_id}/hqdefault.jpg" 
+                         class="w-full h-full object-cover opacity-70 group-hover/video:opacity-100 transition duration-300" 
+                         alt="Thumbnail">
+                    
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="w-12 h-12 bg-red-600/90 text-white rounded-full flex items-center justify-center shadow-lg group-hover/video:scale-110 transition-all duration-300">
+                            <i class="fa-solid fa-play text-lg ml-1"></i>
+                        </div>
+                    </div>
+                </a>
+                
+                <div class="flex items-center gap-3 mb-2">
+                    <i class="${tut.icon || 'fa-brands fa-youtube text-red-500'} text-xl"></i>
+                    <h3 class="font-bold text-white text-md">${tut.title}</h3>
+                </div>
+                <p class="text-xs text-gray-400 mt-1 flex-grow line-clamp-2">${tut.description || ''}</p>
+            </div>
+        `).join('');
+
+        container.innerHTML = `
+            <div class="pt-1">
+                <div class="card-glass p-8 sm:p-14 custom-radius max-w-7xl mx-auto relative overflow-hidden">
+                    <div class="text-center mb-12 relative z-10"> 
+                        <h2 class="text-3xl font-bold text-white mb-3 font-['Orbitron']">Video Tutorials</h2>
+                        <p class="text-sm text-gray-400">Step-by-step guides on how to setup and connect your devices.</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto relative z-10">
+                        ${tutCards}
+                    </div>
+                </div>
+            </div>`;
+
+    } catch (err) {
+        container.innerHTML = `
+            <div class="pt-1">
+                <div class="card-glass p-10 text-center text-red-400 max-w-7xl mx-auto custom-radius">
+                    Failed to load tutorials. Please try again later.
+                </div>
+            </div>`;
+    }
+};
+
 
 export function renderProfilePage(renderFunc, params) {
     if (profilePollingInterval) {
@@ -155,10 +313,12 @@ export function renderProfilePage(renderFunc, params) {
         #page-profile .form-label { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: #9ca3af; pointer-events: none; transition: all 0.2s ease-out; font-size: 14px; } 
         #page-profile .form-input:focus ~ .form-label, #page-profile .form-input:not(:placeholder-shown) ~ .form-label { top: 10px; transform: translateY(0); font-size: 11px; color: var(--brand-blue); } 
         #page-profile .form-input[readonly] { background-color: rgba(0,0,0,0.2); cursor: not-allowed; } 
-        .tab-btn { border-bottom: 3px solid transparent; transition: all .3s ease; color: #9ca3af; padding: 0.75rem 0.25rem; font-weight: 600; white-space: nowrap; } 
-        .tab-btn.active { border-bottom-color: var(--brand-blue); color: #fff; } 
+        .tab-btn { border-bottom: 3px solid transparent; transition: all .3s ease; color: #9ca3af; padding: 0.75rem 1rem; font-weight: 600; white-space: nowrap; font-size: 15px; cursor: pointer; } 
+        .tab-btn:hover { color: #d1d5db; }
+        .tab-btn.active { border-bottom-color: #3b82f6; color: #ffffff; } 
         .tab-panel { display: none; } 
-        .tab-panel.active { display: block; animation: pageFadeIn 0.5s; }
+        .tab-panel.active { display: block; animation: pageFadeIn 0.4s ease-out forwards; }
+        @keyframes pageFadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .help-modal-overlay { opacity: 0; visibility: hidden; transition: opacity 0.3s ease-out, visibility 0.3s ease-out; background: rgba(0, 0, 0, 0.2); z-index: 9999; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 1rem; }
         .help-modal-overlay.visible { opacity: 1; visibility: visible; }
         .help-modal-content { opacity: 0; transform: scale(0.90); transition: opacity 0.3s ease-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -168,14 +328,14 @@ export function renderProfilePage(renderFunc, params) {
         .plan-selector-label { font-size: 0.875rem; font-weight: 600; color: #d1d5db; flex-shrink: 0; }
         ul.fmenu { display: inline-block; list-style: none; padding: 0; margin: 0; white-space: nowrap; position: relative; overflow: visible !important; }
         ul.fmenu > li.fmenu-item { position: relative; overflow: visible !important; }
-        ul.fmenu .trigger-menu { display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; height: 40px; padding: 0 1rem; border-radius: 999px; background-color: rgba(30, 41, 59, 0.9); border: 1px solid rgba(255, 255, 255, 0.2); cursor: pointer; transition: all ease 0.3s; min-width: 170px; overflow: visible !important; }
+        ul.fmenu .trigger-menu { display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; height: 40px; padding: 0 1rem; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.2); cursor: pointer; transition: all ease 0.3s; min-width: 170px; overflow: visible !important; }
         ul.fmenu .trigger-menu:hover, ul.fmenu .trigger-menu.open { border-color: var(--brand-blue); box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
         ul.fmenu .trigger-menu i { color: #9ca3af; font-size: 0.85rem; transition: color ease 0.3s; }
         ul.fmenu .trigger-menu:hover i, ul.fmenu .trigger-menu.open i { color: #60a5fa; }
         ul.fmenu .trigger-menu .text { display: block; font-size: 0.9rem; color: #ffffff; padding: 0 0.5rem; font-weight: 500; }
         ul.fmenu .trigger-menu .arrow { font-size: 0.75rem; transition: transform ease 0.3s; }
         ul.fmenu .trigger-menu.open .arrow { transform: rotate(180deg); }
-        ul.fmenu .floating-menu { display: block; position: absolute; top: 100%; margin-top: 8px; left: 0; width: 100%; min-width: 100%; list-style: none; padding: 0.3rem; background-color: #0f172a; border: 1px solid rgba(71, 85, 105, 0.6); border-radius: 25px; box-shadow: 0 20px 40px rgba(0,0,0,0.8); z-index: 9999 !important; opacity: 0; visibility: hidden; transform: translateY(-10px); transition: opacity 0.3s, transform 0.3s; }
+        ul.fmenu .floating-menu { display: block; position: absolute; top: 100%; margin-top: 8px; left: 0; width: 100%; min-width: 100%; list-style: none; padding: 0.3rem; background-color: #0f172aab; border: 1px solid rgba(71, 85, 105, 0.6); border-radius: 25px; box-shadow: 0 20px 40px rgba(0,0,0,0.8); z-index: 9999 !important; opacity: 0; visibility: hidden; transform: translateY(-10px); transition: opacity 0.3s, transform 0.3s; }
         ul.fmenu .trigger-menu.open + .floating-menu { opacity: 1 !important; visibility: visible !important; transform: translateY(0) !important; max-height: none !important; overflow: visible !important; }
         
         .plan-row { display: flex; align-items: center; justify-content: space-between; padding: 0.4rem 0.6rem; border-radius: 50px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; }
@@ -186,16 +346,140 @@ export function renderProfilePage(renderFunc, params) {
         .remove-plan-btn:hover { background-color: rgba(239, 68, 68, 0.2); color: #f87171; border-color: rgba(239, 68, 68, 0.3); }
         .add-more-row { display: flex; align-items: center; padding: 0.5rem 0.8rem; color: #93c5fd; font-size: 0.85rem; cursor: pointer; transition: color 0.2s; }
         .add-more-row:hover { color: #bfdbfe; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>`;
     
     let profilePictureUrl = (user.profilePicture || "/assets/profilePhoto.jpg").replace("public/", "");
     if (profilePictureUrl && !profilePictureUrl.startsWith('/')) profilePictureUrl = '/' + profilePictureUrl;
     
-    const baseHtml = `<div id="page-profile" class="page space-y-8"><div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left reveal"><div class="relative flex-shrink-0"><img id="profile-pic-img" src="${profilePictureUrl}" alt="Profile Picture" class="w-24 h-24 rounded-full border-4 border-blue-500/50 object-cover shadow-lg"><label for="avatar-upload" class="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-500 transition shadow-md"><i class="fa-solid fa-camera text-white"></i><input type="file" id="avatar-upload" class="hidden" accept="image/*"></label></div><div class="flex-grow"><h2 class="text-3xl font-bold font-['Orbitron'] text-white">${user.username}</h2><p class="text-gray-400">${user.email}</p><div id="plan-info-container" class="text-xs sm:text-sm mt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2"></div></div></div><div id="user-status-content" class="reveal"><div class="flex flex-col items-center justify-center min-h-[40vh]"><div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-3xl text-blue-400"></i><p class="mt-4 text-lg font-semibold text-blue-300 animate-pulse">Loading Your Data...</p></div></div></div></div> ${modalHtml} ${linkAccountModalHtml}`;
+    const baseHtml = `
+    <div id="page-profile" class="page space-y-8">
+        <div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left reveal">
+            <div class="relative flex-shrink-0">
+                <img id="profile-pic-img" src="${profilePictureUrl}" alt="Profile Picture" class="w-24 h-24 rounded-full border-4 border-blue-500/50 object-cover shadow-lg">
+                <label for="avatar-upload" class="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-500 transition shadow-md">
+                    <i class="fa-solid fa-camera text-white"></i>
+                    <input type="file" id="avatar-upload" class="hidden" accept="image/*">
+                </label>
+            </div>
+            <div class="flex-grow">
+                <div class="flex items-center justify-center sm:justify-start gap-3">
+                    <h2 class="text-3xl font-bold font-['Orbitron'] text-white">${user.username}</h2>
+                    <button id="manual-data-refresh" class="text-lg text-blue-400 hover:text-white transition-all duration-300 hover:rotate-180" title="Refresh Profile">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                    </button>
+                </div>
+                <p class="text-gray-400">${user.email}</p>
+                <div id="plan-info-container" class="text-xs sm:text-sm mt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2"></div>
+            </div>
+        </div>
+        
+        <div id="user-status-content" class="reveal mt-8">
+            <div class="flex flex-col items-center justify-center min-h-[40vh]">
+                <div class="text-center p-8">
+                    <i class="fa-solid fa-spinner fa-spin text-3xl text-blue-400"></i>
+                    <p class="mt-4 text-lg font-semibold text-blue-300 animate-pulse">Loading Your Data...</p>
+                </div>
+            </div>
+        </div>
+    </div> 
+    ${modalHtml} 
+    ${linkAccountModalHtml}`;
     
     renderFunc(pageStyles + baseHtml);
     const statusContainer = document.getElementById("user-status-content");
     qrModalLogic.init();
+
+    const bindUnifiedTabs = (activePlansData) => {
+    const tabsContainer = document.getElementById('profile-tabs');
+    if(!tabsContainer || tabsContainer.dataset.bound === "true") return;
+    tabsContainer.dataset.bound = "true";
+
+    tabsContainer.addEventListener('click', (e) => { 
+        const targetBtn = e.target.closest('.tab-btn');
+        if (targetBtn) {
+            document.querySelectorAll('#profile-tabs .tab-btn').forEach(b => b.classList.remove('active')); 
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            
+            targetBtn.classList.add('active'); 
+            const tabId = targetBtn.dataset.tab; 
+            const panel = document.getElementById(`tab-${tabId}`);
+            if(panel) panel.classList.add('active');
+            
+            let urlPath = '/profile';
+            if (['apps', 'tutorials'].includes(tabId)) urlPath = `/profile/${tabId}`;
+            window.history.pushState({ tabId }, '', urlPath);
+
+            // --- අලුතෙන් එකතු කරපු Dynamic Tutorials Loader Trigger එක ---
+            if (tabId === 'tutorials') {
+                const tutContainer = document.getElementById('tab-tutorials');
+                // iframe එකක් (video එකක්) දැනටමත් නැත්නම් විතරක් loadDynamicTutorials එක call කරනවා
+                if (tutContainer && !tutContainer.innerHTML.includes('iframe')) {
+                    if (typeof loadDynamicTutorials === 'function') {
+                        loadDynamicTutorials();
+                    }
+                }
+            }
+            // -------------------------------------------------------------
+
+            if (currentActivePlan && activePlansData) {
+                if(tabId === 'config') updateRenewButton(currentActivePlan, activePlansData);
+                if(tabId === 'usage') { 
+                    if (usageDataCache[currentActivePlan.v2rayUsername]) { 
+                        renderUsageHTML(usageDataCache[currentActivePlan.v2rayUsername], currentActivePlan.v2rayUsername); 
+                        loadUsageStats(currentActivePlan.v2rayUsername, true); 
+                    } else { 
+                        loadUsageStats(currentActivePlan.v2rayUsername, false); 
+                    } 
+                }
+                if(tabId === 'orders') { 
+                    if (ordersCache) { renderOrdersHTML(ordersCache); loadMyOrders(true); } 
+                    else { loadMyOrders(false); } 
+                }
+            }
+        }
+    });
+};
+
+    const handleDeepLink = () => {
+        if (initialTabCheckDone) return;
+        const currentPath = window.location.pathname;
+        let targetTab = null;
+        
+        if (currentPath.endsWith('/profile/apps')) targetTab = 'apps';
+        else if (currentPath.endsWith('/profile/tutorials')) targetTab = 'tutorials';
+        else { const tabParam = params?.get ? params.get('tab') : null; if (tabParam) targetTab = tabParam; }
+        
+        if (targetTab) {
+            setTimeout(() => {
+                const targetBtn = document.querySelector(`.tab-btn[data-tab="${targetTab}"]`);
+                if (targetBtn) targetBtn.click();
+            }, 50);
+        }
+        initialTabCheckDone = true;
+    };
+
+    const unlinkPlanLocal = async (v2rayUsername) => {
+        if(!confirm(`Are you sure you want to remove this plan from your dashboard? This cannot be undone.`)) return;
+        
+        showToast({ title: "Removing...", message: "Processing removal.", type: "info" });
+        try {
+            const res = await apiFetch("/api/user/unlink", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ v2rayUsername }) });
+            
+            if (res.ok || res.status === 404) {
+                showToast({ title: "Success", message: "Plan removed successfully.", type: "success" });
+                loadProfileData();
+            } else {
+                const result = await res.json();
+                showToast({ title: "Error", message: result.message || "Failed to remove plan.", type: "error" });
+            }
+        } catch (e) {
+            showToast({ title: "Connection Error", message: "Could not reach server.", type: "error" });
+        }
+    };
+
+    window.unlinkPlan = unlinkPlanLocal;
 
     const pendingMsg = localStorage.getItem("pendingLinkSuccess");
     if (pendingMsg) {
@@ -211,76 +495,107 @@ export function renderProfilePage(renderFunc, params) {
     } catch(e) { console.warn("Cache parse error", e); }
 
     const setupEventListeners = () => {
-        // Help Modal
+        if (window.profileEventsBound) return;
+        window.profileEventsBound = true;
+
         const helpModal = document.getElementById('help-modal');
         if (helpModal) {
             const openModal = () => { helpModal.classList.add('visible'); document.body.classList.add('modal-open'); };
             const closeModal = () => { helpModal.classList.remove('visible'); document.body.classList.remove('modal-open'); };
-            document.querySelector('.open-help-modal-link')?.addEventListener('click', (e) => { e.preventDefault(); openModal(); });
-            document.getElementById('help-modal-close')?.addEventListener('click', closeModal);
-            helpModal.addEventListener('click', (e) => { if (e.target === helpModal) closeModal(); });
-            document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && helpModal.classList.contains('visible')) closeModal(); });
-            document.getElementById('lang-toggle-btn')?.addEventListener('click', () => {
-                document.querySelector('.lang-content.lang-en')?.classList.toggle('hidden');
-                document.querySelector('.lang-content.lang-si')?.classList.toggle('hidden');
+            document.addEventListener('click', (e) => {
+                if(e.target.closest('.open-help-modal-link')) { e.preventDefault(); openModal(); }
+                if(e.target.id === 'help-modal-close' || e.target === helpModal) closeModal();
             });
-        }
-
-        // Link Account Modal
-        const linkModal = document.getElementById('link-account-modal');
-        if (linkModal) {
-            const closeLinkModal = () => { linkModal.classList.remove('visible'); document.body.classList.remove('modal-open'); };
-            document.getElementById('link-modal-close')?.addEventListener('click', closeLinkModal);
-            linkModal.addEventListener('click', (e) => { if (e.target === linkModal) closeLinkModal(); });
-
-            document.getElementById("link-account-modal-form")?.addEventListener("submit", async(e) => {
-                e.preventDefault();
-                const v2rayUsername = document.getElementById("modal-v2ray-username").value;
-                if (!v2rayUsername) return showToast({ title: "Error", message: "Please enter your V2Ray username.", type: "error" });
-                
-                const btn = e.target.querySelector("button");
-                btn.disabled = true;
-                showToast({ title: "Linking...", message: "Please wait...", type: "info", duration: 2000 });
-                
-                try {
-                    const res = await apiFetch("/api/user/link-v2ray", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ v2rayUsername }) });
-                    const result = await res.json();
-                    if (res.ok) {
-                        localStorage.setItem("pendingLinkSuccess", result.message || "Your V2Ray account has been linked!");
-                        window.location.reload(); 
-                    } else {
-                        btn.disabled = false;
-                        showToast({ title: "Linking Failed", message: result.message, type: "error" });
-                    }
-                } catch (err) {
-                    btn.disabled = false;
-                    showToast({ title: "Error", message: "Something went wrong.", type: "error" });
+            document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && helpModal.classList.contains('visible')) closeModal(); });
+            document.addEventListener('click', (e) => {
+                if(e.target.id === 'lang-toggle-btn') {
+                    document.querySelector('.lang-content.lang-en')?.classList.toggle('hidden');
+                    document.querySelector('.lang-content.lang-si')?.classList.toggle('hidden');
                 }
             });
         }
 
-        document.getElementById("profile-update-form")?.addEventListener("submit", async(e) => {
+        const linkModal = document.getElementById('link-account-modal');
+        if (linkModal) {
+            const closeLinkModal = () => { linkModal.classList.remove('visible'); document.body.classList.remove('modal-open'); };
+            document.addEventListener('click', (e) => {
+                if(e.target.id === 'link-modal-close' || e.target === linkModal) closeLinkModal();
+            });
+        }
+
+        const handleLinkAccountSubmit = async (e, inputId, isModal) => {
             e.preventDefault();
-            const newPassword = document.getElementById("new-password").value;
-            if (!newPassword) return showToast({ title: "No Change", message: "Password field was empty.", type: "info" });
-            if (newPassword.length < 6) return showToast({ title: "Error", message: "Password must be at least 6 characters.", type: "error" });
-            const btn = e.target.querySelector('button');
+            const input = document.getElementById(inputId);
+            if(!input) return;
+            const v2rayUsername = input.value;
+            if (!v2rayUsername) return showToast({ title: "Error", message: "Please enter your V2Ray username.", type: "error" });
+            
+            const btn = e.target.querySelector("button");
             btn.disabled = true;
-            showToast({ title: "Updating...", message: "Please wait.", type: "info" });
+            showToast({ title: "Linking...", message: "Please wait...", type: "info", duration: 2000 });
+            
             try {
-                const res = await apiFetch('/api/user/update-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ newPassword }) });
+                const res = await apiFetch("/api/user/link-v2ray", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ v2rayUsername }) });
                 const result = await res.json();
-                if (!res.ok) throw new Error(result.message);
-                showToast({ title: "Success!", message: result.message, type: "success" });
-                document.getElementById("new-password").value = "";
-            } catch (error) {
-                showToast({ title: "Update Failed", message: error.message, type: "error" });
+                
+                if (res.ok) {
+                    showToast({ title: "Success", message: result.message || "Your V2Ray account has been linked!", type: "success" });
+                    if (isModal && linkModal) {
+                        linkModal.classList.remove('visible'); 
+                        document.body.classList.remove('modal-open');
+                    }
+                    input.value = ""; 
+                    loadProfileData(); 
+                } else {
+                    showToast({ title: "Linking Failed", message: result.message, type: "error" });
+                }
+            } catch (err) {
+                showToast({ title: "Error", message: "Something went wrong.", type: "error" });
             } finally {
                 btn.disabled = false;
             }
+        };
+
+        document.addEventListener('submit', async (e) => {
+            if (e.target && e.target.id === 'link-account-modal-form') {
+                handleLinkAccountSubmit(e, "modal-v2ray-username", true);
+            }
+            if (e.target && e.target.id === 'link-account-form-profile') {
+                handleLinkAccountSubmit(e, "existing-v2ray-username-profile", false);
+            }
+            if (e.target && e.target.id === 'profile-update-form') {
+                e.preventDefault();
+                const newPassword = document.getElementById("new-password").value;
+                if (!newPassword) return showToast({ title: "No Change", message: "Password field was empty.", type: "info" });
+                if (newPassword.length < 6) return showToast({ title: "Error", message: "Password must be at least 6 characters.", type: "error" });
+                const btn = e.target.querySelector('button');
+                btn.disabled = true;
+                showToast({ title: "Updating...", message: "Please wait.", type: "info" });
+                try {
+                    const res = await apiFetch('/api/user/update-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ newPassword }) });
+                    const result = await res.json();
+                    if (!res.ok) throw new Error(result.message);
+                    showToast({ title: "Success!", message: result.message, type: "success" });
+                    document.getElementById("new-password").value = "";
+                } catch (error) {
+                    showToast({ title: "Update Failed", message: error.message, type: "error" });
+                } finally {
+                    btn.disabled = false;
+                }
+            }
         });
 
-        document.getElementById('profile-password-toggle')?.addEventListener('click', () => togglePassword('new-password', 'profile-password-toggle'));
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('#manual-data-refresh')) {
+                const icon = e.target.closest('#manual-data-refresh').querySelector('i');
+                icon.classList.add('fa-spin');
+                showToast({ title: "Refreshing...", message: "Updating profile data.", type: "info", duration: 1000 });
+                loadProfileData().finally(() => setTimeout(() => icon.classList.remove('fa-spin'), 600));
+            }
+            if (e.target.id === 'profile-password-toggle') {
+                togglePassword('new-password', 'profile-password-toggle');
+            }
+        });
     };
 
     document.getElementById("avatar-upload")?.addEventListener("change", async(e) => {
@@ -310,7 +625,6 @@ export function renderProfilePage(renderFunc, params) {
         if (!usageContainer) return;
 
         const displayUsername = d.username || getDisplayName(username);
-
         const total = d.down + d.up;
         const percent = d.total > 0 ? Math.min((total / d.total) * 100, 100) : 0;
         
@@ -388,11 +702,11 @@ export function renderProfilePage(renderFunc, params) {
 
         if (usageContainer) {
             usageContainer.innerHTML = rejectedHtml;
-            document.getElementById('remove-rejected-btn-cfg')?.addEventListener('click', () => unlinkPlan(username));
+            document.getElementById('remove-rejected-btn-cfg')?.addEventListener('click', () => unlinkPlanLocal(username));
         }
         if (configContainer) {
             configContainer.innerHTML = rejectedHtml; 
-            document.getElementById('remove-rejected-btn-cfg')?.addEventListener('click', () => unlinkPlan(username));
+            document.getElementById('remove-rejected-btn-cfg')?.addEventListener('click', () => unlinkPlanLocal(username));
         }
     };
 
@@ -426,7 +740,7 @@ export function renderProfilePage(renderFunc, params) {
              else showToast({ title: "Error", message: "Could not identify plan details.", type: "error" });
         });
 
-        document.getElementById('remove-expired-btn')?.addEventListener('click', () => unlinkPlan(username));
+        document.getElementById('remove-expired-btn')?.addEventListener('click', () => unlinkPlanLocal(username));
 
         if (otherPlansAvailable) {
             document.getElementById('switch-plan-btn')?.addEventListener('click', () => {
@@ -451,10 +765,7 @@ export function renderProfilePage(renderFunc, params) {
              );
         }
 
-        if (isKnownRejected) {
-            renderPlanRejectedHTML(username);
-            return; 
-        }
+        if (isKnownRejected) { renderPlanRejectedHTML(username); return; }
 
         if (!isSilent && !usageDataCache[username]) {
             usageContainer.innerHTML = `<div class="text-center p-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-blue-400"></i></div>`;
@@ -481,25 +792,67 @@ export function renderProfilePage(renderFunc, params) {
                         renderPlanRemovedHTML(username);
                     }
                 } else if (!isSilent) {
-                    usageContainer.innerHTML = `<div class="card-glass p-4 rounded-xl text-center text-amber-400"><p>${result.message || 'Error loading usage.'}</p></div>`;
+                    usageContainer.innerHTML = `
+                    <div class="border border-white/5 rounded-xl p-5 text-center bg-[#0a0f18] mt-4 shadow-inner max-w-2xl mx-auto">
+                        <p class="text-amber-400 text-sm font-medium">Server error while fetching usage.</p>
+                    </div>`;
                 }
             }
         });
     };
 
-    const renderOrdersHTML = (orders) => {
-        const container = document.getElementById("tab-orders");
-        if (!container) return;
-        const html = (orders.length > 0) ? orders.map(order => {
-            const displayStatus = order.status === 'queued_for_renewal' ? 'Queued' : order.status;
-            const statusColors = { pending: "text-amber-400", approved: "text-green-400", rejected: "text-red-400", queued_for_renewal: "text-blue-300" };
-            return `<div class="card-glass p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 custom-radius">
-                <div><p class="font-bold text-white">${appData.plans[order.plan_id]?.name || order.plan_id} <span class="text-gray-400 font-normal">for</span> ${appData.connections.find(c => c.name === order.conn_id)?.name || order.conn_id}</p><p class="text-xs text-gray-400 mt-1">Ordered on: ${new Date(order.created_at).toLocaleDateString()}</p></div>
-                <div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'}"><span>${displayStatus}</span></div>
+// --- RENDER ORDERS HTML ---
+const renderOrdersHTML = (orders) => {
+    const container = document.getElementById("tab-orders");
+    if (!container) return;
+
+    if (orders.length === 0) {
+        container.innerHTML = `
+            <div class="pt-1">
+                <div class="card-glass p-8 sm:p-14 custom-radius max-w-7xl mx-auto relative overflow-hidden text-center min-h-[350px] flex flex-col items-center justify-center">
+                    <i class="fa-solid fa-box-open text-6xl text-gray-500 mb-6"></i>
+                    <h2 class="text-3xl font-bold text-white mb-3 font-['Orbitron']">No Orders Yet</h2>
+                    <p class="text-gray-400">You haven't placed any orders or renewals yet.</p>
+                </div>
             </div>`;
-        }).join('') : `<div class="card-glass p-8 custom-radius text-center"><i class="fa-solid fa-box-open text-4xl text-gray-400 mb-4"></i><h3 class="font-bold text-white">No Orders</h3></div>`;
-        container.innerHTML = `<div class="space-y-3">${html}</div>`;
+        return;
     }
+
+    const ordersHtml = orders.map(order => {
+        const displayStatus = order.status === 'queued_for_renewal' ? 'Queued' : order.status;
+        const statusColors = { pending: "text-amber-400", approved: "text-green-400", rejected: "text-red-400", queued_for_renewal: "text-blue-300" };
+        const statusIcons = { pending: "fa-clock", approved: "fa-check-circle", rejected: "fa-times-circle", queued_for_renewal: "fa-spinner fa-spin" };
+        
+        return `<div class="bg-white/5 border border-white/10 p-5 sm:p-6 custom-radius hover:bg-white/10 transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+                <p class="font-bold text-white text-lg">${appData.plans[order.plan_id]?.name || order.plan_id} <span class="text-gray-400 font-normal text-sm mx-1">for</span> <span class="text-blue-300">${appData.connections.find(c => c.name === order.conn_id)?.name || order.conn_id}</span></p>
+                <p class="text-sm text-gray-400 mt-2 flex items-center gap-2"><i class="fa-regular fa-calendar"></i> Ordered on: ${new Date(order.created_at).toLocaleDateString()}</p>
+            </div>
+            <div class="flex flex-col sm:flex-row items-end sm:items-center gap-3 w-full sm:w-auto mt-2 sm:mt-0">
+                <div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'} bg-black/20 px-5 py-2 rounded-full border border-white/5">
+                    <i class="fa-solid ${statusIcons[order.status] || 'fa-info-circle'}"></i><span>${displayStatus}</span>
+                </div>
+                
+                <button onclick="alert('Invoice generation feature coming soon!')" class="bg-white/5 hover:bg-blue-500/20 text-gray-300 hover:text-blue-400 border border-white/10 hover:border-blue-500/30 transition-all px-5 py-2 rounded-full text-xs font-bold flex items-center gap-2 w-full sm:w-auto justify-center">
+                    <i class="fa-solid fa-file-invoice"></i> View Invoice
+                </button>
+            </div>
+        </div>`;
+    }).join('');
+
+    container.innerHTML = `
+        <div class="pt-1">
+            <div class="card-glass p-8 sm:p-14 custom-radius max-w-7xl mx-auto relative overflow-hidden">
+                <div class="text-center mb-10 relative z-10"> 
+                    <h2 class="text-3xl font-bold text-white mb-3 font-['Orbitron']">My Orders & Invoices</h2>
+                    <p class="text-sm text-gray-400">View your recent purchases and download invoices directly from here.</p>
+                </div>
+                <div class="space-y-4 relative z-10">
+                    ${ordersHtml}
+                </div>
+            </div>
+        </div>`;
+};
 
     const loadMyOrders = async (isSilent = false) => {
         const container = document.getElementById("tab-orders");
@@ -574,7 +927,6 @@ export function renderProfilePage(renderFunc, params) {
             }
 
         } catch (e) {
-            console.error("Renew button update error", e);
              container.innerHTML = `<button id="renew-profile-btn" class="ai-button secondary inline-block rounded-lg"><i class="fa-solid fa-arrows-rotate mr-2"></i>Renew Plan</button>`;
              document.getElementById('renew-profile-btn')?.addEventListener('click', () => handleRenewalChoice(activePlans, plan));
         }
@@ -626,18 +978,15 @@ export function renderProfilePage(renderFunc, params) {
         planMenuInstance = new SikFloatingMenu("#plan-menu");
         
         document.querySelector('#plan-menu .floating-menu')?.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+            e.preventDefault(); e.stopPropagation();
 
-            // Handle Remove Click
             const removeBtn = e.target.closest('.remove-plan-btn');
             if (removeBtn) {
                 const username = removeBtn.dataset.username;
-                unlinkPlan(username);
+                unlinkPlanLocal(username);
                 return;
             }
 
-            // Handle Add More Click
             const addMoreOption = e.target.closest('#link-new-account-option');
             if (addMoreOption) {
                 planMenuInstance.closeAll();
@@ -646,7 +995,6 @@ export function renderProfilePage(renderFunc, params) {
                 return;
             }
 
-            // Handle Plan Switch
             const planRow = e.target.closest('.plan-row');
             if (planRow) {
                 const index = parseInt(planRow.dataset.planIndex);
@@ -679,13 +1027,13 @@ export function renderProfilePage(renderFunc, params) {
                 }
 
                 renderPlanSelector(data.activePlans, currentIndex);
-
+                
                 window.renderPlanDetailsInternal = async (planIndex) => {
                     const plan = data.activePlans[planIndex];
                     currentActivePlan = plan; 
                     
                     const container = document.getElementById("plan-details-container");
-                    if(!plan) return;
+                    if(!plan || !container) return; 
                     
                     let isImmediateRejected = false;
                     if(ordersCache) {
@@ -695,16 +1043,21 @@ export function renderProfilePage(renderFunc, params) {
                     const connectionName = appData.connections.find(c => c.name === plan.connId)?.name || plan.connId || 'N/A';
                     const planName = appData.plans[plan.planId]?.name || plan.planId;
                     
-                    document.getElementById("plan-info-container").innerHTML = `<span class="bg-blue-500/10 text-blue-300 px-2 py-1 rounded-full"><i class="fa-solid fa-rocket fa-fw mr-2"></i>${planName}</span><span class="bg-indigo-500/10 text-indigo-300 px-2 py-1 rounded-full"><i class="fa-solid fa-wifi fa-fw mr-2"></i>${connectionName}</span>`;
+                    const infoContainer = document.getElementById("plan-info-container");
+                    if (infoContainer) {
+                        infoContainer.innerHTML = `<span class="bg-blue-500/10 text-blue-300 px-2 py-1 rounded-full"><i class="fa-solid fa-rocket fa-fw mr-2"></i>${planName}</span><span class="bg-indigo-500/10 text-indigo-300 px-2 py-1 rounded-full"><i class="fa-solid fa-wifi fa-fw mr-2"></i>${connectionName}</span>`;
+                    }
 
+                    // ====== THE UNIFIED TABS BAR ======
                     if(!document.getElementById('profile-tabs')) {
-                        // --- STANDARD PROFILE LAYOUT (REVERTED) ---
                         container.innerHTML = `
-                        <div id="profile-tabs" class="flex items-center gap-4 sm:gap-6 border-b border-white/10 mb-6 overflow-x-auto">
-                            <button data-tab="config" class="tab-btn active">V2Ray Config</button>
-                            <button data-tab="usage" class="tab-btn">Usage Stats</button>
-                            <button data-tab="orders" class="tab-btn">My Orders</button>
-                            <button data-tab="settings" class="tab-btn">Settings</button>
+                        <div id="profile-tabs" class="flex items-center gap-4 sm:gap-6 border-b border-white/10 mb-6 pb-2 overflow-x-auto hide-scrollbar scroll-smooth snap-x">
+                            <button data-tab="config" class="tab-btn active whitespace-nowrap shrink-0 snap-start">V2Ray Config</button>
+                            <button data-tab="usage" class="tab-btn whitespace-nowrap shrink-0 snap-start">Usage Stats</button>
+                            <button data-tab="orders" class="tab-btn whitespace-nowrap shrink-0 snap-start">My Orders</button>
+                            <button data-tab="settings" class="tab-btn whitespace-nowrap shrink-0 snap-start">Settings</button>
+                            <button data-tab="apps" class="tab-btn whitespace-nowrap shrink-0 snap-start">Apps</button>
+                            <button data-tab="tutorials" class="tab-btn whitespace-nowrap shrink-0 snap-start">Tutorials</button>
                         </div>
                         <div id="tab-config" class="tab-panel active">
                             <div class="card-glass p-8 text-center custom-radius flex flex-col items-center justify-center min-h-[300px]">
@@ -715,34 +1068,12 @@ export function renderProfilePage(renderFunc, params) {
                         </div>
                         <div id="tab-usage" class="tab-panel"></div>
                         <div id="tab-orders" class="tab-panel"></div>
-                        <div id="tab-settings" class="tab-panel">
-                            <div class="card-glass p-6 sm:p-8 custom-radius">
-                                <div class="max-w-md mx-auto">
-                                    <h3 class="text-xl font-bold text-white mb-6 font-['Orbitron'] text-center">Account Settings</h3>
-                                    <form id="profile-update-form" class="space-y-6">
-                                        <div class="form-group"><input type="text" class="form-input" readonly value="${user.username}"><label class="form-label">Website Username</label></div>
-                                        <div class="form-group relative">
-                                            <input type="password" id="new-password" class="form-input pr-10" placeholder=" ">
-                                            <label for="new-password" class="form-label">New Password</label>
-                                            <span class="focus-border"><i></i></span>
-                                            <i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i>
-                                        </div>
-                                        <button type="submit" class="ai-button w-full rounded-lg !mt-8">Save Changes</button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>`;
+                        <div id="tab-settings" class="tab-panel">${accountSettingsFormHtml(user.username)}</div>
+                        <div id="tab-apps" class="tab-panel">${appsPanelContent}</div>
+                        <div id="tab-tutorials" class="tab-panel"></div>`;
 
-                        document.getElementById('profile-tabs').addEventListener('click', (e) => { 
-                            if (e.target.tagName === 'BUTTON') {
-                                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-                                e.target.classList.add('active'); const tabId = e.target.dataset.tab; document.getElementById(`tab-${tabId}`).classList.add('active');
-                                if (!currentActivePlan) return;
-                                if(tabId === 'config') updateRenewButton(currentActivePlan, data.activePlans);
-                                if(tabId === 'usage') { if (usageDataCache[currentActivePlan.v2rayUsername]) { renderUsageHTML(usageDataCache[currentActivePlan.v2rayUsername], currentActivePlan.v2rayUsername); loadUsageStats(currentActivePlan.v2rayUsername, true); } else { loadUsageStats(currentActivePlan.v2rayUsername, false); } }
-                                if(tabId === 'orders') { if (ordersCache) { renderOrdersHTML(ordersCache); loadMyOrders(true); } else { loadMyOrders(false); } }
-                            }
-                        });
+                        bindUnifiedTabs(data.activePlans);
+                        updateDynamicLinks(); 
                         setupEventListeners();
                     } else {
                          const configTab = document.getElementById("tab-config");
@@ -776,7 +1107,7 @@ export function renderProfilePage(renderFunc, params) {
                                 </div>
                             </div>`;
                         configTab.innerHTML = rejectedHtml;
-                        document.getElementById('remove-rejected-btn-cfg')?.addEventListener('click', () => unlinkPlan(plan.v2rayUsername));
+                        document.getElementById('remove-rejected-btn-cfg')?.addEventListener('click', () => unlinkPlanLocal(plan.v2rayUsername));
                     } else {
                         configTab.innerHTML = `
                             <div class="card-glass p-6 sm:p-8 custom-radius">
@@ -827,29 +1158,37 @@ export function renderProfilePage(renderFunc, params) {
                             loadUsageStats(plan.v2rayUsername, false);
                         }
                     }
+                    
+                    handleDeepLink();
                 };
 
                 window.renderPlanDetailsInternal(currentIndex);
 
-                if (!initialTabCheckDone) {
-                            const tabParam = params.get('tab');
-                            if (tabParam) {
-                                const targetBtn = document.querySelector(`.tab-btn[data-tab="${tabParam}"]`);
-                                if (targetBtn) {
-                                    targetBtn.click();
-                                }
-                            }
-                            initialTabCheckDone = true;
-                        }
-
             } else if (data.status === "pending") {
                 statusContainer.innerHTML = `<div style="border-radius: 50px;" class="card-glass p-8 text-center"><i class="fa-solid fa-clock text-4xl text-amber-400 mb-4 animate-pulse"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Order Pending Approval</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">Your order is currently being reviewed. Your profile will update here once approved.</p></div>`;
             } else {
-                // --- Default View ---
-                const settingsHtml = `<div class="card-glass p-6 custom-radius"><h3 class="text-xl font-bold text-white mb-4 font-['Orbitron']">Account Settings</h3><form id="profile-update-form" class="space-y-6"><div class="form-group"><input type="text" class="form-input" readonly value="${user.username}"><label class="form-label">Website Username</label></div><div class="form-group relative"><input type="password" id="new-password" class="form-input pr-10" placeholder=" "><label for="new-password" class="form-label">New Password</label><span class="focus-border"><i></i></span><i class="fa-solid fa-eye absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-white" id="profile-password-toggle"></i></div><button type="submit" class="ai-button w-full rounded-lg !mt-8">Save Changes</button></form></div>`;
-                const linkAccountHtml = `<div class="card-glass p-6 custom-radius"><h3 class="text-xl font-bold text-white mb-2 font-['Orbitron']">Link Existing V2Ray Account</h3><p class="text-sm text-gray-400 mb-6">If you have an old account, link it here to manage renewals.</p><form id="link-account-form-profile" class="space-y-6"><div class="form-group"><input type="text" id="existing-v2ray-username-profile" class="form-input" required placeholder=" "><label for="existing-v2ray-username-profile" class="form-label">Your Old V2Ray Username</label><span class="focus-border"><i></i></span></div><button type="submit" class="ai-button secondary w-full rounded-lg">Link Account</button><div class="text-center text-sm mt-4"><span class="open-help-modal-link text-blue-400 cursor-pointer hover:underline">How to find your username?</span></div></form></div>`;
-                statusContainer.innerHTML = `<div class="card-glass p-8 custom-radius text-center"><i class="fa-solid fa-rocket text-4xl text-blue-400 mb-4"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Get Started</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">You do not have any active plans yet. Purchase a new plan or link an existing account below.</p><a href="/plans" class="nav-link-internal ai-button inline-block rounded-lg mt-6">Purchase a Plan</a></div><div class="grid md:grid-cols-2 gap-8 mt-8">${settingsHtml}${linkAccountHtml}</div>`;
+                // --- NO PLANS STATE ---
+const linkAccountHtml = `<div class="card-glass p-6 custom-radius"><h3 class="text-xl font-bold text-white mb-2 font-['Orbitron']">Link Existing V2Ray Account</h3><p class="text-sm text-gray-400 mb-6">If you have an old account, link it here to manage renewals.</p><form id="link-account-form-profile" class="space-y-6"><div class="form-group"><input type="text" id="existing-v2ray-username-profile" class="form-input" required placeholder=" "><label for="existing-v2ray-username-profile" class="form-label">Your Old V2Ray Username</label><span class="focus-border"><i></i></span></div><button type="submit" class="ai-button secondary w-full rounded-lg">Link Account</button><div class="text-center text-sm mt-4"><span class="open-help-modal-link text-blue-400 cursor-pointer hover:underline">How to find your username?</span></div></form></div>`;
+
+statusContainer.innerHTML = `
+                <div id="profile-tabs" class="flex items-center gap-4 sm:gap-6 border-b border-white/10 mb-6 pb-2 overflow-x-auto hide-scrollbar scroll-smooth snap-x">
+                    <button data-tab="config" class="tab-btn active whitespace-nowrap shrink-0 snap-start">Dashboard</button>
+                    <button data-tab="settings" class="tab-btn whitespace-nowrap shrink-0 snap-start">Settings</button>
+                    <button data-tab="apps" class="tab-btn whitespace-nowrap shrink-0 snap-start">Apps</button>
+                    <button data-tab="tutorials" class="tab-btn whitespace-nowrap shrink-0 snap-start">Tutorials</button>
+                </div>
+                <div id="tab-config" class="tab-panel active">
+                    <div class="card-glass p-8 custom-radius text-center"><i class="fa-solid fa-rocket text-4xl text-blue-400 mb-4"></i><h3 class="text-2xl font-bold text-white font-['Orbitron']">Get Started</h3><p class="text-gray-300 mt-2 max-w-md mx-auto">You do not have any active plans yet. Purchase a new plan or link an existing account below.</p><a href="/plans" class="nav-link-internal ai-button inline-block rounded-lg mt-6">Purchase a Plan</a></div>
+                    <div class="grid md:grid-cols-2 gap-8 mt-8">${linkAccountHtml}</div>
+                </div>
+                <div id="tab-settings" class="tab-panel">${accountSettingsFormHtml(user.username)}</div>
+                <div id="tab-apps" class="tab-panel">${appsPanelContent}</div>
+                <div id="tab-tutorials" class="tab-panel"></div>`;
+                
+                bindUnifiedTabs(null);
+                updateDynamicLinks(); 
                 setupEventListeners();
+                handleDeepLink();
             }
         }
 
@@ -872,20 +1211,7 @@ export function renderProfilePage(renderFunc, params) {
         try {
             ensureOrdersLoaded();
 
-            let cachedPlansStr = null;
-            try { cachedPlansStr = localStorage.getItem(PLANS_CACHE_KEY); } catch(e){}
-            
-            if (cachedPlansStr && !currentActivePlan) {
-                try {
-                    const cachedPlans = JSON.parse(cachedPlansStr);
-                    if (Array.isArray(cachedPlans) && cachedPlans.length > 0) {
-                        handleDataUpdate({ status: 'approved', activePlans: cachedPlans }, false);
-                    }
-                } catch(e) { 
-                    localStorage.removeItem(PLANS_CACHE_KEY);
-                }
-            }
-
+            // FIX: Live Fetching Enabled
             const res = await apiFetch("/api/user/status");
             if (!res.ok) {
                 console.warn("Skipping update due to server error:", res.status);
@@ -897,21 +1223,12 @@ export function renderProfilePage(renderFunc, params) {
             if(data.success && data.activePlans) {
                 try { localStorage.setItem(PLANS_CACHE_KEY, JSON.stringify(data.activePlans)); } catch(e){}
                 handleDataUpdate(data, true);
-            }
-            if (data.success || data.activePlans) {
-                try { 
-                    if(data.activePlans) {
-                        localStorage.setItem(PLANS_CACHE_KEY, JSON.stringify(data.activePlans)); 
-                    }
-                } catch(e){}
-                
-                handleDataUpdate(data, true);
             } else {
                 handleDataUpdate({ activePlans: [] }, true);
             }
 
         } catch (e) { 
-            console.error("Profile load error (Keeping previous state):", e); 
+            console.error("Profile load error:", e); 
         }
     };
     loadProfileData();
