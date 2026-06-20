@@ -61,21 +61,33 @@ const ensureOrdersLoaded = async () => {
 // --- DYNAMIC LINKS FETCHER ---
 const updateDynamicLinks = async () => {
     try {
-        const res = await apiFetch('/api/software-links'); 
+        // home.js එකේ තියෙන නිවැරදි API endpoint එක
+        const res = await apiFetch('/api/user/software-links'); 
         if (res.ok) {
             const data = await res.json();
-            const links = data.data || data; 
             
-            const pcBtn = document.getElementById('dl-link-pc');
-            const iosBtn = document.getElementById('dl-link-ios');
-            const androidBtn = document.getElementById('dl-link-android');
-            
-            if(pcBtn && (links.windows || links.pc)) pcBtn.href = links.windows || links.pc;
-            if(iosBtn && (links.ios || links.apple)) iosBtn.href = links.ios || links.apple;
-            if(androidBtn && (links.android || links.playstore)) androidBtn.href = links.android || links.playstore;
+            // Array එකෙන් අරන් අදාළ බොත්තම් වලට ලින්ක් එක සෙට් කරනවා
+            if (data.success && data.links && data.links.length > 0) {
+                data.links.forEach(link => {
+                    const linkName = (link.name || '').toLowerCase();
+                    
+                    if (linkName.includes('pc') || linkName.includes('windows')) {
+                        const pcBtn = document.getElementById('dl-link-pc');
+                        if (pcBtn && link.url) pcBtn.href = link.url;
+                    } 
+                    else if (linkName.includes('ios') || linkName.includes('apple') || linkName.includes('iphone')) {
+                        const iosBtn = document.getElementById('dl-link-ios');
+                        if (iosBtn && link.url) iosBtn.href = link.url;
+                    } 
+                    else if (linkName.includes('android') || linkName.includes('play')) {
+                        const androidBtn = document.getElementById('dl-link-android');
+                        if (androidBtn && link.url) androidBtn.href = link.url;
+                    }
+                });
+            }
         }
     } catch (e) {
-        console.warn("Dynamic links could not be loaded. Using defaults.");
+        console.warn("Dynamic links could not be loaded. Using defaults.", e);
     }
 };
 
@@ -132,7 +144,7 @@ const appsPanelContent = `
                     
                     <i class="fa-brands fa-apple text-[45px] text-gray-200 mb-4 group-hover:scale-110 transition-transform"></i>
                     <h3 class="font-bold text-white text-xl">iOS Client</h3>
-                    <p class="text-sm text-gray-400 mt-1">V2Box</p>
+                    <p class="text-sm text-gray-400 mt-1">Npv Tunnel</p>
                     
                     <div class="w-full border-t border-white/10 my-6"></div>
                     
@@ -392,64 +404,73 @@ export function renderProfilePage(renderFunc, params) {
     qrModalLogic.init();
 
     const bindUnifiedTabs = (activePlansData) => {
-    const tabsContainer = document.getElementById('profile-tabs');
-    if(!tabsContainer || tabsContainer.dataset.bound === "true") return;
-    tabsContainer.dataset.bound = "true";
+        const tabsContainer = document.getElementById('profile-tabs');
+        if(!tabsContainer || tabsContainer.dataset.bound === "true") return;
+        tabsContainer.dataset.bound = "true";
 
-    tabsContainer.addEventListener('click', (e) => { 
-        const targetBtn = e.target.closest('.tab-btn');
-        if (targetBtn) {
-            document.querySelectorAll('#profile-tabs .tab-btn').forEach(b => b.classList.remove('active')); 
-            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-            
-            targetBtn.classList.add('active'); 
-            const tabId = targetBtn.dataset.tab; 
-            const panel = document.getElementById(`tab-${tabId}`);
-            if(panel) panel.classList.add('active');
-            
-            let urlPath = '/profile';
-            if (['apps', 'tutorials'].includes(tabId)) urlPath = `/profile/${tabId}`;
-            window.history.pushState({ tabId }, '', urlPath);
+        tabsContainer.addEventListener('click', (e) => { 
+            const targetBtn = e.target.closest('.tab-btn');
+            if (targetBtn) {
+                document.querySelectorAll('#profile-tabs .tab-btn').forEach(b => b.classList.remove('active')); 
+                document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+                
+                targetBtn.classList.add('active'); 
+                const tabId = targetBtn.dataset.tab; 
+                const panel = document.getElementById(`tab-${tabId}`);
+                if(panel) panel.classList.add('active');
+                
+                // --- හැම ටැබ් එකකටම ලින්ක් එක හැදෙන තැන ---
+                let urlPath = '/profile';
+                if (tabId !== 'config') {
+                    urlPath = `/profile/${tabId}`;
+                }
+                window.history.pushState({ tabId }, '', urlPath);
 
-            // --- අලුතෙන් එකතු කරපු Dynamic Tutorials Loader Trigger එක ---
-            if (tabId === 'tutorials') {
-                const tutContainer = document.getElementById('tab-tutorials');
-                // iframe එකක් (video එකක්) දැනටමත් නැත්නම් විතරක් loadDynamicTutorials එක call කරනවා
-                if (tutContainer && !tutContainer.innerHTML.includes('iframe')) {
-                    if (typeof loadDynamicTutorials === 'function') {
-                        loadDynamicTutorials();
+                if (tabId === 'tutorials') {
+                    const tutContainer = document.getElementById('tab-tutorials');
+                    if (tutContainer && !tutContainer.innerHTML.includes('iframe')) {
+                        if (typeof loadDynamicTutorials === 'function') {
+                            loadDynamicTutorials();
+                        }
+                    }
+                }
+
+                if (currentActivePlan && activePlansData) {
+                    if(tabId === 'config') updateRenewButton(currentActivePlan, activePlansData);
+                    if(tabId === 'usage') { 
+                        if (usageDataCache[currentActivePlan.v2rayUsername]) { 
+                            renderUsageHTML(usageDataCache[currentActivePlan.v2rayUsername], currentActivePlan.v2rayUsername); 
+                            loadUsageStats(currentActivePlan.v2rayUsername, true); 
+                        } else { 
+                            loadUsageStats(currentActivePlan.v2rayUsername, false); 
+                        } 
+                    }
+                    if(tabId === 'orders') { 
+                        if (ordersCache) { renderOrdersHTML(ordersCache); loadMyOrders(true); } 
+                        else { loadMyOrders(false); } 
                     }
                 }
             }
-            // -------------------------------------------------------------
-
-            if (currentActivePlan && activePlansData) {
-                if(tabId === 'config') updateRenewButton(currentActivePlan, activePlansData);
-                if(tabId === 'usage') { 
-                    if (usageDataCache[currentActivePlan.v2rayUsername]) { 
-                        renderUsageHTML(usageDataCache[currentActivePlan.v2rayUsername], currentActivePlan.v2rayUsername); 
-                        loadUsageStats(currentActivePlan.v2rayUsername, true); 
-                    } else { 
-                        loadUsageStats(currentActivePlan.v2rayUsername, false); 
-                    } 
-                }
-                if(tabId === 'orders') { 
-                    if (ordersCache) { renderOrdersHTML(ordersCache); loadMyOrders(true); } 
-                    else { loadMyOrders(false); } 
-                }
-            }
-        }
-    });
-};
+        });
+    };
 
     const handleDeepLink = () => {
         if (initialTabCheckDone) return;
         const currentPath = window.location.pathname;
         let targetTab = null;
         
-        if (currentPath.endsWith('/profile/apps')) targetTab = 'apps';
-        else if (currentPath.endsWith('/profile/tutorials')) targetTab = 'tutorials';
-        else { const tabParam = params?.get ? params.get('tab') : null; if (tabParam) targetTab = tabParam; }
+        // --- ලින්ක් එකෙන් එද්දී අදාළ ටැබ් එක අඳුරගන්න තැන ---
+        const pathParts = currentPath.split('/');
+        const lastPart = pathParts[pathParts.length - 1];
+        
+        const validTabs = ['config', 'usage', 'orders', 'settings', 'apps', 'tutorials'];
+        
+        if (validTabs.includes(lastPart)) {
+            targetTab = lastPart;
+        } else { 
+            const tabParam = params?.get ? params.get('tab') : null; 
+            if (tabParam) targetTab = tabParam; 
+        }
         
         if (targetTab) {
             setTimeout(() => {
@@ -818,24 +839,50 @@ const renderOrdersHTML = (orders) => {
         return;
     }
 
-    const ordersHtml = orders.map(order => {
+    const ordersHtml = orders.map((order, index) => {
         const displayStatus = order.status === 'queued_for_renewal' ? 'Queued' : order.status;
-        const statusColors = { pending: "text-amber-400", approved: "text-green-400", rejected: "text-red-400", queued_for_renewal: "text-blue-300" };
-        const statusIcons = { pending: "fa-clock", approved: "fa-check-circle", rejected: "fa-times-circle", queued_for_renewal: "fa-spinner fa-spin" };
         
-        return `<div class="bg-white/5 border border-white/10 p-5 sm:p-6 custom-radius hover:bg-white/10 transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-                <p class="font-bold text-white text-lg">${appData.plans[order.plan_id]?.name || order.plan_id} <span class="text-gray-400 font-normal text-sm mx-1">for</span> <span class="text-blue-300">${appData.connections.find(c => c.name === order.conn_id)?.name || order.conn_id}</span></p>
-                <p class="text-sm text-gray-400 mt-2 flex items-center gap-2"><i class="fa-regular fa-calendar"></i> Ordered on: ${new Date(order.created_at).toLocaleDateString()}</p>
+        // Status Badge එකට අදාළ Border එක සහ Hover Effect එක (Background Transparent කරලා)
+        // Status Colors (Background & Hover effect)
+        const statusStyles = { 
+            pending: "bg-amber-500/20 text-amber-400 hover:bg-amber-500/30", 
+            approved: "bg-green-500/20 text-green-400 hover:bg-green-500/30", 
+            rejected: "bg-red-500/20 text-red-400 hover:bg-red-500/30", 
+            queued_for_renewal: "bg-blue-500/20 text-blue-300 hover:bg-blue-500/30",
+            unconfirmed: "bg-gray-500/20 text-gray-300 hover:bg-gray-500/30"
+        };
+        const statusIcons = { pending: "fa-clock", approved: "fa-check-circle", rejected: "fa-times-circle", queued_for_renewal: "fa-spinner fa-spin", unconfirmed: "fa-circle-info" };
+        
+        const currentStatusStyle = statusStyles[order.status] || statusStyles['unconfirmed'];
+
+        return `
+        <div class="p-5 sm:p-6 custom-radius bg-white/5 backdrop-blur-xl hover:bg-white/10 transition-all duration-300 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-5 relative overflow-hidden group">
+            
+            <div class="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+
+            <div class="relative z-10 flex-1 w-full text-left sm:pr-4">
+                <h4 class="font-bold text-white text-lg tracking-wide flex flex-wrap items-center gap-2">
+                    ${appData.plans[order.plan_id]?.name || order.plan_id} 
+                    <span class="text-gray-500 font-medium text-sm">for</span> 
+                    <span class="text-blue-400">${appData.connections.find(c => c.name === order.conn_id)?.name || order.conn_id}</span>
+                </h4>
+                <p class="text-sm text-gray-400 mt-2 flex items-center gap-2">
+                    <i class="fa-regular fa-calendar text-gray-500"></i> 
+                    Ordered on: <span class="text-gray-300">${new Date(order.created_at).toLocaleDateString()}</span>
+                </p>
             </div>
-            <div class="flex flex-col sm:flex-row items-end sm:items-center gap-3 w-full sm:w-auto mt-2 sm:mt-0">
-                <div class="text-sm font-semibold capitalize flex items-center gap-2 ${statusColors[order.status] || 'text-gray-400'} bg-black/20 px-5 py-2 rounded-full border border-white/5">
-                    <i class="fa-solid ${statusIcons[order.status] || 'fa-info-circle'}"></i><span>${displayStatus}</span>
+            
+            <div class="flex flex-col items-center gap-3 w-full sm:w-auto relative z-10 mt-4 sm:mt-0 sm:ml-auto">
+                
+                <div class="text-sm font-bold capitalize flex items-center justify-center gap-2 px-4 py-2.5 rounded-full ${currentStatusStyle} whitespace-nowrap w-full sm:w-[170px] transition-colors duration-300 cursor-default">
+                    <i class="fa-solid ${statusIcons[order.status] || 'fa-info-circle'}"></i>
+                    <span>${displayStatus}</span>
                 </div>
                 
-                <button onclick="alert('Invoice generation feature coming soon!')" class="bg-white/5 hover:bg-blue-500/20 text-gray-300 hover:text-blue-400 border border-white/10 hover:border-blue-500/30 transition-all px-5 py-2 rounded-full text-xs font-bold flex items-center gap-2 w-full sm:w-auto justify-center">
+                <button onclick="window.openInvoice(${index})" class="ai-button px-4 py-2.5 rounded-full text-sm font-bold flex items-center justify-center gap-2 whitespace-nowrap w-full sm:w-[170px] shadow-md">
                     <i class="fa-solid fa-file-invoice"></i> View Invoice
                 </button>
+                
             </div>
         </div>`;
     }).join('');
@@ -845,13 +892,136 @@ const renderOrdersHTML = (orders) => {
             <div class="card-glass p-8 sm:p-14 custom-radius max-w-7xl mx-auto relative overflow-hidden">
                 <div class="text-center mb-10 relative z-10"> 
                     <h2 class="text-3xl font-bold text-white mb-3 font-['Orbitron']">My Orders & Invoices</h2>
-                    <p class="text-sm text-gray-400">View your recent purchases and download invoices directly from here.</p>
+                    <p class="text-sm text-gray-400">View your recent purchases and download invoices.</p>
                 </div>
                 <div class="space-y-4 relative z-10">
                     ${ordersHtml}
                 </div>
             </div>
         </div>`;
+};
+
+// --- GLOBAL INVOICE TAB FUNCTION ---
+window.openInvoice = (index) => {
+    if (!ordersCache || !ordersCache[index]) return;
+    const order = ordersCache[index];
+    const plan = appData.plans[order.plan_id] || { name: order.plan_id, price: 0 };
+    const connection = appData.connections.find(c => c.name === order.conn_id) || { name: order.conn_id };
+    const price = order.price || plan.price || '0.00';
+    const date = new Date(order.created_at).toLocaleDateString();
+    const time = new Date(order.created_at).toLocaleTimeString();
+    const orderId = order.id || Math.floor(Math.random() * 100000); 
+    const status = order.status;
+    const formatUsername = (u) => u ? u.replace(/^[A-Za-z0-9]+_/, '') : 'Valued Customer';
+    const username = formatUsername(order.final_username || order.website_username);
+    
+    const newWindow = window.open('', '_blank');
+    if(!newWindow) { alert("Please allow popups to view the invoice."); return; }
+
+    const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Invoice #${orderId} - NexGuard</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+        <style>
+            /* සම්පූර්ණ Background එකම සුදු පාට කළා, කොටු පේන්නේ නෑ */
+            body { font-family: 'Inter', sans-serif; background-color: #ffffff; color: #1f2937; -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0; padding: 0; }
+            .invoice-box { max-width: 800px; margin: 0 auto; background: #ffffff; padding: 20px; }
+            
+            /* PC View එකේදී මැදට වෙන්න ගානට Padding හැදුවා */
+            @media (min-width: 640px) {
+                .invoice-box { padding: 40px; margin-top: 20px; }
+            }
+            @media print {
+                body { background-color: white; margin: 0; padding: 0; }
+                .invoice-box { box-shadow: none; margin: 0; padding: 15px; width: 100%; max-width: 100%; }
+                .no-print { display: none !important; }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="invoice-box">
+            <!-- Header with Logo (Mobile එකේදී එක යට එක, PC එකේදී දෙපැත්තට එන්න හැදුවා) -->
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b-2 border-blue-600 pb-6 mb-8 gap-4">
+                <div>
+                    <img src="/assets/logo.png" alt="NexGuard" class="h-14 sm:h-16 object-contain" onerror="this.src='https://app.nexguardlk.store/assets/logo.png'">
+                </div>
+                <div class="w-full sm:w-auto sm:text-right">
+                    <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">INVOICE</h2>
+                    <!-- Order ID එක දිග වැඩි වුණොත් Mobile එකේදී කැඩිලා පේන්න break-all දැම්මා -->
+                    <p class="text-gray-500 font-medium mt-1 text-xs sm:text-sm break-all">#${orderId}</p>
+                </div>
+            </div>
+
+            <!-- Info Section -->
+            <div class="flex flex-col sm:flex-row justify-between mb-10 gap-6">
+                <div>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Billed To</p>
+                    <p class="text-lg font-bold text-gray-800">${username}</p>
+                    <p class="text-sm text-gray-500 mt-1">Date: ${date} | Time: ${time}</p>
+                </div>
+                <div class="sm:text-right">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Payment Status</p>
+                    <span class="inline-block px-4 py-1.5 rounded-full text-sm font-bold capitalize 
+                        ${status === 'approved' ? 'bg-green-100 text-green-700' : status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}">
+                        ${status.replace('_', ' ')}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="overflow-x-auto mb-8">
+                <table class="w-full text-left min-w-[300px]">
+                    <thead>
+                        <tr class="bg-gray-50 border-y border-gray-200">
+                            <th class="py-3 px-4 font-bold text-gray-600 uppercase text-xs tracking-wider">Description</th>
+                            <th class="py-3 px-4 text-right font-bold text-gray-600 uppercase text-xs tracking-wider">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="border-b border-gray-100">
+                            <td class="py-5 px-4">
+                                <p class="font-bold text-gray-800 text-base sm:text-lg">${plan.name}</p>
+                                <p class="text-sm text-gray-500 mt-1">Connection: ${connection.name}</p>
+                            </td>
+                            <td class="py-5 px-4 text-right font-bold text-gray-800 text-base sm:text-lg">Rs. ${price}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Total -->
+            <div class="flex justify-end mb-10">
+                <div class="w-full sm:w-1/2 bg-gray-50 p-6 rounded-xl">
+                    <div class="flex justify-between border-b border-gray-200 pb-3 mb-3">
+                        <span class="text-gray-500 font-medium">Subtotal</span>
+                        <span class="text-gray-800 font-medium">Rs. ${price}</span>
+                    </div>
+                    <div class="flex justify-between items-center mt-4">
+                        <span class="text-xl font-bold text-gray-800">Total</span>
+                        <span class="text-2xl font-bold text-blue-600">Rs. ${price}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer & Print Button -->
+            <div class="border-t border-gray-200 pt-8 flex flex-col sm:flex-row justify-between items-center gap-6">
+                <p class="text-sm text-gray-500 font-medium text-center sm:text-left">Thank you for choosing NexGuard!</p>
+                <button onclick="window.print()" class="no-print bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-full shadow-md transition duration-200 flex items-center justify-center gap-2 w-full sm:w-auto">
+                    <i class="fa-solid fa-print"></i> Print / Save PDF
+                </button>
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+    newWindow.document.write(html);
+    newWindow.document.close();
 };
 
     const loadMyOrders = async (isSilent = false) => {

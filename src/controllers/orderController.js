@@ -23,6 +23,22 @@ exports.createOrder = async (req, res) => {
         
         let isRenewalBool = isExplicitRenewal; 
 
+        // --- 1.5 Pending Order Check (Double Orders නැවැත්වීම) ---
+        // කෙනෙකුට දැනටමත් Pending හෝ Unconfirmed Order එකක් තියෙනවා නම්, තව Order එකක් දාන්න දෙන්නේ නෑ
+        const { data: existingPendingOrder } = await supabase
+            .from("orders")
+            .select("id")
+            .eq("website_username", req.user.username)
+            .in("status", ["pending", "unconfirmed"])
+            .maybeSingle();
+
+        if (existingPendingOrder) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "You already have a pending or unconfirmed order. Please wait for it to be approved before placing a new one." 
+            });
+        }
+
         // --- 2. Backend Validation for Unique Username ---
         // අලුත් පැකේජ් එකක් ගන්නවා නම් හෝ Plan එක Change කරනවා නම් විතරක් අලුත් නම Unique ද බලනවා
         if (!isExplicitRenewal && username) {

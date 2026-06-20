@@ -7,11 +7,9 @@ const transporter = require('../config/mailer');
 const { generateEmailTemplate, generateApprovalEmailContent } = require('./emailService');
 
 // --- Helper: Auto Generate Prefix ---
-// Connection Name එකේ මුල් අකුරු වලින් ස්වයංක්‍රීයව Prefix එක සාදයි (e.g. SLT Fiber Connection -> SFC_)
 function generatePrefixFromName(connName) {
     if (!connName) return "USR_"; 
     
-    // වචන වලට කඩා මුල් අකුරු ටික එකතු කිරීම
     const words = connName.trim().split(/\s+/);
     let prefix = "";
     for (const word of words) {
@@ -29,7 +27,7 @@ function generatePrefixFromName(connName) {
  */
 exports.approveOrder = async (orderId, isAutoConfirm = false) => {
     let finalUsername = '';
-    let createdV2rayClient = null; // To track if a client was newly created for potential rollback
+    let createdV2rayClient = null; 
     let order = null;
 
     try {
@@ -45,7 +43,6 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
         }
         order = orderData;
 
-        // Check if the order is already in a final state
         if (order.status === 'approved' || order.status === 'queued_for_renewal') {
             return { success: false, message: `Order is already ${order.status}.` };
         }
@@ -83,12 +80,12 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
         // =========================================================
         // 2. USERNAME සැකසීම (AUTO PREFIX SYSTEM)
         // =========================================================
+
+        let baseUsername = order.username.trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '');
         
-        let baseUsername = order.username.trim();
         const prefix = generatePrefixFromName(order.conn_id); 
         let oldV2rayUsername = order.old_v2ray_username;
 
-        // Final Username එක සැකසීම (Prefix + BaseName)
         if (baseUsername.toUpperCase().startsWith(prefix)) {
             finalUsername = baseUsername; 
         } else {
@@ -109,7 +106,6 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
             const { data: connData } = await supabase.from('connections').select('group_name').eq('name', order.conn_id).single();
             if (connData && connData.group_name) groupName = connData.group_name;
         }
-        // Admin Panel එකේ නමක් දීලා නැත්නම් විතරක් මේ විදිහට නම හදාගන්නවා
         if (!groupName) {
             groupName = `${order.conn_id} - ${order.pkg || order.plan_id}`;
         }
@@ -117,10 +113,7 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
         if (order.status === 'pending') {
             // --- Logic for Processing 'pending' Orders ---
 
-            // Panel එකේ දැනටමත් මේ නම තියෙනවද බලන්න
             const clientInPanel = await v2rayService.findV2rayClient(finalUsername);
-            
-            // මේක අලුත් එකක්ද නැත්නම් පරණ එකක් Renew/Migrate කරන එකක්ද කියලා තහවුරු කරගන්න
             const isRenewalRequest = order.is_renewal === true || order.is_renewal === 'true' || (order.old_v2ray_username && order.old_v2ray_username.toLowerCase() === finalUsername.toLowerCase());
 
             if (clientInPanel && isRenewalRequest) {
@@ -129,7 +122,6 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                 // ----------------------------------------------------
                 console.log(`[Renewal] User ${finalUsername} found in panel. Processing renewal...`);
 
-                // Inbound එක සමානද බලන්න
                 if (parseInt(clientInPanel.inboundId) === parseInt(inboundId)) {
                     
                     const now = Date.now();
@@ -157,21 +149,19 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                     
                     const expiryTime = Date.now() + 30 * 24 * 60 * 60 * 1000;
                     
-                    // --- DATA LIMIT FIX: Fallback to Plan Name if DB value is 0 or null ---
                     let parsedGb = parseFloat(planDetails.total_gb);
                     if (isNaN(parsedGb) || parsedGb <= 0) {
                         const match = order.plan_id.match(/(\d+)\s*GB/i);
-                        if (match) parsedGb = parseFloat(match[1]); // e.g. "100GB" -> 100
+                        if (match) parsedGb = parseFloat(match[1]);
                     }
                     const totalGBValue = isNaN(parsedGb) || parsedGb <= 0 ? 0 : Math.round(parsedGb * 1024 * 1024 * 1024);
 
-                    // සම්පූර්ණ Client දත්ත සහිතව Update කරන්න (totalGB භාවිතා කරමින්)
                     const updatedClientConfig = {
                         ...clientInPanel.client,
                         expiryTime: expiryTime,
-                        totalGB: totalGBValue, // <--- Limit Fix එක
+                        totalGB: totalGBValue, 
                         enable: true,
-                        group: groupName // Renewal එකෙදිත් Group Name එක Update කරයි
+                        group: groupName 
                     };
 
                     await v2rayService.updateClient(clientInPanel.inboundId, clientInPanel.client.id, updatedClientConfig);
@@ -180,7 +170,6 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                     clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientInPanel.client);
 
                 } else {
-                    // Inbound වෙනස් (Migration) -> Re-create
                     console.log(`[Migration] Inbound mismatch for ${finalUsername}. Re-creating...`);
                     await v2rayService.deleteClient(clientInPanel.inboundId, clientInPanel.client.id);
                     
@@ -191,7 +180,7 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
 
             } else {
                 // ----------------------------------------------------
-                // CASE B: අලුත් Order එකක් (නම දැනටමත් තිබුණොත් පරණ එක මකන්නේ නැතිව -1, -2 හැදේ)
+                // CASE B: අලුත් Order එකක් (USERNAME CONFLICT FIX)
                 // ----------------------------------------------------
                 console.log(`[New Connection] Processing ${finalUsername}...`);
 
@@ -208,19 +197,10 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                     }
                 }
 
-                // 2. අලුත් User හදන්න (USERNAME CONFLICT FIX)
-                const allClients = await v2rayService.getAllClients(); 
-                let originalFinalUsername = finalUsername;
-                let counter = 1;
-                
-                // Panel එකේ මේ නම දැනටමත් තියෙනවා නම්, -1, -2 විදිහට අලුත් නමක් හදනවා (overwrite වෙන්නේ නැත)
-                while (allClients.has(finalUsername.toLowerCase()) || (clientInPanel && finalUsername.toLowerCase() === originalFinalUsername.toLowerCase())) {
-                    finalUsername = `${originalFinalUsername}-${counter}`;
-                    counter++;
-                }
-                
-                if (originalFinalUsername !== finalUsername) {
-                    console.log(`[Username Conflict Fixed] Generated unique username: ${finalUsername} (Original was: ${originalFinalUsername})`);
+                // 2. අලුත් User හදන්න
+                // Panel එකේ මේ නම දැනටමත් තියෙනවා නම් Error එකක් දෙනවා (-1, -2 හදන්නේ නැත)
+                if (clientInPanel) {
+                    throw new Error(`Username '${finalUsername}' already exists in the server! Cannot approve order.`);
                 }
 
                 const result = await createNewV2rayUser(inboundId, finalUsername, planDetails.total_gb, vlessTemplate, order.plan_id, groupName);
@@ -230,6 +210,7 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
 
         } else if (order.status === 'unconfirmed') {
             // --- Logic for Finalizing 'unconfirmed' Orders ---
+            // මෙතනදී අලුතින් V2Ray එකක් හැදෙන්නේ නෑ. දැනට තියෙන එක හොයාගෙන Link එක ගන්නවා විතරයි
             finalUsername = order.final_username;
             if (!finalUsername) throw new Error(`Critical: final_username is missing for unconfirmed order ${orderId}.`);
 
@@ -248,7 +229,6 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
         if (finalUsername && clientLink) {
             let updatedActivePlans = websiteUser.active_plans || [];
             
-            // Remove old entries related to this username OR the old username
             updatedActivePlans = updatedActivePlans.filter(p => 
                 p.v2rayUsername !== finalUsername && 
                 p.v2rayUsername !== oldV2rayUsername
@@ -258,7 +238,7 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                 v2rayUsername: finalUsername,
                 v2rayLink: clientLink,
                 planId: order.plan_id,
-                connId: order.conn_id, // Connection ID එක Save කිරීම
+                connId: order.conn_id, 
                 pkg: order.pkg || null, 
                 activatedAt: new Date().toISOString(),
                 orderId: order.id,
@@ -325,7 +305,7 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
     }
 };
 
-// --- Helper: Create New User (Group එකත් එක්කම) ---
+// --- Helper: Create New User ---
 async function createNewV2rayUser(inboundId, username, totalGb, vlessTemplate, planName = "", groupName = "") {
     const expiryTime = Date.now() + 30 * 24 * 60 * 60 * 1000;
     
@@ -337,10 +317,8 @@ async function createNewV2rayUser(inboundId, username, totalGb, vlessTemplate, p
 
     const totalGBValue = isNaN(parsedGb) || parsedGb <= 0 ? 0 : Math.round(parsedGb * 1024 * 1024 * 1024);
     
-    // Group Name එක හිස්ව ආවොත් Default නමක් සාදාගැනීම
     const finalGroupName = groupName || `General Users - ${planName || 'Unknown Plan'}`;
     
-    // User Settings වලට කෙලින්ම Group එක ලබා දීම
     const clientSettings = { 
         id: uuidv4(), 
         email: username, 
@@ -349,10 +327,9 @@ async function createNewV2rayUser(inboundId, username, totalGb, vlessTemplate, p
         enable: true, 
         limitIp: 1,
         tgId: 0,
-        group: finalGroupName // <--- අලුතින් එකතු කළ කොටස
+        group: finalGroupName 
     };
 
-    // එකම API කෝල් එකෙන් User වයි Group එකයි දෙකම හැදේවි
     const addRes = await v2rayService.addClient(inboundId, clientSettings);
     
     if (!addRes || !addRes.success) {

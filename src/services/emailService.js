@@ -219,6 +219,48 @@ const generateUserNotFoundEmailContent = (triedEmail) => `
 <p style="font-size: 13px; margin: 15px 0 0; color: ${SECONDARY_TEXT_COLOR}; text-align: center;">If you believe this is an error, please double-check the email address or contact support.</p>
 <p style="font-size: 13px; margin: 6px 0 0; color: ${SECONDARY_TEXT_COLOR}; text-align: center;">If you didn't request this, you can safely ignore this email.</p>`;
 
+
+
+
+// --- INVOICE EMAIL TEMPLATE ---
+const generateInvoiceEmailContent = (username, orderId, planName, connectionName, price, date) => `
+<div style="background-color: #f3f4f6; padding: 20px; font-family: Arial, sans-serif; border-radius: 8px;">
+    <div style="background-color: white; padding: 30px; border-radius: 12px; max-width: 600px; margin: 0 auto; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <div style="text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 20px; margin-bottom: 20px;">
+            <img src="${LOGO_URL}" alt="NexGuard Logo" style="height: 50px; margin-bottom: 10px;">
+            <h2 style="color: #2563eb; margin: 0; font-size: 24px;">Payment Receipt</h2>
+        </div>
+        
+        <p style="color: #374151; font-size: 16px;">Hi <strong>${username}</strong>,</p>
+        <p style="color: #6b7280; font-size: 15px;">Your order has been successfully approved by the administrator. Here are your invoice details:</p>
+        
+        <table style="width: 100%; border-collapse: collapse; margin-top: 20px; margin-bottom: 20px;">
+            <tr style="background-color: #f9fafb; border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 12px; color: #4b5563; font-weight: bold; font-size: 14px;">Order ID</td>
+                <td style="padding: 12px; color: #111827; text-align: right; font-size: 14px;">#${orderId}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 12px; color: #4b5563; font-weight: bold; font-size: 14px;">Plan</td>
+                <td style="padding: 12px; color: #111827; text-align: right; font-size: 14px;">${planName}</td>
+            </tr>
+            <tr style="background-color: #f9fafb; border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 12px; color: #4b5563; font-weight: bold; font-size: 14px;">Connection</td>
+                <td style="padding: 12px; color: #111827; text-align: right; font-size: 14px;">${connectionName}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 12px; color: #4b5563; font-weight: bold; font-size: 14px;">Total Paid</td>
+                <td style="padding: 12px; color: #2563eb; font-weight: bold; font-size: 16px; text-align: right;">Rs. ${price}</td>
+            </tr>
+        </table>
+        
+        <p style="color: #6b7280; font-size: 14px; text-align: center; margin-top: 30px;">
+            You can view or download the PDF version of this invoice directly from your <br>
+            <a href="${FRONTEND_URL}/profile" style="color: #2563eb; text-decoration: none; font-weight: bold;">Profile Dashboard</a>.
+        </p>
+    </div>
+</div>
+`;
+
 // Export functions
 module.exports = {
     sendEmail, // Uncommented and ready to use
@@ -230,4 +272,5 @@ module.exports = {
     generateRejectionEmailContent,
     generateExpiryReminderEmailContent,
     generateUserNotFoundEmailContent,
+    generateInvoiceEmailContent
 };
