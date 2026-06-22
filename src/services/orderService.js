@@ -278,7 +278,8 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                 .eq("id", websiteUser.id);
 
             if (userUpdateError) {
-                 console.error(`Failed to update active_plans for user ${websiteUser.username}:`, userUpdateError);
+                 // දැන් Database එක අප්ඩේට් කරන්න බැරි වුණොත්, කෙලින්ම කෝඩ් එක නවත්තලා Rollback එකට පනිනවා!
+                 throw new Error(`Failed to update active_plans for user ${websiteUser.username}: ${userUpdateError.message}`);
             }
         }
 
@@ -342,11 +343,16 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
     } catch (error) {
         console.error(`[CRITICAL ERROR] Error processing order ${orderId}:`, error.message);
 
+        // --- ROLLBACK LOGIC ---
+        // පැනල් එකේ කනෙක්ෂන් එක හැදිලා, හැබැයි ඊට පස්සේ Database එකේ අවුලක් ගියොත්...
         if (createdV2rayClient) {
             try {
-                await v2rayService.deleteClient(createdV2rayClient.inboundId, createdV2rayClient.settings.id);
+                console.log(`[ROLLBACK] Deleting newly created V2Ray client ${createdV2rayClient.settings.email} due to a Database error.`);
+                // දැන් මකන්න යවන්නේ Email එක!
+                await v2rayService.deleteClient(createdV2rayClient.settings.email);
+                console.log(`[ROLLBACK SUCCESS] Ghost account removed from Panel.`);
             } catch (rollbackError) {
-                console.error(`[ROLLBACK FAILED] Error: ${rollbackError.message}`);
+                console.error(`[CRITICAL ROLLBACK FAILED] Could not remove ${createdV2rayClient.settings.email} from panel. Admin must delete it manually! Error: ${rollbackError.message}`);
             }
         }
 

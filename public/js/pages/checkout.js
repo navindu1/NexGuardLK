@@ -231,7 +231,7 @@ export function renderCheckoutPage(renderFunc, params) {
                         <div class="mt-4">
                             <p class="text-gray-300 text-sm mb-2">Upload receipt:</p>
                             <div class="text-xs text-gray-400 mb-3 p-3 bg-black/20 rounded-lg border border-white/10 whitespace-pre-wrap">${appData.bankDetails}</div>
-                            <input type="file" name="receipt" required class="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100" accept="image/*">
+                            <input type="file" name="receipt" required class="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100" accept="image/*,application/pdf">
                         </div>
                         <button type="submit" id="checkout-submit-btn" class="ai-button w-full !mt-8 rounded-lg">SUBMIT FOR APPROVAL</button>
                     </form>

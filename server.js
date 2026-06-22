@@ -7,6 +7,32 @@ const rateLimit = require('express-rate-limit'); // New Rate Limiter
 const allRoutes = require('./src/routes/index');
 
 const app = express();
+// --- Security: API Rate Limiting ---
+
+// 1. සාමාන්‍ය API සඳහා Limiter එක (විනාඩි 15කට උපරිම requests 150යි)
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, 
+    max: 150,
+    message: { success: false, message: "Too many requests from this IP. Please try again after 15 minutes." },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+// 2. විශේෂිත API සඳහා දැඩි Limiter එක (විනාඩියකට උපරිම requests 10යි - Order දාන තැනටයි, Username check කරන තැනටයි)
+const strictLimiter = rateLimit({
+    windowMs: 60 * 1000, 
+    max: 10, 
+    message: { success: false, message: "Please slow down. You are sending too many requests!" }
+});
+
+// සම්පූර්ණ API එකට සාමාන්‍ය Limiter එක දානවා
+app.use('/api/', apiLimiter);
+
+// Spam කරන්න පුළුවන් තැන් වලට දැඩි Limiter එක දානවා
+app.use('/api/user/check-v2ray-username', strictLimiter);
+app.use('/api/create-order', strictLimiter);
+// ------------------------------------
+
 const PORT = process.env.PORT || 3000;
 
 // --- පහත පේළිය අලුතින් එකතු කරන්න ---
