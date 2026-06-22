@@ -9,11 +9,13 @@ const PANEL_URL = rawPanelUrl.replace(/\/$/, "");
 const PANEL_API_TOKEN = process.env.PANEL_API_TOKEN;
 
 const INBOUNDS_LIST_URL = `${PANEL_URL}/panel/api/inbounds/list`;
-const ADD_CLIENT_URL = `${PANEL_URL}/panel/api/clients/add`;  // 3x-ui හි නිවැරදි Endpoint එක
+const ADD_CLIENT_URL = `${PANEL_URL}/panel/api/clients/add`;  // 3x-ui Endpoint
 const ADD_GROUP_URL = `${PANEL_URL}/panel/api/clients/groups/bulkAdd`;
-const DEL_CLIENT_BY_UUID_URL = (inboundId, uuid) => `${PANEL_URL}/panel/api/inbounds/${inboundId}/delClient/${uuid}`;
-const UPDATE_CLIENT_URL = (uuid) => `${PANEL_URL}/panel/api/inbounds/updateClient/${uuid}`;
-const RESET_TRAFFIC_URL = (inboundId, email) => `${PANEL_URL}/panel/api/inbounds/${inboundId}/resetClientTraffic/${email}`;
+const RESET_TRAFFIC_URL = (inboundId, email) => `${PANEL_URL}/panel/api/clients/resetTraffic/${email}`;
+
+// --- 3x-ui සඳහා නිවැරදි Update සහ Delete Endpoints ---
+const DEL_CLIENT_BY_EMAIL_URL = (email) => `${PANEL_URL}/panel/api/clients/del/${email}`;
+const UPDATE_CLIENT_URL = (email) => `${PANEL_URL}/panel/api/clients/update/${email}`;
 
 let clientCacheMap = null; 
 let cacheLastUpdated = 0;  
@@ -37,7 +39,6 @@ function getApiHeaders() {
     };
 }
 
-// --- ප්‍රධාන වෙනස: Usage Data (clientStats) එකවරම Cache එකට ගැනීම ---
 async function refreshClientCache() {
     if (cacheFetchPromise) return cacheFetchPromise;
 
@@ -45,7 +46,7 @@ async function refreshClientCache() {
         try {
             const { data: inboundsData } = await axios.get(INBOUNDS_LIST_URL, {
                 headers: getApiHeaders(),
-                timeout: 20000  // <--- 5000 යන්න 20000 ලෙස වෙනස් කරන්න
+                timeout: 20000  
             });
 
             if (!inboundsData?.success) {
@@ -68,14 +69,12 @@ async function refreshClientCache() {
                 }
                 
                 const clients = settingsObj.clients || [];
-                const clientStats = inbound.clientStats || []; // අලුත්: Panel එකෙන්ම Usage ගෙනීම
+                const clientStats = inbound.clientStats || []; 
                 
                 for (const client of clients) {
                     if (client && client.email) {
-                        // මේ client ට අදාළ usage data හොයාගැනීම
                         const stats = clientStats.find(s => s.email === client.email) || {};
                         
-                        // Client දත්ත සහ Usage දත්ත එකට සම්බන්ධ කිරීම
                         const mergedClient = {
                             ...client,
                             up: stats.up || 0,
@@ -134,7 +133,6 @@ exports.findV2rayClient = async (username) => {
 
     if (!cachedData) return null;
 
-    // වෙනම API Request යැවීම ඉවත් කර ඇත. දත්ත කෙළින්ම Cache එකෙන් යවයි! (Error එන්නේ නැත)
     return {
         client: cachedData.client,
         inbound: cachedData.inbound,
@@ -148,90 +146,120 @@ exports.addClient = async (inboundId, clientSettings) => {
             clientSettings.subId = crypto.randomBytes(8).toString('hex');
         }
 
-        // 3x-ui Panel API එක බලාපොරොත්තු වන නිවැරදි Data Format එක
         const payload = {
             client: {
-                id: clientSettings.id, // UUID
+                id: clientSettings.id, 
                 email: clientSettings.email,
                 totalGB: clientSettings.totalGB || 0,
                 expiryTime: clientSettings.expiryTime || 0,
-                limitIp: clientSettings.limitIp || 1,
+                limitIp: 2, // IP Limit එක 2 කලා
                 tgId: clientSettings.tgId ? parseInt(clientSettings.tgId) : 0,
                 subId: clientSettings.subId,
                 enable: clientSettings.enable !== false,
-                group: clientSettings.group || ""
+                group: clientSettings.group || "",
+                comment: clientSettings.comment || "" // Whatsapp අංකය Comment එකට යවනවා
             },
-            inboundIds: [ parseInt(inboundId) ] // Array එකක් ලෙස යැවිය යුතුය
+            inboundIds: [ parseInt(inboundId) ] 
         };
 
-        console.log(`[V2Ray API] Adding client via 3x-ui Endpoint: ${ADD_CLIENT_URL}`);
-        
         const { data } = await axios.post(ADD_CLIENT_URL, payload, { headers: getApiHeaders() });
-        
         if (data && data.success) invalidateCache(); 
         return data;
     } catch (error) {
-        if (error.response) {
-            console.error(`[V2Ray API Error] Status: ${error.response.status}, Data:`, JSON.stringify(error.response.data));
-        } else {
-            console.error('[V2Ray API Error] Add Client failed:', error.message);
-        }
+        console.error('[V2Ray API Error] Add Client failed:', error?.response?.data || error.message);
         throw new Error("Failed to add client to V2Ray panel."); 
     }
 };
 
-exports.addClientToGroup = async (groupName, uuid) => {
-    try {
-        // 3x-ui සම්මත Payload එක
-        const payload = {
-            groupName: groupName,
-            clientIds: [uuid] 
-        };
-        
-        console.log(`[V2Ray API] Adding client ${uuid} to group: '${groupName}'`);
-        const { data } = await axios.post(ADD_GROUP_URL, payload, { headers: getApiHeaders() });
-        return data;
-    } catch (error) {
-        if (error.response) {
-            console.error(`[V2Ray API Error] Group Add failed:`, JSON.stringify(error.response.data));
-        } else {
-            console.error('[V2Ray API Error] Group Add failed:', error.message);
-        }
-        // Group එකට Add වීම අසාර්ථක වුණත් සම්පූර්ණ Order එක fail නොවීමට මෙය return false කරයි
-        return { success: false }; 
-    }
-};
+// ... addClientToGroup function එක එහෙම්මම තියන්න ...
 
-exports.deleteClient = async (inboundId, clientUuid) => {
+exports.deleteClient = async (clientEmail) => {
     try {
-        const url = DEL_CLIENT_BY_UUID_URL(inboundId, clientUuid);
+        // අලුත් API එකට Email එක යවනවා
+        const url = DEL_CLIENT_BY_EMAIL_URL(clientEmail);
         const { data } = await axios.post(url, {}, { headers: getApiHeaders() });
         
         if (data && data.success) invalidateCache(); 
         return data;
     } catch (error) {
-        console.error('[V2Ray API Error] Delete Client failed:', error.message);
+        console.error('[V2Ray API Error] Delete Client failed:', error?.response?.data || error.message);
         throw new Error("Failed to delete client from V2Ray panel.");
     }
 };
 
 exports.updateClient = async (inboundId, clientUuid, clientSettings) => {
     try {
-        if (!clientSettings.subId) {
-            clientSettings.subId = crypto.randomBytes(8).toString('hex');
-        }
-
         const payload = {
-            id: parseInt(inboundId),
-            settings: JSON.stringify({ clients: [clientSettings] })
+            id: clientUuid, 
+            email: clientSettings.email,
+            totalGB: clientSettings.totalGB || 0,
+            expiryTime: clientSettings.expiryTime || 0,
+            limitIp: 2, // IP Limit එක 2 කලා
+            tgId: clientSettings.tgId ? parseInt(clientSettings.tgId) : 0,
+            subId: clientSettings.subId || crypto.randomBytes(8).toString('hex'),
+            enable: clientSettings.enable !== false,
+            group: clientSettings.group || "",
+            comment: clientSettings.comment || "" // Whatsapp අංකය Comment එකට යවනවා
         };
-        const url = UPDATE_CLIENT_URL(clientUuid);
+
+        const url = UPDATE_CLIENT_URL(clientSettings.email);
         const { data } = await axios.post(url, payload, { headers: getApiHeaders() });
         
         if (data && data.success) invalidateCache(); 
         return data;
     } catch (error) {
-        console.error('[V2Ray API Error] Update Client failed:', error.message);
+        console.error('[V2Ray API Error] Update Client failed:', error?.response?.data || error.message);
+        throw new Error("Failed to update client in V2Ray panel.");
+    }
+};
+
+exports.addClientToGroup = async (groupName, uuid) => {
+    try {
+        const payload = { groupName: groupName, clientIds: [uuid] };
+        const { data } = await axios.post(ADD_GROUP_URL, payload, { headers: getApiHeaders() });
+        return data;
+    } catch (error) {
+        return { success: false }; 
+    }
+};
+
+exports.deleteClient = async (clientEmail) => {
+    try {
+        // අලුත් API එකට Email එක යවනවා
+        const url = DEL_CLIENT_BY_EMAIL_URL(clientEmail);
+        const { data } = await axios.post(url, {}, { headers: getApiHeaders() });
+        
+        if (data && data.success) invalidateCache(); 
+        return data;
+    } catch (error) {
+        console.error('[V2Ray API Error] Delete Client failed:', error?.response?.data || error.message);
+        throw new Error("Failed to delete client from V2Ray panel.");
+    }
+};
+
+
+exports.updateClient = async (inboundId, clientUuid, clientSettings) => {
+    try {
+        const payload = {
+            id: clientUuid, 
+            email: clientSettings.email,
+            totalGB: clientSettings.totalGB || 0,
+            expiryTime: clientSettings.expiryTime || 0,
+            limitIp: 2, // IP Limit එක 2 කලා
+            tgId: clientSettings.tgId ? parseInt(clientSettings.tgId) : 0,
+            subId: clientSettings.subId || crypto.randomBytes(8).toString('hex'),
+            enable: clientSettings.enable !== false,
+            group: clientSettings.group || "",
+            comment: clientSettings.comment || "" // Whatsapp අංකය Comment එකට යවනවා
+        };
+
+        const url = UPDATE_CLIENT_URL(clientSettings.email);
+        const { data } = await axios.post(url, payload, { headers: getApiHeaders() });
+        
+        if (data && data.success) invalidateCache(); 
+        return data;
+    } catch (error) {
+        console.error('[V2Ray API Error] Update Client failed:', error?.response?.data || error.message);
         throw new Error("Failed to update client in V2Ray panel.");
     }
 };
@@ -275,7 +303,6 @@ exports.generateV2rayConfigLink = (linkTemplate, client) => {
     const remark = encodeURIComponent(client.email);
     
     if (!linkTemplate.includes("{uuid}") || !linkTemplate.includes("{remark}")) {
-        console.error(`VLESS template is invalid.`);
         return null;
     }
     

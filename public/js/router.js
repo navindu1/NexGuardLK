@@ -71,10 +71,28 @@ export const router = async () => {
 
     document.title = pageTitles[pageKey] || 'NexGuardLK STORE';
 
+    // --- Active Link හදන අලුත් කොටස (100% Fixed Logic) ---
     document.querySelectorAll("#main-nav a, #mobile-nav a").forEach((link) => {
-        const linkPath = link.getAttribute("href")?.split("?")[0].replace('/', '');
-        link.classList.toggle("active", linkPath === pageKey || (linkPath === 'home' && pageKey === ''));
+        // 1. ලින්ක් එකේ නම ගන්නවා (උදා: "/", "/profile", "/usage")
+        const rawHref = link.getAttribute("href")?.split("?")[0];
+        
+        // 2. ඒක අපේ pageKey එකට ගැලපෙන විදියට හදාගන්නවා ('/' නම් 'home' කරගන්නවා)
+        const linkKey = (rawHref === '/' || rawHref === '') ? 'home' : rawHref.replace('/', '');
+        
+        // 3. දැන් ඉන්න පිටුවට (pageKey) සමානද බලනවා
+        const isActive = (linkKey === pageKey);
+
+        if (isActive) {
+            // Select වුණාම එන්න ඕන පාට
+            link.classList.remove("text-gray-400");
+            link.classList.add("text-blue-400", "bg-white/10", "text-white"); 
+        } else {
+            // Select නැති අනිත් ඒවගේ පාට සාමාන්‍ය කිරීම
+            link.classList.add("text-gray-400");
+            link.classList.remove("text-blue-400", "bg-white/10", "text-white"); 
+        }
     });
+    // ----------------------------------
     
     window.scrollTo(0, 0);
 

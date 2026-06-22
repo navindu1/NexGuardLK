@@ -4,7 +4,7 @@ const supabase = require('../config/supabaseClient');
 const v2rayService = require('./v2rayService');
 const { v4: uuidv4 } = require('uuid');
 const transporter = require('../config/mailer');
-const { generateEmailTemplate, generateApprovalEmailContent } = require('./emailService');
+const { generateEmailTemplate, generateApprovalEmailContent, generateInvoiceEmailContent } = require('./emailService');
 
 // --- Helper: Auto Generate Prefix ---
 function generatePrefixFromName(connName) {
@@ -112,16 +112,44 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
 
         if (order.status === 'pending') {
             // --- Logic for Processing 'pending' Orders ---
+            const isRenewalRequest = (order.is_renewal === true || order.is_renewal === 'true');
+            let clientInPanel = await v2rayService.findV2rayClient(finalUsername);
 
-            const clientInPanel = await v2rayService.findV2rayClient(finalUsername);
-            const isRenewalRequest = order.is_renewal === true || order.is_renewal === 'true' || (order.old_v2ray_username && order.old_v2ray_username.toLowerCase() === finalUsername.toLowerCase());
+            let oldUUID = null;
+            let oldSubId = null;
+
+            // --- 1. HANDLE CHANGE ORDER CLEANUP ---
+            if (!isRenewalRequest && order.old_v2ray_username) {
+                try {
+                    const oldClient = await v2rayService.findV2rayClient(order.old_v2ray_username);
+                    if (oldClient) {
+                        oldUUID = oldClient.client.id;
+                        oldSubId = oldClient.client.subId || "";
+
+                        console.log(`[Change Order] Deleting old user to preserve ID/SubID: ${order.old_v2ray_username}`);
+                        // UUID වෙනුවට Email එක යවනවා
+                        await v2rayService.deleteClient(oldClient.client.email);
+
+                        console.log(`[Change Order] Waiting 1.5s for 3x-ui database to sync...`);
+                        await new Promise(resolve => setTimeout(resolve, 1500));
+
+                        if (clientInPanel && clientInPanel.client.email.toLowerCase() === order.old_v2ray_username.toLowerCase()) {
+                            clientInPanel = null;
+                        }
+                    }
+                } catch (e) {
+                    console.warn(`[Cleanup Warning] Could not delete old user ${order.old_v2ray_username}:`, e.message);
+                    console.log(`[Change Order] Falling back to new UUID/SubID because deletion failed.`);
+                    oldUUID = null;
+                    oldSubId = null; 
+                }
+            }
 
             if (clientInPanel && isRenewalRequest) {
                 // ----------------------------------------------------
-                // CASE A: User Panel එකේ ඉන්නවා සහ මේක සැබෑ Renewal එකක්
+                // CASE A: User Panel Renewal
                 // ----------------------------------------------------
                 console.log(`[Renewal] User ${finalUsername} found in panel. Processing renewal...`);
-
                 if (parseInt(clientInPanel.inboundId) === parseInt(inboundId)) {
                     
                     const now = Date.now();
@@ -137,7 +165,6 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                             activation_timestamp: new Date(currentExpiryTime).toISOString(),
                             new_plan_details: { ...order, final_username: finalUsername }
                         });
-
                         if (queueError) throw new Error('Failed to queue renewal.');
 
                         await supabase.from("orders").update({ status: 'queued_for_renewal', final_username: finalUsername }).eq("id", orderId);
@@ -157,57 +184,58 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                     const totalGBValue = isNaN(parsedGb) || parsedGb <= 0 ? 0 : Math.round(parsedGb * 1024 * 1024 * 1024);
 
                     const updatedClientConfig = {
-                        ...clientInPanel.client,
-                        expiryTime: expiryTime,
-                        totalGB: totalGBValue, 
+                        id: clientInPanel.client.id,
+                        email: clientInPanel.client.email,
                         enable: true,
-                        group: groupName 
+                        expiryTime: expiryTime,
+                        totalGB: totalGBValue,
+                        limitIp: 2, // IP Limit එක 2
+                        tgId: clientInPanel.client.tgId || 0,
+                        subId: clientInPanel.client.subId || "",
+                        flow: clientInPanel.client.flow || "",
+                        group: groupName || clientInPanel.client.group || "",
+                        comment: order.whatsapp || "" // Whatsapp අංකය Comment එකට යවනවා
                     };
 
                     await v2rayService.updateClient(clientInPanel.inboundId, clientInPanel.client.id, updatedClientConfig);
                     await v2rayService.resetClientTraffic(clientInPanel.inboundId, finalUsername);
-
                     clientLink = v2rayService.generateV2rayConfigLink(vlessTemplate, clientInPanel.client);
-
+                    
                 } else {
                     console.log(`[Migration] Inbound mismatch for ${finalUsername}. Re-creating...`);
-                    await v2rayService.deleteClient(clientInPanel.inboundId, clientInPanel.client.id);
                     
-                    const result = await createNewV2rayUser(inboundId, finalUsername, planDetails.total_gb, vlessTemplate, order.plan_id, groupName);
+                    try {
+                        // UUID වෙනුවට Email එක යවනවා
+                        await v2rayService.deleteClient(clientInPanel.client.email);
+                        
+                        console.log(`[Migration] Waiting 1.5s for 3x-ui database to sync...`);
+                        await new Promise(resolve => setTimeout(resolve, 1500));
+                        
+                        oldUUID = clientInPanel.client.id;
+                        oldSubId = clientInPanel.client.subId;
+                    } catch (e) {
+                        console.warn(`[Migration Warning] Could not delete old user:`, e.message);
+                        oldUUID = null;
+                        oldSubId = null;
+                    }
+
+                    // මෙතන order.whatsapp පාස් කරනවා
+                    const result = await createNewV2rayUser(inboundId, finalUsername, planDetails.total_gb, vlessTemplate, order.plan_id, groupName, oldUUID, oldSubId, order.whatsapp);
                     createdV2rayClient = result.data;
                     clientLink = result.link;
                 }
-
             } else {
-                // ----------------------------------------------------
-                // CASE B: අලුත් Order එකක් (USERNAME CONFLICT FIX)
-                // ----------------------------------------------------
                 console.log(`[New Connection] Processing ${finalUsername}...`);
 
-                // 1. පරණ Account එක මකන්න (User Migration එකක් කරද්දි පමණි)
-                if (order.old_v2ray_username && order.old_v2ray_username !== finalUsername) {
-                    try {
-                        const oldClient = await v2rayService.findV2rayClient(order.old_v2ray_username);
-                        if (oldClient) {
-                            console.log(`[Cleanup] Deleting old user: ${order.old_v2ray_username}`);
-                            await v2rayService.deleteClient(oldClient.inboundId, oldClient.client.id);
-                        }
-                    } catch (e) {
-                        console.warn(`[Cleanup Warning] Could not delete old user ${order.old_v2ray_username}:`, e.message);
-                    }
-                }
-
-                // 2. අලුත් User හදන්න
-                // Panel එකේ මේ නම දැනටමත් තියෙනවා නම් Error එකක් දෙනවා (-1, -2 හදන්නේ නැත)
                 if (clientInPanel) {
-                    throw new Error(`Username '${finalUsername}' already exists in the server! Cannot approve order.`);
+                    throw new Error(`Username '${finalUsername}' already exists in the server!`);
                 }
 
-                const result = await createNewV2rayUser(inboundId, finalUsername, planDetails.total_gb, vlessTemplate, order.plan_id, groupName);
+                // මෙතනත් order.whatsapp පාස් කරනවා
+                const result = await createNewV2rayUser(inboundId, finalUsername, planDetails.total_gb, vlessTemplate, order.plan_id, groupName, oldUUID, oldSubId, order.whatsapp);
                 createdV2rayClient = result.data;
                 clientLink = result.link;
             }
-
         } else if (order.status === 'unconfirmed') {
             // --- Logic for Finalizing 'unconfirmed' Orders ---
             // මෙතනදී අලුතින් V2Ray එකක් හැදෙන්නේ නෑ. දැනට තියෙන එක හොයාගෙන Link එක ගන්නවා විතරයි
@@ -269,6 +297,7 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
 
         // Send Email
         if (finalStatus === 'approved' && websiteUser.email) {
+            // 1. සාමාන්‍ය Approval Email එක
             const emailSubject = `Your NexGuard Plan is ${order.is_renewal ? "Renewed" : "Activated"}!`;
             const mailOptions = {
                 from: `NexGuard Orders <${process.env.EMAIL_SENDER}>`,
@@ -281,10 +310,30 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
                 )
             };
 
+            // 2. අලුතින් හදපු Invoice Email එක
+            const shortOrderId = orderId.substring(0, 8).toUpperCase(); // ID එක දිග වැඩි නිසා මුල් අකුරු ටික ගමු
+            const invoiceSubject = `Payment Receipt - Order #${shortOrderId}`;
+            const invoiceOptions = {
+                from: `NexGuard Billing <${process.env.EMAIL_SENDER}>`,
+                to: websiteUser.email,
+                subject: invoiceSubject,
+                html: generateInvoiceEmailContent(
+                    websiteUser.username, 
+                    shortOrderId, 
+                    order.plan_id, 
+                    order.conn_id || 'Standard Connection', 
+                    order.price || '0.00', 
+                    new Date().toLocaleDateString()
+                )
+            };
+
             try {
+                // Emails දෙකම එකපාර යවනවා
                 await transporter.sendMail(mailOptions);
+                await transporter.sendMail(invoiceOptions);
+                console.log(`[Email] Approval and Invoice emails sent to ${websiteUser.email}`);
             } catch (emailError) {
-                console.error(`[Email Error] FAILED to send approval email:`, emailError);
+                console.error(`[Email Error] FAILED to send emails:`, emailError);
             }
         }
 
@@ -306,32 +355,33 @@ exports.approveOrder = async (orderId, isAutoConfirm = false) => {
 };
 
 // --- Helper: Create New User ---
-async function createNewV2rayUser(inboundId, username, totalGb, vlessTemplate, planName = "", groupName = "") {
+async function createNewV2rayUser(inboundId, username, totalGb, vlessTemplate, planName = "", groupName = "", existingId = null, existingSubId = null, whatsapp = "") {
     const expiryTime = Date.now() + 30 * 24 * 60 * 60 * 1000;
-    
+
     let parsedGb = parseFloat(totalGb);
     if (isNaN(parsedGb) || parsedGb <= 0) {
         const match = planName.match(/(\d+)\s*GB/i);
         if (match) parsedGb = parseFloat(match[1]); 
     }
-
     const totalGBValue = isNaN(parsedGb) || parsedGb <= 0 ? 0 : Math.round(parsedGb * 1024 * 1024 * 1024);
-    
+
     const finalGroupName = groupName || `General Users - ${planName || 'Unknown Plan'}`;
-    
-    const clientSettings = { 
-        id: uuidv4(), 
-        email: username, 
-        totalGB: totalGBValue, 
-        expiryTime, 
-        enable: true, 
-        limitIp: 1,
+
+    const clientSettings = {
+        id: existingId || uuidv4(), 
+        email: username,
+        totalGB: totalGBValue,
+        expiryTime,
+        enable: true,
+        limitIp: 2, // IP Limit එක 2
         tgId: 0,
-        group: finalGroupName 
+        subId: existingSubId || "", 
+        group: finalGroupName,
+        comment: whatsapp // Whatsapp අංකය ඇතුලත් කිරීම
     };
 
     const addRes = await v2rayService.addClient(inboundId, clientSettings);
-    
+
     if (!addRes || !addRes.success) {
         const panelErrorMsg = addRes ? addRes.msg : "Unknown Panel Error";
         console.error(`[3x-ui Panel Error] Failed to create user. Reason: ${panelErrorMsg}`);

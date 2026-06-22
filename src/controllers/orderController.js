@@ -17,11 +17,19 @@ exports.createOrder = async (req, res) => {
     }
 
     try {
-        // --- 1. Determine if this is explicitly a renewal or change ---
-        const isExplicitChange = String(isRenewal).toLowerCase() === "false" || isRenewal === false;
-        const isExplicitRenewal = String(isRenewal).toLowerCase() === "true" || isRenewal === true;
+
+        let parsedIsRenewal = isRenewal;
         
-        let isRenewalBool = isExplicitRenewal; 
+        if (typeof isRenewal === 'string' && isRenewal.includes(',')) {
+            parsedIsRenewal = isRenewal.split(',')[0].trim(); // "true,true" ආවොත් "true" විතරක් ගන්නවා
+        } else if (Array.isArray(isRenewal)) {
+            parsedIsRenewal = isRenewal[0];
+        }
+        
+        const isExplicitChange = String(parsedIsRenewal).toLowerCase() === "false" || parsedIsRenewal === false;
+        const isExplicitRenewal = String(parsedIsRenewal).toLowerCase() === "true" || parsedIsRenewal === true;
+        
+        let isRenewalBool = isExplicitRenewal;
 
         // --- 1.5 Pending Order Check (Double Orders නැවැත්වීම) ---
         // කෙනෙකුට දැනටමත් Pending හෝ Unconfirmed Order එකක් තියෙනවා නම්, තව Order එකක් දාන්න දෙන්නේ නෑ
@@ -40,14 +48,18 @@ exports.createOrder = async (req, res) => {
         }
 
         // --- 2. Backend Validation for Unique Username ---
-        // අලුත් පැකේජ් එකක් ගන්නවා නම් හෝ Plan එක Change කරනවා නම් විතරක් අලුත් නම Unique ද බලනවා
         if (!isExplicitRenewal && username) {
-            const existingClientCheck = await v2rayService.findV2rayClient(username);
-            if (existingClientCheck) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: "This Username is already taken in the Panel. Please go back and generate a new one." 
-                });
+            // පරණ නමත් prefix එක අයින් කරලා සංසන්දනය කරනවා (Frontend එකෙන් එන්නේ prefix නැති නම නිසා)
+            const cleanOldUsername = old_v2ray_username ? old_v2ray_username.replace(/^[A-Za-z0-9]+_/, '') : '';
+
+            if (!cleanOldUsername || username.toLowerCase() !== cleanOldUsername.toLowerCase()) {
+                const existingClientCheck = await v2rayService.findV2rayClient(username);
+                if (existingClientCheck) {
+                    return res.status(400).json({ 
+                        success: false, 
+                        message: "This Username is already taken in the Panel. Please go back and generate a new one." 
+                    });
+                }
             }
         }
 
