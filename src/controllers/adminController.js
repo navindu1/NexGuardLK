@@ -157,13 +157,14 @@ const getConnectionsAndPackages = async (req, res) => {
 
 const createConnection = async (req, res) => {
     try {
-        // මෙතනට prefix_code එකත් එකතු කරා
-        const { name, icon, requires_package_choice, default_package, default_inbound_id, default_vless_template, prefix_code } = req.body;
+        // group_name එකත් මෙතනට එකතු කර ඇත
+        const { name, icon, requires_package_choice, default_package, default_inbound_id, default_vless_template, prefix_code, group_name } = req.body;
         
         const insertData = { 
             name, 
             icon, 
-            prefix_code: prefix_code === '' ? null : prefix_code, // Database එකට Save වීම
+            prefix_code: prefix_code === '' ? null : prefix_code,
+            group_name: group_name === '' ? null : group_name, // Database එකට Save වීම සඳහා
             requires_package_choice: Boolean(requires_package_choice)
         };
 
@@ -194,13 +195,14 @@ const createConnection = async (req, res) => {
 const updateConnection = async (req, res) => {
     try {
         const { id } = req.params;
-        // මෙතනටත් prefix_code එක එකතු කරා
-        const { requires_package_choice, default_package, default_inbound_id, default_vless_template, name, icon, prefix_code } = req.body;
+        // group_name එකත් මෙතනට එකතු කර ඇත
+        const { requires_package_choice, default_package, default_inbound_id, default_vless_template, name, icon, prefix_code, group_name } = req.body;
         
         const updateData = { 
             name, 
             icon, 
-            prefix_code: prefix_code === '' ? null : prefix_code, // Database එකට Update වීම
+            prefix_code: prefix_code === '' ? null : prefix_code,
+            group_name: group_name === '' ? null : group_name, // Database එකට Update වීම සඳහා
             requires_package_choice 
         };
         
