@@ -1225,9 +1225,9 @@ window.openInvoice = (index) => {
                             <button data-tab="config" class="tab-btn active whitespace-nowrap shrink-0 snap-start">V2Ray Config</button>
                             <button data-tab="usage" class="tab-btn whitespace-nowrap shrink-0 snap-start">Usage Stats</button>
                             <button data-tab="orders" class="tab-btn whitespace-nowrap shrink-0 snap-start">My Orders</button>
-                            <button data-tab="settings" class="tab-btn whitespace-nowrap shrink-0 snap-start">Settings</button>
                             <button data-tab="apps" class="tab-btn whitespace-nowrap shrink-0 snap-start">Apps</button>
                             <button data-tab="tutorials" class="tab-btn whitespace-nowrap shrink-0 snap-start">Tutorials</button>
+                            <button data-tab="settings" class="tab-btn whitespace-nowrap shrink-0 snap-start">Settings</button>
                         </div>
                         <div id="tab-config" class="tab-panel active">
                             <div class="card-glass p-8 text-center custom-radius flex flex-col items-center justify-center min-h-[300px]">
